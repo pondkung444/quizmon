@@ -2,9 +2,13 @@
 -- Schema สำหรับ "เกมเลี้ยงสัตว์ + ตอบคำถามเตรียมสอบ ม.4"
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-08): ไฟล์นี้ sync กับ DB จริงหลัง migration 002-009
--- (supabase/migrations/*.sql) egg_types/pets/player_eggs/quiz_attempts
--- ยืนยันคอลัมน์ครบจาก DB จริงแล้วทั้งหมด
+-- หมายเหตุ (2026-07-08): ไฟล์นี้ sync กับ DB จริงครบ migration 001-010
+-- (supabase/migrations/*.sql) แล้ว — รอบนี้เติมส่วนที่ตกหล่นจากรอบก่อน:
+-- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
+-- egg_type_id not null (001), hatched_at not null default now() (001),
+-- index pets_user_egg_type_idx + quiz_attempts_pet_id_idx (001),
+-- ชื่อ index pets_one_active_per_user ให้ตรงกับที่ 001 สร้างจริง,
+-- และ seed name_th ปัจจุบันตาม 010 (ไข่แก่นเพลิง/ไข่แก่นพฤกษ์)
 -- ============================================================
 
 -- 1) โปรไฟล์ผู้ใช้ (เสริมจาก auth.users)
@@ -20,7 +24,7 @@ create table if not exists public.profiles (
 create table if not exists public.egg_types (
   id text primary key,
   name_th text not null,
-  tier text not null,
+  tier text not null check (tier in ('common','rare','epic','legendary')),
   description text,
   is_obtainable boolean not null default true,
   created_at timestamptz not null default now(),
@@ -33,20 +37,62 @@ comment on column public.egg_types.stat_profile is
 comment on column public.egg_types.sprite_prefix is
   'ใช้ประกอบ path รูป เช่น public/pets/{sprite_prefix}_stage{N}_....png';
 
+alter table public.egg_types enable row level security;
+
+create policy "Anyone can view egg types"
+  on public.egg_types for select
+  using (true);
+
+-- seed: ไข่ common ทั้งสองใบ ค่าปัจจุบันหลัง 001 (สร้าง) + 004 (stat_profile) +
+-- 009 (sprite_prefix) + 010 (rename name_th เป็นธีมเอพิค/นักล่ามอนสเตอร์)
+insert into public.egg_types (id, name_th, tier, description, is_obtainable, sprite_prefix, stat_profile)
+values
+  (
+    'egg_common_01',
+    'ไข่แก่นเพลิง',
+    'common',
+    'ไข่เริ่มต้นสำหรับผู้เล่นใหม่',
+    true,
+    'egg1',
+    '{
+      "archetype": "attacker_fast",
+      "growth": "early_bloomer",
+      "base_offset": 10,
+      "rate_multiplier": 1.30,
+      "caps": { "hp": 90, "atk": 115, "def": 85, "spd": 115, "foc": 95 }
+    }'::jsonb
+  ),
+  (
+    'egg_common_02',
+    'ไข่แก่นพฤกษ์',
+    'common',
+    'ไข่สายอึด ปลดล็อกหลังเลี้ยงสัตว์ตัวแรกจนเก็บเข้าสมุด',
+    true,
+    'egg2',
+    '{
+      "archetype": "tank_precise",
+      "growth": "late_bloomer",
+      "base_offset": 0,
+      "rate_multiplier": 0.85,
+      "caps": { "hp": 115, "atk": 90, "def": 110, "spd": 90, "foc": 95 }
+    }'::jsonb
+  )
+on conflict (id) do nothing;
+
 -- 3) สัตว์เลี้ยงของผู้เล่น: 1 user มีได้หลายตัว (สมุด/คลัง) แต่ active ทีละตัวผ่าน is_active
 --    (แทนที่ player_progress เดิม ซึ่งถูก drop ไปแล้ว — คอลัมน์ exp_today/exp_today_date
 --    ที่เคยอยู่บน player_progress ย้ายมาอยู่ต่อแถวสัตว์แต่ละตัวแทน)
 create table if not exists public.pets (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users (id) on delete cascade,
-  egg_type_id text references public.egg_types (id),
+  egg_type_id text not null references public.egg_types (id),
   nickname text,
-  stage smallint not null default 1,
-  exp integer not null default 0,
-  math_correct integer not null default 0,
-  science_correct integer not null default 0,
-  subline text, -- lock ครั้งเดียวตอนขยับเข้า stage 3 (ดู src/lib/evolution.ts)
-  personality text, -- lock ครั้งเดียวตอนขยับเข้า stage 4
+  stage smallint not null default 1 check (stage between 1 and 5),
+  exp integer not null default 0 check (exp >= 0),
+  math_correct integer not null default 0 check (math_correct >= 0),
+  science_correct integer not null default 0 check (science_correct >= 0),
+  subline text check (subline in ('math','science','balanced')), -- lock ครั้งเดียวตอนขยับเข้า stage 3 (ดู src/lib/evolution.ts)
+  personality text check (personality in ('A','B')), -- lock ครั้งเดียวตอนขยับเข้า stage 4
   is_active boolean not null default true,
   best_combo smallint not null default 0,
   stat_hp integer,
@@ -54,7 +100,7 @@ create table if not exists public.pets (
   stat_def integer,
   stat_spd integer,
   stat_foc integer,
-  hatched_at timestamptz,
+  hatched_at timestamptz not null default now(),
   evolved_at timestamptz, -- ตั้งค่าตอนขยับเข้า stage 4 (snapshot stat เสร็จ)
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -80,7 +126,9 @@ comment on column public.pets.exp_today_date is
   'วันที่ล่าสุดที่นับ exp_today ไว้ ใช้เทียบกับ current_date เพื่อรู้ว่าต้องรีเซ็ตยอดวันใหม่หรือยัง';
 
 create index if not exists pets_user_id_idx on public.pets (user_id);
-create unique index if not exists pets_one_active_per_user_idx on public.pets (user_id) where is_active;
+create index if not exists pets_user_egg_type_idx on public.pets (user_id, egg_type_id);
+-- ชื่อ index ตรงกับที่ 001_create_pets_system.sql สร้างจริงบน DB (ไม่มีคำต่อท้าย _idx)
+create unique index if not exists pets_one_active_per_user on public.pets (user_id) where is_active;
 
 -- 4) คลังไข่ราย user รองรับไข่ที่ได้จากหลายแหล่ง (starter / รางวัล / idle / ดันเจี้ยน / leaderboard)
 --    ได้ไข่มา = insert 1 แถว (hatched_at = null -> อยู่ในคลัง)
@@ -121,7 +169,10 @@ comment on column public.quiz_attempts.pet_id is
   'สัตว์ที่ active ตอนตอบข้อนี้ — ใช้คำนวณ subline/personality/stat_* ราย pet ตอนวิวัฒนาการ';
 
 create index if not exists quiz_attempts_user_id_idx on public.quiz_attempts (user_id);
--- index สำหรับ query "คำตอบทั้งหมดของ pet ตัวนี้" (ใช้บ่อยตอน snapshot stat)
+-- 001_create_pets_system.sql: index เต็ม (ไม่มี where) ตอนเพิ่มคอลัมน์ pet_id ครั้งแรก
+create index if not exists quiz_attempts_pet_id_idx on public.quiz_attempts (pet_id);
+-- 006_add_pet_id_to_quiz_attempts.sql: index บางส่วนซ้ำอีกตัว (where pet_id is not null) —
+-- เก็บทั้งคู่ไว้ให้ตรงกับที่มีจริงบน DB แม้จะซ้ำซ้อนกันบางส่วน (ยังไม่มี migration ไหนสั่ง drop)
 create index if not exists idx_quiz_attempts_pet_id
   on public.quiz_attempts (pet_id)
   where pet_id is not null;
@@ -194,7 +245,15 @@ create trigger on_auth_user_created
 
 -- ============================================================
 -- Trigger: ให้ pets.updated_at อัปเดตอัตโนมัติทุกครั้งที่มี UPDATE แทนที่จะพึ่งให้
--- โค้ดแอปตั้งค่าเอง (migration 007_pets_auto_updated_at.sql)
+-- โค้ดแอปตั้งค่าเอง
+--
+-- หมายเหตุความซ้ำซ้อนที่พบตอน sync รอบนี้: 001_create_pets_system.sql สร้าง trigger
+-- ชื่อ "pets_set_updated_at" ไปแล้วครั้งหนึ่ง ต่อมา 007_pets_auto_updated_at.sql
+-- สร้างอีกตัวชื่อ "trg_pets_set_updated_at" (คนละชื่อ เรียก function เดียวกัน) โดยไม่ได้
+-- DROP ตัวแรกทิ้ง — ไม่มี migration ไหนลบ trigger ของ 001 เลย จึงเก็บทั้งคู่ไว้ในไฟล์นี้
+-- ให้ตรงกับสภาพจริงบน DB (แม้จะทำงานซ้ำกันตอน update ก็ตาม ไม่ได้ทำให้ค่าอื่นเพี้ยน
+-- เพราะ set updated_at = now() ซ้ำสองครั้งได้ผลลัพธ์เหมือนเดิม) — ถ้าจะเก็บกวาดควร DROP
+-- ตัวใดตัวหนึ่งบน DB จริงแยกเป็น migration ใหม่ ไม่ใช่แก้เงียบๆ ในไฟล์ sync นี้
 -- ============================================================
 
 create or replace function public.set_updated_at()
@@ -205,8 +264,14 @@ begin
 end;
 $$ language plpgsql;
 
-drop trigger if exists trg_pets_set_updated_at on public.pets;
+-- 001_create_pets_system.sql
+drop trigger if exists pets_set_updated_at on public.pets;
+create trigger pets_set_updated_at
+  before update on public.pets
+  for each row execute function public.set_updated_at();
 
+-- 007_pets_auto_updated_at.sql
+drop trigger if exists trg_pets_set_updated_at on public.pets;
 create trigger trg_pets_set_updated_at
   before update on public.pets
   for each row
