@@ -78,7 +78,7 @@ export async function submitAnswer(input: {
   const admin = createAdminClient();
   const { data: question, error } = await admin
     .from("questions")
-    .select("correct_index, explanation")
+    .select("correct_index, explanation, subject")
     .eq("id", input.questionId)
     .single();
   if (error || !question) throw new Error("ไม่พบคำถามนี้");
@@ -99,7 +99,7 @@ export async function submitAnswer(input: {
 
   const { data: activePet } = await supabase
     .from("pets")
-    .select("id, best_combo")
+    .select("id, best_combo, math_correct, science_correct")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -112,11 +112,17 @@ export async function submitAnswer(input: {
     pet_id: activePet.id,
   });
 
+  const petUpdates: Record<string, number> = {};
   if (newCombo > activePet.best_combo) {
-    await supabase
-      .from("pets")
-      .update({ best_combo: newCombo })
-      .eq("id", activePet.id);
+    petUpdates.best_combo = newCombo;
+  }
+  if (isCorrect && question.subject === "math") {
+    petUpdates.math_correct = activePet.math_correct + 1;
+  } else if (isCorrect && question.subject === "science") {
+    petUpdates.science_correct = activePet.science_correct + 1;
+  }
+  if (Object.keys(petUpdates).length > 0) {
+    await supabase.from("pets").update(petUpdates).eq("id", activePet.id);
   }
 
   return {
