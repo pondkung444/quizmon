@@ -38,7 +38,7 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/quiz")) return null;
+  if (pathname?.startsWith("/quiz") || pathname === "/login" || pathname === "/") return null;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card">
