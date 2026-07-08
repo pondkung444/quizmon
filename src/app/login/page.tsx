@@ -29,7 +29,7 @@ export default function LoginPage() {
         setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
         return;
       }
-      router.push("/quiz");
+      router.push("/pet");
       router.refresh();
     } else {
       const { error } = await supabase.auth.signUp({
