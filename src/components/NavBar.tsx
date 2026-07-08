@@ -9,24 +9,24 @@ export default async function NavBar() {
   } = await supabase.auth.getUser();
 
   return (
-    <nav className="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-800">
-      <div className="flex gap-4 text-sm font-medium">
-        <Link href="/quiz" className="hover:text-indigo-600">
+    <nav className="flex items-center justify-between border-b border-gold-dim pb-4">
+      <div className="flex gap-4 text-sm font-medium text-text2">
+        <Link href="/quiz" className="hover:text-amber">
           ตอบคำถาม
         </Link>
-        <Link href="/pet" className="hover:text-indigo-600">
+        <Link href="/pet" className="hover:text-amber">
           เลี้ยงสัตว์
         </Link>
-        <Link href="/eggs" className="hover:text-indigo-600">
+        <Link href="/eggs" className="hover:text-amber">
           คลังไข่
         </Link>
-        <Link href="/collection" className="hover:text-indigo-600">
+        <Link href="/collection" className="hover:text-amber">
           สมุดสะสม
         </Link>
       </div>
       {user && (
         <form action={signOut}>
-          <button type="submit" className="text-sm text-gray-500 hover:text-red-600">
+          <button type="submit" className="text-sm text-text3 hover:text-red">
             ออกจากระบบ
           </button>
         </form>
