@@ -98,6 +98,7 @@ export default function PetCard({
   nextThreshold,
   progress,
   nickname,
+  speciesName,
   petImagePath,
   sublineLabel,
   personality,
@@ -118,6 +119,7 @@ export default function PetCard({
   nextThreshold: number | undefined;
   progress: number;
   nickname: string | null;
+  speciesName: string | null;
   petImagePath: string | null;
   sublineLabel: string | null;
   personality: string | null;
@@ -167,7 +169,7 @@ export default function PetCard({
       {/* 2. nameplate */}
       <div className="relative flex h-14 w-14 items-center justify-center rotate-45 border-2 border-gold bg-track">
         <span className="-rotate-45 px-1 text-[10px] font-bold leading-tight text-gold-hi">
-          {nickname ?? "ตัวใหม่"}
+          {nickname ?? speciesName ?? stageName}
         </span>
       </div>
 
@@ -206,7 +208,7 @@ export default function PetCard({
       {/* 4. exp -> next stage */}
       {nextThreshold !== undefined ? (
         <div className="w-full max-w-xs">
-          <p className="mb-1 text-left text-xs text-text2">ความรู้ → ระยะถัดไป</p>
+          <p className="mb-1 text-left text-xs text-text2">พลังวิวัฒนาการ → ร่างถัดไป</p>
           <div className="h-3 w-full overflow-hidden rounded-full bg-track">
             <div className="h-full bg-amber transition-all" style={{ width: `${progress * 100}%` }} />
           </div>
@@ -220,7 +222,7 @@ export default function PetCard({
 
       {/* 5. daily training bar */}
       <div className="w-full max-w-xs">
-        <p className="mb-1 text-left text-xs text-text2">พลังฝึกวันนี้</p>
+        <p className="mb-1 text-left text-xs text-text2">พลังวันนี้</p>
         <div className="h-3 w-full overflow-hidden rounded-full bg-track">
           <div className="h-full bg-amber transition-all" style={{ width: `${dailyProgress * 100}%` }} />
         </div>
@@ -252,7 +254,7 @@ export default function PetCard({
           href="/quiz"
           className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
         >
-          ฝึกสมอง
+          ฝึก Qmon
         </Link>
       )}
 

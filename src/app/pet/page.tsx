@@ -1,16 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { STAGE_EXP_THRESHOLD, type Subline, type Personality } from "@/lib/evolution";
+import {
+  STAGE_EXP_THRESHOLD,
+  STAGE_LABEL_TH,
+  getSpeciesName,
+  type Subline,
+  type Personality,
+} from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
-
-const STAGE_INFO: Record<number, { name: string; description: string }> = {
-  1: { name: "ไข่", description: "กำลังรอฟักตัว" },
-  2: { name: "ตัวอ่อน", description: "เริ่มเติบโต" },
-  3: { name: "วัยเจริญ", description: "เริ่มเห็นสายวิวัฒนาการ" },
-  4: { name: "ร่างสมบูรณ์", description: "เติบโตเต็มที่แล้ว" },
-};
 
 const SUBLINE_LABEL: Record<string, string> = {
   math: "สายคณิต",
@@ -64,7 +63,7 @@ export default async function PetPage({
 
   const exp = pet?.exp ?? 0;
   const stage = pet?.stage ?? 1;
-  const stageInfo = STAGE_INFO[stage] ?? STAGE_INFO[1];
+  const stageInfo = STAGE_LABEL_TH[stage] ?? STAGE_LABEL_TH[1];
   const subline = pet?.subline;
   const personality = pet?.personality;
   const statHp = pet?.stat_hp ?? null;
@@ -80,6 +79,7 @@ export default async function PetPage({
 
   const eggType = pet ? (Array.isArray(pet.egg_types) ? pet.egg_types[0] : pet.egg_types) : null;
   let petImagePath: string | null = null;
+  let speciesName: string | null = null;
   if (eggType) {
     try {
       petImagePath = getPetImagePath(
@@ -87,6 +87,17 @@ export default async function PetPage({
         stage,
         (subline ?? null) as Subline | null,
         (personality ?? null) as Personality | null
+      );
+    } catch (err) {
+      console.error(err);
+    }
+    try {
+      speciesName = getSpeciesName(
+        eggType.sprite_prefix,
+        stage,
+        (subline ?? null) as Subline | null,
+        (personality ?? null) as Personality | null,
+        eggType.name_th
       );
     } catch (err) {
       console.error(err);
@@ -105,6 +116,7 @@ export default async function PetPage({
           nextThreshold={nextThreshold}
           progress={progress}
           nickname={pet.nickname}
+          speciesName={speciesName}
           petImagePath={petImagePath}
           sublineLabel={subline ? SUBLINE_LABEL[subline] ?? subline : null}
           personality={personality ?? null}

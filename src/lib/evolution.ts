@@ -6,6 +6,14 @@ export const STAGE_EXP_THRESHOLD: Record<number, number> = {
   // stage 4 = สูงสุดใน MVP ไม่มี threshold ต่อ (stage 5 อยู่นอก scope)
 };
 
+// ป้ายชื่อ + คำอธิบายระยะ (copy ที่โชว์ผู้เล่น) — จุดเดียวที่ควรแก้ข้อความพวกนี้
+export const STAGE_LABEL_TH: Record<number, { name: string; description: string }> = {
+  1: { name: "เริ่มต้น", description: "กำลังรอฟักตัว" },
+  2: { name: "ฝึกฝน", description: "เริ่มเติบโต" },
+  3: { name: "แกร่งกล้า", description: "เริ่มเห็นสายวิวัฒนาการ" },
+  4: { name: "ร่างสมบูรณ์", description: "เติบโตเต็มที่แล้ว" },
+};
+
 // ขยับได้ครั้งละ "1 stage สูงสุด" เท่านั้น ต่อการเรียก 1 ครั้ง แม้ exp จะเกินหลายธรณีประตูก็ตาม
 // สำคัญ: อย่าคำนวณ stage จาก exp ทั้งก้อนแบบเดิม (pet.ts) ให้ดูจาก currentStage เป็นตัวตั้งเสมอ
 export function tryAdvanceStage(currentStage: number, currentExp: number): number {
@@ -34,6 +42,73 @@ export type Personality = "A" | "B";
 
 export function determinePersonality(playDaysLast7: number): Personality {
   return playDaysLast7 >= 4 ? "A" : "B"; // >50% ของ 7 วัน
+}
+
+// --- ชื่อสายพันธุ์ (copy ที่โชว์ผู้เล่น) — key ด้วย egg_types.sprite_prefix ---
+type SublineSpeciesName = {
+  base: string;
+  byPersonality: Record<Personality, string>;
+};
+
+type EggSpeciesNameSet = {
+  baby: string; // stage 2
+  bySubline: Record<Subline, SublineSpeciesName>; // stage 3 (.base) / stage 4 (.byPersonality)
+};
+
+const SPECIES_NAME_TH: Record<string, EggSpeciesNameSet> = {
+  egg1: {
+    baby: "เพลิงน้อย",
+    bySubline: {
+      math: { base: "เพลิงผลึก", byPersonality: { A: "เพลิงผลึก: คมสังหาร", B: "เพลิงผลึก: กำแพงแก้ว" } },
+      science: { base: "เพลิงลาวา", byPersonality: { A: "เพลิงลาวา: ปะทุ", B: "เพลิงลาวา: แก่นหิน" } },
+      balanced: { base: "เพลิงโอฬาร", byPersonality: { A: "เพลิงโอฬาร: ทรงเดช", B: "เพลิงโอฬาร: เกราะทอง" } },
+    },
+  },
+  egg2: {
+    baby: "พฤกษ์น้อย",
+    bySubline: {
+      math: { base: "พฤกษ์สลัก", byPersonality: { A: "พฤกษ์สลัก: หนามคม", B: "พฤกษ์สลัก: เปลือกหนา" } },
+      science: { base: "พฤกษ์นิเวศ", byPersonality: { A: "พฤกษ์นิเวศ: ผลิบาน", B: "พฤกษ์นิเวศ: รากลึก" } },
+      balanced: { base: "พฤกษ์บรรพ", byPersonality: { A: "พฤกษ์บรรพ: เวทไพร", B: "พฤกษ์บรรพ: พงหลัก" } },
+    },
+  },
+};
+
+// mirror ข้อจำกัดเดียวกับ getPetImagePath (src/lib/petImage.ts): stage 3 ต้องมี subline,
+// stage 4 ต้องมี subline+personality — throw แบบเดียวกันแทนการเดา/ใส่ค่า default เงียบๆ
+export function getSpeciesName(
+  spritePrefix: string,
+  stage: number,
+  subline: Subline | null,
+  personality: Personality | null,
+  eggNameTh: string
+): string {
+  if (stage === 1) return eggNameTh;
+
+  const set = SPECIES_NAME_TH[spritePrefix];
+  if (!set) {
+    throw new Error(`getSpeciesName: ไม่พบชื่อสายพันธุ์สำหรับ sprite_prefix="${spritePrefix}"`);
+  }
+
+  if (stage === 2) return set.baby;
+
+  if (stage === 3) {
+    if (!subline) {
+      throw new Error(`getSpeciesName: pet stage 3 ต้องมี subline แต่ได้ null (prefix=${spritePrefix})`);
+    }
+    return set.bySubline[subline].base;
+  }
+
+  if (stage === 4) {
+    if (!subline || !personality) {
+      throw new Error(
+        `getSpeciesName: pet stage 4 ต้องมี subline+personality แต่ได้ subline=${subline}, personality=${personality} (prefix=${spritePrefix})`
+      );
+    }
+    return set.bySubline[subline].byPersonality[personality];
+  }
+
+  throw new Error(`getSpeciesName: stage ไม่ถูกต้อง: ${stage}`);
 }
 
 // --- ตัวคูณชั้น subline (หมวด 5.3 ของเอกสาร) ---

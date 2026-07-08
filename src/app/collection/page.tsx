@@ -1,17 +1,11 @@
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import type { Subline, Personality } from "@/lib/evolution";
+import { getSpeciesName, type Subline, type Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
 
 const SUBLINE_ORDER: Subline[] = ["math", "science", "balanced"];
 const PERSONALITY_ORDER: Personality[] = ["A", "B"];
-
-const SUBLINE_LABEL: Record<Subline, string> = {
-  math: "สายคณิต",
-  science: "สายวิทย์",
-  balanced: "สายสมดุล",
-};
 
 type Slot = {
   key: string;
@@ -19,6 +13,7 @@ type Slot = {
   subline: Subline;
   personality: Personality;
   imagePath: string;
+  speciesName: string;
   unlocked: boolean;
 };
 
@@ -64,6 +59,7 @@ export default async function CollectionPage() {
           subline,
           personality,
           imagePath: getPetImagePath(eggType.sprite_prefix, 4, subline, personality),
+          speciesName: getSpeciesName(eggType.sprite_prefix, 4, subline, personality, eggType.name_th),
           unlocked: unlockedKeys.has(key),
         });
       }
@@ -118,7 +114,7 @@ export default async function CollectionPage() {
                   {slot.unlocked ? (
                     <Image
                       src={slot.imagePath}
-                      alt={`${eggType.name_th} ${SUBLINE_LABEL[slot.subline]} ${slot.personality}`}
+                      alt={slot.speciesName}
                       width={90}
                       height={90}
                       className="h-16 w-16 object-contain"
@@ -142,9 +138,7 @@ export default async function CollectionPage() {
                     </div>
                   )}
                   <p className="text-[10px] text-text3">
-                    {slot.unlocked
-                      ? `${SUBLINE_LABEL[slot.subline]} · ${slot.personality}`
-                      : "ยังไม่ปลดล็อก"}
+                    {slot.unlocked ? slot.speciesName : "???"}
                   </p>
                 </div>
               ))}
