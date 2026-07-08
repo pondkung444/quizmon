@@ -40,3 +40,18 @@ body {
 .animate-spin-slow {
   animation: spin-slow 16s linear infinite;
 }
+
+@keyframes evolve-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-evolve-pop {
+  animation: evolve-pop 650ms ease-out;
+}

@@ -82,7 +82,7 @@ export default async function CollectionPage() {
       <SignOutLink />
       <div>
         <h1 className="text-2xl font-bold text-gold-hi">สมุดสะสม</h1>
-        <p className="text-sm text-text3">สัตว์ที่เลี้ยงจนโตเต็มที่และเก็บเข้าสมุดแล้ว</p>
+        <p className="text-sm text-text3">Qmon ที่เลี้ยงจนโตเต็มที่และเก็บเข้าสมุดแล้ว</p>
       </div>
 
       <div>

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import CollectPetButton from "@/components/CollectPetButton";
+
+const EVOLVE_ANIMATION_MS = 650;
 
 const RADAR_MAX = 120;
 const RADAR_AXES = [
@@ -106,6 +109,7 @@ export default function PetCard({
   statFoc,
   expToday,
   dailyCap,
+  justEvolved,
 }: {
   stage: number;
   stageName: string;
@@ -125,8 +129,16 @@ export default function PetCard({
   statFoc: number | null;
   expToday: number;
   dailyCap: number;
+  justEvolved: boolean;
 }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!justEvolved) return;
+    const timer = setTimeout(() => router.replace("/pet"), EVOLVE_ANIMATION_MS);
+    return () => clearTimeout(timer);
+  }, [justEvolved, router]);
 
   const isMaxStage = stage === 4;
   const cappedToday = expToday >= dailyCap;
@@ -172,10 +184,21 @@ export default function PetCard({
           <circle cx="100" cy="100" r="72" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="1 8" />
         </svg>
         {petImagePath ? (
-          <Image src={petImagePath} alt="สัตว์เลี้ยง" width={180} height={180} priority className="relative" />
+          <Image
+            src={petImagePath}
+            alt="ภาพ Qmon"
+            width={180}
+            height={180}
+            priority
+            className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
+          />
         ) : (
-          <div className="relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3">
-            ไม่พบรูปสัตว์
+          <div
+            className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${
+              justEvolved ? "animate-evolve-pop" : ""
+            }`}
+          >
+            ไม่พบรูป Qmon
           </div>
         )}
       </button>

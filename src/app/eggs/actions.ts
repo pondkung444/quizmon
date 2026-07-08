@@ -18,7 +18,7 @@ export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> 
     .maybeSingle();
 
   if (activePet) {
-    throw new Error("มีสัตว์ที่กำลังเลี้ยงอยู่แล้ว ต้องเก็บเข้าสมุดก่อนถึงจะฟักตัวใหม่ได้");
+    throw new Error("มี Qmon ที่กำลังเลี้ยงอยู่แล้ว ต้องเก็บเข้าสมุดก่อนถึงจะฟักตัวใหม่ได้");
   }
 
   // 2) เช็คว่าไข่ใบนี้เป็นของ user นี้จริง และยังไม่ฟัก
@@ -47,7 +47,7 @@ export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> 
     .select("id")
     .single();
 
-  if (petError || !newPet) throw new Error("สร้างสัตว์ใหม่ไม่สำเร็จ: " + petError?.message);
+  if (petError || !newPet) throw new Error("สร้าง Qmon ใหม่ไม่สำเร็จ: " + petError?.message);
 
   // 4) mark ไข่ว่าฟักแล้ว
   const { error: updateError } = await supabase

@@ -103,7 +103,7 @@ export async function submitAnswer(input: {
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
-  if (!activePet) throw new Error("ยังไม่มีสัตว์ที่กำลังเลี้ยงอยู่");
+  if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
 
   await supabase.from("quiz_attempts").insert({
     user_id: user.id,
@@ -131,6 +131,7 @@ export async function submitAnswer(input: {
 export type RoundFinishResult = {
   expAddedToPet: number;
   capped: boolean;
+  evolved: boolean;
 };
 
 export async function finishQuizRound(roundExpEarned: number): Promise<RoundFinishResult> {
@@ -148,7 +149,7 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
-  if (!activePet) throw new Error("ยังไม่มีสัตว์ที่กำลังเลี้ยงอยู่");
+  if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
 
   const today = getTodayInBangkok();
   const expTodaySoFar = activePet.exp_today_date === today ? activePet.exp_today : 0;
@@ -242,5 +243,5 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
     })
     .eq("id", activePet.id);
 
-  return { expAddedToPet, capped };
+  return { expAddedToPet, capped, evolved: newStage !== activePet.stage };
 }

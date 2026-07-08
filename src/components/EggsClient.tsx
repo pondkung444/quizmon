@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
 
 const TIER_LABEL: Record<string, string> = {
@@ -18,6 +19,7 @@ export type EggListItem = {
   nameTh: string;
   tier: string;
   description: string | null;
+  imagePath: string | null;
 };
 
 export default function EggsClient({
@@ -53,7 +55,7 @@ export default function EggsClient({
         <p className="rounded-xl border border-amber-dim bg-amber/10 p-3 text-center text-sm text-amber">
           กำลังเลี้ยงอยู่ 1 ตัว เก็บเข้าสมุดก่อนถึงจะฟักตัวใหม่ได้ —{" "}
           <a href="/pet" className="font-bold underline">
-            ไปหน้าเลี้ยงสัตว์
+            ไปหน้าเลี้ยง Qmon
           </a>
         </p>
       )}
@@ -75,12 +77,27 @@ export default function EggsClient({
               key={egg.id}
               className="flex items-center justify-between gap-4 rounded-xl border border-gold-dim bg-card p-4"
             >
-              <div>
-                <p className="font-bold text-gold-hi">{egg.nameTh}</p>
-                <p className="text-xs text-text3">{TIER_LABEL[egg.tier] ?? egg.tier}</p>
-                {egg.description && (
-                  <p className="mt-1 text-sm text-text2">{egg.description}</p>
+              <div className="flex items-center gap-4">
+                {egg.imagePath ? (
+                  <Image
+                    src={egg.imagePath}
+                    alt={egg.nameTh}
+                    width={56}
+                    height={56}
+                    className="shrink-0 rounded-lg"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-track text-xs text-text3">
+                    ?
+                  </div>
                 )}
+                <div>
+                  <p className="font-bold text-gold-hi">{egg.nameTh}</p>
+                  <p className="text-xs text-text3">{TIER_LABEL[egg.tier] ?? egg.tier}</p>
+                  {egg.description && (
+                    <p className="mt-1 text-sm text-text2">{egg.description}</p>
+                  )}
+                </div>
               </div>
               <button
                 type="button"

@@ -18,7 +18,14 @@ const SUBLINE_LABEL: Record<string, string> = {
   balanced: "สายสมดุล",
 };
 
-export default async function PetPage() {
+export default async function PetPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { evolved } = await searchParams;
+  const justEvolved = evolved === "1";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -109,10 +116,11 @@ export default async function PetPage() {
           statFoc={statFoc}
           expToday={expToday}
           dailyCap={DAILY_EXP_CAP}
+          justEvolved={justEvolved}
         />
       ) : (
         <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">
-          ยังไม่มีสัตว์ที่กำลังเลี้ยงอยู่ — ไปที่คลังไข่เพื่อฟักไข่ใบแรก
+          ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่ — ไปที่คลังไข่เพื่อฟักไข่ใบแรก
         </div>
       )}
     </main>

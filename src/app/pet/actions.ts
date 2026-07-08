@@ -17,8 +17,8 @@ export async function collectPet(): Promise<{ collected: true }> {
     .eq("is_active", true)
     .single();
 
-  if (petError || !pet) throw new Error("ไม่พบสัตว์ที่กำลังเลี้ยงอยู่");
-  if (pet.stage !== 4) throw new Error("สัตว์ตัวนี้ยังโตไม่เต็มที่ เก็บเข้าสมุดไม่ได้");
+  if (petError || !pet) throw new Error("ไม่พบ Qmon ที่กำลังเลี้ยงอยู่");
+  if (pet.stage !== 4) throw new Error("Qmon ตัวนี้ยังโตไม่เต็มที่ เก็บเข้าสมุดไม่ได้");
 
   // 2) เก็บเข้าสมุด (is_active = false)
   const { error: collectError } = await supabase
@@ -26,7 +26,7 @@ export async function collectPet(): Promise<{ collected: true }> {
     .update({ is_active: false })
     .eq("id", pet.id);
 
-  if (collectError) throw new Error("เก็บสัตว์เข้าสมุดไม่สำเร็จ: " + collectError.message);
+  if (collectError) throw new Error("เก็บ Qmon เข้าสมุดไม่สำเร็จ: " + collectError.message);
 
   // 3) เช็คว่าเคยได้ไข่ใบสอง (egg_common_02) มาก่อนหรือยัง ถ้ายัง -> ปลดล็อกให้
   const { data: existingSecondEgg } = await supabase

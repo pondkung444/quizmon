@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { PublicQuestion, Subject } from "@/types/quiz";
 import {
   startQuizRound,
@@ -22,6 +23,7 @@ type Phase = "select" | "loading" | "playing" | "summary";
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
 export default function QuizClient() {
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
   const [subject, setSubject] = useState<Subject | null>(null);
   const [questions, setQuestions] = useState<PublicQuestion[]>([]);
@@ -104,10 +106,7 @@ export default function QuizClient() {
   }
 
   function handleBackToSubjects() {
-    resetRoundState();
-    setSubject(null);
-    setQuestions([]);
-    setPhase("select");
+    router.push(summary?.evolved ? "/pet?evolved=1" : "/pet");
   }
 
   if (phase === "select" || phase === "loading") {
@@ -254,7 +253,7 @@ export default function QuizClient() {
 
         {summary?.capped && (
           <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
-            🍚 สัตว์เลี้ยงของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
+            🍚 Qmon ของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
           </p>
         )}
       </div>
@@ -272,7 +271,7 @@ export default function QuizClient() {
           onClick={handleBackToSubjects}
           className="rounded-2xl border-2 border-border py-4 text-lg font-bold text-text2 transition active:scale-95"
         >
-          กลับหน้าหลัก
+          ไปเลี้ยง Qmon
         </button>
       </div>
     </div>

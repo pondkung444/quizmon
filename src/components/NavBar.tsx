@@ -15,7 +15,7 @@ export default async function NavBar() {
           ตอบคำถาม
         </Link>
         <Link href="/pet" className="hover:text-amber">
-          เลี้ยงสัตว์
+          เลี้ยง Qmon
         </Link>
         <Link href="/eggs" className="hover:text-amber">
           คลังไข่

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
 
@@ -15,7 +16,9 @@ export default async function EggsPage() {
     const [{ data: eggRows }, { data: activePet }] = await Promise.all([
       supabase
         .from("player_eggs")
-        .select("id, source, obtained_at, egg_type_id, egg_types(name_th, tier, description)")
+        .select(
+          "id, source, obtained_at, egg_type_id, egg_types(name_th, tier, description, sprite_prefix)"
+        )
         .eq("user_id", user.id)
         .is("hatched_at", null)
         .order("obtained_at", { ascending: true }),
@@ -33,6 +36,7 @@ export default async function EggsPage() {
         nameTh: eggType?.name_th ?? row.egg_type_id,
         tier: eggType?.tier ?? "common",
         description: eggType?.description ?? null,
+        imagePath: eggType ? getPetImagePath(eggType.sprite_prefix, 1, null, null) : null,
       };
     });
   }
