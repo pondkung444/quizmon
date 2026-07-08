@@ -10,8 +10,8 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  title: "เลี้ยงมังกรเตรียมสอบ ม.4",
-  description: "ตอบคำถามเตรียมสอบเข้า ม.4 แล้วเลี้ยงมังกรน้อยให้เติบโต",
+  title: "Quizmon",
+  description: "ตอบถูกทุกข้อ มอนของคุณโตทุกครั้ง",
 };
 
 export default function RootLayout({

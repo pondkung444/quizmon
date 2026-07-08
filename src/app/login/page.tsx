@@ -50,9 +50,9 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-6">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gold-hi">🐲 เลี้ยงมังกรเตรียมสอบ</h1>
+        <h1 className="text-2xl font-bold text-gold-hi">🎮 Quizmon</h1>
         <p className="mt-1 text-sm text-text3">
-          ตอบคำถามให้ถูก แต้มจะช่วยให้มังกรของคุณโตขึ้น
+          ตอบถูกทุกข้อ มอนของคุณโตทุกครั้ง
         </p>
       </div>
 
