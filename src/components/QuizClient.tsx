@@ -12,9 +12,9 @@ import {
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
-const SUBJECTS: { id: Subject; label: string; emoji: string; gradient: string }[] = [
-  { id: "math", label: "คณิตศาสตร์", emoji: "🧮", gradient: "from-sky-400 to-blue-600" },
-  { id: "science", label: "วิทยาศาสตร์", emoji: "🔬", gradient: "from-emerald-400 to-teal-600" },
+const SUBJECTS: { id: Subject; label: string; emoji: string }[] = [
+  { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
+  { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
 ];
 
 type Phase = "select" | "loading" | "playing" | "summary";
@@ -114,12 +114,12 @@ export default function QuizClient() {
     return (
       <div className="flex flex-col gap-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">เลือกวิชาที่จะฝึกวันนี้</h1>
-          <p className="mt-1 text-sm text-gray-500">ตอบให้ถูกเยอะๆ แล้วไปเลี้ยงเพื่อนตัวน้อยกัน!</p>
+          <h1 className="text-2xl font-bold text-gold-hi">เลือกวิชาที่จะฝึกวันนี้</h1>
+          <p className="mt-1 text-sm text-text3">ตอบให้ถูกเยอะๆ แล้วไปเลี้ยงเพื่อนตัวน้อยกัน!</p>
         </div>
 
         {errorMessage && (
-          <p className="rounded-xl bg-amber-100 p-3 text-center text-sm text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+          <p className="rounded-xl border border-amber-dim bg-amber/10 p-3 text-center text-sm text-amber">
             {errorMessage}
           </p>
         )}
@@ -131,7 +131,7 @@ export default function QuizClient() {
               type="button"
               disabled={phase === "loading"}
               onClick={() => handleSelectSubject(s.id)}
-              className={`flex items-center justify-center gap-3 rounded-3xl bg-gradient-to-br ${s.gradient} px-6 py-10 text-2xl font-bold text-white shadow-lg transition active:scale-95 disabled:opacity-60`}
+              className="flex items-center justify-center gap-3 rounded-3xl border border-gold-dim bg-card px-6 py-10 text-2xl font-bold text-gold-hi shadow-lg transition hover:border-gold active:scale-95 disabled:opacity-60"
             >
               <span className="text-4xl">{s.emoji}</span>
               {phase === "loading" && subject === s.id ? "กำลังสุ่มคำถาม..." : s.label}
@@ -150,19 +150,19 @@ export default function QuizClient() {
     return (
       <div className="flex flex-col gap-5">
         <div>
-          <div className="flex items-center justify-between text-sm font-medium text-gray-500">
+          <div className="flex items-center justify-between text-sm font-medium text-text3">
             <span>ข้อที่ {index + 1}/{questions.length}</span>
             <span>{current.category}</span>
           </div>
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-track">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-500 transition-all duration-300"
+              className="h-full rounded-full bg-amber transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        <h2 className="text-xl font-bold leading-relaxed">{current.question_text}</h2>
+        <h2 className="text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
         <div className="flex flex-col gap-3">
           {current.choices.map((choiceText, choiceIndex) => {
@@ -170,14 +170,13 @@ export default function QuizClient() {
             const isCorrectChoice = result && choiceIndex === result.correctIndex;
             const isWrongSelected = result && isSelected && !result.correct;
 
-            let style =
-              "border-gray-300 bg-white hover:border-sky-400 dark:border-gray-700 dark:bg-gray-900";
+            let style = "border-border bg-card hover:border-gold-dim";
             if (isCorrectChoice) {
-              style = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950";
+              style = "border-gold bg-amber/10";
             } else if (isWrongSelected) {
-              style = "border-rose-500 bg-rose-50 dark:bg-rose-950";
+              style = "border-red bg-red/10";
             } else if (isSelected) {
-              style = "border-sky-500 bg-sky-50 dark:bg-sky-950";
+              style = "border-amber bg-amber/10";
             }
 
             return (
@@ -187,9 +186,9 @@ export default function QuizClient() {
                 data-testid="choice-button"
                 disabled={!!result || isPending}
                 onClick={() => handleSelectChoice(choiceIndex)}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium shadow-sm transition disabled:cursor-not-allowed ${style}`}
+                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                   {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
                 </span>
                 {choiceText}
@@ -200,10 +199,8 @@ export default function QuizClient() {
 
         {result && (
           <div
-            className={`rounded-2xl p-4 text-center ${
-              result.correct
-                ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100"
-                : "bg-rose-100 text-rose-900 dark:bg-rose-900 dark:text-rose-100"
+            className={`rounded-2xl border p-4 text-center ${
+              result.correct ? "border-gold-dim bg-amber/10 text-gold-hi" : "border-red bg-red/10 text-red"
             }`}
           >
             {result.correct ? (
@@ -227,7 +224,7 @@ export default function QuizClient() {
             type="button"
             onClick={handleNext}
             disabled={isPending}
-            className="rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {isPending ? "กำลังบันทึก..." : isLastQuestion ? "ดูสรุปผล" : "ข้อต่อไป"}
           </button>
@@ -244,19 +241,19 @@ export default function QuizClient() {
     <div className="flex flex-col gap-6 text-center">
       <div>
         <p className="text-6xl">{correctCount >= questions.length ? "🏆" : correctCount > 0 ? "🎊" : "💪"}</p>
-        <h1 className="mt-2 text-2xl font-bold">จบรอบแล้ว!</h1>
+        <h1 className="mt-2 text-2xl font-bold text-gold-hi">จบรอบแล้ว!</h1>
       </div>
 
-      <div className="rounded-3xl border-2 border-gray-200 p-6 dark:border-gray-800">
-        <p className="text-lg">
-          ตอบถูก <span className="font-bold text-emerald-600">{correctCount}</span>/{questions.length} ข้อ
+      <div className="rounded-3xl border border-gold-dim bg-card p-6">
+        <p className="text-lg text-text">
+          ตอบถูก <span className="font-bold text-gold-hi">{correctCount}</span>/{questions.length} ข้อ
         </p>
-        <p className="mt-2 text-lg">
-          ได้ EXP รวม <span className="font-bold text-indigo-600">{roundExpEarned}</span> EXP
+        <p className="mt-2 text-lg text-text">
+          ได้ EXP รวม <span className="font-bold text-amber">{roundExpEarned}</span> EXP
         </p>
 
         {summary?.capped && (
-          <p className="mt-3 rounded-xl bg-amber-100 p-3 text-sm text-amber-800 dark:bg-amber-900 dark:text-amber-100">
+          <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
             🍚 สัตว์เลี้ยงของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
           </p>
         )}
@@ -266,14 +263,14 @@ export default function QuizClient() {
         <button
           type="button"
           onClick={handlePlayAgain}
-          className="rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-lg transition active:scale-95"
+          className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-track shadow-lg transition active:scale-95"
         >
           เล่นอีกรอบ
         </button>
         <button
           type="button"
           onClick={handleBackToSubjects}
-          className="rounded-2xl border-2 border-gray-300 py-4 text-lg font-bold text-gray-700 transition active:scale-95 dark:border-gray-700 dark:text-gray-200"
+          className="rounded-2xl border-2 border-border py-4 text-lg font-bold text-text2 transition active:scale-95"
         >
           กลับหน้าหลัก
         </button>
