@@ -2,13 +2,14 @@
 -- Schema สำหรับ "เกมเลี้ยงสัตว์ + ตอบคำถามเตรียมสอบ ม.4"
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-08): ไฟล์นี้ sync กับ DB จริงครบ migration 001-010
--- (supabase/migrations/*.sql) แล้ว — รอบนี้เติมส่วนที่ตกหล่นจากรอบก่อน:
+-- หมายเหตุ (2026-07-08): ไฟล์นี้ sync กับ DB จริงครบ migration 001-011
+-- (supabase/migrations/*.sql) แล้ว — เติมส่วนที่ตกหล่นจากรอบก่อน:
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
 -- index pets_user_egg_type_idx + quiz_attempts_pet_id_idx (001),
 -- ชื่อ index pets_one_active_per_user ให้ตรงกับที่ 001 สร้างจริง,
--- และ seed name_th ปัจจุบันตาม 010 (ไข่แก่นเพลิง/ไข่แก่นพฤกษ์)
+-- seed name_th ปัจจุบันตาม 010 (ไข่แก่นเพลิง/ไข่แก่นพฤกษ์),
+-- และล้าง trigger ซ้ำ pets_set_updated_at ตาม 011
 -- ============================================================
 
 -- 1) โปรไฟล์ผู้ใช้ (เสริมจาก auth.users)
@@ -245,15 +246,11 @@ create trigger on_auth_user_created
 
 -- ============================================================
 -- Trigger: ให้ pets.updated_at อัปเดตอัตโนมัติทุกครั้งที่มี UPDATE แทนที่จะพึ่งให้
--- โค้ดแอปตั้งค่าเอง
+-- โค้ดแอปตั้งค่าเอง (migration 007_pets_auto_updated_at.sql)
 --
--- หมายเหตุความซ้ำซ้อนที่พบตอน sync รอบนี้: 001_create_pets_system.sql สร้าง trigger
--- ชื่อ "pets_set_updated_at" ไปแล้วครั้งหนึ่ง ต่อมา 007_pets_auto_updated_at.sql
--- สร้างอีกตัวชื่อ "trg_pets_set_updated_at" (คนละชื่อ เรียก function เดียวกัน) โดยไม่ได้
--- DROP ตัวแรกทิ้ง — ไม่มี migration ไหนลบ trigger ของ 001 เลย จึงเก็บทั้งคู่ไว้ในไฟล์นี้
--- ให้ตรงกับสภาพจริงบน DB (แม้จะทำงานซ้ำกันตอน update ก็ตาม ไม่ได้ทำให้ค่าอื่นเพี้ยน
--- เพราะ set updated_at = now() ซ้ำสองครั้งได้ผลลัพธ์เหมือนเดิม) — ถ้าจะเก็บกวาดควร DROP
--- ตัวใดตัวหนึ่งบน DB จริงแยกเป็น migration ใหม่ ไม่ใช่แก้เงียบๆ ในไฟล์ sync นี้
+-- หมายเหตุ: 001_create_pets_system.sql เคยสร้าง trigger ซ้ำชื่อ "pets_set_updated_at"
+-- ไว้อีกตัว (เรียก function เดียวกัน) ทำให้ update หนึ่งครั้งมี trigger ยิงซ้ำสองรอบ
+-- ล้างออกแล้วด้วย migration 011_drop_duplicate_trigger.sql เหลือแค่ตัวเดียวจาก 007
 -- ============================================================
 
 create or replace function public.set_updated_at()
@@ -264,13 +261,6 @@ begin
 end;
 $$ language plpgsql;
 
--- 001_create_pets_system.sql
-drop trigger if exists pets_set_updated_at on public.pets;
-create trigger pets_set_updated_at
-  before update on public.pets
-  for each row execute function public.set_updated_at();
-
--- 007_pets_auto_updated_at.sql
 drop trigger if exists trg_pets_set_updated_at on public.pets;
 create trigger trg_pets_set_updated_at
   before update on public.pets
