@@ -55,3 +55,80 @@ body {
 .animate-evolve-pop {
   animation: evolve-pop 650ms ease-out;
 }
+
+/* idle animation: pet being raised (stage 2-4) */
+@keyframes pet-bob {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-7px) scale(1.02);
+  }
+}
+
+.animate-pet-bob {
+  animation: pet-bob 2.8s ease-in-out infinite;
+}
+
+/* idle animation: egg (stage 1), wobble instead of bob */
+@keyframes egg-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+.animate-egg-wobble {
+  animation: egg-wobble 2.4s ease-in-out infinite;
+}
+
+/* tap reaction layer, plays once on top of the idle animation */
+@keyframes pet-tap-bounce {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  30% {
+    transform: scale(1.12) translateY(-10px);
+  }
+  55% {
+    transform: scale(0.96) translateY(2px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-pet-tap {
+  animation: pet-tap-bounce 450ms ease-out;
+}
+
+/* lighter idle bob for /collection cards, several run at once */
+@keyframes card-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3.5px);
+  }
+}
+
+.animate-card-bob {
+  animation: card-bob 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pet-bob,
+  .animate-egg-wobble,
+  .animate-pet-tap,
+  .animate-card-bob {
+    animation: none;
+  }
+}

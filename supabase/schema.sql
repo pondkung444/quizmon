@@ -2,20 +2,23 @@
 -- Schema สำหรับ Quizmon (เกมเลี้ยงมอนสเตอร์ + ตอบคำถาม)
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-08): ไฟล์นี้ sync กับ DB จริงครบ migration 001-011
+-- หมายเหตุ (2026-07-09): ไฟล์นี้ sync กับ DB จริงครบ migration 001-012
 -- (supabase/migrations/*.sql) แล้ว — เติมส่วนที่ตกหล่นจากรอบก่อน:
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
 -- index pets_user_egg_type_idx + quiz_attempts_pet_id_idx (001),
 -- ชื่อ index pets_one_active_per_user ให้ตรงกับที่ 001 สร้างจริง,
 -- seed name_th ปัจจุบันตาม 010 (ไข่แก่นเพลิง/ไข่แก่นพฤกษ์),
--- และล้าง trigger ซ้ำ pets_set_updated_at ตาม 011
+-- ล้าง trigger ซ้ำ pets_set_updated_at ตาม 011,
+-- และเพิ่ม phone/school บน profiles ตาม 012
 -- ============================================================
 
 -- 1) โปรไฟล์ผู้ใช้ (เสริมจาก auth.users)
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text,
+  phone text,
+  school text,
   created_at timestamptz not null default now()
 );
 
@@ -229,8 +232,13 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, username)
-  values (new.id, new.raw_user_meta_data ->> 'username');
+  insert into public.profiles (id, username, phone, school)
+  values (
+    new.id,
+    new.raw_user_meta_data ->> 'username',
+    new.raw_user_meta_data ->> 'phone',
+    new.raw_user_meta_data ->> 'school'
+  );
 
   insert into public.player_eggs (user_id, egg_type_id, source)
   values (new.id, 'egg_common_01', 'starter');

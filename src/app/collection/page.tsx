@@ -102,7 +102,7 @@ export default async function CollectionPage() {
           <section key={eggType.id} className="flex flex-col gap-3">
             <h2 className="text-sm font-bold text-gold-hi">{eggType.name_th}</h2>
             <div className="grid grid-cols-3 gap-3">
-              {slots.map((slot) => (
+              {slots.map((slot, index) => (
                 <div
                   key={slot.key}
                   className={`relative flex aspect-[1/1.08] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl p-2 ${
@@ -117,7 +117,8 @@ export default async function CollectionPage() {
                       alt={slot.speciesName}
                       width={90}
                       height={90}
-                      className="h-16 w-16 object-contain"
+                      className="h-16 w-16 animate-card-bob object-contain"
+                      style={{ animationDelay: `${(index % 6) * 180}ms` }}
                     />
                   ) : (
                     <div className="relative flex h-16 w-16 items-center justify-center">

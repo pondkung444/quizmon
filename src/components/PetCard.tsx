@@ -135,6 +135,7 @@ export default function PetCard({
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
+  const [tapPulse, setTapPulse] = useState(0);
 
   useEffect(() => {
     if (!justEvolved) return;
@@ -148,6 +149,8 @@ export default function PetCard({
 
   const hasFullStats =
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
+
+  const idleAnimClass = stage === 1 ? "animate-egg-wobble" : "animate-pet-bob";
 
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
@@ -176,7 +179,10 @@ export default function PetCard({
       {/* 3. avatar (click to expand) */}
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => {
+          setExpanded((v) => !v);
+          setTapPulse((n) => n + 1);
+        }}
         className="relative flex h-[220px] w-[220px] items-center justify-center"
         aria-expanded={expanded}
       >
@@ -185,24 +191,28 @@ export default function PetCard({
           <circle cx="100" cy="100" r="90" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="4 10" />
           <circle cx="100" cy="100" r="72" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="1 8" />
         </svg>
-        {petImagePath ? (
-          <Image
-            src={petImagePath}
-            alt="ภาพ Qmon"
-            width={180}
-            height={180}
-            priority
-            className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
-          />
-        ) : (
-          <div
-            className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${
-              justEvolved ? "animate-evolve-pop" : ""
-            }`}
-          >
-            ไม่พบรูป Qmon
+        <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
+          <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
+            {petImagePath ? (
+              <Image
+                src={petImagePath}
+                alt="ภาพ Qmon"
+                width={180}
+                height={180}
+                priority
+                className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
+              />
+            ) : (
+              <div
+                className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${
+                  justEvolved ? "animate-evolve-pop" : ""
+                }`}
+              >
+                ไม่พบรูป Qmon
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </button>
 
       {/* 4. exp -> next stage */}
