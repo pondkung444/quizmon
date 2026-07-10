@@ -30,9 +30,59 @@ function shuffle<T>(items: T[]): T[] {
   return result;
 }
 
-export async function startQuizRound(subject: Subject): Promise<QuizRoundQuestion[]> {
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+async function getActivePetId(supabase: SupabaseServerClient, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("pets")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .single();
+  return data?.id ?? null;
+}
+
+// คอมโบไม่มี field เก็บ "จำนวนถูกติดกันปัจจุบัน" ใน pets (มีแค่ best_combo ซึ่งเป็นค่าสูงสุด
+// ที่เคยทำได้) เลยนับจาก quiz_attempts ล่าสุดแทน — นับจากรายการล่าสุดไล่ถอยหลัง หยุดที่ตัวแรก
+// ที่ตอบผิด ใช้ limit 20 เพราะ getComboMultiplier อิ่มตัวที่ >=10 อยู่แล้ว ไม่มีทางต้องนับเกินนี้
+async function getCurrentComboStreak(supabase: SupabaseServerClient, petId: string): Promise<number> {
+  const { data } = await supabase
+    .from("quiz_attempts")
+    .select("is_correct")
+    .eq("pet_id", petId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  let streak = 0;
+  for (const attempt of data ?? []) {
+    if (!attempt.is_correct) break;
+    streak++;
+  }
+  return streak;
+}
+
+export type StartQuizRoundResult = {
+  questions: QuizRoundQuestion[];
+  currentCombo: number;
+};
+
+export async function startQuizRound(subject: Subject): Promise<StartQuizRoundResult> {
   if (subject !== "math" && subject !== "science") {
     throw new Error("วิชาไม่ถูกต้อง");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
+  let currentCombo = 0;
+  if (user) {
+    const activePetId = await getActivePetId(supabase, user.id);
+    if (activePetId) {
+      currentCombo = await getCurrentComboStreak(supabase, activePetId);
+    }
   }
 
   const admin = createAdminClient();
@@ -42,7 +92,7 @@ export async function startQuizRound(subject: Subject): Promise<QuizRoundQuestio
     .select("id")
     .eq("subject", subject);
   if (idError) throw new Error(idError.message);
-  if (!idRows || idRows.length === 0) return [];
+  if (!idRows || idRows.length === 0) return { questions: [], currentCombo };
 
   const pickedIds = shuffle(idRows.map((r) => r.id)).slice(0, ROUND_SIZE);
 
@@ -66,7 +116,8 @@ export async function startQuizRound(subject: Subject): Promise<QuizRoundQuestio
       } satisfies QuizRoundQuestion,
     ])
   );
-  return pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
+  const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
+  return { questions, currentCombo };
 }
 
 export type SubmitAnswerResult = {

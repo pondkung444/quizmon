@@ -91,13 +91,15 @@ export default function QuizClient() {
     setPhase("loading");
     startTransition(async () => {
       try {
-        const round = await startQuizRound(nextSubject);
+        const { questions: round, currentCombo } = await startQuizRound(nextSubject);
         if (round.length === 0) {
           setErrorMessage("ยังไม่มีคำถามในหมวดนี้ ลองอีกวิชานะ");
           setPhase("select");
           return;
         }
         setQuestions(round);
+        // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
+        setCombo(currentCombo);
         setPhase("playing");
       } catch {
         setErrorMessage("โหลดคำถามไม่สำเร็จ ลองใหม่อีกครั้งนะ");
