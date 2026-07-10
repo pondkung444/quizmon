@@ -13,14 +13,7 @@ import {
   getMidtermAccuracyMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
-import {
-  tryAdvanceStage,
-  determineSubline,
-  determinePersonality,
-  computeRawStats,
-  snapshotStats,
-  type Subline,
-} from "@/lib/evolution";
+import { tryAdvanceStage, determineSubline } from "@/lib/evolution";
 
 const ROUND_SIZE = 5;
 
@@ -211,6 +204,7 @@ export type RoundFinishResult = {
   expAddedToPet: number;
   capped: boolean;
   evolved: boolean;
+  reachedStage4: boolean;
 };
 
 export async function finishQuizRound(roundExpEarned: number): Promise<RoundFinishResult> {
@@ -222,9 +216,7 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
 
   const { data: activePet } = await supabase
     .from("pets")
-    .select(
-      "id, exp, exp_today, exp_today_date, best_combo, stage, math_correct, science_correct, egg_type_id, subline"
-    )
+    .select("id, exp, exp_today, exp_today_date, stage, math_correct, science_correct")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -239,78 +231,17 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
   const newExp = activePet.exp + expAddedToPet;
 
   const newStage = tryAdvanceStage(activePet.stage, newExp);
-  let evolutionFields: Record<string, unknown> = { stage: newStage };
-  let sublineForStats: Subline | undefined;
+  const evolutionFields: Record<string, unknown> = { stage: newStage };
 
   if (activePet.stage < 3 && newStage === 3) {
     // เพิ่งขยับเข้า stage 3 -> คำนวณ subline ครั้งเดียว
-    const subline = determineSubline(activePet.math_correct, activePet.science_correct);
-    evolutionFields.subline = subline;
-    sublineForStats = subline;
+    evolutionFields.subline = determineSubline(activePet.math_correct, activePet.science_correct);
   }
 
-  if (activePet.stage < 4 && newStage === 4) {
-    // เพิ่งขยับเข้า stage 4 -> คำนวณ personality + snapshot stat ครั้งเดียว
-
-    // 1) นับวันเล่น distinct ใน 7 วันล่าสุด ของ pet ตัวนี้
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const { data: recentAttempts } = await supabase
-      .from("quiz_attempts")
-      .select("created_at")
-      .eq("pet_id", activePet.id)
-      .gte("created_at", sevenDaysAgo.toISOString());
-    const playDaysLast7 = new Set(
-      (recentAttempts ?? []).map((a) => new Date(a.created_at).toDateString())
-    ).size;
-    const personality = determinePersonality(playDaysLast7);
-
-    // 2) นับวันเล่น distinct ทั้งอายุของ pet (สำหรับ HP) + ความแม่นยำเฉลี่ย (สำหรับ FOC)
-    const { data: allAttempts } = await supabase
-      .from("quiz_attempts")
-      .select("created_at, is_correct")
-      .eq("pet_id", activePet.id);
-    const daysPlayedAllTime = new Set(
-      (allAttempts ?? []).map((a) => new Date(a.created_at).toDateString())
-    ).size;
-    const totalAttempts = allAttempts?.length ?? 0;
-    const totalCorrect = (allAttempts ?? []).filter((a) => a.is_correct).length;
-    const accuracyPct = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
-
-    // 3) ดึง stat_profile ของไข่ชนิดนี้
-    const { data: eggType, error: eggTypeError } = await supabase
-      .from("egg_types")
-      .select("stat_profile")
-      .eq("id", activePet.egg_type_id)
-      .single();
-
-    if (eggTypeError || !eggType?.stat_profile) {
-      throw new Error(
-        `ไม่พบ stat_profile ของ egg_type_id="${activePet.egg_type_id}" — ตรวจสอบว่า egg_types มีข้อมูลนี้ครบ`
-      );
-    }
-
-    const subline = sublineForStats ?? (activePet.subline as Subline);
-    const raw = computeRawStats({
-      daysPlayedAllTime,
-      mathCorrect: activePet.math_correct,
-      scienceCorrect: activePet.science_correct,
-      accuracyPct,
-      bestCombo: activePet.best_combo,
-    });
-    const finalStats = snapshotStats(raw, subline, personality, eggType.stat_profile);
-
-    evolutionFields = {
-      ...evolutionFields,
-      personality,
-      stat_hp: finalStats.hp,
-      stat_atk: finalStats.atk,
-      stat_def: finalStats.def,
-      stat_spd: finalStats.spd,
-      stat_foc: finalStats.foc,
-      evolved_at: new Date().toISOString(),
-    };
-  }
+  // stage 4 ไม่คำนวณ personality/stat_* ที่นี่แล้ว — เข้าถึง stage 4 ก่อน (stage อย่างเดียว)
+  // แล้วให้ StageUpModal พาไปเลือกบุคลิกเอง จากนั้นเรียก choosePersonalityAfterEvolve()
+  // (src/app/pet/actions.ts) ล็อก personality ลง DB ให้เสร็จก่อน ค่อย snapshot stat_* ทีหลัง
+  const reachedStage4 = activePet.stage < 4 && newStage === 4;
 
   await supabase
     .from("pets")
@@ -322,5 +253,5 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
     })
     .eq("id", activePet.id);
 
-  return { expAddedToPet, capped, evolved: newStage !== activePet.stage };
+  return { expAddedToPet, capped, evolved: newStage !== activePet.stage, reachedStage4 };
 }

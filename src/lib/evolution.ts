@@ -36,40 +36,48 @@ export function determineSubline(mathCorrect: number, scienceCorrect: number): S
   return "balanced";
 }
 
-// --- Personality: เช็คตอนขยับเข้า stage 4 เท่านั้น (ครั้งเดียว, lock ไว้ถาวร) ---
-// playDaysLast7 = จำนวนวัน distinct ใน 7 วันล่าสุด ที่มี quiz_attempts ของ "pet ตัวนี้ตัวเดียว" (pet_id filter)
+// --- Personality: ผู้เล่นเลือกเองผ่านคำถาม 1 ข้อตอนขยับเข้า stage 4 เท่านั้น (ครั้งเดียว, lock ไว้ถาวร)
+// (เดิมคำนวณจาก playDaysLast7 อัตโนมัติ — เปลี่ยนมาให้ผู้เล่นเลือกตรงๆ ดู StageUpModal +
+// choosePersonalityAfterEvolve ใน src/app/pet/actions.ts) ---
 export type Personality = "A" | "B";
 
-export function determinePersonality(playDaysLast7: number): Personality {
-  return playDaysLast7 >= 4 ? "A" : "B"; // >50% ของ 7 วัน
+// รับ choice ดิบจาก client (unknown ทางสายไฟ JSON) แล้ว validate เป็น Personality ที่แท้จริง
+// โยน error ทันทีถ้าไม่ใช่ "A"/"B" — กันค่าเพี้ยนหลุดไปคำนวณ stat ต่อ
+export function determinePersonality(choice: string): Personality {
+  if (choice !== "A" && choice !== "B") {
+    throw new Error(`determinePersonality: บุคลิกไม่ถูกต้อง ต้องเป็น "A" หรือ "B" แต่ได้ "${choice}"`);
+  }
+  return choice;
 }
 
 // --- ชื่อสายพันธุ์ (copy ที่โชว์ผู้เล่น) — key ด้วย egg_types.sprite_prefix ---
+// personalityNames เก็บเฉพาะ "ส่วนต่อท้าย" ไม่รวม base (เช่น "คมสังหาร" ไม่ใช่ "เพลิงผลึก: คมสังหาร")
+// เพื่อให้ดึงแยกส่วนได้ตรงๆ (ดู getSpeciesNameParts) — getSpeciesName() ค่อยต่อ base+": "+suffix เอาตอน compose
 type SublineSpeciesName = {
   base: string;
-  byPersonality: Record<Personality, string>;
+  personalityNames: Record<Personality, string>;
 };
 
 type EggSpeciesNameSet = {
   baby: string; // stage 2
-  bySubline: Record<Subline, SublineSpeciesName>; // stage 3 (.base) / stage 4 (.byPersonality)
+  bySubline: Record<Subline, SublineSpeciesName>; // stage 3 (.base) / stage 4 (.base + .personalityNames)
 };
 
 const SPECIES_NAME_TH: Record<string, EggSpeciesNameSet> = {
   egg1: {
     baby: "เพลิงน้อย",
     bySubline: {
-      math: { base: "เพลิงผลึก", byPersonality: { A: "เพลิงผลึก: คมสังหาร", B: "เพลิงผลึก: กำแพงแก้ว" } },
-      science: { base: "เพลิงลาวา", byPersonality: { A: "เพลิงลาวา: ปะทุ", B: "เพลิงลาวา: แก่นหิน" } },
-      balanced: { base: "เพลิงโอฬาร", byPersonality: { A: "เพลิงโอฬาร: ทรงเดช", B: "เพลิงโอฬาร: เกราะทอง" } },
+      math: { base: "เพลิงผลึก", personalityNames: { A: "คมสังหาร", B: "กำแพงแก้ว" } },
+      science: { base: "เพลิงลาวา", personalityNames: { A: "ปะทุ", B: "ฟ้าฟาด" } },
+      balanced: { base: "เพลิงโอฬาร", personalityNames: { A: "ทรงเดช", B: "เกราะทอง" } },
     },
   },
   egg2: {
     baby: "พฤกษ์น้อย",
     bySubline: {
-      math: { base: "พฤกษ์สลัก", byPersonality: { A: "พฤกษ์สลัก: หนามคม", B: "พฤกษ์สลัก: เปลือกหนา" } },
-      science: { base: "พฤกษ์นิเวศ", byPersonality: { A: "พฤกษ์นิเวศ: ผลิบาน", B: "พฤกษ์นิเวศ: รากลึก" } },
-      balanced: { base: "พฤกษ์บรรพ", byPersonality: { A: "พฤกษ์บรรพ: เวทไพร", B: "พฤกษ์บรรพ: พงหลัก" } },
+      math: { base: "พฤกษ์สลัก", personalityNames: { A: "หนามคม", B: "เปลือกหนา" } },
+      science: { base: "พฤกษ์นิเวศ", personalityNames: { A: "ผลิบาน", B: "รากลึก" } },
+      balanced: { base: "พฤกษ์บรรพ", personalityNames: { A: "เวทไพร", B: "พงหลัก" } },
     },
   },
 };
@@ -105,10 +113,37 @@ export function getSpeciesName(
         `getSpeciesName: pet stage 4 ต้องมี subline+personality แต่ได้ subline=${subline}, personality=${personality} (prefix=${spritePrefix})`
       );
     }
-    return set.bySubline[subline].byPersonality[personality];
+    const sublineSet = set.bySubline[subline];
+    return `${sublineSet.base}: ${sublineSet.personalityNames[personality]}`;
   }
 
   throw new Error(`getSpeciesName: stage ไม่ถูกต้อง: ${stage}`);
+}
+
+// เหมือน getSpeciesName(stage 4) แต่คืนแยกส่วน base/name แทนการต่อ string เดียว —
+// ใช้ตอนต้องการโชว์ "พันธุ์" กับ "ชื่อ" คนละบรรทัด (เช่น popup silhouette ในสมุดสะสม)
+// กันไม่ให้ต้อง parse/split string ":" เอาเองที่ฝั่ง UI (เปราะ ถ้า format เปลี่ยน)
+export function getSpeciesNameParts(
+  spritePrefix: string,
+  subline: Subline,
+  personality: Personality
+): { base: string; name: string } {
+  const set = SPECIES_NAME_TH[spritePrefix];
+  if (!set) {
+    throw new Error(`getSpeciesNameParts: ไม่พบชื่อสายพันธุ์สำหรับ sprite_prefix="${spritePrefix}"`);
+  }
+  const sublineSet = set.bySubline[subline];
+  return { base: sublineSet.base, name: sublineSet.personalityNames[personality] };
+}
+
+// ชื่อ "base" ของ subline (stage 3, ยังไม่ผ่าน personality) — ใช้เป็น [ชื่อสัตว์] ในคำถาม
+// เลือกบุคลิกตอน stage 4 เพราะตอนถามยังไม่รู้ personality จึงยังไม่มีชื่อเต็ม
+export function getSublineBaseName(spritePrefix: string, subline: Subline): string {
+  const set = SPECIES_NAME_TH[spritePrefix];
+  if (!set) {
+    throw new Error(`getSublineBaseName: ไม่พบชื่อสายพันธุ์สำหรับ sprite_prefix="${spritePrefix}"`);
+  }
+  return set.bySubline[subline].base;
 }
 
 // --- ตัวคูณชั้น subline (หมวด 5.3 ของเอกสาร) ---

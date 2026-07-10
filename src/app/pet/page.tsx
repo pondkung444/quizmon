@@ -8,14 +8,11 @@ import {
 } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { SUBLINE_LABEL } from "@/lib/labels";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
-
-const SUBLINE_LABEL: Record<string, string> = {
-  math: "สายคณิต",
-  science: "สายวิทย์",
-  balanced: "สายสมดุล",
-};
+import PendingPersonalityCard from "@/components/PendingPersonalityCard";
+import type { EggChoice } from "@/components/EggChoiceModal";
 
 export default async function PetPage({
   searchParams,
@@ -49,16 +46,32 @@ export default async function PetPage({
       | null;
   } | null = null;
 
+  let eggChoices: EggChoice[] = [];
+
   if (user) {
-    const { data } = await supabase
-      .from("pets")
-      .select(
-        "nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)"
-      )
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    const [{ data }, { data: eggTypeRows }] = await Promise.all([
+      supabase
+        .from("pets")
+        .select(
+          "nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)"
+        )
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabase
+        .from("egg_types")
+        .select("id, name_th, tier, description, sprite_prefix")
+        .eq("is_obtainable", true)
+        .order("id", { ascending: true }),
+    ]);
     pet = data;
+    eggChoices = (eggTypeRows ?? []).map((egg) => ({
+      id: egg.id,
+      nameTh: egg.name_th,
+      tier: egg.tier,
+      description: egg.description,
+      imagePath: getPetImagePath(egg.sprite_prefix, 1, null, null),
+    }));
   }
 
   const exp = pet?.exp ?? 0;
@@ -72,6 +85,10 @@ export default async function PetPage({
   const statSpd = pet?.stat_spd ?? null;
   const statFoc = pet?.stat_foc ?? null;
 
+  // stage 4 แต่ personality ยัง null = ปิดแอป/รีเฟรชกลางคันก่อนตอบคำถามเลือกบุคลิก (StageUpModal)
+  // ต้องกันไว้ตรงนี้ก่อนคำนวณ petImagePath/speciesName ต่อ — ไม่งั้นโชว์เรดาร์/รูปเพี้ยนได้
+  const needsPersonalityChoice = !!pet && stage === 4 && !personality;
+
   const nextThreshold = STAGE_EXP_THRESHOLD[stage];
   const progress = nextThreshold ? Math.min(1, Math.max(0, exp / nextThreshold)) : 1;
 
@@ -80,7 +97,9 @@ export default async function PetPage({
   const eggType = pet ? (Array.isArray(pet.egg_types) ? pet.egg_types[0] : pet.egg_types) : null;
   let petImagePath: string | null = null;
   let speciesName: string | null = null;
-  if (eggType) {
+  // ข้ามตอนรอเลือกบุคลิก — subline มีแล้วแต่ personality ยัง null ตั้งใจ ไม่ใช่ข้อมูลพัง
+  // เรียก getPetImagePath/getSpeciesName ไปก็ throw (ต้องการ personality ที่ stage 4) เปล่าๆ
+  if (eggType && !needsPersonalityChoice) {
     try {
       petImagePath = getPetImagePath(
         eggType.sprite_prefix,
@@ -107,7 +126,9 @@ export default async function PetPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
       <SignOutLink />
-      {pet ? (
+      {pet && needsPersonalityChoice ? (
+        <PendingPersonalityCard />
+      ) : pet ? (
         <PetCard
           stage={stage}
           stageName={stageInfo.name}
@@ -119,7 +140,6 @@ export default async function PetPage({
           speciesName={speciesName}
           petImagePath={petImagePath}
           sublineLabel={subline ? SUBLINE_LABEL[subline] ?? subline : null}
-          personality={personality ?? null}
           eggNameTh={eggType?.name_th ?? null}
           statHp={statHp}
           statAtk={statAtk}
@@ -129,6 +149,7 @@ export default async function PetPage({
           expToday={expToday}
           dailyCap={DAILY_EXP_CAP}
           justEvolved={justEvolved}
+          eggChoices={eggChoices}
         />
       ) : (
         <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">

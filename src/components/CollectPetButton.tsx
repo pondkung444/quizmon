@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { collectPet } from "@/app/pet/actions";
+import { collectPet, chooseEggAfterCollect } from "@/app/pet/actions";
+import EggChoiceModal, { type EggChoice } from "@/components/EggChoiceModal";
 
-export default function CollectPetButton() {
+export default function CollectPetButton({ eggChoices }: { eggChoices: EggChoice[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showEggChoice, setShowEggChoice] = useState(false);
 
   function handleCollect() {
     if (isPending) return;
@@ -15,11 +17,35 @@ export default function CollectPetButton() {
     startTransition(async () => {
       try {
         await collectPet();
-        router.push("/eggs");
+        setShowEggChoice(true);
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : "เก็บเข้าสมุดไม่สำเร็จ ลองใหม่อีกครั้งนะ");
       }
     });
+  }
+
+  function handleChooseEgg(eggTypeId: string) {
+    if (isPending) return;
+    setErrorMessage(null);
+    startTransition(async () => {
+      try {
+        await chooseEggAfterCollect(eggTypeId);
+        router.push("/eggs");
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "เลือกไข่ไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+      }
+    });
+  }
+
+  if (showEggChoice) {
+    return (
+      <EggChoiceModal
+        eggChoices={eggChoices}
+        isPending={isPending}
+        errorMessage={errorMessage}
+        onConfirm={handleChooseEgg}
+      />
+    );
   }
 
   return (

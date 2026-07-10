@@ -2,7 +2,7 @@
 -- Schema สำหรับ Quizmon (เกมเลี้ยงมอนสเตอร์ + ตอบคำถาม)
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-09): ไฟล์นี้ sync กับ DB จริงครบ migration 001-012
+-- หมายเหตุ (2026-07-10): ไฟล์นี้ sync กับ DB จริงครบ migration 001-013
 -- (supabase/migrations/*.sql) แล้ว — เติมส่วนที่ตกหล่นจากรอบก่อน:
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
@@ -10,7 +10,8 @@
 -- ชื่อ index pets_one_active_per_user ให้ตรงกับที่ 001 สร้างจริง,
 -- seed name_th ปัจจุบันตาม 010 (ไข่แก่นเพลิง/ไข่แก่นพฤกษ์),
 -- ล้าง trigger ซ้ำ pets_set_updated_at ตาม 011,
--- และเพิ่ม phone/school บน profiles ตาม 012
+-- เพิ่ม phone/school บน profiles ตาม 012,
+-- และ sync comment ของ player_eggs.source ตาม 013 (เลิก auto-grant, เปลี่ยนเป็นเลือกไข่เอง)
 -- ============================================================
 
 -- 1) โปรไฟล์ผู้ใช้ (เสริมจาก auth.users)
@@ -150,7 +151,7 @@ create table if not exists public.player_eggs (
 );
 
 comment on column public.player_eggs.source is
-  'ที่มาของไข่ — ค่าที่ใช้ตอนนี้: starter (ไข่ใบแรกตอนสมัคร), first_pet_reward (ปลดหลังเก็บสัตว์ตัวแรก). สงวนไว้อนาคต: idle, dungeon, leaderboard, event. ใช้ text ตั้งใจ (เพิ่ม source ใหม่ไม่ต้อง ALTER)';
+  'ที่มาของไข่ — ค่าที่ใช้ตอนนี้: starter (ไข่ใบแรกตอนสมัคร), collection_choice (ผู้เล่นเลือกเองทุกครั้งหลังเก็บสัตว์เข้าสมุด). ค่าเก่าที่เลิกใช้แล้วแต่ยังพบในข้อมูลเดิม: first_pet_reward. สงวนไว้อนาคต: idle, dungeon, leaderboard, event. ใช้ text ตั้งใจ (เพิ่ม source ใหม่ไม่ต้อง ALTER)';
 comment on column public.player_eggs.hatched_at is
   'null = ไข่ยังอยู่ในคลังรอฟัก / มีค่า = ฟักไปแล้ว (ดูตัวที่ฟักได้จาก hatched_pet_id)';
 

@@ -15,6 +15,7 @@ import {
   calculateExpForAnswer,
   getComboMultiplier,
 } from "@/lib/exp";
+import StageUpModal from "@/components/StageUpModal";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -317,6 +318,8 @@ export default function QuizClient() {
 
   return (
     <div className="flex flex-col gap-6 text-center">
+      {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
+
       <div>
         <p className="text-6xl">{correctCount >= questions.length ? "🏆" : correctCount > 0 ? "🎊" : "💪"}</p>
         <h1 className="mt-2 text-2xl font-bold text-gold-hi">จบรอบแล้ว!</h1>

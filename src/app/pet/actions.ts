@@ -1,6 +1,13 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  determinePersonality,
+  computeRawStats,
+  snapshotStats,
+  type Subline,
+  type Personality,
+} from "@/lib/evolution";
 
 export async function collectPet(): Promise<{ collected: true }> {
   const supabase = await createClient();
@@ -28,22 +35,197 @@ export async function collectPet(): Promise<{ collected: true }> {
 
   if (collectError) throw new Error("เก็บ Qmon เข้าสมุดไม่สำเร็จ: " + collectError.message);
 
-  // 3) เช็คว่าเคยได้ไข่ใบสอง (egg_common_02) มาก่อนหรือยัง ถ้ายัง -> ปลดล็อกให้
-  const { data: existingSecondEgg } = await supabase
-    .from("player_eggs")
+  // ไข่ใบต่อไปไม่ auto-grant แล้ว — ผู้เล่นเลือกเองผ่าน chooseEggAfterCollect() ทุกครั้ง
+  return { collected: true };
+}
+
+// ผู้เล่นยืนยันไข่ที่เลือกหลังเก็บสัตว์เข้าสมุด (จอ/modal เลือกไข่)
+export async function chooseEggAfterCollect(eggTypeId: string): Promise<{ playerEggId: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const { data: eggType, error: eggTypeError } = await supabase
+    .from("egg_types")
     .select("id")
-    .eq("user_id", user.id)
-    .eq("source", "first_pet_reward")
+    .eq("id", eggTypeId)
+    .eq("is_obtainable", true)
     .maybeSingle();
 
-  if (!existingSecondEgg) {
-    const { error: rewardError } = await supabase.from("player_eggs").insert({
-      user_id: user.id,
-      egg_type_id: "egg_common_02",
-      source: "first_pet_reward",
-    });
-    if (rewardError) throw new Error("ปลดล็อกไข่ใบสองไม่สำเร็จ: " + rewardError.message);
+  if (eggTypeError || !eggType) throw new Error("ไม่พบไข่ชนิดนี้");
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("player_eggs")
+    .insert({ user_id: user.id, egg_type_id: eggTypeId, source: "collection_choice" })
+    .select("id")
+    .single();
+
+  if (insertError || !inserted) throw new Error("เพิ่มไข่เข้าคลังไม่สำเร็จ: " + insertError?.message);
+
+  return { playerEggId: inserted.id };
+}
+
+export type StageUpContext = {
+  spritePrefix: string;
+  subline: Subline;
+  eggNameTh: string;
+};
+
+// ข้อมูลที่ StageUpModal ต้องใช้ก่อนถามคำถาม (ยังไม่รู้ personality) — คืน null ถ้าไม่มีอะไรค้างให้เลือก
+// (เช่น เลือกไปแล้วจากอีกแท็บ) ให้ผู้เรียกปิดจอไปเงียบๆ แทนที่จะ error
+export async function getStageUpContext(): Promise<StageUpContext | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("stage, subline, personality, egg_types(sprite_prefix, name_th)")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!pet || pet.stage !== 4 || pet.personality) return null;
+
+  if (!pet.subline) {
+    throw new Error("Qmon ถึงระยะ 4 แต่ไม่มี subline บันทึกไว้ — ข้อมูลไม่ครบ คำนวณบุคลิก/สเตตัสต่อไม่ได้");
   }
 
-  return { collected: true };
+  const eggType = Array.isArray(pet.egg_types) ? pet.egg_types[0] : pet.egg_types;
+  if (!eggType) throw new Error("ไม่พบข้อมูลไข่ของ Qmon ตัวนี้");
+
+  return {
+    spritePrefix: eggType.sprite_prefix,
+    subline: pet.subline as Subline,
+    eggNameTh: eggType.name_th,
+  };
+}
+
+export type ChoosePersonalityResult = {
+  personality: Personality;
+  stats: { hp: number; atk: number; def: number; spd: number; foc: number };
+};
+
+// ⚠️ ลำดับสำคัญที่สุด: ล็อก pets.personality ลง DB ให้เสร็จ (อ่านย้อนยืนยันด้วย) ก่อนเสมอ
+// แล้วค่อย snapshot stat_* (personality_bonus เป็น input ของสูตร — ดู v3 หมวด 4.4)
+// ถ้าล็อกไม่สำเร็จ หรือยืนยันย้อนแล้วไม่ตรง -> throw ทันที ไม่คำนวณสเตตัสต่อเด็ดขาด (กันสเตตัสเพี้ยนเงียบๆ)
+// ฟังก์ชันนี้ retry ได้ปลอดภัย: ถ้า personality ล็อกไปแล้วแต่ snapshot stat รอบก่อนพังกลางทาง
+// เรียกซ้ำจะข้ามการล็อก (ไม่เขียนทับด้วยค่าอื่น) แล้วลองคำนวณ/บันทึกสเตตัสต่อจากค่าที่ล็อกไว้เดิม
+export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<ChoosePersonalityResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const requestedPersonality = determinePersonality(choiceRaw);
+
+  const { data: pet, error: petError } = await supabase
+    .from("pets")
+    .select("id, stage, personality, subline, egg_type_id, math_correct, science_correct, best_combo")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .single();
+
+  if (petError || !pet) throw new Error("ไม่พบ Qmon ที่กำลังเลี้ยงอยู่");
+  if (pet.stage !== 4) throw new Error("Qmon ตัวนี้ยังไม่ถึงระยะ 4 เลือกบุคลิกไม่ได้");
+  if (!pet.subline) throw new Error("Qmon ตัวนี้ยังไม่มี subline — ข้อมูลไม่ครบ คำนวณสเตตัสไม่ได้");
+
+  let lockedPersonality: Personality;
+
+  if (pet.personality) {
+    // ล็อกไว้แล้วจากรอบก่อน (เช่น retry หลัง snapshot stat พังกลางทาง) — ห้ามเขียนทับด้วยค่าใหม่เด็ดขาด
+    lockedPersonality = pet.personality as Personality;
+  } else {
+    // STEP 1: ล็อก personality ก่อน — WHERE personality is null กันสองคำขอชนกันล็อกคนละค่า
+    const { data: lockedPet, error: lockError } = await supabase
+      .from("pets")
+      .update({ personality: requestedPersonality })
+      .eq("id", pet.id)
+      .is("personality", null)
+      .select("id, personality")
+      .single();
+
+    if (lockError || !lockedPet || lockedPet.personality !== requestedPersonality) {
+      throw new Error(
+        "ล็อกบุคลิกไม่สำเร็จ — หยุดก่อนคำนวณสเตตัสเพื่อกันสเตตัสเพี้ยน: " + (lockError?.message ?? "ไม่ทราบสาเหตุ")
+      );
+    }
+    lockedPersonality = requestedPersonality;
+  }
+
+  // STEP 1.5: อ่านย้อนยืนยันจาก DB จริง ไม่เชื่อ state ในตัวแปรเฉยๆ — นี่คือจุดกันสเตตัสเพี้ยนเงียบๆ
+  const { data: verifyPet, error: verifyError } = await supabase
+    .from("pets")
+    .select("id, personality")
+    .eq("id", pet.id)
+    .single();
+
+  if (verifyError || !verifyPet?.personality) {
+    throw new Error(
+      "ตรวจสอบบุคลิกที่ล็อกไม่สำเร็จ — ไม่คำนวณสเตตัสต่อ: " + (verifyError?.message ?? "personality ยังว่างอยู่ใน DB")
+    );
+  }
+  if (verifyPet.personality !== lockedPersonality) {
+    throw new Error(
+      `บุคลิกใน DB ("${verifyPet.personality}") ไม่ตรงกับที่คาดไว้ ("${lockedPersonality}") — หยุดคำนวณสเตตัสทันที`
+    );
+  }
+
+  // STEP 2: personality ยืนยันล็อกแล้วจริงใน DB — ตอนนี้ปลอดภัยที่จะ snapshot stat_*
+  const { data: allAttempts } = await supabase
+    .from("quiz_attempts")
+    .select("created_at, is_correct")
+    .eq("pet_id", pet.id);
+  const daysPlayedAllTime = new Set(
+    (allAttempts ?? []).map((a) => new Date(a.created_at).toDateString())
+  ).size;
+  const totalAttempts = allAttempts?.length ?? 0;
+  const totalCorrect = (allAttempts ?? []).filter((a) => a.is_correct).length;
+  const accuracyPct = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
+
+  const { data: eggType, error: eggTypeError } = await supabase
+    .from("egg_types")
+    .select("stat_profile")
+    .eq("id", pet.egg_type_id)
+    .single();
+
+  if (eggTypeError || !eggType?.stat_profile) {
+    throw new Error(`ไม่พบ stat_profile ของ egg_type_id="${pet.egg_type_id}" — ตรวจสอบว่า egg_types มีข้อมูลนี้ครบ`);
+  }
+
+  const raw = computeRawStats({
+    daysPlayedAllTime,
+    mathCorrect: pet.math_correct,
+    scienceCorrect: pet.science_correct,
+    accuracyPct,
+    bestCombo: pet.best_combo,
+  });
+  const finalStats = snapshotStats(raw, pet.subline as Subline, lockedPersonality, eggType.stat_profile);
+
+  const { error: statError } = await supabase
+    .from("pets")
+    .update({
+      stat_hp: finalStats.hp,
+      stat_atk: finalStats.atk,
+      stat_def: finalStats.def,
+      stat_spd: finalStats.spd,
+      stat_foc: finalStats.foc,
+      evolved_at: new Date().toISOString(),
+    })
+    .eq("id", pet.id);
+
+  if (statError) {
+    throw new Error(
+      "ล็อกบุคลิกสำเร็จแล้ว แต่บันทึกสเตตัสไม่สำเร็จ: " +
+        statError.message +
+        " — ลองใหม่อีกครั้ง (บุคลิกที่ล็อกไว้จะไม่เปลี่ยนเป็นค่าอื่น)"
+    );
+  }
+
+  return { personality: lockedPersonality, stats: finalStats };
 }

@@ -1,21 +1,11 @@
-import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { getSpeciesName, type Subline, type Personality } from "@/lib/evolution";
+import { getSpeciesName, getSpeciesNameParts, type Subline, type Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
+import CollectionGrid, { type CollectionSection, type CollectionSlot } from "@/components/CollectionGrid";
 
 const SUBLINE_ORDER: Subline[] = ["math", "science", "balanced"];
 const PERSONALITY_ORDER: Personality[] = ["A", "B"];
-
-type Slot = {
-  key: string;
-  eggTypeId: string;
-  subline: Subline;
-  personality: Personality;
-  imagePath: string;
-  speciesName: string;
-  unlocked: boolean;
-};
 
 export default async function CollectionPage() {
   const supabase = await createClient();
@@ -24,7 +14,10 @@ export default async function CollectionPage() {
   } = await supabase.auth.getUser();
 
   let eggTypes: { id: string; name_th: string; sprite_prefix: string }[] = [];
-  let unlockedKeys = new Set<string>();
+  // combo (eggTypeId_subline_personality) -> id ของ "ตัวแรกที่เก็บ" (evolved_at เก่าสุด)
+  // ใช้ตัวนี้ตัดสินทั้ง unlock และลิงก์ไปหน้า /collection/[petId] — ตัวซ้ำที่เก็บทีหลังยังอยู่ใน
+  // DB ครบ แค่ไม่โผล่ในกริดซ้ำ (ดูโจทย์ข้อ 4 — deferred เรื่อง UI โชว์ตัวซ้ำไว้ก่อน)
+  const firstPetIdByCombo = new Map<string, string>();
 
   if (user) {
     const [{ data: eggTypeRows }, { data: petRows }] = await Promise.all([
@@ -35,36 +28,42 @@ export default async function CollectionPage() {
         .order("id", { ascending: true }),
       supabase
         .from("pets")
-        .select("egg_type_id, subline, personality")
+        .select("id, egg_type_id, subline, personality, evolved_at")
         .eq("user_id", user.id)
-        .eq("is_active", false),
+        .eq("is_active", false)
+        .order("evolved_at", { ascending: true }),
     ]);
 
     eggTypes = eggTypeRows ?? [];
-    unlockedKeys = new Set(
-      (petRows ?? [])
-        .filter((p) => p.egg_type_id && p.subline && p.personality)
-        .map((p) => `${p.egg_type_id}_${p.subline}_${p.personality}`)
-    );
+
+    for (const p of petRows ?? []) {
+      if (!p.egg_type_id || !p.subline || !p.personality) continue;
+      const key = `${p.egg_type_id}_${p.subline}_${p.personality}`;
+      if (!firstPetIdByCombo.has(key)) {
+        firstPetIdByCombo.set(key, p.id);
+      }
+    }
   }
 
-  const sections = eggTypes.map((eggType) => {
-    const slots: Slot[] = [];
+  const sections: CollectionSection[] = eggTypes.map((eggType) => {
+    const slots: CollectionSlot[] = [];
     for (const subline of SUBLINE_ORDER) {
       for (const personality of PERSONALITY_ORDER) {
         const key = `${eggType.id}_${subline}_${personality}`;
+        const petId = firstPetIdByCombo.get(key) ?? null;
+        const { base, name } = getSpeciesNameParts(eggType.sprite_prefix, subline, personality);
         slots.push({
           key,
-          eggTypeId: eggType.id,
-          subline,
-          personality,
           imagePath: getPetImagePath(eggType.sprite_prefix, 4, subline, personality),
           speciesName: getSpeciesName(eggType.sprite_prefix, 4, subline, personality, eggType.name_th),
-          unlocked: unlockedKeys.has(key),
+          unlocked: petId !== null,
+          petId,
+          base,
+          name,
         });
       }
     }
-    return { eggType, slots };
+    return { eggTypeId: eggType.id, eggNameTh: eggType.name_th, slots };
   });
 
   const totalSlots = sections.length * 6;
@@ -98,54 +97,7 @@ export default async function CollectionPage() {
           ยังไม่มีข้อมูลไข่
         </p>
       ) : (
-        sections.map(({ eggType, slots }) => (
-          <section key={eggType.id} className="flex flex-col gap-3">
-            <h2 className="text-sm font-bold text-gold-hi">{eggType.name_th}</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {slots.map((slot, index) => (
-                <div
-                  key={slot.key}
-                  className={`relative flex aspect-[1/1.08] flex-col items-center justify-center gap-1 overflow-hidden rounded-xl p-2 ${
-                    slot.unlocked
-                      ? "border border-gold bg-track"
-                      : "border border-dashed border-border bg-card"
-                  }`}
-                >
-                  {slot.unlocked ? (
-                    <Image
-                      src={slot.imagePath}
-                      alt={slot.speciesName}
-                      width={90}
-                      height={90}
-                      className="h-16 w-16 animate-card-bob object-contain"
-                      style={{ animationDelay: `${(index % 6) * 180}ms` }}
-                    />
-                  ) : (
-                    <div className="relative flex h-16 w-16 items-center justify-center">
-                      <div
-                        className="h-full w-full bg-gold-dim"
-                        style={{
-                          maskImage: `url(${slot.imagePath})`,
-                          WebkitMaskImage: `url(${slot.imagePath})`,
-                          maskSize: "contain",
-                          WebkitMaskSize: "contain",
-                          maskRepeat: "no-repeat",
-                          WebkitMaskRepeat: "no-repeat",
-                          maskPosition: "center",
-                          WebkitMaskPosition: "center",
-                        }}
-                      />
-                      <span className="absolute text-lg font-bold text-text3">?</span>
-                    </div>
-                  )}
-                  <p className="text-[10px] text-text3">
-                    {slot.unlocked ? slot.speciesName : "???"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))
+        <CollectionGrid sections={sections} />
       )}
     </main>
   );
