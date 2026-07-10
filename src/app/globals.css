@@ -23,6 +23,9 @@
   --color-gold: #c8a86a;
   --color-gold-dim: #5f4f30;
   --color-gold-hi: #ecd7a0;
+  --color-indigo: #7089d1;
+  --color-indigo-dim: #37456b;
+  --color-indigo-hi: #c7d3f2;
 }
 
 body {

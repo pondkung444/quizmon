@@ -2,20 +2,26 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { QuizRoundQuestion, Subject } from "@/types/quiz";
+import type { QuizRoundQuestion, QuizMode } from "@/types/quiz";
 import {
   startQuizRound,
   submitAnswer,
   finishQuizRound,
   type RoundFinishResult,
 } from "@/app/quiz/actions";
-import { calculateExpForAnswer, getComboMultiplier } from "@/lib/exp";
+import {
+  BASE_EXP_PER_CORRECT,
+  MIDTERM_BASE_EXP_PER_CORRECT,
+  calculateExpForAnswer,
+  getComboMultiplier,
+} from "@/lib/exp";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
-const SUBJECTS: { id: Subject; label: string; emoji: string }[] = [
+const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
   { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
+  { id: "midterm", label: "ติวสอบกลางภาค", emoji: "📝" },
 ];
 
 type Phase = "select" | "loading" | "playing" | "summary";
@@ -37,6 +43,7 @@ async function submitAnswerWithRetry(input: {
   questionId: number;
   choiceIndex: number;
   comboBefore: number;
+  mode: QuizMode;
 }): Promise<BackgroundSubmission> {
   try {
     const res = await submitAnswer(input);
@@ -54,7 +61,7 @@ async function submitAnswerWithRetry(input: {
 export default function QuizClient() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
-  const [subject, setSubject] = useState<Subject | null>(null);
+  const [mode, setMode] = useState<QuizMode | null>(null);
   const [questions, setQuestions] = useState<QuizRoundQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -85,15 +92,15 @@ export default function QuizClient() {
     submissionQueueRef.current = Promise.resolve();
   }
 
-  function handleSelectSubject(nextSubject: Subject) {
+  function handleSelectMode(nextMode: QuizMode) {
     resetRoundState();
-    setSubject(nextSubject);
+    setMode(nextMode);
     setPhase("loading");
     startTransition(async () => {
       try {
-        const { questions: round, currentCombo } = await startQuizRound(nextSubject);
+        const { questions: round, currentCombo } = await startQuizRound(nextMode);
         if (round.length === 0) {
-          setErrorMessage("ยังไม่มีคำถามในหมวดนี้ ลองอีกวิชานะ");
+          setErrorMessage("ยังไม่มีคำถามในโหมดนี้ ลองโหมดอื่นนะ");
           setPhase("select");
           return;
         }
@@ -115,7 +122,8 @@ export default function QuizClient() {
     const newCombo = isCorrect ? combo + 1 : 0;
     // ตัวเลข EXP นี้เป็นค่าประมาณชั่วคราว (สมมติ accuracy multiplier = 1.0) โชว์ให้เห็นทันที
     // ระหว่างเล่น ค่าจริงที่ผ่านการเช็ค accuracy multiplier จาก DB จะมาจาก server ตอนสรุปท้ายรอบ
-    const optimisticExp = calculateExpForAnswer(isCorrect, 1.0, getComboMultiplier(newCombo));
+    const basePoints = mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
+    const optimisticExp = calculateExpForAnswer(isCorrect, 1.0, getComboMultiplier(newCombo), basePoints);
 
     setSelectedChoice(choiceIndex);
     setCombo(newCombo);
@@ -134,6 +142,7 @@ export default function QuizClient() {
         questionId: current.id,
         choiceIndex,
         comboBefore: combo,
+        mode: mode!,
       })
     );
     submissionQueueRef.current = submissionPromise;
@@ -168,7 +177,7 @@ export default function QuizClient() {
   }
 
   function handlePlayAgain() {
-    if (subject) handleSelectSubject(subject);
+    if (mode) handleSelectMode(mode);
   }
 
   function handleBackToSubjects() {
@@ -190,16 +199,20 @@ export default function QuizClient() {
         )}
 
         <div className="flex flex-col gap-4">
-          {SUBJECTS.map((s) => (
+          {MODES.map((m) => (
             <button
-              key={s.id}
+              key={m.id}
               type="button"
               disabled={phase === "loading"}
-              onClick={() => handleSelectSubject(s.id)}
-              className="flex items-center justify-center gap-3 rounded-3xl border border-gold-dim bg-card px-6 py-10 text-2xl font-bold text-gold-hi shadow-lg transition hover:border-gold active:scale-95 disabled:opacity-60"
+              onClick={() => handleSelectMode(m.id)}
+              className={
+                m.id === "midterm"
+                  ? "flex items-center justify-center gap-3 rounded-3xl border border-indigo-dim bg-card px-6 py-10 text-2xl font-bold text-indigo-hi shadow-lg transition hover:border-indigo active:scale-95 disabled:opacity-60"
+                  : "flex items-center justify-center gap-3 rounded-3xl border border-gold-dim bg-card px-6 py-10 text-2xl font-bold text-gold-hi shadow-lg transition hover:border-gold active:scale-95 disabled:opacity-60"
+              }
             >
-              <span className="text-4xl">{s.emoji}</span>
-              {phase === "loading" && subject === s.id ? "กำลังสุ่มคำถาม..." : s.label}
+              <span className="text-4xl">{m.emoji}</span>
+              {phase === "loading" && mode === m.id ? "กำลังสุ่มคำถาม..." : m.label}
             </button>
           ))}
         </div>

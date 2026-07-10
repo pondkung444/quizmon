@@ -2,12 +2,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { QuizRoundQuestion, Subject } from "@/types/quiz";
+import type { QuizRoundQuestion, QuizMode } from "@/types/quiz";
 import {
+  BASE_EXP_PER_CORRECT,
   DAILY_EXP_CAP,
+  MIDTERM_BASE_EXP_PER_CORRECT,
   calculateExpForAnswer,
   getAccuracyMultiplier,
   getComboMultiplier,
+  getMidtermAccuracyMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
 import {
@@ -20,6 +23,14 @@ import {
 } from "@/lib/evolution";
 
 const ROUND_SIZE = 5;
+
+// 3 หมวดสำหรับโหมด "ติวสอบกลางภาค" — สุ่มข้ามคณิต/วิทย์ในรอบเดียว ค่าตรงกับ questions.category จริงใน DB
+// (ตรวจสอบแล้ว ไม่ใช่การเดา — ดู scripts/import-inequality-factoring.mjs, import-genetics-mendelian.mjs)
+const MIDTERM_CATEGORIES = [
+  "อสมการ",
+  "แยกตัวประกอบพหุนามดีกรีมากกว่า 2",
+  "พันธุกรรมและเซลล์สืบพันธุ์",
+];
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
@@ -66,9 +77,9 @@ export type StartQuizRoundResult = {
   currentCombo: number;
 };
 
-export async function startQuizRound(subject: Subject): Promise<StartQuizRoundResult> {
-  if (subject !== "math" && subject !== "science") {
-    throw new Error("วิชาไม่ถูกต้อง");
+export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResult> {
+  if (mode !== "math" && mode !== "science" && mode !== "midterm") {
+    throw new Error("โหมดไม่ถูกต้อง");
   }
 
   const supabase = await createClient();
@@ -87,10 +98,11 @@ export async function startQuizRound(subject: Subject): Promise<StartQuizRoundRe
 
   const admin = createAdminClient();
 
-  const { data: idRows, error: idError } = await admin
-    .from("questions")
-    .select("id")
-    .eq("subject", subject);
+  const idQuery = admin.from("questions").select("id");
+  const { data: idRows, error: idError } =
+    mode === "midterm"
+      ? await idQuery.in("category", MIDTERM_CATEGORIES)
+      : await idQuery.eq("subject", mode);
   if (idError) throw new Error(idError.message);
   if (!idRows || idRows.length === 0) return { questions: [], currentCombo };
 
@@ -128,6 +140,7 @@ export async function submitAnswer(input: {
   questionId: number;
   choiceIndex: number;
   comboBefore: number;
+  mode: QuizMode;
 }): Promise<SubmitAnswerResult> {
   const supabase = await createClient();
   const {
@@ -154,10 +167,14 @@ export async function submitAnswer(input: {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const accuracyMultiplier = getAccuracyMultiplier(recentAttempts ?? []);
+  const accuracyMultiplier =
+    input.mode === "midterm"
+      ? getMidtermAccuracyMultiplier(recentAttempts ?? [])
+      : getAccuracyMultiplier(recentAttempts ?? []);
   const newCombo = isCorrect ? input.comboBefore + 1 : 0;
   const comboMultiplier = getComboMultiplier(newCombo);
-  const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier);
+  const basePoints = input.mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
+  const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, basePoints);
 
   const { data: activePet } = await supabase
     .from("pets")

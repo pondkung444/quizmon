@@ -1,4 +1,5 @@
 export const BASE_EXP_PER_CORRECT = 10;
+export const MIDTERM_BASE_EXP_PER_CORRECT = 12;
 export const DAILY_EXP_CAP = 180;
 
 // อัตราตอบถูกใน 20 ข้อล่าสุด (จากตาราง quiz_attempts) -> ตัวคูณแต้ม
@@ -12,6 +13,16 @@ export function getAccuracyMultiplier(last20: { is_correct: boolean }[]): number
   return 0.8;
 }
 
+// ตัวคูณแม่นยำเฉพาะโหมดติวสอบกลางภาค — ตาราง 3 ระดับ ไม่มีระดับ <70% ที่กด ×0.8 เหมือนโหมดปกติ
+// (ยังอิง sliding window 20 ข้อล่าสุดเดียวกันกับ getAccuracyMultiplier เพราะนับรวมทุกโหมด)
+export function getMidtermAccuracyMultiplier(last20: { is_correct: boolean }[]): number {
+  if (last20.length < 20) return 1.0;
+  const correctRate = last20.filter((a) => a.is_correct).length / last20.length;
+  if (correctRate >= 0.9) return 1.5;
+  if (correctRate >= 0.7) return 1.2;
+  return 1.0;
+}
+
 // คอมโบนับข้ามรอบ 5 ข้อได้ ไม่รีเซ็ตตอนจบรอบ รีเซ็ตเฉพาะตอนตอบผิด (logic รีเซ็ตอยู่ฝั่งเรียกใช้ ไม่ใช่ในฟังก์ชันนี้)
 export function getComboMultiplier(streakIncludingThisAnswer: number): number {
   if (streakIncludingThisAnswer >= 10) return 1.5;
@@ -23,10 +34,11 @@ export function getComboMultiplier(streakIncludingThisAnswer: number): number {
 export function calculateExpForAnswer(
   isCorrect: boolean,
   accuracyMultiplier: number,
-  comboMultiplier: number
+  comboMultiplier: number,
+  basePoints: number = BASE_EXP_PER_CORRECT
 ): number {
   if (!isCorrect) return 0;
-  return Math.floor(BASE_EXP_PER_CORRECT * accuracyMultiplier * comboMultiplier);
+  return Math.floor(basePoints * accuracyMultiplier * comboMultiplier);
 }
 
 // วันที่ "วันนี้" อิงเวลาไทย (Asia/Bangkok) กันปัญหา UTC เพี้ยนช่วงเที่ยงคืน
