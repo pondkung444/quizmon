@@ -33,7 +33,6 @@ export default function LoginPage() {
         return;
       }
       router.push("/pet");
-      router.refresh();
     } else {
       const finalSchool = school === "อื่นๆ" ? schoolOther : school;
       const { error } = await supabase.auth.signUp({
