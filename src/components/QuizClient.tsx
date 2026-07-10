@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { PublicQuestion, Subject } from "@/types/quiz";
+import type { QuizRoundQuestion, Subject } from "@/types/quiz";
 import {
   startQuizRound,
   submitAnswer,
   finishQuizRound,
-  type AnswerResult,
   type RoundFinishResult,
 } from "@/app/quiz/actions";
+import { calculateExpForAnswer, getComboMultiplier } from "@/lib/exp";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -22,19 +22,54 @@ type Phase = "select" | "loading" | "playing" | "summary";
 
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
+// ผลที่โชว์ทันทีตอนกดตอบ — เทียบกับเฉลยที่มากับคำถามใน state เอง (ไม่รอ server)
+type LocalAnswerResult = {
+  correct: boolean;
+  correctIndex: number;
+  explanation: string | null;
+  expEarned: number;
+};
+
+// บันทึกคำตอบไปหลังบ้านแบบไม่ block UI แต่เก็บ promise ไว้รอตอนจบรอบ (Promise.all)
+type BackgroundSubmission = { ok: true; expEarned: number } | { ok: false };
+
+async function submitAnswerWithRetry(input: {
+  questionId: number;
+  choiceIndex: number;
+  comboBefore: number;
+}): Promise<BackgroundSubmission> {
+  try {
+    const res = await submitAnswer(input);
+    return { ok: true, expEarned: res.expEarned };
+  } catch {
+    try {
+      const res = await submitAnswer(input);
+      return { ok: true, expEarned: res.expEarned };
+    } catch {
+      return { ok: false };
+    }
+  }
+}
+
 export default function QuizClient() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
   const [subject, setSubject] = useState<Subject | null>(null);
-  const [questions, setQuestions] = useState<PublicQuestion[]>([]);
+  const [questions, setQuestions] = useState<QuizRoundQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
-  const [result, setResult] = useState<AnswerResult | null>(null);
+  const [result, setResult] = useState<LocalAnswerResult | null>(null);
   const [combo, setCombo] = useState(0);
   const [answers, setAnswers] = useState<AnsweredRecord[]>([]);
+  const [finalExpEarned, setFinalExpEarned] = useState(0);
   const [summary, setSummary] = useState<RoundFinishResult | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const pendingSubmissionsRef = useRef<Promise<BackgroundSubmission>[]>([]);
+  // คำขอจริงไปเซิร์ฟเวอร์ต้องเข้าคิวทีละตัว (กัน race condition ตอนอัปเดต pets แบบ
+  // read-then-write) — แต่ละ submission ต่อท้าย queue นี้ ไม่ได้ยิงพร้อมกัน
+  const submissionQueueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   function resetRoundState() {
     setIndex(0);
@@ -42,8 +77,12 @@ export default function QuizClient() {
     setResult(null);
     setCombo(0);
     setAnswers([]);
+    setFinalExpEarned(0);
     setSummary(null);
     setErrorMessage(null);
+    setSaveWarning(null);
+    pendingSubmissionsRef.current = [];
+    submissionQueueRef.current = Promise.resolve();
   }
 
   function handleSelectSubject(nextSubject: Subject) {
@@ -69,18 +108,34 @@ export default function QuizClient() {
 
   function handleSelectChoice(choiceIndex: number) {
     if (result || isPending) return;
-    setSelectedChoice(choiceIndex);
     const current = questions[index];
-    startTransition(async () => {
-      const res = await submitAnswer({
+    const isCorrect = choiceIndex === current.correctIndex;
+    const newCombo = isCorrect ? combo + 1 : 0;
+    // ตัวเลข EXP นี้เป็นค่าประมาณชั่วคราว (สมมติ accuracy multiplier = 1.0) โชว์ให้เห็นทันที
+    // ระหว่างเล่น ค่าจริงที่ผ่านการเช็ค accuracy multiplier จาก DB จะมาจาก server ตอนสรุปท้ายรอบ
+    const optimisticExp = calculateExpForAnswer(isCorrect, 1.0, getComboMultiplier(newCombo));
+
+    setSelectedChoice(choiceIndex);
+    setCombo(newCombo);
+    setResult({
+      correct: isCorrect,
+      correctIndex: current.correctIndex,
+      explanation: current.explanation,
+      expEarned: optimisticExp,
+    });
+    setAnswers((prev) => [...prev, { isCorrect, expEarned: optimisticExp }]);
+
+    // บันทึกจริงไปหลังบ้าน ไม่ await ตรงนี้ (UI ไม่รอ) — แต่ยิงคำขอจริงเรียงคิวทีละตัว
+    // ต่อท้าย submissionQueueRef เสมอ กันสองคำขอชนกันตอนอัปเดต pets (read-then-write)
+    const submissionPromise = submissionQueueRef.current.then(() =>
+      submitAnswerWithRetry({
         questionId: current.id,
         choiceIndex,
         comboBefore: combo,
-      });
-      setResult(res);
-      setCombo(res.newCombo);
-      setAnswers((prev) => [...prev, { isCorrect: res.correct, expEarned: res.expEarned }]);
-    });
+      })
+    );
+    submissionQueueRef.current = submissionPromise;
+    pendingSubmissionsRef.current[index] = submissionPromise;
   }
 
   function handleNext() {
@@ -93,8 +148,17 @@ export default function QuizClient() {
       return;
     }
 
-    const roundExpEarned = answers.reduce((sum, a) => sum + a.expEarned, 0);
     startTransition(async () => {
+      const submissions = await Promise.all(pendingSubmissionsRef.current);
+      const anyFailed = submissions.some((s) => !s.ok);
+      if (anyFailed) {
+        setSaveWarning("รอบนี้บันทึกผลไม่ครบทุกข้อ (เน็ตอาจหลุด) ตัวเลขด้านล่างอาจไม่ตรงเป๊ะ แต่เล่นต่อได้เลยนะ");
+      }
+      const roundExpEarned = submissions.reduce(
+        (sum, s, i) => sum + (s.ok ? s.expEarned : answers[i].expEarned),
+        0
+      );
+      setFinalExpEarned(roundExpEarned);
       const finishResult = await finishQuizRound(roundExpEarned);
       setSummary(finishResult);
       setPhase("summary");
@@ -234,7 +298,7 @@ export default function QuizClient() {
 
   // phase === "summary"
   const correctCount = answers.filter((a) => a.isCorrect).length;
-  const roundExpEarned = answers.reduce((sum, a) => sum + a.expEarned, 0);
+  const roundExpEarned = finalExpEarned;
 
   return (
     <div className="flex flex-col gap-6 text-center">
@@ -254,6 +318,12 @@ export default function QuizClient() {
         {summary?.capped && (
           <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
             🍚 Qmon ของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
+          </p>
+        )}
+
+        {saveWarning && (
+          <p className="mt-3 rounded-xl border border-red bg-red/10 p-3 text-sm text-red">
+            ⚠️ {saveWarning}
           </p>
         )}
       </div>

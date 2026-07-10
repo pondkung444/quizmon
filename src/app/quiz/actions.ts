@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PublicQuestion, Subject } from "@/types/quiz";
+import type { QuizRoundQuestion, Subject } from "@/types/quiz";
 import {
   DAILY_EXP_CAP,
   calculateExpForAnswer,
@@ -30,7 +30,7 @@ function shuffle<T>(items: T[]): T[] {
   return result;
 }
 
-export async function startQuizRound(subject: Subject): Promise<PublicQuestion[]> {
+export async function startQuizRound(subject: Subject): Promise<QuizRoundQuestion[]> {
   if (subject !== "math" && subject !== "science") {
     throw new Error("วิชาไม่ถูกต้อง");
   }
@@ -48,37 +48,48 @@ export async function startQuizRound(subject: Subject): Promise<PublicQuestion[]
 
   const { data: rows, error } = await admin
     .from("questions")
-    .select("id, category, difficulty, question_text, choices")
+    .select("id, category, difficulty, question_text, choices, correct_index, explanation")
     .in("id", pickedIds);
   if (error) throw new Error(error.message);
 
-  const byId = new Map((rows ?? []).map((r) => [r.id, r as PublicQuestion]));
-  return pickedIds.map((id) => byId.get(id)).filter((q): q is PublicQuestion => !!q);
+  const byId = new Map(
+    (rows ?? []).map((r) => [
+      r.id,
+      {
+        id: r.id,
+        category: r.category,
+        difficulty: r.difficulty,
+        question_text: r.question_text,
+        choices: r.choices,
+        correctIndex: r.correct_index,
+        explanation: r.explanation,
+      } satisfies QuizRoundQuestion,
+    ])
+  );
+  return pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
 }
 
-export type AnswerResult = {
-  correct: boolean;
-  correctIndex: number;
-  explanation: string | null;
+export type SubmitAnswerResult = {
   expEarned: number;
-  newCombo: number;
 };
 
 export async function submitAnswer(input: {
   questionId: number;
   choiceIndex: number;
   comboBefore: number;
-}): Promise<AnswerResult> {
+}): Promise<SubmitAnswerResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ต้องเข้าสู่ระบบก่อนตอบคำถาม");
 
+  // สำคัญ: server เช็คถูก/ผิดจาก DB เองเสมอ ไม่รับ flag ถูก/ผิดจาก client
+  // (client ส่งมาแค่ questionId + choiceIndex เท่านั้น) เพื่อกัน EXP โกง
   const admin = createAdminClient();
   const { data: question, error } = await admin
     .from("questions")
-    .select("correct_index, explanation, subject")
+    .select("correct_index, subject")
     .eq("id", input.questionId)
     .single();
   if (error || !question) throw new Error("ไม่พบคำถามนี้");
@@ -125,13 +136,7 @@ export async function submitAnswer(input: {
     await supabase.from("pets").update(petUpdates).eq("id", activePet.id);
   }
 
-  return {
-    correct: isCorrect,
-    correctIndex: question.correct_index,
-    explanation: question.explanation,
-    expEarned,
-    newCombo,
-  };
+  return { expEarned };
 }
 
 export type RoundFinishResult = {
