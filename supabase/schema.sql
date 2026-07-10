@@ -2,8 +2,11 @@
 -- Schema สำหรับ Quizmon (เกมเลี้ยงมอนสเตอร์ + ตอบคำถาม)
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-10): ไฟล์นี้ sync กับ DB จริงครบ migration 001-013
--- (supabase/migrations/*.sql) แล้ว — เติมส่วนที่ตกหล่นจากรอบก่อน:
+-- หมายเหตุ (2026-07-11): ไฟล์นี้ sync กับ DB จริงครบ migration 001-014
+-- (supabase/migrations/*.sql) แล้ว — เพิ่ม public.analytics_events ตาม 014
+-- (เก็บ event การเล่นของนักเรียนสำหรับผู้พัฒนา insert-only ไม่มี select policy)
+--
+-- ส่วนที่ตกหล่นจากรอบก่อน (001-013):
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
 -- index pets_user_egg_type_idx + quiz_attempts_pet_id_idx (001),
@@ -298,3 +301,38 @@ alter table public.questions enable row level security;
 
 -- ระบบ EXP รายวัน: จำกัด exp ที่เข้าตัวสัตว์วันละ 180 ต่อสัตว์ที่ active อยู่
 -- (ดูตรรกะที่ src/app/quiz/actions.ts — exp_today/exp_today_date อยู่บน pets โดยตรงแล้ว)
+
+-- ============================================================
+-- Analytics: event การเล่นของนักเรียน สำหรับผู้พัฒนาดู insight (migration 014)
+-- insert-only จากฝั่ง client ผ่าน src/app/api/analytics/route.ts (route handler ธรรมดา
+-- ไม่ใช่ server action — sendBeacon เรียก server action ไม่ได้ และ server action ถูก
+-- dispatch เรียงคิวเดียวกับ submitAnswer ในระดับ framework ถ้าทำเป็น server action จะแย่งคิวกัน)
+-- ============================================================
+
+create table if not exists public.analytics_events (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users (id) on delete cascade,
+  session_id uuid not null,
+  event_name text not null,
+  screen text,
+  pet_id uuid references public.pets (id) on delete set null,
+  props jsonb not null default '{}',
+  client_ts timestamptz not null,
+  created_at timestamptz not null default now()
+);
+
+comment on column public.analytics_events.client_ts is
+  'timestamp ฝั่ง client ตอน event เกิดขึ้นจริง — ต่างจาก created_at ที่เป็นเวลาที่แถวถูก insert จริง (ช้ากว่าได้ถ้า flush ล่าช้า/beacon ตอนปิดหน้า)';
+comment on column public.analytics_events.session_id is
+  'สุ่มใหม่ทุกครั้งที่โหลดแอป (module-level ใน src/lib/analytics.ts) ใช้กลุ่ม event ในเซสชันเดียวกัน';
+
+create index if not exists analytics_events_user_ts_idx on public.analytics_events (user_id, client_ts);
+create index if not exists analytics_events_name_ts_idx on public.analytics_events (event_name, client_ts);
+create index if not exists analytics_events_session_idx on public.analytics_events (session_id);
+create index if not exists analytics_events_props_gin_idx on public.analytics_events using gin (props);
+
+alter table public.analytics_events enable row level security;
+
+-- insert เท่านั้น ไม่มี select policy ตั้งใจ (กันผู้เล่นเห็น event ของตัวเอง/คนอื่นผ่าน REST API ตรงๆ)
+create policy "analytics_events: insert own" on public.analytics_events
+  for insert with check (auth.uid() = user_id);

@@ -38,5 +38,21 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // /admin/* กันด้วย whitelist email ผ่าน env var (ยังไม่มี role ใน profiles) — ถึงตรงนี้ user
+  // ล็อกอินแล้วแน่ๆ (เช็ค !user ด้านบนดักไปแล้ว) เหลือแค่เช็คว่า email อยู่ใน allowlist ไหม
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    const userEmail = user?.email?.toLowerCase();
+
+    if (!userEmail || !adminEmails.includes(userEmail)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
