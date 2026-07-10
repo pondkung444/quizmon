@@ -6,6 +6,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { SUBLINE_LABEL } from "@/lib/labels";
 import SignOutLink from "@/components/SignOutLink";
 import CollectedPetCard from "@/components/CollectedPetCard";
+import TrackOnMount from "@/components/TrackOnMount";
 
 // หน้ารายละเอียด read-only ของ Qmon ที่เก็บเข้าสมุดแล้ว — ต่างจาก /pet ตรงที่ดึงจาก petId
 // ใน param แทน is_active=true และไม่ import CollectPetButton/EggChoiceModal เข้ามาเลย
@@ -60,6 +61,7 @@ export default async function CollectionPetDetailPage({
       <Link href="/collection" className="text-sm text-text3 transition hover:text-gold-hi">
         ← กลับสมุดสะสม
       </Link>
+      <TrackOnMount event="pet_detail_open" props={{ source: "collection" }} petId={petId} />
       <CollectedPetCard
         nickname={pet.nickname}
         speciesName={speciesName}

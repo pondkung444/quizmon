@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { QuizRoundQuestion, QuizMode } from "@/types/quiz";
+import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   BASE_EXP_PER_CORRECT,
   DAILY_EXP_CAP,
@@ -103,7 +103,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
 
   const { data: rows, error } = await admin
     .from("questions")
-    .select("id, category, difficulty, question_text, choices, correct_index, explanation")
+    .select("id, subject, category, difficulty, question_text, choices, correct_index, explanation")
     .in("id", pickedIds);
   if (error) throw new Error(error.message);
 
@@ -112,6 +112,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
       r.id,
       {
         id: r.id,
+        subject: r.subject as Subject,
         category: r.category,
         difficulty: r.difficulty,
         question_text: r.question_text,
@@ -127,6 +128,10 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
 
 export type SubmitAnswerResult = {
   expEarned: number;
+  // category+subject ที่ DB ยืนยันจริงตอนคะแนนนี้ถูกคิด — ให้ฝั่ง client แนบไปกับ event
+  // question_answer แทนค่าที่ client ถืออยู่เอง (เข้ากับหลักเดิมของไฟล์นี้: ไม่เชื่อ state ฝั่ง client)
+  category: string;
+  subject: Subject;
 };
 
 export async function submitAnswer(input: {
@@ -146,7 +151,7 @@ export async function submitAnswer(input: {
   const admin = createAdminClient();
   const { data: question, error } = await admin
     .from("questions")
-    .select("correct_index, subject")
+    .select("correct_index, subject, category")
     .eq("id", input.questionId)
     .single();
   if (error || !question) throw new Error("ไม่พบคำถามนี้");
@@ -197,7 +202,7 @@ export async function submitAnswer(input: {
     await supabase.from("pets").update(petUpdates).eq("id", activePet.id);
   }
 
-  return { expEarned };
+  return { expEarned, category: question.category, subject: question.subject as Subject };
 }
 
 export type RoundFinishResult = {
@@ -205,6 +210,9 @@ export type RoundFinishResult = {
   capped: boolean;
   evolved: boolean;
   reachedStage4: boolean;
+  petId: string;
+  fromStage: number;
+  toStage: number;
 };
 
 export async function finishQuizRound(roundExpEarned: number): Promise<RoundFinishResult> {
@@ -253,5 +261,13 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
     })
     .eq("id", activePet.id);
 
-  return { expAddedToPet, capped, evolved: newStage !== activePet.stage, reachedStage4 };
+  return {
+    expAddedToPet,
+    capped,
+    evolved: newStage !== activePet.stage,
+    reachedStage4,
+    petId: activePet.id,
+    fromStage: activePet.stage,
+    toStage: newStage,
+  };
 }

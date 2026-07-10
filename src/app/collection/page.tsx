@@ -60,6 +60,9 @@ export default async function CollectionPage() {
           petId,
           base,
           name,
+          eggTypeId: eggType.id,
+          subline,
+          personality,
         });
       }
     }

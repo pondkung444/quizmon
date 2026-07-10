@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
+import { track } from "@/lib/analytics";
 
 const TIER_LABEL: Record<string, string> = {
   common: "ธรรมดา",
@@ -41,6 +42,8 @@ export default function EggsClient({
     startTransition(async () => {
       try {
         await hatchEgg(eggId);
+        const egg = eggs.find((e) => e.id === eggId);
+        if (egg) track("egg_selected", { egg_type_id: egg.eggTypeId });
         router.push("/pet");
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : "ฟักไข่ไม่สำเร็จ ลองใหม่อีกครั้งนะ");

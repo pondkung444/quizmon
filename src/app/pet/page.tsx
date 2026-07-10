@@ -12,6 +12,7 @@ import { SUBLINE_LABEL } from "@/lib/labels";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
+import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
 
 export default async function PetPage({
@@ -28,6 +29,7 @@ export default async function PetPage({
   } = await supabase.auth.getUser();
 
   let pet: {
+    id: string;
     nickname: string | null;
     exp: number;
     stage: number;
@@ -53,7 +55,7 @@ export default async function PetPage({
       supabase
         .from("pets")
         .select(
-          "nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)"
+          "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)"
         )
         .eq("user_id", user.id)
         .eq("is_active", true)
@@ -129,6 +131,8 @@ export default async function PetPage({
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
       ) : pet ? (
+        <>
+        <TrackOnMount event="pet_detail_open" props={{ source: "active" }} petId={pet.id} />
         <PetCard
           stage={stage}
           stageName={stageInfo.name}
@@ -151,6 +155,7 @@ export default async function PetPage({
           justEvolved={justEvolved}
           eggChoices={eggChoices}
         />
+        </>
       ) : (
         <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">
           ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่ — ไปที่คลังไข่เพื่อฟักไข่ใบแรก

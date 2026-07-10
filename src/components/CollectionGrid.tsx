@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 
 export type CollectionSlot = {
   key: string;
@@ -12,6 +13,9 @@ export type CollectionSlot = {
   petId: string | null;
   base: string;
   name: string;
+  eggTypeId: string;
+  subline: string;
+  personality: string;
 };
 
 export type CollectionSection = {
@@ -23,8 +27,21 @@ export type CollectionSection = {
 // แยกเป็น client component เพราะช่อง silhouette ที่ยังไม่ปลดล็อกต้องกดเปิด popup ได้
 // (พันธุ์+ชื่อเท่านั้น ไม่มี hint/ตัวเลข stat ใดๆ) ส่วนช่องที่ปลดล็อกแล้วลิงก์ตรงไป
 // /collection/[petId] ของ "ตัวแรกที่เก็บ" ในคอมโบนั้น (คำนวณจากฝั่ง server แล้ว)
+function trackSlotClick(slot: CollectionSlot) {
+  track("collection_slot_click", {
+    egg_type_id: slot.eggTypeId,
+    subline: slot.subline,
+    personality: slot.personality,
+    is_filled: slot.unlocked,
+  });
+}
+
 export default function CollectionGrid({ sections }: { sections: CollectionSection[] }) {
   const [previewSlot, setPreviewSlot] = useState<CollectionSlot | null>(null);
+
+  useEffect(() => {
+    track("collection_open");
+  }, []);
 
   return (
     <>
@@ -74,7 +91,7 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
 
               if (slot.unlocked && slot.petId) {
                 return (
-                  <Link key={slot.key} href={`/collection/${slot.petId}`}>
+                  <Link key={slot.key} href={`/collection/${slot.petId}`} onClick={() => trackSlotClick(slot)}>
                     {card}
                   </Link>
                 );
@@ -82,7 +99,14 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
 
               if (!slot.unlocked) {
                 return (
-                  <button key={slot.key} type="button" onClick={() => setPreviewSlot(slot)}>
+                  <button
+                    key={slot.key}
+                    type="button"
+                    onClick={() => {
+                      trackSlotClick(slot);
+                      setPreviewSlot(slot);
+                    }}
+                  >
                     {card}
                   </button>
                 );

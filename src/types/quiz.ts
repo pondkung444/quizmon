@@ -7,6 +7,7 @@ export type QuizMode = Subject | "midterm";
 // เวอร์ชันพื้นฐาน ไม่มีเฉลย — ใช้เป็น base type เท่านั้น
 export type PublicQuestion = {
   id: number;
+  subject: Subject;
   category: string;
   difficulty: number;
   question_text: string;

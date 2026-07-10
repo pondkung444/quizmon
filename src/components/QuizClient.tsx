@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { QuizRoundQuestion, QuizMode } from "@/types/quiz";
+import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   startQuizRound,
   submitAnswer,
@@ -16,6 +16,7 @@ import {
   getComboMultiplier,
 } from "@/lib/exp";
 import StageUpModal from "@/components/StageUpModal";
+import { track } from "@/lib/analytics";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -38,7 +39,11 @@ type LocalAnswerResult = {
 };
 
 // บันทึกคำตอบไปหลังบ้านแบบไม่ block UI แต่เก็บ promise ไว้รอตอนจบรอบ (Promise.all)
-type BackgroundSubmission = { ok: true; expEarned: number } | { ok: false };
+// category/subject แนบมาด้วยตอน ok — มาจาก DB จริงที่ submitAnswer ตรวจสอบตอนให้คะแนน (ไม่ใช่ค่าที่
+// client ถืออยู่เอง) ใช้แนบ event question_answer ต่อ (ดู handleSelectChoice ด้านล่าง)
+type BackgroundSubmission =
+  | { ok: true; expEarned: number; category: string; subject: Subject }
+  | { ok: false };
 
 async function submitAnswerWithRetry(input: {
   questionId: number;
@@ -48,11 +53,11 @@ async function submitAnswerWithRetry(input: {
 }): Promise<BackgroundSubmission> {
   try {
     const res = await submitAnswer(input);
-    return { ok: true, expEarned: res.expEarned };
+    return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
   } catch {
     try {
       const res = await submitAnswer(input);
-      return { ok: true, expEarned: res.expEarned };
+      return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
     } catch {
       return { ok: false };
     }
@@ -78,6 +83,8 @@ export default function QuizClient() {
   // คำขอจริงไปเซิร์ฟเวอร์ต้องเข้าคิวทีละตัว (กัน race condition ตอนอัปเดต pets แบบ
   // read-then-write) — แต่ละ submission ต่อท้าย queue นี้ ไม่ได้ยิงพร้อมกัน
   const submissionQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  // เวลาที่โจทย์ข้อปัจจุบันขึ้นจอ — ใช้คำนวณ time_used_ms ตอนตอบ (event question_answer)
+  const questionShownAtRef = useRef<number>(0);
 
   function resetRoundState() {
     setIndex(0);
@@ -109,6 +116,14 @@ export default function QuizClient() {
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         setPhase("playing");
+
+        const firstQuestion = round[0];
+        questionShownAtRef.current = Date.now();
+        track("question_start", {
+          question_id: firstQuestion.id,
+          subject: firstQuestion.subject,
+          category: firstQuestion.category,
+        });
       } catch {
         setErrorMessage("โหลดคำถามไม่สำเร็จ ลองใหม่อีกครั้งนะ");
         setPhase("select");
@@ -120,6 +135,9 @@ export default function QuizClient() {
     if (result || isPending) return;
     const current = questions[index];
     const isCorrect = choiceIndex === current.correctIndex;
+    // handleSelectChoice ถูกเรียกจาก onClick เท่านั้น (ไม่มีทางถูกเรียกระหว่าง render) —
+    // eslint-disable-next-line react-hooks/purity
+    const timeUsedMs = Date.now() - questionShownAtRef.current;
     const newCombo = isCorrect ? combo + 1 : 0;
     // ตัวเลข EXP นี้เป็นค่าประมาณชั่วคราว (สมมติ accuracy multiplier = 1.0) โชว์ให้เห็นทันที
     // ระหว่างเล่น ค่าจริงที่ผ่านการเช็ค accuracy multiplier จาก DB จะมาจาก server ตอนสรุปท้ายรอบ
@@ -148,12 +166,35 @@ export default function QuizClient() {
     );
     submissionQueueRef.current = submissionPromise;
     pendingSubmissionsRef.current[index] = submissionPromise;
+
+    // .then() แยกต่างหากบน promise เดิม — แค่ "แอบดู" ผลลัพธ์ ไม่ได้ไปแก้ submissionQueueRef/
+    // pendingSubmissionsRef เอง จึงไม่กระทบคิวจริงหรือ finishQuizRound ที่รอ Promise.all อยู่
+    submissionPromise.then((res) => {
+      if (!res.ok) return;
+      track("question_answer", {
+        question_id: current.id,
+        category: res.category,
+        subject: res.subject,
+        is_correct: isCorrect,
+        time_used_ms: timeUsedMs,
+        difficulty: current.difficulty,
+      });
+    });
   }
 
   function handleNext() {
     const isLastQuestion = index + 1 >= questions.length;
 
     if (!isLastQuestion) {
+      const nextQuestion = questions[index + 1];
+      // handleNext ถูกเรียกจาก onClick เท่านั้น (ไม่มีทางถูกเรียกระหว่าง render) —
+      // eslint-disable-next-line react-hooks/purity
+      questionShownAtRef.current = Date.now();
+      track("question_start", {
+        question_id: nextQuestion.id,
+        subject: nextQuestion.subject,
+        category: nextQuestion.category,
+      });
       setIndex((i) => i + 1);
       setSelectedChoice(null);
       setResult(null);
@@ -174,6 +215,14 @@ export default function QuizClient() {
       const finishResult = await finishQuizRound(roundExpEarned);
       setSummary(finishResult);
       setPhase("summary");
+
+      if (finishResult.evolved) {
+        track(
+          "stage_up",
+          { from_stage: finishResult.fromStage, to_stage: finishResult.toStage },
+          finishResult.petId
+        );
+      }
     });
   }
 
