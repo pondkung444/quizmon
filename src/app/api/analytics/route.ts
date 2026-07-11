@@ -23,6 +23,16 @@ function isValidEvent(e: unknown): e is IncomingEvent {
   return typeof r.event_name === "string" && typeof r.session_id === "string" && typeof r.client_ts === "string";
 }
 
+function isAdminPath(path: unknown): boolean {
+  return typeof path === "string" && path.toLowerCase().startsWith("/admin");
+}
+
+// screen_view ตอน "ออกจาก" หน้า admin จะมี screen เป็นหน้าปลายทาง (ไม่ใช่ /admin) แต่ props.from
+// เป็น /admin — ต้องเช็คทั้งคู่ ไม่งั้น event ที่เกิดจาก session ของ admin จะหลุดเข้า DB
+function isAdminEvent(e: IncomingEvent): boolean {
+  return isAdminPath(e.screen) || isAdminPath(e.props?.from);
+}
+
 export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
@@ -41,8 +51,17 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ ok: true });
 
+    // กัน event ของบัญชีเจ้าของ/dev เอง ไม่ให้ปนใน analytics จริง
+    if (user.email?.toLowerCase() === "panuwat.pond@gmail.com") {
+      return NextResponse.json({ ok: true });
+    }
+
+    // กัน event ที่เกิดขึ้นบนหน้า admin เอง (เช่น admin เปิดดู /admin/analytics) ไม่ให้ปนใน analytics จริง
+    const nonAdminEvents = events.filter((e) => !isAdminEvent(e));
+    if (nonAdminEvents.length === 0) return NextResponse.json({ ok: true });
+
     // user_id มาจาก session เสมอ ไม่รับจาก client (เข้ากับ RLS "insert own": auth.uid() = user_id)
-    const rows = events.map((e) => ({
+    const rows = nonAdminEvents.map((e) => ({
       user_id: user.id,
       session_id: e.session_id,
       event_name: e.event_name,
