@@ -5,6 +5,7 @@ import { SUBLINE_LABEL } from "@/lib/labels";
 import StatTile from "@/components/admin/StatTile";
 import BarChartCard, { CHART_AMBER, CHART_INDIGO, CHART_RED } from "@/components/admin/BarChartCard";
 import QuestionsPerDayChart, { type QuestionsPerDayDatum } from "@/components/admin/QuestionsPerDayChart";
+import FunnelChartCard, { type FunnelStep } from "@/components/admin/FunnelChartCard";
 
 const SUMMARY_WINDOW_DAYS = 7;
 const DETAIL_WINDOW_DAYS = 14;
@@ -21,6 +22,13 @@ function bkkDateKey(iso: string): string {
 function bkkWeekdayIndex(iso: string): number {
   const short = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Bangkok", weekday: "short" }).format(new Date(iso));
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(short);
+}
+
+function formatDurationTh(totalSec: number): string {
+  const min = Math.floor(totalSec / 60);
+  const sec = Math.round(totalSec % 60);
+  if (min === 0) return `${sec} วินาที`;
+  return `${min} นาที ${sec} วินาที`;
 }
 
 function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
@@ -61,34 +69,59 @@ export default async function AdminAnalyticsPage() {
 
   const admin = createAdminClient();
 
-  const [summaryRes, detailAnswersRes, screenEventsRes, eggSelectedRes, comboClicksRes, eggTypesRes] =
-    await Promise.all([
-      admin
-        .from("analytics_events")
-        .select("user_id, event_name, props, session_id, client_ts")
-        .gte("client_ts", isoDaysAgo(SUMMARY_WINDOW_DAYS)),
-      admin
-        .from("analytics_events")
-        .select("user_id, event_name, props, session_id, client_ts")
-        .eq("event_name", "question_answer")
-        .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-      admin
-        .from("analytics_events")
-        .select("user_id, event_name, screen, props, session_id, client_ts")
-        .in("event_name", ["screen_view", "session_end"])
-        .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-      admin
-        .from("analytics_events")
-        .select("props")
-        .eq("event_name", "egg_selected")
-        .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-      admin
-        .from("analytics_events")
-        .select("props")
-        .eq("event_name", "collection_slot_click")
-        .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-      admin.from("egg_types").select("id, name_th"),
-    ]);
+  // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
+  const { data: usersList } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const adminUserIds = new Set(
+    (usersList?.users ?? [])
+      .filter((u) => u.email && adminEmails.includes(u.email.toLowerCase()))
+      .map((u) => u.id)
+  );
+
+  const [
+    summaryRes,
+    detailAnswersRes,
+    screenEventsRes,
+    eggSelectedRes,
+    comboClicksRes,
+    eggTypesRes,
+    sessionEventsRes,
+    playerEggsRes,
+    petsRes,
+  ] = await Promise.all([
+    admin
+      .from("analytics_events")
+      .select("user_id, event_name, props, session_id, client_ts")
+      .gte("client_ts", isoDaysAgo(SUMMARY_WINDOW_DAYS)),
+    admin
+      .from("analytics_events")
+      .select("user_id, event_name, props, session_id, client_ts")
+      .eq("event_name", "question_answer")
+      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    admin
+      .from("analytics_events")
+      .select("user_id, event_name, screen, props, session_id, client_ts")
+      .in("event_name", ["screen_view", "session_end"])
+      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    admin
+      .from("analytics_events")
+      .select("props")
+      .eq("event_name", "egg_selected")
+      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    admin
+      .from("analytics_events")
+      .select("props")
+      .eq("event_name", "collection_slot_click")
+      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    admin.from("egg_types").select("id, name_th"),
+    // ระยะเวลาเซสชัน: ต้องได้ client_ts ของทุก event (ไม่จำกัด event_name) เพื่อหา max-min ต่อ session_id จริง
+    admin
+      .from("analytics_events")
+      .select("user_id, session_id, client_ts")
+      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
+    admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
+    admin.from("pets").select("id, stage, is_active"),
+  ]);
 
   const summaryEvents = (summaryRes.data ?? []) as AnalyticsEventRow[];
   const detailAnswers = (detailAnswersRes.data ?? []) as AnalyticsEventRow[];
@@ -253,6 +286,86 @@ export default async function AdminAnalyticsPage() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
+  // ============================================================
+  // บล็อก 7: ระยะเวลาเซสชันเฉลี่ย — ต่อ session_id หา max(client_ts)-min(client_ts)
+  // (exclude แอดมิน, session ที่มี event เดียว duration=0 นับรวมด้วยไม่ filter ทิ้ง)
+  // ============================================================
+  const sessionEvents = (sessionEventsRes.data ?? []) as {
+    user_id: string | null;
+    session_id: string;
+    client_ts: string;
+  }[];
+  const sessionTsMap = new Map<string, number[]>();
+  for (const e of sessionEvents) {
+    if (e.user_id && adminUserIds.has(e.user_id)) continue;
+    if (!sessionTsMap.has(e.session_id)) sessionTsMap.set(e.session_id, []);
+    sessionTsMap.get(e.session_id)!.push(new Date(e.client_ts).getTime());
+  }
+
+  let totalSessionDurationSec = 0;
+  let sessionCount = 0;
+  const durationByDay = new Map<string, { totalSec: number; count: number }>();
+
+  for (const tsList of sessionTsMap.values()) {
+    const minTs = Math.min(...tsList);
+    const maxTs = Math.max(...tsList);
+    const durationSec = (maxTs - minTs) / 1000;
+    totalSessionDurationSec += durationSec;
+    sessionCount++;
+    const dateKey = bkkDateKey(new Date(minTs).toISOString());
+    if (!durationByDay.has(dateKey)) durationByDay.set(dateKey, { totalSec: 0, count: 0 });
+    const agg = durationByDay.get(dateKey)!;
+    agg.totalSec += durationSec;
+    agg.count++;
+  }
+
+  const avgSessionDurationSec = sessionCount > 0 ? totalSessionDurationSec / sessionCount : 0;
+
+  const sessionTrendData = [];
+  for (let i = DETAIL_WINDOW_DAYS - 1; i >= 0; i--) {
+    const iso = isoDaysAgo(i);
+    const dateKey = bkkDateKey(iso);
+    const agg = durationByDay.get(dateKey);
+    sessionTrendData.push({
+      label: new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" }).format(
+        new Date(iso)
+      ),
+      value: agg && agg.count > 0 ? Math.round((agg.totalSec / agg.count / 60) * 10) / 10 : 0,
+    });
+  }
+
+  // ============================================================
+  // บล็อก 8+9: Egg funnel + Evolution funnel — นับทั้งหมด (all-time) จาก player_eggs/pets ตรงๆ
+  // ============================================================
+  type PlayerEggFunnelRow = { hatched_at: string | null; hatched_pet_id: string | null };
+  type PetFunnelRow = { id: string; stage: number; is_active: boolean };
+
+  const playerEggRows = (playerEggsRes.data ?? []) as PlayerEggFunnelRow[];
+  const allPets = (petsRes.data ?? []) as PetFunnelRow[];
+  const petById = new Map(allPets.map((p) => [p.id, p]));
+
+  const hatchedPets = playerEggRows
+    .filter((e) => e.hatched_pet_id)
+    .map((e) => petById.get(e.hatched_pet_id!))
+    .filter((p): p is PetFunnelRow => !!p);
+
+  const eggFunnelData: FunnelStep[] = [
+    { label: "ได้ไข่", count: playerEggRows.length },
+    { label: "ฟักแล้ว", count: playerEggRows.filter((e) => e.hatched_at).length },
+    { label: "ถึง stage 3", count: hatchedPets.filter((p) => p.stage >= 3).length },
+    { label: "ถึง stage 4", count: hatchedPets.filter((p) => p.stage >= 4).length },
+    { label: "เก็บเข้าสมุด", count: hatchedPets.filter((p) => p.stage >= 4 && !p.is_active).length },
+  ];
+
+  // pets.stage เดินหน้าอย่างเดียว (tryAdvanceStage ใน src/lib/evolution.ts ไม่มีทางลดลง)
+  // จึง count(*) where stage>=N ได้ตรงๆ โดยไม่ต้องพึ่ง event ประวัติ
+  const evolutionFunnelData: FunnelStep[] = [
+    { label: "Stage 1", count: allPets.filter((p) => p.stage >= 1).length },
+    { label: "Stage 2", count: allPets.filter((p) => p.stage >= 2).length },
+    { label: "Stage 3", count: allPets.filter((p) => p.stage >= 3).length },
+    { label: "Stage 4", count: allPets.filter((p) => p.stage >= 4).length },
+  ];
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6 pb-16">
       <div>
@@ -261,7 +374,7 @@ export default async function AdminAnalyticsPage() {
       </div>
 
       {/* บล็อก 1: แถบสรุป */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatTile label={`Active users (${SUMMARY_WINDOW_DAYS} วัน)`} value={activeUsers7d.toLocaleString("th-TH")} />
         <StatTile
           label="Session เฉลี่ย/คน/วัน"
@@ -270,6 +383,11 @@ export default async function AdminAnalyticsPage() {
         />
         <StatTile label="ตอบคำถามรวม" value={answerCount7d.toLocaleString("th-TH")} sublabel={`${SUMMARY_WINDOW_DAYS} วันล่าสุด`} />
         <StatTile label="ความแม่นเฉลี่ย" value={`${avgAccuracyPct.toFixed(0)}%`} sublabel={`${SUMMARY_WINDOW_DAYS} วันล่าสุด`} />
+        <StatTile
+          label="ระยะเวลาเซสชันเฉลี่ย"
+          value={formatDurationTh(avgSessionDurationSec)}
+          sublabel={`${sessionCount.toLocaleString("th-TH")} session (${DETAIL_WINDOW_DAYS} วัน, ไม่รวมแอดมิน)`}
+        />
       </div>
 
       {/* บล็อก 2: คำถามต่อวัน */}
@@ -365,6 +483,22 @@ export default async function AdminAnalyticsPage() {
           </div>
         )}
       </ChartCard>
+
+      {/* บล็อก 7: เทรนด์ระยะเวลาเซสชันรายวัน */}
+      <ChartCard title="ระยะเวลาเซสชันเฉลี่ยรายวัน" subtitle={`นาที/session (${DETAIL_WINDOW_DAYS} วัน, ไม่รวมแอดมิน)`}>
+        <BarChartCard data={sessionTrendData} color={CHART_INDIGO} valueSuffix=" นาที" />
+      </ChartCard>
+
+      {/* บล็อก 8+9: Egg funnel / Evolution funnel */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ChartCard title="Egg Funnel" subtitle="ได้ไข่ → ฟัก → stage 3 → stage 4 → เก็บเข้าสมุด (ทั้งหมด)">
+          <FunnelChartCard steps={eggFunnelData} color={CHART_AMBER} />
+        </ChartCard>
+
+        <ChartCard title="Evolution Funnel" subtitle="จำนวน Qmon ที่เคยไปถึงแต่ละ stage (ทั้งหมด)">
+          <FunnelChartCard steps={evolutionFunnelData} color={CHART_INDIGO} />
+        </ChartCard>
+      </div>
     </main>
   );
 }
