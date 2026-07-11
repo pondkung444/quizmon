@@ -10,6 +10,8 @@ import StatRadar from "@/components/StatRadar";
 import SpeechBubble from "@/components/SpeechBubble";
 import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
+import { getEvolutionProgress } from "@/lib/evolution";
+import EvolutionGlow from "@/components/EvolutionGlow";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -86,6 +88,7 @@ export default function PetCard({
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
 
   const idleAnimClass = stage === 1 ? "animate-egg-wobble" : "animate-pet-bob";
+  const evolutionProgress = getEvolutionProgress(stage, exp);
 
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
@@ -135,14 +138,16 @@ export default function PetCard({
         <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
           <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
             {petImagePath ? (
-              <Image
-                src={petImagePath}
-                alt="ภาพ Qmon"
-                width={180}
-                height={180}
-                priority
-                className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
-              />
+              <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
+                <Image
+                  src={petImagePath}
+                  alt="ภาพ Qmon"
+                  width={180}
+                  height={180}
+                  priority
+                  className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
+                />
+              </EvolutionGlow>
             ) : (
               <div
                 className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${

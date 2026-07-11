@@ -13,7 +13,7 @@ import {
   getMidtermAccuracyMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
-import { tryAdvanceStage, determineSubline, STAGE_EXP_THRESHOLD } from "@/lib/evolution";
+import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
 
 const ROUND_SIZE = 5;
 
@@ -287,17 +287,10 @@ export async function finishQuizRound(
   const evolved = newStage !== activePet.stage;
 
   // nearEvolution คือ "ใกล้" ไม่ใช่ "ถึง" — ถ้ารอบนี้วิวัฒนาการไปแล้วไม่ต้องเช็คต่อ
-  // และ stage 4 ไม่มี threshold ถัดไปให้ใกล้ (สูงสุดใน MVP)
-  let nearEvolution = false;
-  if (!evolved) {
-    const nextThreshold = STAGE_EXP_THRESHOLD[newStage];
-    if (nextThreshold !== undefined) {
-      const prevThreshold = STAGE_EXP_THRESHOLD[newStage - 1] ?? 0;
-      const stageRange = nextThreshold - prevThreshold;
-      const remaining = nextThreshold - newExp;
-      nearEvolution = remaining > 0 && remaining <= stageRange * NEAR_EVOLUTION_RATIO;
-    }
-  }
+  // และ stage 4 ไม่มี threshold ถัดไปให้ใกล้ (สูงสุดใน MVP, getEvolutionProgress คืน 0 ให้เอง)
+  // ไม่ต้องเช็ค progress < 1 แยก: ถ้า evolved เป็น false ตัว exp ต้องต่ำกว่า threshold อยู่แล้วเสมอ
+  // (ไม่งั้น tryAdvanceStage จะขยับสเตจไปแล้ว) progress ที่ได้เลยไม่มีทางแตะ 1 พอดีในเคสนี้
+  const nearEvolution = !evolved && getEvolutionProgress(newStage, newExp) >= 1 - NEAR_EVOLUTION_RATIO;
 
   // enterGame/comeback ทักทายเฉพาะ "รอบแรกของวันนี้" เท่านั้น — เทียบวันปฏิทินไทยของแถวล่าสุด
   // ก่อนรอบนี้ (lastAttemptBeforeRound มาจาก startQuizRound ที่อ่านไว้ก่อนรอบนี้จะ insert แถวใหม่)

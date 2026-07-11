@@ -25,6 +25,20 @@ export function tryAdvanceStage(currentStage: number, currentExp: number): numbe
   return currentStage;
 }
 
+// ความคืบหน้า (0-1) ไปยัง threshold ถัดไป "ภายในสเตจปัจจุบัน" เท่านั้น — ไม่ใช่ exp ทั้งก้อนหาร
+// threshold ตรงๆ เพราะ pets.exp สะสมข้าม stage ไม่รีเซ็ต (ดู tryAdvanceStage) ต้องหักลบ threshold
+// ของสเตจก่อนหน้าออกก่อน ไม่งั้นสเตจต้นๆ จะดูคืบหน้าเกินจริง สูตรเดียวกับที่ใช้เช็ค nearEvolution
+// ใน quiz/actions.ts (ดึงมาเป็น util กลางจุดนี้แทนการก็อปสูตรซ้ำ)
+// stage 4 (หรือสูงกว่า) ไม่มี threshold ถัดไปให้เทียบ -> คืน 0 เสมอ (ไม่ throw, ให้ฝั่ง UI ปิดเอฟเฟกต์เงียบๆ)
+export function getEvolutionProgress(stage: number, exp: number): number {
+  const nextThreshold = STAGE_EXP_THRESHOLD[stage];
+  if (nextThreshold === undefined) return 0;
+  const prevThreshold = STAGE_EXP_THRESHOLD[stage - 1] ?? 0;
+  const stageRange = nextThreshold - prevThreshold;
+  if (stageRange <= 0) return 0;
+  return Math.min(1, Math.max(0, (exp - prevThreshold) / stageRange));
+}
+
 // --- Subline: เช็คตอนขยับเข้า stage 3 เท่านั้น (ครั้งเดียว, lock ไว้ถาวร) ---
 export type Subline = "math" | "science" | "balanced";
 

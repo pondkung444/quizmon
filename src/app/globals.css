@@ -143,12 +143,41 @@ body {
   animation: speech-pop 200ms ease-out;
 }
 
+/* "ใกล้วิวัฒนาการ" — ห่อรูปสัตว์ตัว active (ดู EvolutionGlow.tsx) รับ --evo-progress (0-1) ผ่าน
+   inline style ตัว glow เองไล่ความเข้มจาก --evo-progress ล้วนๆ ใน CSS (ไม่ผ่าน JS) เริ่มปรากฏ
+   ชัดเจนเฉพาะ progress > 0.7 เท่านั้น — ก่อนหน้านั้น strength = 0 ไม่มีเอฟเฟกต์เลย (ไม่ใช่แอบเรืองจางๆ) */
+.evo-glow {
+  --evo-glow-strength: clamp(0, calc((var(--evo-progress, 0) - 0.7) * 3.3334), 1);
+  filter: drop-shadow(
+    0 0 calc(4px + var(--evo-glow-strength) * 16px)
+      rgba(224, 134, 58, var(--evo-glow-strength))
+  );
+  transition: filter 300ms ease-out;
+}
+
+@keyframes evo-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* เฉพาะตอน progress > 0.7 และ exp วันนี้ยังไม่ตัน (ดู EvolutionGlow.tsx) — ยิ่ง progress
+   ใกล้ 1 ยิ่งพัลส์ถี่ขึ้น (คำนวณ duration ตรงใน CSS จาก --evo-progress เดียวกับ glow) */
+.evo-glow-pulse {
+  animation: evo-pulse calc(2.4s - var(--evo-progress, 0) * 1.4s) ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
   .animate-egg-wobble,
   .animate-pet-tap,
   .animate-card-bob,
-  .animate-speech-pop {
+  .animate-speech-pop,
+  .evo-glow-pulse {
     animation: none;
   }
 }

@@ -85,9 +85,13 @@ async function submitAnswerWithRetry(input: {
 export default function QuizClient({
   personalityKey,
   petAvatarPath,
+  petEvolutionProgress = 0,
+  petDailyCapped = false,
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
+  petEvolutionProgress?: number;
+  petDailyCapped?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
@@ -372,7 +376,12 @@ export default function QuizClient({
           </div>
         </div>
 
-        <SpeechBubble message={personalityMessage} avatarPath={petAvatarPath} />
+        <SpeechBubble
+          message={personalityMessage}
+          avatarPath={petAvatarPath}
+          evolutionProgress={petEvolutionProgress}
+          dailyCapped={petDailyCapped}
+        />
 
         <h2 className="text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
@@ -454,7 +463,12 @@ export default function QuizClient({
       {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
 
       <div className="flex justify-center">
-        <SpeechBubble message={personalityMessage} avatarPath={petAvatarPath} />
+        <SpeechBubble
+          message={personalityMessage}
+          avatarPath={petAvatarPath}
+          evolutionProgress={petEvolutionProgress}
+          dailyCapped={petDailyCapped}
+        />
       </div>
 
       <div>

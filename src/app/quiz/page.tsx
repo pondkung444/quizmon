@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import { getPersonalityKey } from "@/lib/personality";
-import type { Subline, Personality } from "@/lib/evolution";
+import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evolution";
+import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import QuizClient from "@/components/QuizClient";
 
 export default async function QuizPage() {
@@ -14,13 +15,16 @@ export default async function QuizPage() {
     stage: number;
     subline: string | null;
     personality: string | null;
+    exp: number;
+    exp_today: number;
+    exp_today_date: string;
     egg_types: { sprite_prefix: string } | { sprite_prefix: string }[] | null;
   } | null = null;
 
   if (user) {
     const { data } = await supabase
       .from("pets")
-      .select("stage, subline, personality, egg_types(sprite_prefix)")
+      .select("stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
@@ -46,9 +50,20 @@ export default async function QuizPage() {
     }
   }
 
+  // avatar เล็กข้าง SpeechBubble ผูกเอฟเฟกต์ "ใกล้วิวัฒนาการ" เดียวกับ /pet (ดู EvolutionGlow.tsx) —
+  // ใช้ util กลางตัวเดียวกัน ไม่คำนวณซ้ำ
+  const petEvolutionProgress = pet ? getEvolutionProgress(pet.stage, pet.exp) : 0;
+  const petExpTodaySoFar = pet && pet.exp_today_date === getTodayInBangkok() ? pet.exp_today : 0;
+  const petDailyCapped = petExpTodaySoFar >= DAILY_EXP_CAP;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 p-6">
-      <QuizClient personalityKey={personalityKey} petAvatarPath={petAvatarPath} />
+      <QuizClient
+        personalityKey={personalityKey}
+        petAvatarPath={petAvatarPath}
+        petEvolutionProgress={petEvolutionProgress}
+        petDailyCapped={petDailyCapped}
+      />
     </main>
   );
 }
