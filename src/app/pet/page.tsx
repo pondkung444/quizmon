@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import {
   STAGE_EXP_THRESHOLD,
   STAGE_LABEL_TH,
@@ -25,9 +25,7 @@ export default async function PetPage({
   const justEvolved = evolved === "1";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   let pet: {
     id: string;

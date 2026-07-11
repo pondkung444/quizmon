@@ -1,13 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
 
 export default async function EggsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   let eggs: EggListItem[] = [];
   let hasActivePet = false;

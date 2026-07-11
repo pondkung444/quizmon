@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getSpeciesName, type Subline, type Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import { SUBLINE_LABEL } from "@/lib/labels";
@@ -19,9 +19,7 @@ export default async function CollectionPetDetailPage({
   const { petId } = await params;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) notFound();
 
   const { data: pet } = await supabase

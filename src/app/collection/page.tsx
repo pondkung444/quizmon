@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getSpeciesName, getSpeciesNameParts, type Subline, type Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
@@ -9,9 +9,7 @@ const PERSONALITY_ORDER: Personality[] = ["A", "B"];
 
 export default async function CollectionPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   let eggTypes: { id: string; name_th: string; sprite_prefix: string }[] = [];
   // combo (eggTypeId_subline_personality) -> id ของ "ตัวแรกที่เก็บ" (evolved_at เก่าสุด)

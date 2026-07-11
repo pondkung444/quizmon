@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUBLINE_LABEL } from "@/lib/labels";
 import StatTile from "@/components/admin/StatTile";
@@ -50,13 +50,33 @@ type AnalyticsEventRow = {
   client_ts: string;
 };
 
+// PostgREST ตัดผลลัพธ์ที่ 1000 แถวต่อ request แบบเงียบๆ — query แบบเดิม (ยิงตรงไม่ paginate)
+// โดน cap โดยไม่รู้ตัว ทำให้ทั้งช้า (ยิง 6 query ที่เนื้อหาซ้อนกันเอง) และตัวเลขต่ำกว่าจริง
+// ดึงก้อนเดียวครบทุก event ในหน้าต่างเวลา แล้วให้ผู้เรียกแตก subset ใน JS แทน
+async function fetchAllEventsSince(
+  admin: ReturnType<typeof createAdminClient>,
+  sinceIso: string
+): Promise<AnalyticsEventRow[]> {
+  const PAGE_SIZE = 1000;
+  const rows: AnalyticsEventRow[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("analytics_events")
+      .select("user_id, event_name, screen, props, session_id, client_ts")
+      .gte("client_ts", sinceIso)
+      .order("client_ts", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as AnalyticsEventRow[]));
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 export default async function AdminAnalyticsPage() {
   // gate ซ้ำอีกชั้นในหน้า นอกจาก middleware (src/lib/supabase/middleware.ts) — กันกรณี
   // middleware ถูก bypass หรือถูกแก้ในอนาคตแล้วลืมทดสอบ /admin/*
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   const adminEmails = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -69,65 +89,34 @@ export default async function AdminAnalyticsPage() {
 
   const admin = createAdminClient();
 
-  // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
-  const { data: usersList } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const adminUserIds = new Set(
-    (usersList?.users ?? [])
-      .filter((u) => u.email && adminEmails.includes(u.email.toLowerCase()))
-      .map((u) => u.id)
-  );
-
-  const [
-    summaryRes,
-    detailAnswersRes,
-    screenEventsRes,
-    eggSelectedRes,
-    comboClicksRes,
-    eggTypesRes,
-    sessionEventsRes,
-    playerEggsRes,
-    petsRes,
-  ] = await Promise.all([
-    admin
-      .from("analytics_events")
-      .select("user_id, event_name, props, session_id, client_ts")
-      .gte("client_ts", isoDaysAgo(SUMMARY_WINDOW_DAYS)),
-    admin
-      .from("analytics_events")
-      .select("user_id, event_name, props, session_id, client_ts")
-      .eq("event_name", "question_answer")
-      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-    admin
-      .from("analytics_events")
-      .select("user_id, event_name, screen, props, session_id, client_ts")
-      .in("event_name", ["screen_view", "session_end"])
-      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-    admin
-      .from("analytics_events")
-      .select("props")
-      .eq("event_name", "egg_selected")
-      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
-    admin
-      .from("analytics_events")
-      .select("props")
-      .eq("event_name", "collection_slot_click")
-      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
+  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes] = await Promise.all([
+    // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+    // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
+    // collection_slot_click / session duration) เป็น subset ของ "ทุก event 14 วัน" ก้อนเดียว
+    fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
     admin.from("egg_types").select("id, name_th"),
-    // ระยะเวลาเซสชัน: ต้องได้ client_ts ของทุก event (ไม่จำกัด event_name) เพื่อหา max-min ต่อ session_id จริง
-    admin
-      .from("analytics_events")
-      .select("user_id, session_id, client_ts")
-      .gte("client_ts", isoDaysAgo(DETAIL_WINDOW_DAYS)),
     // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
     admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
     admin.from("pets").select("id, stage, is_active"),
   ]);
 
-  const summaryEvents = (summaryRes.data ?? []) as AnalyticsEventRow[];
-  const detailAnswers = (detailAnswersRes.data ?? []) as AnalyticsEventRow[];
-  const screenEvents = (screenEventsRes.data ?? []) as AnalyticsEventRow[];
-  const eggSelectedEvents = (eggSelectedRes.data ?? []) as { props: Record<string, unknown> | null }[];
-  const comboClickEvents = (comboClicksRes.data ?? []) as { props: Record<string, unknown> | null }[];
+  const adminUserIds = new Set(
+    (usersListRes.data?.users ?? [])
+      .filter((u) => u.email && adminEmails.includes(u.email.toLowerCase()))
+      .map((u) => u.id)
+  );
+
+  // เทียบเวลาเป็น ms เสมอ — client_ts จาก DB อาจลงท้าย "+00:00" ส่วน isoDaysAgo ลงท้าย "Z"
+  // เทียบ string ตรงๆ ไม่ได้
+  const summaryCutoffMs = new Date(isoDaysAgo(SUMMARY_WINDOW_DAYS)).getTime();
+  const summaryEvents = allEvents.filter((e) => new Date(e.client_ts).getTime() >= summaryCutoffMs);
+  const detailAnswers = allEvents.filter((e) => e.event_name === "question_answer");
+  const screenEvents = allEvents.filter(
+    (e) => e.event_name === "screen_view" || e.event_name === "session_end"
+  );
+  const eggSelectedEvents = allEvents.filter((e) => e.event_name === "egg_selected");
+  const comboClickEvents = allEvents.filter((e) => e.event_name === "collection_slot_click");
   const eggNameById = new Map((eggTypesRes.data ?? []).map((e) => [e.id as string, e.name_th as string]));
 
   // ============================================================
@@ -290,25 +279,26 @@ export default async function AdminAnalyticsPage() {
   // บล็อก 7: ระยะเวลาเซสชันเฉลี่ย — ต่อ session_id หา max(client_ts)-min(client_ts)
   // (exclude แอดมิน, session ที่มี event เดียว duration=0 นับรวมด้วยไม่ filter ทิ้ง)
   // ============================================================
-  const sessionEvents = (sessionEventsRes.data ?? []) as {
-    user_id: string | null;
-    session_id: string;
-    client_ts: string;
-  }[];
-  const sessionTsMap = new Map<string, number[]>();
-  for (const e of sessionEvents) {
+  // เก็บแค่ min/max ต่อ session พอ ไม่ต้องสะสม timestamp ทุกตัวไว้ (เดิม Math.min(...array)
+  // spread array ยาวๆ เสี่ยง stack overflow เมื่อ session มี event เยอะ)
+  const sessionTsMap = new Map<string, { min: number; max: number }>();
+  for (const e of allEvents) {
     if (e.user_id && adminUserIds.has(e.user_id)) continue;
-    if (!sessionTsMap.has(e.session_id)) sessionTsMap.set(e.session_id, []);
-    sessionTsMap.get(e.session_id)!.push(new Date(e.client_ts).getTime());
+    const ts = new Date(e.client_ts).getTime();
+    const range = sessionTsMap.get(e.session_id);
+    if (!range) {
+      sessionTsMap.set(e.session_id, { min: ts, max: ts });
+    } else {
+      if (ts < range.min) range.min = ts;
+      if (ts > range.max) range.max = ts;
+    }
   }
 
   let totalSessionDurationSec = 0;
   let sessionCount = 0;
   const durationByDay = new Map<string, { totalSec: number; count: number }>();
 
-  for (const tsList of sessionTsMap.values()) {
-    const minTs = Math.min(...tsList);
-    const maxTs = Math.max(...tsList);
+  for (const { min: minTs, max: maxTs } of sessionTsMap.values()) {
     const durationSec = (maxTs - minTs) / 1000;
     totalSessionDurationSec += durationSec;
     sessionCount++;

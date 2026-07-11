@@ -27,6 +27,14 @@ export type CollectionSection = {
 // แยกเป็น client component เพราะช่อง silhouette ที่ยังไม่ปลดล็อกต้องกดเปิด popup ได้
 // (พันธุ์+ชื่อเท่านั้น ไม่มี hint/ตัวเลข stat ใดๆ) ส่วนช่องที่ปลดล็อกแล้วลิงก์ตรงไป
 // /collection/[petId] ของ "ตัวแรกที่เก็บ" ในคอมโบนั้น (คำนวณจากฝั่ง server แล้ว)
+// ช่อง silhouette ใช้ CSS mask-image ซึ่งไม่ผ่านตัว optimize ของ next/image อัตโนมัติ — ถ้าชี้
+// PNG ต้นฉบับตรงๆ จะโหลดรูปดิบ 300-500KB ต่อช่องที่ยังล็อก (ทั้งหน้ารวมกันหลาย MB) เลยชี้ผ่าน
+// endpoint เดียวกับที่ <Image> ใช้แทน — width ต้องเป็นค่าใน imageSizes/deviceSizes ของ Next
+// (128/256 อยู่ในชุด default) ไม่งั้น endpoint ตอบ 400
+function maskImageUrl(path: string, width: 128 | 256): string {
+  return `/_next/image?url=${encodeURIComponent(path)}&w=${width}&q=75`;
+}
+
 function trackSlotClick(slot: CollectionSlot) {
   track("collection_slot_click", {
     egg_type_id: slot.eggTypeId,
@@ -72,8 +80,8 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
                       <div
                         className="h-full w-full bg-gold-dim"
                         style={{
-                          maskImage: `url(${slot.imagePath})`,
-                          WebkitMaskImage: `url(${slot.imagePath})`,
+                          maskImage: `url(${maskImageUrl(slot.imagePath, 128)})`,
+                          WebkitMaskImage: `url(${maskImageUrl(slot.imagePath, 128)})`,
                           maskSize: "contain",
                           WebkitMaskSize: "contain",
                           maskRepeat: "no-repeat",
@@ -131,8 +139,8 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
               <div
                 className="h-full w-full bg-gold-dim"
                 style={{
-                  maskImage: `url(${previewSlot.imagePath})`,
-                  WebkitMaskImage: `url(${previewSlot.imagePath})`,
+                  maskImage: `url(${maskImageUrl(previewSlot.imagePath, 256)})`,
+                  WebkitMaskImage: `url(${maskImageUrl(previewSlot.imagePath, 256)})`,
                   maskSize: "contain",
                   WebkitMaskSize: "contain",
                   maskRepeat: "no-repeat",

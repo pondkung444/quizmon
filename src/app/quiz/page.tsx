@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import { getPersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evolution";
@@ -7,9 +7,7 @@ import QuizClient from "@/components/QuizClient";
 
 export default async function QuizPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   let pet: {
     stage: number;

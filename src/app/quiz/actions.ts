@@ -107,24 +107,21 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
     data: { user },
   } = await supabase.auth.getUser();
 
-  // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
-  let currentCombo = 0;
-  let lastAttemptBeforeRound: string | null = null;
-  if (user) {
-    const activePetId = await getActivePetId(supabase, user.id);
-    if (activePetId) {
-      currentCombo = await getCurrentComboStreak(supabase, activePetId);
-    }
-    lastAttemptBeforeRound = await getLastAttemptBeforeRound(supabase, user.id);
-  }
-
   const admin = createAdminClient();
 
+  // 3 อย่างนี้ไม่ขึ้นต่อกัน — ยิงพร้อมกันแทนการรอทีละตัว (เดิมเป็น waterfall 4 round-trip
+  // ก่อนจะได้เริ่มดึงคำถามจริง ทำให้กดเลือกโหมดแล้วรอนาน)
   const idQuery = admin.from("questions").select("id");
-  const { data: idRows, error: idError } =
-    mode === "midterm"
-      ? await idQuery.in("category", MIDTERM_CATEGORIES)
-      : await idQuery.eq("subject", mode);
+  const [currentCombo, lastAttemptBeforeRound, { data: idRows, error: idError }] = await Promise.all([
+    // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
+    (async () => {
+      if (!user) return 0;
+      const activePetId = await getActivePetId(supabase, user.id);
+      return activePetId ? getCurrentComboStreak(supabase, activePetId) : 0;
+    })(),
+    user ? getLastAttemptBeforeRound(supabase, user.id) : Promise.resolve(null),
+    mode === "midterm" ? idQuery.in("category", MIDTERM_CATEGORIES) : idQuery.eq("subject", mode),
+  ]);
   if (idError) throw new Error(idError.message);
   if (!idRows || idRows.length === 0) return { questions: [], currentCombo, lastAttemptBeforeRound };
 
@@ -177,22 +174,33 @@ export async function submitAnswer(input: {
 
   // สำคัญ: server เช็คถูก/ผิดจาก DB เองเสมอ ไม่รับ flag ถูก/ผิดจาก client
   // (client ส่งมาแค่ questionId + choiceIndex เท่านั้น) เพื่อกัน EXP โกง
+  //
+  // 3 read นี้ไม่ขึ้นต่อกัน — ยิงพร้อมกัน (action นี้ถูกเรียกทุกข้อที่ตอบ waterfall สะสมแล้วหน่วง
+  // ตอนจบรอบที่ finishQuizRound ต้องรอคิว submission ทั้งหมด)
   const admin = createAdminClient();
-  const { data: question, error } = await admin
-    .from("questions")
-    .select("correct_index, subject, category")
-    .eq("id", input.questionId)
-    .single();
+  const [{ data: question, error }, { data: recentAttempts }, { data: activePet }] = await Promise.all([
+    admin
+      .from("questions")
+      .select("correct_index, subject, category")
+      .eq("id", input.questionId)
+      .single(),
+    supabase
+      .from("quiz_attempts")
+      .select("is_correct")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("pets")
+      .select("id, best_combo, math_correct, science_correct")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .single(),
+  ]);
   if (error || !question) throw new Error("ไม่พบคำถามนี้");
+  if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
 
   const isCorrect = input.choiceIndex === question.correct_index;
-
-  const { data: recentAttempts } = await supabase
-    .from("quiz_attempts")
-    .select("is_correct")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
 
   const accuracyMultiplier =
     input.mode === "midterm"
@@ -203,21 +211,6 @@ export async function submitAnswer(input: {
   const basePoints = input.mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
   const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, basePoints);
 
-  const { data: activePet } = await supabase
-    .from("pets")
-    .select("id, best_combo, math_correct, science_correct")
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .single();
-  if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
-
-  await supabase.from("quiz_attempts").insert({
-    user_id: user.id,
-    question_id: input.questionId,
-    is_correct: isCorrect,
-    pet_id: activePet.id,
-  });
-
   const petUpdates: Record<string, number> = {};
   if (newCombo > activePet.best_combo) {
     petUpdates.best_combo = newCombo;
@@ -227,9 +220,19 @@ export async function submitAnswer(input: {
   } else if (isCorrect && question.subject === "science") {
     petUpdates.science_correct = activePet.science_correct + 1;
   }
-  if (Object.keys(petUpdates).length > 0) {
-    await supabase.from("pets").update(petUpdates).eq("id", activePet.id);
-  }
+
+  // insert attempt กับ update pets ไม่แตะแถวเดียวกัน — เขียนพร้อมกันได้
+  await Promise.all([
+    supabase.from("quiz_attempts").insert({
+      user_id: user.id,
+      question_id: input.questionId,
+      is_correct: isCorrect,
+      pet_id: activePet.id,
+    }),
+    Object.keys(petUpdates).length > 0
+      ? supabase.from("pets").update(petUpdates).eq("id", activePet.id)
+      : Promise.resolve(),
+  ]);
 
   return { expEarned, category: question.category, subject: question.subject as Subject };
 }

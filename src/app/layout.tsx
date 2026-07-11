@@ -3,7 +3,7 @@ import { Kanit } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUser } from "@/lib/supabase/server";
 
 const kanit = Kanit({
   variable: "--font-kanit",
@@ -24,9 +24,7 @@ export default async function RootLayout({
   // เผื่อสำหรับ AnalyticsTracker เท่านั้น (props ของ event session_start) — layout persist ข้าม
   // client-side navigation ปกติ ไม่ได้ query ใหม่ทุกหน้า แค่ตอน full page load เท่านั้น
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
 
   let activePetStage: number | null = null;
   let activePetSubline: string | null = null;
