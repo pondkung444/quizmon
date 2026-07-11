@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
@@ -16,7 +16,25 @@ import {
   getComboMultiplier,
 } from "@/lib/exp";
 import StageUpModal from "@/components/StageUpModal";
+import SpeechBubble from "@/components/SpeechBubble";
+import { usePersonalityMessage, MESSAGE_DISPLAY_MS } from "@/hooks/usePersonalityMessage";
+import type { PersonalityKey } from "@/lib/personality";
+import type { PersonalityEventKey } from "@/lib/personalityMessages";
 import { track } from "@/lib/analytics";
+
+// ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
+// ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
+// — ปรับลำดับได้ตรงนี้จุดเดียว (comeback/enterGame ไม่มีทางชนกันเอง เพราะ server เลือกอย่างใดอย่างหนึ่ง
+// ให้แล้วเสมอ ให้ priority เท่ากันได้)
+const QUIZ_EVENT_PRIORITY: Partial<Record<PersonalityEventKey, number>> = {
+  comeback: 4,
+  enterGame: 4,
+  combo3: 3,
+  combo5: 3,
+  combo8: 3,
+  nearEvolution: 2,
+  gainExp: 1,
+};
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -64,7 +82,13 @@ async function submitAnswerWithRetry(input: {
   }
 }
 
-export default function QuizClient() {
+export default function QuizClient({
+  personalityKey,
+  petAvatarPath,
+}: {
+  personalityKey: PersonalityKey;
+  petAvatarPath: string | null;
+}) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<QuizMode | null>(null);
@@ -85,6 +109,45 @@ export default function QuizClient() {
   const submissionQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   // เวลาที่โจทย์ข้อปัจจุบันขึ้นจอ — ใช้คำนวณ time_used_ms ตอนตอบ (event question_answer)
   const questionShownAtRef = useRef<number>(0);
+  // แถว quiz_attempts ล่าสุดของ user "ก่อน" รอบนี้เริ่ม (มาจาก startQuizRound) — ต้องส่งต่อให้
+  // finishQuizRound ใช้เช็ค enterGame/comeback เพราะพอรอบนี้เริ่มตอบ จะมีแถวใหม่ของรอบนี้เอง
+  // insert เข้าไปแล้ว ถ้าไปอ่านใหม่ตอนจบรอบจะเจอแถวตัวเองแทน
+  const lastAttemptBeforeRoundRef = useRef<string | null>(null);
+
+  const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
+    usePersonalityMessage(personalityKey);
+
+  // event ในรอบ quiz อาจเกิดใกล้กันมาก (เช่น combo8 ข้อสุดท้ายของรอบ ตามด้วย gainExp/nearEvolution
+  // ตอนจบรอบทันที) — คิวนี้กันไม่ให้ทับกัน โดยแสดงทีละอันเรียงตาม QUIZ_EVENT_PRIORITY แล้วเว้นจังหวะ
+  // เท่ากับ MESSAGE_DISPLAY_MS ของ hook เอง (ให้ busy-window ของ hook หมดพอดีก่อนโชว์อันถัดไป)
+  const eventQueueRef = useRef<PersonalityEventKey[]>([]);
+  const queueTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function processPersonalityQueue() {
+    const next = eventQueueRef.current.shift();
+    if (!next) {
+      queueTimerRef.current = null;
+      return;
+    }
+    triggerPersonalityEvent(next);
+    queueTimerRef.current = setTimeout(processPersonalityQueue, MESSAGE_DISPLAY_MS);
+  }
+
+  function queuePersonalityEvent(event: PersonalityEventKey) {
+    const priority = QUIZ_EVENT_PRIORITY[event] ?? 0;
+    const queue = eventQueueRef.current;
+    const insertAt = queue.findIndex((queued) => (QUIZ_EVENT_PRIORITY[queued] ?? 0) < priority);
+    if (insertAt === -1) queue.push(event);
+    else queue.splice(insertAt, 0, event);
+
+    if (!queueTimerRef.current) processPersonalityQueue();
+  }
+
+  useEffect(() => {
+    return () => {
+      if (queueTimerRef.current) clearTimeout(queueTimerRef.current);
+    };
+  }, []);
 
   function resetRoundState() {
     setIndex(0);
@@ -98,6 +161,12 @@ export default function QuizClient() {
     setSaveWarning(null);
     pendingSubmissionsRef.current = [];
     submissionQueueRef.current = Promise.resolve();
+    // เริ่มรอบใหม่ = บริบทเปลี่ยน กันข้อความค้างจากรอบก่อนเด้งแทรกรอบใหม่แบบหลุดบริบท
+    eventQueueRef.current = [];
+    if (queueTimerRef.current) {
+      clearTimeout(queueTimerRef.current);
+      queueTimerRef.current = null;
+    }
   }
 
   function handleSelectMode(nextMode: QuizMode) {
@@ -106,7 +175,7 @@ export default function QuizClient() {
     setPhase("loading");
     startTransition(async () => {
       try {
-        const { questions: round, currentCombo } = await startQuizRound(nextMode);
+        const { questions: round, currentCombo, lastAttemptBeforeRound } = await startQuizRound(nextMode);
         if (round.length === 0) {
           setErrorMessage("ยังไม่มีคำถามในโหมดนี้ ลองโหมดอื่นนะ");
           setPhase("select");
@@ -115,6 +184,7 @@ export default function QuizClient() {
         setQuestions(round);
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
+        lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
         setPhase("playing");
 
         const firstQuestion = round[0];
@@ -143,6 +213,12 @@ export default function QuizClient() {
     // ระหว่างเล่น ค่าจริงที่ผ่านการเช็ค accuracy multiplier จาก DB จะมาจาก server ตอนสรุปท้ายรอบ
     const basePoints = mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
     const optimisticExp = calculateExpForAnswer(isCorrect, 1.0, getComboMultiplier(newCombo), basePoints);
+
+    // เด้งเฉพาะตอน "แตะพอดี" 3/5/8 (ไม่ใช่ >=) กันเด้งซ้ำทุกข้อหลังจากนั้น — ตอบผิดรีเซ็ต
+    // combo กลับ 0 แล้ว ไต่ขึ้นไปแตะ 3 ใหม่ได้อีกครั้ง ถือเป็นคอมโบใหม่
+    if (newCombo === 3) queuePersonalityEvent("combo3");
+    else if (newCombo === 5) queuePersonalityEvent("combo5");
+    else if (newCombo === 8) queuePersonalityEvent("combo8");
 
     setSelectedChoice(choiceIndex);
     setCombo(newCombo);
@@ -212,9 +288,15 @@ export default function QuizClient() {
         0
       );
       setFinalExpEarned(roundExpEarned);
-      const finishResult = await finishQuizRound(roundExpEarned);
+      const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
       setSummary(finishResult);
       setPhase("summary");
+
+      // ทักทายก่อนเสมอ (ดู QUIZ_EVENT_PRIORITY) — enterGame/comeback fire เฉพาะรอบแรกของวันเท่านั้น
+      if (finishResult.greetingEvent) queuePersonalityEvent(finishResult.greetingEvent);
+      // gainExp เฉพาะตอนมี exp เข้าตัวสัตว์จริง — โดน cap เต็มจนไม่ได้เข้าเลยไม่เด้ง (กันหลอกผู้เล่น)
+      if (finishResult.nearEvolution) queuePersonalityEvent("nearEvolution");
+      if (finishResult.expAddedToPet > 0) queuePersonalityEvent("gainExp");
 
       if (finishResult.evolved) {
         track(
@@ -289,6 +371,8 @@ export default function QuizClient() {
             />
           </div>
         </div>
+
+        <SpeechBubble message={personalityMessage} avatarPath={petAvatarPath} />
 
         <h2 className="text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
@@ -368,6 +452,10 @@ export default function QuizClient() {
   return (
     <div className="flex flex-col gap-6 text-center">
       {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
+
+      <div className="flex justify-center">
+        <SpeechBubble message={personalityMessage} avatarPath={petAvatarPath} />
+      </div>
 
       <div>
         <p className="text-6xl">{correctCount >= questions.length ? "🏆" : correctCount > 0 ? "🎊" : "💪"}</p>

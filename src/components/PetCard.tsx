@@ -7,6 +7,9 @@ import Link from "next/link";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
+import SpeechBubble from "@/components/SpeechBubble";
+import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
+import type { PersonalityKey } from "@/lib/personality";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -39,6 +42,7 @@ export default function PetCard({
   dailyCap,
   justEvolved,
   eggChoices,
+  personalityKey,
 }: {
   stage: number;
   stageName: string;
@@ -60,10 +64,13 @@ export default function PetCard({
   dailyCap: number;
   justEvolved: boolean;
   eggChoices: EggChoice[];
+  personalityKey: PersonalityKey;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [tapPulse, setTapPulse] = useState(0);
+  const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
+    usePersonalityMessage(personalityKey);
 
   useEffect(() => {
     if (!justEvolved) return;
@@ -110,10 +117,16 @@ export default function PetCard({
         onClick={() => {
           setExpanded((v) => !v);
           setTapPulse((n) => n + 1);
+          triggerPersonalityEvent("tapQmon");
         }}
         className="relative flex h-[220px] w-[220px] items-center justify-center"
         aria-expanded={expanded}
       >
+        {personalityMessage && (
+          <div className="absolute -top-2 z-10 -translate-y-full">
+            <SpeechBubble message={personalityMessage} />
+          </div>
+        )}
         <span className="absolute h-[200px] w-[200px] rounded-full bg-amber opacity-20 blur-2xl" />
         <svg viewBox="0 0 200 200" className="absolute h-[190px] w-[190px] animate-spin-slow opacity-40">
           <circle cx="100" cy="100" r="90" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="4 10" />

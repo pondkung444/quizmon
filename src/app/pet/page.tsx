@@ -9,6 +9,7 @@ import {
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { SUBLINE_LABEL } from "@/lib/labels";
+import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
@@ -81,6 +82,7 @@ export default async function PetPage({
   const stageInfo = STAGE_LABEL_TH[stage] ?? STAGE_LABEL_TH[1];
   const subline = pet?.subline;
   const personality = pet?.personality;
+  const personalityKey = getPersonalityKey(stage, subline ?? null);
   const statHp = pet?.stat_hp ?? null;
   const statAtk = pet?.stat_atk ?? null;
   const statDef = pet?.stat_def ?? null;
@@ -143,6 +145,7 @@ export default async function PetPage({
           nickname={pet.nickname}
           speciesName={speciesName}
           petImagePath={petImagePath}
+          personalityKey={personalityKey}
           sublineLabel={subline ? SUBLINE_LABEL[subline] ?? subline : null}
           eggNameTh={eggType?.name_th ?? null}
           statHp={statHp}

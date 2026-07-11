@@ -13,9 +13,18 @@ import {
   getMidtermAccuracyMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
-import { tryAdvanceStage, determineSubline } from "@/lib/evolution";
+import { tryAdvanceStage, determineSubline, STAGE_EXP_THRESHOLD } from "@/lib/evolution";
 
 const ROUND_SIZE = 5;
+
+// "ใกล้วิวัฒนาการ" = exp คงเหลือก่อนถึง threshold ถัดไป <= 15% ของช่วง exp ทั้งหมดใน stage ปัจจุบัน
+// (ช่วง = threshold ของ stage นี้ - threshold ของ stage ก่อนหน้า เพราะ pets.exp สะสมข้าม stage ไม่รีเซ็ต)
+// ปรับตัวเลขนี้ได้จุดเดียวถ้าอยากให้ "ใกล้" หลวม/เข้มกว่านี้
+const NEAR_EVOLUTION_RATIO = 0.15;
+
+// ห่างจากแถว quiz_attempts ล่าสุดของ user เกินกี่วัน (นับดิบเป็น ms ไม่ตัดวันปฏิทิน — ง่ายกว่า
+// และพอสำหรับ threshold ระดับวันขนาดนี้) ถึงจะถือว่าเป็น "หายไปนาน" -> ทัก comeback แทน enterGame ธรรมดา
+const COMEBACK_THRESHOLD_DAYS = 3;
 
 // 3 หมวดสำหรับโหมด "ติวสอบกลางภาค" — สุ่มข้ามคณิต/วิทย์ในรอบเดียว ค่าตรงกับ questions.category จริงใน DB
 // (ตรวจสอบแล้ว ไม่ใช่การเดา — ดู scripts/import-inequality-factoring.mjs, import-genetics-mendelian.mjs)
@@ -65,9 +74,27 @@ async function getCurrentComboStreak(supabase: SupabaseServerClient, petId: stri
   return streak;
 }
 
+// แถว quiz_attempts ล่าสุดของ user "ก่อน" รอบนี้เริ่ม — ต้องอ่านค่านี้ตรงนี้ (ตอนเริ่มรอบ) เท่านั้น
+// เพราะ submitAnswer() insert แถวใหม่ทันทีทุกข้อระหว่างเล่น ถ้าไปอ่านตอนจบรอบ (finishQuizRound)
+// จะเจอแถวของรอบปัจจุบันเองปนมาแทน ทำให้เช็ค "รอบแรกของวัน"/"หายไปนานแค่ไหน" ผิดพลาด
+async function getLastAttemptBeforeRound(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("quiz_attempts")
+    .select("created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.created_at ?? null;
+}
+
 export type StartQuizRoundResult = {
   questions: QuizRoundQuestion[];
   currentCombo: number;
+  lastAttemptBeforeRound: string | null;
 };
 
 export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResult> {
@@ -82,11 +109,13 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
 
   // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
   let currentCombo = 0;
+  let lastAttemptBeforeRound: string | null = null;
   if (user) {
     const activePetId = await getActivePetId(supabase, user.id);
     if (activePetId) {
       currentCombo = await getCurrentComboStreak(supabase, activePetId);
     }
+    lastAttemptBeforeRound = await getLastAttemptBeforeRound(supabase, user.id);
   }
 
   const admin = createAdminClient();
@@ -97,7 +126,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
       ? await idQuery.in("category", MIDTERM_CATEGORIES)
       : await idQuery.eq("subject", mode);
   if (idError) throw new Error(idError.message);
-  if (!idRows || idRows.length === 0) return { questions: [], currentCombo };
+  if (!idRows || idRows.length === 0) return { questions: [], currentCombo, lastAttemptBeforeRound };
 
   const pickedIds = shuffle(idRows.map((r) => r.id)).slice(0, ROUND_SIZE);
 
@@ -123,7 +152,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
     ])
   );
   const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
-  return { questions, currentCombo };
+  return { questions, currentCombo, lastAttemptBeforeRound };
 }
 
 export type SubmitAnswerResult = {
@@ -210,12 +239,17 @@ export type RoundFinishResult = {
   capped: boolean;
   evolved: boolean;
   reachedStage4: boolean;
+  nearEvolution: boolean;
+  greetingEvent: "enterGame" | "comeback" | null;
   petId: string;
   fromStage: number;
   toStage: number;
 };
 
-export async function finishQuizRound(roundExpEarned: number): Promise<RoundFinishResult> {
+export async function finishQuizRound(
+  roundExpEarned: number,
+  lastAttemptBeforeRound: string | null
+): Promise<RoundFinishResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -250,6 +284,36 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
   // แล้วให้ StageUpModal พาไปเลือกบุคลิกเอง จากนั้นเรียก choosePersonalityAfterEvolve()
   // (src/app/pet/actions.ts) ล็อก personality ลง DB ให้เสร็จก่อน ค่อย snapshot stat_* ทีหลัง
   const reachedStage4 = activePet.stage < 4 && newStage === 4;
+  const evolved = newStage !== activePet.stage;
+
+  // nearEvolution คือ "ใกล้" ไม่ใช่ "ถึง" — ถ้ารอบนี้วิวัฒนาการไปแล้วไม่ต้องเช็คต่อ
+  // และ stage 4 ไม่มี threshold ถัดไปให้ใกล้ (สูงสุดใน MVP)
+  let nearEvolution = false;
+  if (!evolved) {
+    const nextThreshold = STAGE_EXP_THRESHOLD[newStage];
+    if (nextThreshold !== undefined) {
+      const prevThreshold = STAGE_EXP_THRESHOLD[newStage - 1] ?? 0;
+      const stageRange = nextThreshold - prevThreshold;
+      const remaining = nextThreshold - newExp;
+      nearEvolution = remaining > 0 && remaining <= stageRange * NEAR_EVOLUTION_RATIO;
+    }
+  }
+
+  // enterGame/comeback ทักทายเฉพาะ "รอบแรกของวันนี้" เท่านั้น — เทียบวันปฏิทินไทยของแถวล่าสุด
+  // ก่อนรอบนี้ (lastAttemptBeforeRound มาจาก startQuizRound ที่อ่านไว้ก่อนรอบนี้จะ insert แถวใหม่)
+  // กับวันนี้ ถ้าตรงกันแปลว่าเคยเล่นมาแล้ววันนี้ ไม่ใช่รอบแรก ไม่ทักอะไรทั้งคู่
+  let greetingEvent: "enterGame" | "comeback" | null = null;
+  if (lastAttemptBeforeRound === null) {
+    // ไม่เคยมีแถวมาก่อนเลย = ผู้เล่นใหม่ -> enterGame ธรรมดา ไม่ใช่ comeback
+    greetingEvent = "enterGame";
+  } else {
+    const lastAttemptDate = new Date(lastAttemptBeforeRound);
+    const isFirstRoundToday = getTodayInBangkok(lastAttemptDate) !== today;
+    if (isFirstRoundToday) {
+      const daysSinceLastAttempt = (Date.now() - lastAttemptDate.getTime()) / (24 * 60 * 60 * 1000);
+      greetingEvent = daysSinceLastAttempt >= COMEBACK_THRESHOLD_DAYS ? "comeback" : "enterGame";
+    }
+  }
 
   await supabase
     .from("pets")
@@ -264,8 +328,10 @@ export async function finishQuizRound(roundExpEarned: number): Promise<RoundFini
   return {
     expAddedToPet,
     capped,
-    evolved: newStage !== activePet.stage,
+    evolved,
     reachedStage4,
+    nearEvolution,
+    greetingEvent,
     petId: activePet.id,
     fromStage: activePet.stage,
     toStage: newStage,

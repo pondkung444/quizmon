@@ -41,7 +41,8 @@ export function calculateExpForAnswer(
   return Math.floor(basePoints * accuracyMultiplier * comboMultiplier);
 }
 
-// วันที่ "วันนี้" อิงเวลาไทย (Asia/Bangkok) กันปัญหา UTC เพี้ยนช่วงเที่ยงคืน
-export function getTodayInBangkok(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+// วันที่ "วันนี้" (หรือวันที่ของ date ใดๆ ที่ส่งเข้ามา) อิงเวลาไทย (Asia/Bangkok)
+// กันปัญหา UTC เพี้ยนช่วงเที่ยงคืน — ไม่ส่ง date เข้ามา = ใช้เวลาปัจจุบัน
+export function getTodayInBangkok(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(date);
 }
