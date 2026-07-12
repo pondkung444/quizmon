@@ -298,7 +298,8 @@ create table if not exists public.questions (
   choices jsonb not null,
   correct_index smallint not null,
   explanation text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  status text not null default 'active' check (status in ('active', 'inactive'))
 );
 
 -- ล็อก RLS ไว้โดยไม่มี select policy ใดๆ: อ่านได้เฉพาะฝั่ง server ผ่าน service role

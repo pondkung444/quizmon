@@ -115,7 +115,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
 
   // 3 อย่างนี้ไม่ขึ้นต่อกัน — ยิงพร้อมกันแทนการรอทีละตัว (เดิมเป็น waterfall 4 round-trip
   // ก่อนจะได้เริ่มดึงคำถามจริง ทำให้กดเลือกโหมดแล้วรอนาน)
-  const idQuery = admin.from("questions").select("id");
+  const idQuery = admin.from("questions").select("id").eq("status", "active");
   const [currentCombo, lastAttemptBeforeRound, { data: idRows, error: idError }] = await Promise.all([
     // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
     (async () => {
