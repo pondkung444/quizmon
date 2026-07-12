@@ -19,7 +19,7 @@ export async function collectPet(): Promise<{ collected: true }> {
   // 1) หา active pet ต้องเป็น stage 4 เท่านั้นถึงเก็บได้
   const { data: pet, error: petError } = await supabase
     .from("pets")
-    .select("id, stage")
+    .select("id, stage, subline, personality")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -34,6 +34,26 @@ export async function collectPet(): Promise<{ collected: true }> {
     .eq("id", pet.id);
 
   if (collectError) throw new Error("เก็บ Qmon เข้าสมุดไม่สำเร็จ: " + collectError.message);
+
+  // track เฉพาะตอน update ผ่านแล้วเท่านั้น — insert ตรงจากฝั่ง server (ไม่ใช้
+  // src/lib/analytics.ts track() เพราะฟังก์ชันนั้น early-return ทุกครั้งถ้า
+  // typeof window === "undefined" ซึ่งเป็นจริงเสมอในนี้ เรียกจาก server action)
+  // เก็บ event นี้ไว้เสมอ ไม่กรอง admin/dev account ออก (ต่างจาก /api/analytics
+  // route.ts) เพราะ event นี้ต้องใช้ derive weekly journey ของ user ทุกคนรวมถึง
+  // dev เอง ไม่ใช่แค่ insight รวมที่ /admin/analytics ดู
+  await supabase.from("analytics_events").insert({
+    user_id: user.id,
+    session_id: crypto.randomUUID(),
+    event_name: "collect",
+    screen: "/pet",
+    pet_id: pet.id,
+    props: {
+      final_stage: pet.stage,
+      subline: pet.subline,
+      personality: pet.personality,
+    },
+    client_ts: new Date().toISOString(),
+  });
 
   // ไข่ใบต่อไปไม่ auto-grant แล้ว — ผู้เล่นเลือกเองผ่าน chooseEggAfterCollect() ทุกครั้ง
   return { collected: true };

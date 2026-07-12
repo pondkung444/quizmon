@@ -8,6 +8,7 @@ import {
 } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
 import { SUBLINE_LABEL } from "@/lib/labels";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
@@ -48,9 +49,10 @@ export default async function PetPage({
   } | null = null;
 
   let eggChoices: EggChoice[] = [];
+  let journeyDays: JourneyDay[] = [];
 
   if (user) {
-    const [{ data }, { data: eggTypeRows }] = await Promise.all([
+    const [{ data }, { data: eggTypeRows }, journeyResult] = await Promise.all([
       supabase
         .from("pets")
         .select(
@@ -64,8 +66,10 @@ export default async function PetPage({
         .select("id, name_th, tier, description, sprite_prefix")
         .eq("is_obtainable", true)
         .order("id", { ascending: true }),
+      getWeeklyJourney(supabase, user.id),
     ]);
     pet = data;
+    journeyDays = journeyResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -155,6 +159,7 @@ export default async function PetPage({
           dailyCap={DAILY_EXP_CAP}
           justEvolved={justEvolved}
           eggChoices={eggChoices}
+          journeyDays={journeyDays}
         />
         </>
       ) : (

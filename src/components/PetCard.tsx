@@ -12,6 +12,8 @@ import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
+import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
+import type { JourneyDay } from "@/lib/weeklyJourney";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -45,6 +47,7 @@ export default function PetCard({
   justEvolved,
   eggChoices,
   personalityKey,
+  journeyDays,
 }: {
   stage: number;
   stageName: string;
@@ -67,6 +70,7 @@ export default function PetCard({
   justEvolved: boolean;
   eggChoices: EggChoice[];
   personalityKey: PersonalityKey;
+  journeyDays: JourneyDay[];
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -92,20 +96,11 @@ export default function PetCard({
 
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
-      {/* 1. stage indicator */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex gap-2">
-          {[1, 2, 3, 4].map((s) => (
-            <span
-              key={s}
-              className={`h-2.5 w-2.5 rounded-full ${s <= stage ? "bg-amber" : "bg-border"}`}
-            />
-          ))}
-        </div>
-        <p className="text-xs text-text3">
-          ระยะ {stage} · {stageName} — {stageDescription}
-        </p>
-      </div>
+      {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) */}
+      <WeeklyJourneyCard days={journeyDays} />
+      <p className="text-xs text-text3">
+        ระยะ {stage} · {stageName} — {stageDescription}
+      </p>
 
       {/* 2. nameplate */}
       <div className="relative flex h-14 w-14 items-center justify-center rotate-45 border-2 border-gold bg-track">

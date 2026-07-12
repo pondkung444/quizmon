@@ -2,9 +2,11 @@
 -- Schema สำหรับ Quizmon (เกมเลี้ยงมอนสเตอร์ + ตอบคำถาม)
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-11): ไฟล์นี้ sync กับ DB จริงครบ migration 001-014
+-- หมายเหตุ (2026-07-12): ไฟล์นี้ sync กับ DB จริงครบ migration 001-017
 -- (supabase/migrations/*.sql) แล้ว — เพิ่ม public.analytics_events ตาม 014
 -- (เก็บ event การเล่นของนักเรียนสำหรับผู้พัฒนา insert-only ไม่มี select policy)
+-- 015/016 เป็น data-only (import คำถามวิทย์คลื่น/เสียง/แสง ไม่แก้ schema)
+-- 017 เพิ่ม composite index (pet_id, created_at) บน quiz_attempts
 --
 -- ส่วนที่ตกหล่นจากรอบก่อน (001-013):
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
@@ -184,6 +186,10 @@ create index if not exists quiz_attempts_pet_id_idx on public.quiz_attempts (pet
 create index if not exists idx_quiz_attempts_pet_id
   on public.quiz_attempts (pet_id)
   where pet_id is not null;
+-- 017_add_pet_created_composite_index.sql: composite index รองรับ query "EXP รายวันของ pet
+-- ตัวหนึ่ง" (filter pet_id + range บน created_at) ที่ weekly journey (/pet) ใช้
+create index if not exists idx_quiz_attempts_pet_created
+  on public.quiz_attempts (pet_id, created_at);
 
 -- ============================================================
 -- Row Level Security: ผู้ใช้เห็น/แก้ได้เฉพาะข้อมูลของตัวเอง

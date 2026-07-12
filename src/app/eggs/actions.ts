@@ -49,6 +49,23 @@ export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> 
 
   if (petError || !newPet) throw new Error("สร้าง Qmon ใหม่ไม่สำเร็จ: " + petError?.message);
 
+  // track เฉพาะตอน insert pets ผ่านแล้วเท่านั้น — insert ตรงจากฝั่ง server เหมือน
+  // collect ใน src/app/pet/actions.ts (track() ของ src/lib/analytics.ts เป็น client-only
+  // เรียกจาก server action แล้ว no-op เงียบๆ) เก็บ event นี้ไว้ให้ weekly journey (/pet)
+  // ใช้รู้ว่ามี pet ตัวใหม่เกิดขึ้นแล้วตั้งแต่วันที่ฟัก ไม่ต้องรอ stage_up ครั้งแรก
+  await supabase.from("analytics_events").insert({
+    user_id: user.id,
+    session_id: crypto.randomUUID(),
+    event_name: "hatch",
+    screen: "/eggs",
+    pet_id: newPet.id,
+    props: {
+      stage: 1,
+      egg_type_id: egg.egg_type_id,
+    },
+    client_ts: new Date().toISOString(),
+  });
+
   // 4) mark ไข่ว่าฟักแล้ว
   const { error: updateError } = await supabase
     .from("player_eggs")
