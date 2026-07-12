@@ -26,12 +26,16 @@ const NEAR_EVOLUTION_RATIO = 0.15;
 // และพอสำหรับ threshold ระดับวันขนาดนี้) ถึงจะถือว่าเป็น "หายไปนาน" -> ทัก comeback แทน enterGame ธรรมดา
 const COMEBACK_THRESHOLD_DAYS = 3;
 
-// 3 หมวดสำหรับโหมด "ติวสอบกลางภาค" — สุ่มข้ามคณิต/วิทย์ในรอบเดียว ค่าตรงกับ questions.category จริงใน DB
-// (ตรวจสอบแล้ว ไม่ใช่การเดา — ดู scripts/import-inequality-factoring.mjs, import-genetics-mendelian.mjs)
+// 6 หมวดสำหรับโหมด "ติวสอบกลางภาค" — สุ่มข้ามคณิต/วิทย์ในรอบเดียว ค่าตรงกับ questions.category จริงใน DB
+// (ตรวจสอบแล้ว ไม่ใช่การเดา — ดู scripts/import-inequality-factoring.mjs, import-genetics-mendelian.mjs
+// และ migration 015/016 สำหรับคลื่น/เสียง/แสงที่เพิ่มเข้ามาทีหลัง)
 const MIDTERM_CATEGORIES = [
   "อสมการ",
   "แยกตัวประกอบพหุนามดีกรีมากกว่า 2",
   "พันธุกรรมและเซลล์สืบพันธุ์",
+  "คลื่น",
+  "เสียง",
+  "แสง",
 ];
 
 function shuffle<T>(items: T[]): T[] {
