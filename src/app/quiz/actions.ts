@@ -17,6 +17,11 @@ import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/e
 
 const ROUND_SIZE = 5;
 
+// milestone คอมโบ (raw SPD) นับทุกครั้งที่ current streak หารด้วยเลขนี้ลงตัว — ค่าคงที่แยกเฉพาะจุดนี้
+// แม้จะบังเอิญเท่ากับ threshold คอมโบต่ำสุดใน exp.ts (getComboMultiplier) ก็เป็นคนละความหมาย
+// ห้าม import จาก exp.ts มาแทน
+const MILESTONE_INTERVAL = 3;
+
 // "ใกล้วิวัฒนาการ" = exp คงเหลือก่อนถึง threshold ถัดไป <= 15% ของช่วง exp ทั้งหมดใน stage ปัจจุบัน
 // (ช่วง = threshold ของ stage นี้ - threshold ของ stage ก่อนหน้า เพราะ pets.exp สะสมข้าม stage ไม่รีเซ็ต)
 // ปรับตัวเลขนี้ได้จุดเดียวถ้าอยากให้ "ใกล้" หลวม/เข้มกว่านี้
@@ -196,7 +201,7 @@ export async function submitAnswer(input: {
       .limit(20),
     supabase
       .from("pets")
-      .select("id, best_combo, math_correct, science_correct")
+      .select("id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .single(),
@@ -215,17 +220,16 @@ export async function submitAnswer(input: {
   const basePoints = input.mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
   const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, basePoints);
 
-  const petUpdates: Record<string, number> = {};
-  if (newCombo > activePet.best_combo) {
-    petUpdates.best_combo = newCombo;
-  }
-  if (isCorrect && question.subject === "math") {
-    petUpdates.math_correct = activePet.math_correct + 1;
-  } else if (isCorrect && question.subject === "science") {
-    petUpdates.science_correct = activePet.science_correct + 1;
-  }
+  // best_combo/combo_milestones/math_correct/science_correct ห้ามคำนวณฝั่ง app แบบ
+  // read-modify-write (เจอ lost-update race condition จริงตอนมีคำขอทับซ้อนกัน เช่น เปิดสองแท็บ/
+  // อุปกรณ์พร้อมกัน — พิสูจน์แล้วทั้ง combo_milestones ค้าง 0 และ math_correct/science_correct
+  // undercount จริงในข้อมูล user 'Dawu') เรียก RPC apply_quiz_answer_pet_update() ที่ทำ atomic
+  // SQL update ทั้ง 4 คอลัมน์ในสเตทเมนต์เดียวแทน ดู supabase/migrations/020_atomic_combo_update.sql
+  const milestoneIncrement = isCorrect && newCombo % MILESTONE_INTERVAL === 0 ? 1 : 0;
+  const mathIncrement = isCorrect && question.subject === "math" ? 1 : 0;
+  const scienceIncrement = isCorrect && question.subject === "science" ? 1 : 0;
 
-  // insert attempt กับ update pets ไม่แตะแถวเดียวกัน — เขียนพร้อมกันได้
+  // insert attempt กับ RPC อัปเดต pets ไม่แตะแถวเดียวกัน — เขียนพร้อมกันได้
   await Promise.all([
     supabase.from("quiz_attempts").insert({
       user_id: user.id,
@@ -233,9 +237,13 @@ export async function submitAnswer(input: {
       is_correct: isCorrect,
       pet_id: activePet.id,
     }),
-    Object.keys(petUpdates).length > 0
-      ? supabase.from("pets").update(petUpdates).eq("id", activePet.id)
-      : Promise.resolve(),
+    supabase.rpc("apply_quiz_answer_pet_update", {
+      p_pet_id: activePet.id,
+      p_new_combo: newCombo,
+      p_milestone_increment: milestoneIncrement,
+      p_math_increment: mathIncrement,
+      p_science_increment: scienceIncrement,
+    }),
   ]);
 
   return { expEarned, category: question.category, subject: question.subject as Subject };

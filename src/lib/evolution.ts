@@ -175,19 +175,18 @@ export const PERSONALITY_BONUS: Record<Personality, Partial<{ hp: number; atk: n
 
 // --- ค่าดิบก่อนคูณ (หมวด 5.2 ของเอกสาร) ---
 export interface RawStatInputs {
-  daysPlayedAllTime: number; // จำนวนวัน distinct ที่เล่น pet ตัวนี้ (ทั้งอายุ ไม่ใช่แค่ 7 วัน) -> HP
-  mathCorrect: number;
-  scienceCorrect: number;    // -> ATK ใช้ผลรวม, DEF ใช้ min(math,science)
-  accuracyPct: number;       // 0-100, ความแม่นยำเฉลี่ยของ pet ตัวนี้ -> FOC
-  bestCombo: number;         // -> SPD
+  mathCorrect: number;     // -> ATK (เดี่ยวๆ), DEF ใช้ min(math,science)
+  scienceCorrect: number;  // -> HP (เดี่ยวๆ), DEF ใช้ min(math,science)
+  accuracyPct: number;     // 0-100, ความแม่นยำเฉลี่ยของ pet ตัวนี้ -> FOC
+  comboMilestones: number; // -> SPD (milestone counter สะสม ดู MILESTONE_INTERVAL ใน quiz/actions.ts — ไม่ใช่ best_combo)
 }
 
 export function computeRawStats(input: RawStatInputs) {
   return {
-    hp: input.daysPlayedAllTime,
-    atk: input.mathCorrect + input.scienceCorrect,
+    hp: input.scienceCorrect,
+    atk: input.mathCorrect,
     foc: input.accuracyPct,
-    spd: input.bestCombo,
+    spd: input.comboMilestones,
     def: Math.min(input.mathCorrect, input.scienceCorrect) * 2,
   };
 }

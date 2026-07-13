@@ -146,7 +146,7 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
 
   const { data: pet, error: petError } = await supabase
     .from("pets")
-    .select("id, stage, personality, subline, egg_type_id, math_correct, science_correct, best_combo")
+    .select("id, stage, personality, subline, egg_type_id, math_correct, science_correct, combo_milestones")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -199,11 +199,8 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
   // STEP 2: personality ยืนยันล็อกแล้วจริงใน DB — ตอนนี้ปลอดภัยที่จะ snapshot stat_*
   const { data: allAttempts } = await supabase
     .from("quiz_attempts")
-    .select("created_at, is_correct")
+    .select("is_correct")
     .eq("pet_id", pet.id);
-  const daysPlayedAllTime = new Set(
-    (allAttempts ?? []).map((a) => new Date(a.created_at).toDateString())
-  ).size;
   const totalAttempts = allAttempts?.length ?? 0;
   const totalCorrect = (allAttempts ?? []).filter((a) => a.is_correct).length;
   const accuracyPct = totalAttempts > 0 ? (totalCorrect / totalAttempts) * 100 : 0;
@@ -219,11 +216,10 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
   }
 
   const raw = computeRawStats({
-    daysPlayedAllTime,
     mathCorrect: pet.math_correct,
     scienceCorrect: pet.science_correct,
     accuracyPct,
-    bestCombo: pet.best_combo,
+    comboMilestones: pet.combo_milestones,
   });
   const finalStats = snapshotStats(raw, pet.subline as Subline, lockedPersonality, eggType.stat_profile);
 

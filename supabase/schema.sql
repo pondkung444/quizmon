@@ -105,6 +105,7 @@ create table if not exists public.pets (
   personality text check (personality in ('A','B')), -- lock ครั้งเดียวตอนขยับเข้า stage 4
   is_active boolean not null default true,
   best_combo smallint not null default 0,
+  combo_milestones integer not null default 0,
   stat_hp integer,
   stat_atk integer,
   stat_def integer,
@@ -119,15 +120,17 @@ create table if not exists public.pets (
 );
 
 comment on column public.pets.best_combo is
-  'คอมโบสูงสุดที่เคยทำได้ของตัวนี้ (runtime, อัปเดตระหว่างเล่น) — ใช้คำนวณ SPD ตอน snapshot';
+  'คอมโบสูงสุดที่เคยทำได้ของตัวนี้ (runtime, อัปเดตระหว่างเล่น) — เก็บไว้เป็นสถิติ ไม่ได้ใช้คำนวณ stat_* แล้ว (ดู combo_milestones)';
+comment on column public.pets.combo_milestones is
+  'จำนวนครั้งที่ current streak หารด้วย MILESTONE_INTERVAL (3) ลงตัว หลังตอบถูก — milestone counter สะสม (runtime, อัปเดตระหว่างเล่น) ใช้คำนวณ SPD ตอน snapshot';
 comment on column public.pets.stat_hp is
-  'HP snapshot ตอนถึงระยะ 4 — มาจากความสม่ำเสมอ (จำนวนวันที่เข้าเล่นของตัวนี้)';
+  'HP snapshot ตอนถึงระยะ 4 — มาจากจำนวนข้อวิทย์ที่ตอบถูกสะสมของตัวนี้ (science_correct)';
 comment on column public.pets.stat_atk is
-  'ATK snapshot ตอนถึงระยะ 4 — มาจากจำนวนข้อที่ตอบถูกสะสมของตัวนี้';
+  'ATK snapshot ตอนถึงระยะ 4 — มาจากจำนวนข้อคณิตที่ตอบถูกสะสมของตัวนี้ (math_correct)';
 comment on column public.pets.stat_def is
   'DEF snapshot ตอนถึงระยะ 4 — มาจากความกว้าง (ทำทั้งคณิต+วิทย์ ไม่ทิ้งวิชา)';
 comment on column public.pets.stat_spd is
-  'SPD snapshot ตอนถึงระยะ 4 — มาจาก best_combo';
+  'SPD snapshot ตอนถึงระยะ 4 — มาจาก combo_milestones';
 comment on column public.pets.stat_foc is
   'FOC snapshot ตอนถึงระยะ 4 — มาจากความแม่นยำเฉลี่ยของตัวนี้';
 comment on column public.pets.exp_today is
@@ -284,6 +287,40 @@ create trigger trg_pets_set_updated_at
   before update on public.pets
   for each row
   execute function public.set_updated_at();
+
+-- ============================================================
+-- RPC: อัปเดต best_combo/combo_milestones/math_correct/science_correct แบบ atomic
+-- (migration 019/020/021) แทน read-modify-write ฝั่ง app เดิมที่เจอ lost-update race
+-- condition จริงเมื่อมีคำขอทับซ้อนกัน (เช่น เปิดสองแท็บ/อุปกรณ์พร้อมกัน) — รวมทุกคอลัมน์ที่
+-- submitAnswer() ต้องอัปเดตต่อ 1 คำตอบไว้ใน RPC เดียว (1 UPDATE statement, atomic ทั้งแถว)
+-- security invoker (default) ตั้งใจ ให้ RLS policy "pets: update own" ยังคุมสิทธิ์เหมือนเดิม
+-- ============================================================
+create or replace function public.apply_quiz_answer_pet_update(
+  p_pet_id uuid,
+  p_new_combo integer,
+  p_milestone_increment integer,
+  p_math_increment integer,
+  p_science_increment integer
+)
+returns table (
+  best_combo smallint,
+  combo_milestones integer,
+  math_correct integer,
+  science_correct integer
+)
+language sql
+as $$
+  update public.pets
+  set
+    best_combo = greatest(best_combo, p_new_combo::smallint),
+    combo_milestones = combo_milestones + p_milestone_increment,
+    math_correct = math_correct + p_math_increment,
+    science_correct = science_correct + p_science_increment
+  where id = p_pet_id
+  returning best_combo, combo_milestones, math_correct, science_correct;
+$$;
+
+grant execute on function public.apply_quiz_answer_pet_update(uuid, integer, integer, integer, integer) to authenticated;
 
 -- ============================================================
 -- คลังคำถามสำหรับหน้าตอบคำถาม (import จากไฟล์ .md ใน /question ด้วย scripts/import-questions.mjs)
