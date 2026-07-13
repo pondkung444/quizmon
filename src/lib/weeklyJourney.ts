@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   BASE_EXP_PER_CORRECT,
   DAILY_EXP_CAP,
@@ -117,6 +118,12 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
   const weekEndIso = bangkokMidnightUtcIso(nextDateStr(weekDates[6]));
   const todayStr = getTodayInBangkok();
 
+  // analytics_events ไม่มี select policy ให้ user-session client เลย (ตั้งใจ — ดูคอมเมนต์ใน
+  // supabase/migrations/014_analytics_events.sql) อ่านได้เฉพาะผ่าน service role เท่านั้น จึงต้อง
+  // ใช้ createAdminClient() เฉพาะ query นี้จุดเดียว และต้อง .eq("user_id", userId) เองเสมอ เพราะ
+  // ไม่มี RLS ช่วยกรองให้แล้ว (ต่างจาก quiz_attempts/pets/egg_types ที่ยังใช้ client เดิมได้ปกติ)
+  const adminSupabase = createAdminClient();
+
   const [{ data: attemptRows }, { data: eventRows }, { data: petRows }, { data: eggTypeRows }] = await Promise.all([
     supabase
       .from("quiz_attempts")
@@ -125,7 +132,7 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
       .gte("created_at", weekStartIso)
       .lt("created_at", weekEndIso)
       .order("created_at", { ascending: true }),
-    supabase
+    adminSupabase
       .from("analytics_events")
       .select("event_name, pet_id, props, client_ts")
       .eq("user_id", userId)
