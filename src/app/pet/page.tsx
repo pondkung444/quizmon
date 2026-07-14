@@ -9,7 +9,6 @@ import {
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
-import { SUBLINE_LABEL } from "@/lib/labels";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
@@ -42,6 +41,9 @@ export default async function PetPage({
     stat_foc: number | null;
     exp_today: number;
     exp_today_date: string;
+    math_correct: number;
+    science_correct: number;
+    combo_milestones: number;
     egg_types:
       | { sprite_prefix: string; name_th: string }
       | { sprite_prefix: string; name_th: string }[]
@@ -56,7 +58,7 @@ export default async function PetPage({
       supabase
         .from("pets")
         .select(
-          "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)"
+          "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
         )
         .eq("user_id", user.id)
         .eq("is_active", true)
@@ -90,6 +92,9 @@ export default async function PetPage({
   const statDef = pet?.stat_def ?? null;
   const statSpd = pet?.stat_spd ?? null;
   const statFoc = pet?.stat_foc ?? null;
+  const mathCorrect = pet?.math_correct ?? 0;
+  const scienceCorrect = pet?.science_correct ?? 0;
+  const comboMilestones = pet?.combo_milestones ?? 0;
 
   // stage 4 แต่ personality ยัง null = ปิดแอป/รีเฟรชกลางคันก่อนตอบคำถามเลือกบุคลิก (StageUpModal)
   // ต้องกันไว้ตรงนี้ก่อนคำนวณ petImagePath/speciesName ต่อ — ไม่งั้นโชว์เรดาร์/รูปเพี้ยนได้
@@ -148,13 +153,14 @@ export default async function PetPage({
           speciesName={speciesName}
           petImagePath={petImagePath}
           personalityKey={personalityKey}
-          sublineLabel={subline ? SUBLINE_LABEL[subline] ?? subline : null}
-          eggNameTh={eggType?.name_th ?? null}
           statHp={statHp}
           statAtk={statAtk}
           statDef={statDef}
           statSpd={statSpd}
           statFoc={statFoc}
+          mathCorrect={mathCorrect}
+          scienceCorrect={scienceCorrect}
+          comboMilestones={comboMilestones}
           expToday={expToday}
           dailyCap={DAILY_EXP_CAP}
           justEvolved={justEvolved}

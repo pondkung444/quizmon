@@ -17,14 +17,6 @@ import type { JourneyDay } from "@/lib/weeklyJourney";
 
 const EVOLVE_ANIMATION_MS = 650;
 
-function SublineChip({ label }: { label: string | null }) {
-  return (
-    <span className="rounded-full border border-gold-dim bg-track px-3 py-1 text-xs font-medium text-gold-hi">
-      {label ?? "ยังไม่รู้"}
-    </span>
-  );
-}
-
 export default function PetCard({
   stage,
   stageName,
@@ -35,13 +27,14 @@ export default function PetCard({
   nickname,
   speciesName,
   petImagePath,
-  sublineLabel,
-  eggNameTh,
   statHp,
   statAtk,
   statDef,
   statSpd,
   statFoc,
+  mathCorrect,
+  scienceCorrect,
+  comboMilestones,
   expToday,
   dailyCap,
   justEvolved,
@@ -58,13 +51,14 @@ export default function PetCard({
   nickname: string | null;
   speciesName: string | null;
   petImagePath: string | null;
-  sublineLabel: string | null;
-  eggNameTh: string | null;
   statHp: number | null;
   statAtk: number | null;
   statDef: number | null;
   statSpd: number | null;
   statFoc: number | null;
+  mathCorrect: number;
+  scienceCorrect: number;
+  comboMilestones: number;
   expToday: number;
   dailyCap: number;
   justEvolved: boolean;
@@ -209,40 +203,40 @@ export default function PetCard({
         </Link>
       )}
 
+      {/* 6.5 quiz stat cards — always visible, no click needed */}
+      <div className="grid w-full max-w-xs grid-cols-3 gap-2">
+        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+          <span className="text-xl">🔥</span>
+          <span className="text-lg font-bold text-gold-hi">{mathCorrect}</span>
+          <span className="text-[10px] text-text3">คณิตถูก</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+          <span className="text-xl">💧</span>
+          <span className="text-lg font-bold text-gold-hi">{scienceCorrect}</span>
+          <span className="text-[10px] text-text3">วิทย์ถูก</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+          <span className="text-xl">⚡</span>
+          <span className="text-lg font-bold text-gold-hi">{comboMilestones}</span>
+          <span className="text-[10px] text-text3">คอมโบ</span>
+        </div>
+      </div>
       {/* 7. expandable detail */}
-      {expanded && (
+      {expanded && isMaxStage && hasFullStats && (
         <div className="flex w-full flex-col items-center gap-4 border-t border-border pt-5">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <SublineChip label={sublineLabel} />
-            <SublineChip label={eggNameTh} />
-          </div>
-
           <div>
             <h2 className="text-sm font-bold text-gold-hi">พลังประจำตัว</h2>
             <p className="text-xs text-text3">จะได้ใช้เมื่อระบบผจญภัย &amp; ต่อสู้เปิดในอนาคต</p>
           </div>
-
-          {isMaxStage && hasFullStats ? (
-            <StatRadar
-              stats={{
-                hp: statHp as number,
-                atk: statAtk as number,
-                def: statDef as number,
-                spd: statSpd as number,
-                foc: statFoc as number,
-              }}
-            />
-          ) : (
-            <div className="relative flex w-full max-w-[220px] items-center justify-center">
-              <div className="blur-sm opacity-40">
-                <StatRadar stats={null} />
-              </div>
-              <div className="absolute flex flex-col items-center gap-1">
-                <span className="text-2xl">🔒</span>
-                <p className="text-xs text-text3">พลังจะเผยตอนโตเต็มวัย</p>
-              </div>
-            </div>
-          )}
+          <StatRadar
+            stats={{
+              hp: statHp as number,
+              atk: statAtk as number,
+              def: statDef as number,
+              spd: statSpd as number,
+              foc: statFoc as number,
+            }}
+          />
         </div>
       )}
     </div>
