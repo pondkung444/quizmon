@@ -90,8 +90,8 @@ export default function PetCard({
 
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
-      {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) */}
-      <WeeklyJourneyCard days={journeyDays} />
+      {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) — กดเข้าปฏิทินเต็มเดือนได้ */}
+      <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
       <p className="text-xs text-text3">
         ระยะ {stage} · {stageName} — {stageDescription}
       </p>

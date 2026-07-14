@@ -3,19 +3,11 @@ import { Repeat } from "lucide-react";
 import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import type { JourneyDay } from "@/lib/weeklyJourney";
+import { expTierClass } from "@/lib/expTier";
 
 // index 0-6 ของ days array = จ-อา ตรงตัวเสมอ (ลำดับที่ getWeeklyJourney คืนมา) ไม่ต้องคำนวณ
 // วันในสัปดาห์ใหม่จาก JourneyDay.date
 const DAY_LABEL_TH = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
-
-// 5 ระดับตาม expEarned ของวันนั้น: 0 / 1-59 / 60-119 / 120-179 / 180 (เต็มเพดาน)
-function tierClass(expEarned: number): string {
-  if (expEarned <= 0) return "bg-track";
-  if (expEarned < 60) return "bg-border";
-  if (expEarned < 120) return "bg-amber-dim/60";
-  if (expEarned < 180) return "bg-amber/70";
-  return "bg-amber shadow-[0_0_10px_2px_var(--color-amber)]";
-}
 
 function DayCell({ day }: { day: JourneyDay }) {
   if (day.isFuture) {
@@ -41,7 +33,7 @@ function DayCell({ day }: { day: JourneyDay }) {
     <div
       className={`relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border ${
         day.isToday ? "border-2 border-gold-hi" : "border-border"
-      } ${tierClass(day.expEarned)}`}
+      } ${expTierClass(day.expEarned)}`}
     >
       {day.didEvolveThisDay && <span className="absolute right-0.5 top-0.5 text-[10px] leading-none text-gold-hi">✦</span>}
       {day.didCollectThisDay && (
@@ -61,9 +53,13 @@ function DayCell({ day }: { day: JourneyDay }) {
   );
 }
 
-export default function WeeklyJourneyCard({ days }: { days: JourneyDay[] }) {
+export default function WeeklyJourneyCard({ days, onClick }: { days: JourneyDay[]; onClick?: () => void }) {
   return (
-    <div className="flex w-full flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4 text-left"
+    >
       <div className="flex items-start justify-between gap-1">
         {days.map((day, i) => (
           <div key={day.date} className="flex flex-col items-center gap-1">
@@ -74,6 +70,6 @@ export default function WeeklyJourneyCard({ days }: { days: JourneyDay[] }) {
           </div>
         ))}
       </div>
-    </div>
+    </button>
   );
 }

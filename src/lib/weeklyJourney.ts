@@ -23,6 +23,12 @@ export type JourneyDay = {
   // (src/lib/petImage.ts) ต้องใช้ sprite_prefix ไม่ใช่ egg_type_id ตรงๆ ให้ component เรียกจากตรงนี้
   // ได้เลยไม่ต้อง join เพิ่มฝั่ง UI
   spritePrefix: string | null;
+  // name_th ของ egg_type_id นี้ — เพิ่มเข้ามาให้ petCalendar.ts เรียก getSpeciesName()
+  // (src/lib/evolution.ts) ได้ตรงๆ เช่นเดียวกับ spritePrefix ข้างบน
+  eggNameTh: string | null;
+  // มีแถวใน quiz_attempts วันนี้ไหม (ไม่สนถูก/ผิด) — ต่างจาก expEarned > 0 เพราะวันที่ตอบ
+  // ผิดหมดก็ยังถือว่า "เล่นแล้ว" (petCalendar.ts ใช้อันนี้เป็น hasData ไม่ใช่ expEarned)
+  hasAttempts: boolean;
   didEvolveThisDay: boolean;
   didCollectThisDay: boolean;
   isFuture: boolean;
@@ -112,10 +118,16 @@ function replayExpForDay(dayAttempts: Attempt[]): number {
   return Math.min(total, DAILY_EXP_CAP);
 }
 
-export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: string): Promise<JourneyDay[]> {
-  const weekDates = getBangkokWeekDates();
-  const weekStartIso = bangkokMidnightUtcIso(weekDates[0]);
-  const weekEndIso = bangkokMidnightUtcIso(nextDateStr(weekDates[6]));
+// core: replay EXP + pet/stage state ทีละวันสำหรับ "วันใดก็ได้ที่ต่อเนื่องกัน" ไม่ผูกกับขอบเขต
+// สัปดาห์ — getWeeklyJourney() (ข้างล่าง) และ getCalendarMonth() (src/lib/petCalendar.ts) เรียก
+// ใช้ตัวนี้ร่วมกัน ต่างกันแค่ dateList ที่ส่งเข้ามา
+export async function getJourneyDaysForRange(
+  supabase: SupabaseServerClient,
+  userId: string,
+  dateList: string[]
+): Promise<JourneyDay[]> {
+  const rangeStartIso = bangkokMidnightUtcIso(dateList[0]);
+  const rangeEndIso = bangkokMidnightUtcIso(nextDateStr(dateList[dateList.length - 1]));
   const todayStr = getTodayInBangkok();
 
   // analytics_events ไม่มี select policy ให้ user-session client เลย (ตั้งใจ — ดูคอมเมนต์ใน
@@ -129,22 +141,22 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
       .from("quiz_attempts")
       .select("pet_id, is_correct, created_at")
       .eq("user_id", userId)
-      .gte("created_at", weekStartIso)
-      .lt("created_at", weekEndIso)
+      .gte("created_at", rangeStartIso)
+      .lt("created_at", rangeEndIso)
       .order("created_at", { ascending: true }),
     adminSupabase
       .from("analytics_events")
       .select("event_name, pet_id, props, client_ts")
       .eq("user_id", userId)
       .in("event_name", ["stage_up", "collect", "hatch"])
-      .lt("client_ts", weekEndIso)
+      .lt("client_ts", rangeEndIso)
       .order("client_ts", { ascending: true }),
     supabase
       .from("pets")
       .select("id, egg_type_id, subline, personality, hatched_at")
       .eq("user_id", userId)
       .order("hatched_at", { ascending: true }),
-    supabase.from("egg_types").select("id, sprite_prefix"),
+    supabase.from("egg_types").select("id, sprite_prefix, name_th"),
   ]);
 
   const attempts = (attemptRows ?? []) as Attempt[];
@@ -153,6 +165,7 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
 
   const petsById = new Map(pets.map((p) => [p.id, p]));
   const spritePrefixByEggTypeId = new Map((eggTypeRows ?? []).map((e) => [e.id as string, e.sprite_prefix as string]));
+  const nameThByEggTypeId = new Map((eggTypeRows ?? []).map((e) => [e.id as string, e.name_th as string]));
 
   const attemptsByDay = new Map<string, Attempt[]>();
   for (const attempt of attempts) {
@@ -163,24 +176,24 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
   }
 
   // เทียบเป็น Date.getTime() ไม่เทียบ string ตรงๆ — client_ts จาก DB มา format "+00:00"
-  // แต่ weekStartIso มาจาก .toISOString() format "Z" ความยาว suffix ต่างกัน เทียบ string ตรงๆ
+  // แต่ rangeStartIso มาจาก .toISOString() format "Z" ความยาว suffix ต่างกัน เทียบ string ตรงๆ
   // จะผิดพลาดได้ที่ขอบเขต millisecond เป๊ะๆ (เคสหายากแต่เกิดได้จริง)
-  const weekStartMs = new Date(weekStartIso).getTime();
-  const eventsBeforeWeek = events.filter((e) => new Date(e.client_ts).getTime() < weekStartMs);
-  const eventsThisWeek = events.filter((e) => new Date(e.client_ts).getTime() >= weekStartMs);
+  const rangeStartMs = new Date(rangeStartIso).getTime();
+  const eventsBeforeRange = events.filter((e) => new Date(e.client_ts).getTime() < rangeStartMs);
+  const eventsInRange = events.filter((e) => new Date(e.client_ts).getTime() >= rangeStartMs);
 
   const eventsByDay = new Map<string, JourneyEvent[]>();
-  for (const event of eventsThisWeek) {
+  for (const event of eventsInRange) {
     const day = getTodayInBangkok(new Date(event.client_ts));
     const bucket = eventsByDay.get(day) ?? [];
     bucket.push(event);
     eventsByDay.set(day, bucket);
   }
 
-  // baseline: state ก่อนวันจันทร์ของสัปดาห์นี้ — จาก event ล่าสุดก่อนหน้า หรือ pet แรกที่ hatch
+  // baseline: state ก่อนวันแรกของ dateList — จาก event ล่าสุดก่อนหน้า หรือ pet แรกที่ hatch
   // ถ้าไม่มี event มาก่อนเลย (user ใหม่มาก)
   let state: { petId: string | null; stage: number | null };
-  const baseline = eventsBeforeWeek.at(-1);
+  const baseline = eventsBeforeRange.at(-1);
   if (baseline) {
     state = nextStateFromEvent(baseline);
   } else if (pets.length > 0) {
@@ -190,7 +203,7 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
   }
 
   const days: JourneyDay[] = [];
-  for (const date of weekDates) {
+  for (const date of dateList) {
     const isFuture = date > todayStr;
     const isToday = date === todayStr;
 
@@ -204,6 +217,8 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
         personality: null,
         eggTypeId: null,
         spritePrefix: null,
+        eggNameTh: null,
+        hasAttempts: false,
         didEvolveThisDay: false,
         didCollectThisDay: false,
         isFuture: true,
@@ -220,7 +235,8 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
       state = nextStateFromEvent(event);
     }
 
-    const expEarned = replayExpForDay(attemptsByDay.get(date) ?? []);
+    const dayAttempts = attemptsByDay.get(date) ?? [];
+    const expEarned = replayExpForDay(dayAttempts);
     const pet = state.petId ? petsById.get(state.petId) ?? null : null;
     const stage = state.stage;
 
@@ -233,6 +249,8 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
       personality: pet && stage !== null && stage >= 4 ? pet.personality : null,
       eggTypeId: pet?.egg_type_id ?? null,
       spritePrefix: pet ? spritePrefixByEggTypeId.get(pet.egg_type_id) ?? null : null,
+      eggNameTh: pet ? nameThByEggTypeId.get(pet.egg_type_id) ?? null : null,
+      hasAttempts: dayAttempts.length > 0,
       didEvolveThisDay,
       didCollectThisDay,
       isFuture: false,
@@ -241,4 +259,8 @@ export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: s
   }
 
   return days;
+}
+
+export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: string): Promise<JourneyDay[]> {
+  return getJourneyDaysForRange(supabase, userId, getBangkokWeekDates());
 }
