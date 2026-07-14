@@ -39,7 +39,7 @@ export default async function PetCalendarPage({
   const days = user ? await getCalendarMonth(supabase, user.id, year, month) : [];
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-24">
       <SignOutLink />
       {user ? (
         <PetCalendarClient

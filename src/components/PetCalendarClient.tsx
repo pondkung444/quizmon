@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import type { CalendarDay } from "@/lib/petCalendar";
-import { expTierClass } from "@/lib/expTier";
+import { expTierClass, expTierTextClass } from "@/lib/expTier";
 import { DAILY_EXP_CAP } from "@/lib/exp";
 
 const DAY_LABEL_TH = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
@@ -152,61 +151,69 @@ export default function PetCalendarClient({
   }
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <Link href="/pet" className="text-xs text-text3">
-        ← กลับหน้า Qmon
-      </Link>
+    <div className="flex w-full flex-col">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between rounded-2xl border border-gold-dim bg-card p-3">
+          <button
+            type="button"
+            onClick={() => goToMonth(year, month - 1)}
+            aria-label="เดือนก่อนหน้า"
+            className="rounded-xl p-2 text-gold-hi active:scale-95"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <p className="text-sm font-bold text-gold-hi">
+            {MONTH_LABEL_TH[month - 1]} {year + 543}
+          </p>
+          <button
+            type="button"
+            onClick={() => goToMonth(year, month + 1)}
+            disabled={isCurrentMonth}
+            aria-label="เดือนถัดไป"
+            className="rounded-xl p-2 text-gold-hi disabled:opacity-30 active:scale-95"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-gold-dim bg-card p-3">
-        <button
-          type="button"
-          onClick={() => goToMonth(year, month - 1)}
-          aria-label="เดือนก่อนหน้า"
-          className="rounded-xl p-2 text-gold-hi active:scale-95"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <p className="text-sm font-bold text-gold-hi">
-          {MONTH_LABEL_TH[month - 1]} {year + 543}
-        </p>
-        <button
-          type="button"
-          onClick={() => goToMonth(year, month + 1)}
-          disabled={isCurrentMonth}
-          aria-label="เดือนถัดไป"
-          className="rounded-xl p-2 text-gold-hi disabled:opacity-30 active:scale-95"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
+        <div className="rounded-2xl border border-gold-dim bg-card p-2">
+          <div className="mb-2 grid grid-cols-7 gap-1">
+            {DAY_LABEL_TH.map((label) => (
+              <span key={label} className="text-center text-xs text-text3">
+                {label}
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: leadingBlanks }).map((_, i) => (
+              <div key={`blank-${i}`} />
+            ))}
+            {days.map((day) => (
+              <button
+                key={day.date}
+                type="button"
+                disabled={day.isFuture}
+                onClick={() => setSelectedDate(day.date)}
+                className={`relative flex aspect-square items-center justify-center rounded-lg border text-sm font-medium disabled:cursor-not-allowed ${
+                  day.isFuture
+                    ? "border-dashed border-border text-text3 opacity-40"
+                    : `border-border ${expTierTextClass(day.expEarned)}`
+                } ${day.isFuture ? "" : expTierClass(day.expEarned)} ${day.isToday ? "border-2 border-gold-hi" : ""}`}
+              >
+                {Number(day.date.slice(-2))}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-gold-dim bg-card p-4">
-        <div className="mb-2 grid grid-cols-7 gap-1">
-          {DAY_LABEL_TH.map((label) => (
-            <span key={label} className="text-center text-[10px] text-text3">
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({ length: leadingBlanks }).map((_, i) => (
-            <div key={`blank-${i}`} />
-          ))}
-          {days.map((day) => (
-            <button
-              key={day.date}
-              type="button"
-              disabled={day.isFuture}
-              onClick={() => setSelectedDate(day.date)}
-              className={`relative flex aspect-square items-center justify-center rounded-lg border text-[10px] disabled:cursor-not-allowed ${
-                day.isFuture ? "border-dashed border-border text-text3 opacity-40" : "border-border text-text2"
-              } ${day.isFuture ? "" : expTierClass(day.expEarned)} ${day.isToday ? "border-2 border-gold-hi" : ""}`}
-            >
-              {Number(day.date.slice(-2))}
-            </button>
-          ))}
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => router.push("/pet")}
+        className="mt-6 flex h-12 w-full items-center justify-center rounded-2xl border border-gold bg-amber text-lg font-bold text-track shadow-lg transition active:scale-95"
+      >
+        กลับไปหน้า Qmon
+      </button>
 
       {selectedDay && <DetailCard day={selectedDay} onClose={() => setSelectedDate(null)} />}
     </div>
