@@ -89,7 +89,7 @@ function nextStateFromEvent(event: JourneyEvent): { petId: string | null; stage:
 
 // replay สูตร exp เดิม (src/lib/exp.ts, ไม่แก้ไฟล์นั้น) ทีละข้อ "ต่อวัน" ตามลำดับ created_at —
 // state (combo streak / sliding window ความแม่นยำ) เริ่มใหม่ทุกวัน ไม่ carry ข้ามวัน และใช้
-// base=10 เสมอ (ไม่รู้ว่าข้อไหนเป็นโหมดติวสอบกลางภาค base=12 — ยอมรับคลาดเคลื่อนตามที่ตกลงไว้)
+// base=10 เสมอ
 function replayExpForDay(dayAttempts: Attempt[]): number {
   let comboStreak = 0;
   let lastPetId: string | null = null;

@@ -6,11 +6,9 @@ import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   BASE_EXP_PER_CORRECT,
   DAILY_EXP_CAP,
-  MIDTERM_BASE_EXP_PER_CORRECT,
   calculateExpForAnswer,
   getAccuracyMultiplier,
   getComboMultiplier,
-  getMidtermAccuracyMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
 import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
@@ -30,18 +28,6 @@ const NEAR_EVOLUTION_RATIO = 0.15;
 // ห่างจากแถว quiz_attempts ล่าสุดของ user เกินกี่วัน (นับดิบเป็น ms ไม่ตัดวันปฏิทิน — ง่ายกว่า
 // และพอสำหรับ threshold ระดับวันขนาดนี้) ถึงจะถือว่าเป็น "หายไปนาน" -> ทัก comeback แทน enterGame ธรรมดา
 const COMEBACK_THRESHOLD_DAYS = 3;
-
-// 6 หมวดสำหรับโหมด "ติวสอบกลางภาค" — สุ่มข้ามคณิต/วิทย์ในรอบเดียว ค่าตรงกับ questions.category จริงใน DB
-// (ตรวจสอบแล้ว ไม่ใช่การเดา — ดู scripts/import-inequality-factoring.mjs, import-genetics-mendelian.mjs
-// และ migration 015/016 สำหรับคลื่น/เสียง/แสงที่เพิ่มเข้ามาทีหลัง)
-const MIDTERM_CATEGORIES = [
-  "อสมการ",
-  "แยกตัวประกอบพหุนามดีกรีมากกว่า 2",
-  "พันธุกรรมและเซลล์สืบพันธุ์",
-  "คลื่น",
-  "เสียง",
-  "แสง",
-];
 
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
@@ -107,7 +93,7 @@ export type StartQuizRoundResult = {
 };
 
 export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResult> {
-  if (mode !== "math" && mode !== "science" && mode !== "midterm") {
+  if (mode !== "math" && mode !== "science") {
     throw new Error("โหมดไม่ถูกต้อง");
   }
 
@@ -129,7 +115,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
       return activePetId ? getCurrentComboStreak(supabase, activePetId) : 0;
     })(),
     user ? getLastAttemptBeforeRound(supabase, user.id) : Promise.resolve(null),
-    mode === "midterm" ? idQuery.in("category", MIDTERM_CATEGORIES) : idQuery.eq("subject", mode),
+    idQuery.eq("subject", mode),
   ]);
   if (idError) throw new Error(idError.message);
   if (!idRows || idRows.length === 0) return { questions: [], currentCombo, lastAttemptBeforeRound };
@@ -211,14 +197,10 @@ export async function submitAnswer(input: {
 
   const isCorrect = input.choiceIndex === question.correct_index;
 
-  const accuracyMultiplier =
-    input.mode === "midterm"
-      ? getMidtermAccuracyMultiplier(recentAttempts ?? [])
-      : getAccuracyMultiplier(recentAttempts ?? []);
+  const accuracyMultiplier = getAccuracyMultiplier(recentAttempts ?? []);
   const newCombo = isCorrect ? input.comboBefore + 1 : 0;
   const comboMultiplier = getComboMultiplier(newCombo);
-  const basePoints = input.mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
-  const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, basePoints);
+  const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, BASE_EXP_PER_CORRECT);
 
   // best_combo/combo_milestones/math_correct/science_correct ห้ามคำนวณฝั่ง app แบบ
   // read-modify-write (เจอ lost-update race condition จริงตอนมีคำขอทับซ้อนกัน เช่น เปิดสองแท็บ/

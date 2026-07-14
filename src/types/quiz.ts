@@ -1,8 +1,7 @@
 export type Subject = "math" | "science";
 
-// ใช้เลือกโหมดของ "รอบ" quiz ไม่ใช่ subject ของคำถามแต่ละข้อ (questions.subject มีแค่ math/science เสมอ
-// แม้ในโหมด midterm ที่คำถามแต่ละข้อยังเป็น math หรือ science ตามเดิม แค่สุ่มข้ามหมวดในรอบเดียว)
-export type QuizMode = Subject | "midterm";
+// ใช้เลือกโหมดของ "รอบ" quiz ไม่ใช่ subject ของคำถามแต่ละข้อ (questions.subject มีแค่ math/science เสมอ)
+export type QuizMode = Subject;
 
 // เวอร์ชันพื้นฐาน ไม่มีเฉลย — ใช้เป็น base type เท่านั้น
 export type PublicQuestion = {

@@ -9,12 +9,7 @@ import {
   finishQuizRound,
   type RoundFinishResult,
 } from "@/app/quiz/actions";
-import {
-  BASE_EXP_PER_CORRECT,
-  MIDTERM_BASE_EXP_PER_CORRECT,
-  calculateExpForAnswer,
-  getComboMultiplier,
-} from "@/lib/exp";
+import { BASE_EXP_PER_CORRECT, calculateExpForAnswer, getComboMultiplier } from "@/lib/exp";
 import StageUpModal from "@/components/StageUpModal";
 import SpeechBubble from "@/components/SpeechBubble";
 import { usePersonalityMessage, MESSAGE_DISPLAY_MS } from "@/hooks/usePersonalityMessage";
@@ -41,7 +36,6 @@ const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
   { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
-  { id: "midterm", label: "ติวสอบกลางภาค", emoji: "📝" },
 ];
 
 type Phase = "select" | "loading" | "playing" | "summary";
@@ -215,8 +209,12 @@ export default function QuizClient({
     const newCombo = isCorrect ? combo + 1 : 0;
     // ตัวเลข EXP นี้เป็นค่าประมาณชั่วคราว (สมมติ accuracy multiplier = 1.0) โชว์ให้เห็นทันที
     // ระหว่างเล่น ค่าจริงที่ผ่านการเช็ค accuracy multiplier จาก DB จะมาจาก server ตอนสรุปท้ายรอบ
-    const basePoints = mode === "midterm" ? MIDTERM_BASE_EXP_PER_CORRECT : BASE_EXP_PER_CORRECT;
-    const optimisticExp = calculateExpForAnswer(isCorrect, 1.0, getComboMultiplier(newCombo), basePoints);
+    const optimisticExp = calculateExpForAnswer(
+      isCorrect,
+      1.0,
+      getComboMultiplier(newCombo),
+      BASE_EXP_PER_CORRECT
+    );
 
     // เด้งเฉพาะตอน "แตะพอดี" 3/5/8 (ไม่ใช่ >=) กันเด้งซ้ำทุกข้อหลังจากนั้น — ตอบผิดรีเซ็ต
     // combo กลับ 0 แล้ว ไต่ขึ้นไปแตะ 3 ใหม่ได้อีกครั้ง ถือเป็นคอมโบใหม่
@@ -341,11 +339,7 @@ export default function QuizClient({
               type="button"
               disabled={phase === "loading"}
               onClick={() => handleSelectMode(m.id)}
-              className={
-                m.id === "midterm"
-                  ? "flex items-center justify-center gap-3 rounded-3xl border border-indigo-dim bg-card px-6 py-10 text-2xl font-bold text-indigo-hi shadow-lg transition hover:border-indigo active:scale-95 disabled:opacity-60"
-                  : "flex items-center justify-center gap-3 rounded-3xl border border-gold-dim bg-card px-6 py-10 text-2xl font-bold text-gold-hi shadow-lg transition hover:border-gold active:scale-95 disabled:opacity-60"
-              }
+              className="flex items-center justify-center gap-3 rounded-3xl border border-gold-dim bg-card px-6 py-10 text-2xl font-bold text-gold-hi shadow-lg transition hover:border-gold active:scale-95 disabled:opacity-60"
             >
               <span className="text-4xl">{m.emoji}</span>
               {phase === "loading" && mode === m.id ? "กำลังสุ่มคำถาม..." : m.label}
