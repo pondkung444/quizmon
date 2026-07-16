@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -14,6 +15,8 @@ import { getEvolutionProgress } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
 import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
+import TopicStatsSheet from "@/components/TopicStatsSheet";
+import type { TopicStatsResult } from "@/lib/topicStats";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -41,6 +44,7 @@ export default function PetCard({
   eggChoices,
   personalityKey,
   journeyDays,
+  topicStats,
 }: {
   stage: number;
   stageName: string;
@@ -65,10 +69,12 @@ export default function PetCard({
   eggChoices: EggChoice[];
   personalityKey: PersonalityKey;
   journeyDays: JourneyDay[];
+  topicStats: TopicStatsResult;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [tapPulse, setTapPulse] = useState(0);
+  const [showTopicStats, setShowTopicStats] = useState(false);
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
 
@@ -92,6 +98,22 @@ export default function PetCard({
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
       {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) — กดเข้าปฏิทินเต็มเดือนได้ */}
       <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
+
+      {/* 1.5 ปุ่มเปิดสถิติแยกบท ย้อนหลัง 7 วัน */}
+      <div className="flex w-full justify-end">
+        <button
+          type="button"
+          onClick={() => setShowTopicStats(true)}
+          aria-label="ดูสถิติแยกบท 7 วันล่าสุด"
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-gold-dim bg-track text-text2 transition active:scale-95"
+        >
+          <BarChart3 size={16} />
+        </button>
+      </div>
+      {showTopicStats && (
+        <TopicStatsSheet stats={topicStats} onClose={() => setShowTopicStats(false)} />
+      )}
+
       <p className="text-xs text-text3">
         ระยะ {stage} · {stageName} — {stageDescription}
       </p>

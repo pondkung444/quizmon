@@ -9,6 +9,7 @@ import {
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
+import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
@@ -52,9 +53,15 @@ export default async function PetPage({
 
   let eggChoices: EggChoice[] = [];
   let journeyDays: JourneyDay[] = [];
+  let topicStats: TopicStatsResult = {
+    hasAnyData: false,
+    needsPractice: [],
+    strong: [],
+    notEnoughData: [],
+  };
 
   if (user) {
-    const [{ data }, { data: eggTypeRows }, journeyResult] = await Promise.all([
+    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult] = await Promise.all([
       supabase
         .from("pets")
         .select(
@@ -69,9 +76,11 @@ export default async function PetPage({
         .eq("is_obtainable", true)
         .order("id", { ascending: true }),
       getWeeklyJourney(supabase, user.id),
+      getWeeklyTopicStats(supabase, user.id),
     ]);
     pet = data;
     journeyDays = journeyResult;
+    topicStats = topicStatsResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -166,6 +175,7 @@ export default async function PetPage({
           justEvolved={justEvolved}
           eggChoices={eggChoices}
           journeyDays={journeyDays}
+          topicStats={topicStats}
         />
         </>
       ) : (
