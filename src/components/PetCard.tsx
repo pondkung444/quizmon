@@ -17,6 +17,9 @@ import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import TopicStatsSheet from "@/components/TopicStatsSheet";
 import type { TopicStatsResult } from "@/lib/topicStats";
+import MissionCard from "@/components/MissionCard";
+import type { TodayMissionResult } from "@/lib/missions";
+import type { Subline } from "@/lib/evolution";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -45,6 +48,8 @@ export default function PetCard({
   personalityKey,
   journeyDays,
   topicStats,
+  mission,
+  subline,
 }: {
   stage: number;
   stageName: string;
@@ -70,6 +75,8 @@ export default function PetCard({
   personalityKey: PersonalityKey;
   journeyDays: JourneyDay[];
   topicStats: TopicStatsResult;
+  mission: TodayMissionResult | null;
+  subline: Subline | null;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -87,6 +94,9 @@ export default function PetCard({
   const isMaxStage = stage === 4;
   const cappedToday = expToday >= dailyCap;
   const dailyProgress = Math.min(1, dailyCap > 0 ? expToday / dailyCap : 1);
+  // ภารกิจยังไม่จบ (state 1/2) -> การ์ดภารกิจเป็น CTA หลักแทนปุ่ม "ฝึก Qmon" ไปเต็มๆ ไม่ใช่การ์ด
+  // เสริมซ้อนกับ CTA อีกก้อน (แก้ปัญหาของสำคัญหลุด fold บนมือถือ)
+  const missionActive = !!mission && mission.answeredCount < mission.mission.target_count;
 
   const hasFullStats =
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
@@ -203,26 +213,38 @@ export default function PetCard({
         )}
       </div>
 
-      {/* 6. CTA */}
+      {/* 5.5/6 บล็อกแอ็กชันรวม — การ์ดภารกิจกับ CTA "ฝึก Qmon" เดิมเคยเป็นสองบล็อกซ้อนกัน ทำหน้าที่
+          ซ้ำกัน (ทั้งคู่คือ "จะฝึกอะไรวันนี้") รวมเป็นก้อนเดียวที่สลับตามสถานะภารกิจแทน:
+          - ภารกิจยังไม่จบ (missionActive) -> MissionCard คือ CTA หลักไปเลย ไม่โชว์ปุ่ม "ฝึก Qmon" ซ้ำ
+          - ภารกิจจบแล้ว/ไม่มีภารกิจ -> MissionCard ยุบเหลือ chip (หรือไม่โชว์อะไรถ้า mission null)
+            แล้ว CTA "ฝึก Qmon"/"ฝึกต่อได้" เดิมกลับมาเป็นหลักตามเดิม
+          isMaxStage ยังทับทุกกรณีเหมือนเดิม (เก็บสัตว์เข้าสมุดสำคัญกว่าเสมอตอนโตเต็มที่แล้ว) */}
       {isMaxStage ? (
         <CollectPetButton eggChoices={eggChoices} />
-      ) : cappedToday ? (
-        <div className="flex w-full max-w-xs flex-col items-center gap-1">
-          <Link
-            href="/quiz"
-            className="w-full rounded-2xl border-2 border-gold py-3 text-lg font-bold text-gold-hi transition active:scale-95"
-          >
-            ฝึกต่อได้
-          </Link>
-          <p className="text-xs text-text3">ฝึกเพิ่มได้ แต่วันนี้ไม่ดันระยะแล้ว</p>
-        </div>
+      ) : missionActive ? (
+        <MissionCard mission={mission} subline={subline} />
       ) : (
-        <Link
-          href="/quiz"
-          className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
-        >
-          ฝึก Qmon
-        </Link>
+        <>
+          <MissionCard mission={mission} subline={subline} />
+          {cappedToday ? (
+            <div className="flex w-full max-w-xs flex-col items-center gap-1">
+              <Link
+                href="/quiz"
+                className="w-full rounded-2xl border-2 border-gold py-3 text-lg font-bold text-gold-hi transition active:scale-95"
+              >
+                ฝึกต่อได้
+              </Link>
+              <p className="text-xs text-text3">ฝึกเพิ่มได้ แต่วันนี้ไม่ดันระยะแล้ว</p>
+            </div>
+          ) : (
+            <Link
+              href="/quiz"
+              className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+            >
+              ฝึก Qmon
+            </Link>
+          )}
+        </>
       )}
 
       {/* 6.5 quiz stat cards — always visible, no click needed */}

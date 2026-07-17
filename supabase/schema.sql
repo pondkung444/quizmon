@@ -2,11 +2,17 @@
 -- Schema สำหรับ Quizmon (เกมเลี้ยงมอนสเตอร์ + ตอบคำถาม)
 -- วิธีใช้: เปิด Supabase Dashboard > SQL Editor > วางไฟล์นี้ทั้งหมด > Run
 --
--- หมายเหตุ (2026-07-12): ไฟล์นี้ sync กับ DB จริงครบ migration 001-017
+-- หมายเหตุ (2026-07-17): ไฟล์นี้ sync กับ DB จริงครบ migration 001-021
 -- (supabase/migrations/*.sql) แล้ว — เพิ่ม public.analytics_events ตาม 014
 -- (เก็บ event การเล่นของนักเรียนสำหรับผู้พัฒนา insert-only ไม่มี select policy)
 -- 015/016 เป็น data-only (import คำถามวิทย์คลื่น/เสียง/แสง ไม่แก้ schema)
 -- 017 เพิ่ม composite index (pet_id, created_at) บน quiz_attempts
+-- 018 เพิ่ม questions.status (active/inactive)
+-- 019/020 เพิ่ม pets.combo_milestones + RPC apply_quiz_answer_pet_update (atomic combo update)
+-- 021 เพิ่มระบบภารกิจประจำวัน: ตาราง daily_missions, quiz_attempts.mission_id,
+-- index (user_id, created_at) บน quiz_attempts, RPC claim_daily_mission_bonus
+-- (ดูท้ายไฟล์) — แก้ไปพร้อมกัน: quiz_attempts.question_id เอกสารเก่าเขียนผิดเป็น text
+-- ที่จริงเป็น bigint มาตลอด (ยืนยันจาก live DB ตรงๆ ผ่าน service role ไม่ได้เดา)
 --
 -- ส่วนที่ตกหล่นจากรอบก่อน (001-013):
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
@@ -173,10 +179,13 @@ create table if not exists public.quiz_attempts (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
   pet_id uuid references public.pets (id) on delete set null,
-  question_id text not null,
+  question_id bigint not null,
   is_correct boolean not null,
   created_at timestamptz not null default now()
 );
+-- question_id ไม่มี FK ไป questions(id) ตั้งใจ (questions ไม่มี select policy ให้ authenticated
+-- อ้างอิงตรงไม่ได้ผ่าน RLS) แต่เป็น bigint ตรงกับ questions.id จริง — เอกสารนี้เคยพิมพ์ผิดเป็น
+-- "text" (แก้แล้วในงานระบบภารกิจประจำวัน ยืนยัน type จริงจาก live DB ผ่าน service role)
 
 comment on column public.quiz_attempts.pet_id is
   'สัตว์ที่ active ตอนตอบข้อนี้ — ใช้คำนวณ subline/personality/stat_* ราย pet ตอนวิวัฒนาการ';
@@ -380,3 +389,121 @@ alter table public.analytics_events enable row level security;
 -- insert เท่านั้น ไม่มี select policy ตั้งใจ (กันผู้เล่นเห็น event ของตัวเอง/คนอื่นผ่าน REST API ตรงๆ)
 create policy "analytics_events: insert own" on public.analytics_events
   for insert with check (auth.uid() = user_id);
+
+-- ============================================================
+-- ระบบภารกิจประจำวัน (migration 021) — เลือกบทที่เหมาะกับผู้เล่นแต่ละคนจากผล 7/14 วันล่าสุด
+-- สร้างภารกิจ 5 ข้อ/วัน + โบนัสจบภารกิจ +10 EXP คงที่ (ไม่ใช่แหล่ง EXP ใหม่ต่อข้อ — EXP ต่อข้อ
+-- ยังไหลผ่าน submitAnswer()/apply_quiz_answer_pet_update() เดิมทุกอย่าง)
+--
+-- exploration (ภารกิจสำรวจ) ล็อกบทเดียวเสมอเหมือน personalized ไม่สุ่มทั้งวิชา (มี 11 บท/วิชา
+-- สุ่มทั้งวิชาจะกระจายคนละบท ไม่มีทางผ่านเกณฑ์ ranking ของบทไหนเลย) — category จึง not null เสมอ
+-- ============================================================
+create table if not exists public.daily_missions (
+  id                uuid primary key default gen_random_uuid(),
+  user_id           uuid not null references auth.users(id) on delete cascade,
+  mission_date      date not null,
+  mission_type      text not null check (mission_type in ('personalized','exploration')),
+  subject           text not null,
+  category          text not null,
+  target_count      smallint not null default 5,
+  baseline_accuracy numeric,
+  bonus_exp         smallint not null default 10,
+  bonus_awarded_at  timestamptz,
+  created_at        timestamptz not null default now(),
+  unique (user_id, mission_date)
+);
+
+comment on table public.daily_missions is 'ภารกิจประจำวันของผู้เล่นแต่ละคน วันละ 1 แถว/user (unique user_id+mission_date)';
+comment on column public.daily_missions.category is
+  'บทที่เลือกให้ทำภารกิจวันนี้ — not null เสมอ (exploration ก็ล็อกบทเดียว ไม่สุ่มทั้งวิชา)';
+comment on column public.daily_missions.baseline_accuracy is
+  'accuracy % ของบทนี้ในช่วง 7 วันก่อนสร้างภารกิจ — เฉพาะ personalized เท่านั้น exploration เป็น null เสมอ';
+comment on column public.daily_missions.bonus_awarded_at is
+  'timestamp ตอนจ่ายโบนัส +10 EXP — null = ยังไม่จ่าย ไม่มี update policy ให้ client แก้ตรง แก้ได้
+   ทางเดียวคือ RPC claim_daily_mission_bonus() (security definer) กันผู้เล่นยิง PATCH รีเซ็ตค่านี้
+   กลับเป็น null เองแล้วเคลมโบนัสซ้ำ';
+
+alter table public.daily_missions enable row level security;
+
+create policy "daily_missions: select own" on public.daily_missions
+  for select using (auth.uid() = user_id);
+
+create policy "daily_missions: insert own" on public.daily_missions
+  for insert with check (auth.uid() = user_id);
+
+-- ตั้งใจไม่มี update/delete policy: bonus_awarded_at แก้ได้ทางเดียวคือผ่าน RPC security definer
+-- เท่านั้น (ดูคอมเมนต์ข้างบน) ตรงกับ pattern "ไม่ลงโทษถาวร"/ไม่มี delete policy ของ pets
+
+alter table public.quiz_attempts
+  add column if not exists mission_id uuid references public.daily_missions(id) on delete set null;
+
+comment on column public.quiz_attempts.mission_id is
+  'ภารกิจประจำวันที่ข้อนี้ถูกนับ — null เมื่อตอบในโหมดฝึกปกติ (ไม่ใช่ทุกแถวมีค่านี้)';
+
+create index if not exists idx_quiz_attempts_mission_id
+  on public.quiz_attempts (mission_id)
+  where mission_id is not null;
+
+create index if not exists idx_quiz_attempts_user_created
+  on public.quiz_attempts (user_id, created_at);
+
+-- RPC: จ่ายโบนัสจบภารกิจแบบ atomic กันจ่ายซ้ำ (double-tap / กดย้อนกลับแล้วกดใหม่) — security
+-- definer เพราะ daily_missions ไม่มี update policy ให้ authenticated เลย ฟังก์ชันนี้เลยต้องรันด้วย
+-- สิทธิ์เจ้าของ (bypass RLS) แต่ตรวจ auth.uid() เองตรงๆ กันคนอื่นเคลมภารกิจของคนอื่น + set
+-- search_path = public กัน search_path hijacking (ตาม pattern เดียวกับ handle_new_user())
+--
+-- ลำดับตั้งใจ: เช็คมี active pet ก่อน (ล็อก id ไว้) แล้วค่อย mark bonus_awarded_at — ถ้าไม่มี
+-- active pet ไม่แตะ daily_missions เลย ให้เคลมใหม่ได้ทีหลัง (ไม่ mark ค้างทั้งที่ EXP ไม่เข้าใคร)
+create or replace function public.claim_daily_mission_bonus(p_mission_id uuid)
+returns table (awarded boolean, bonus_exp smallint, no_active_pet boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_pet_id uuid;
+  v_bonus_exp smallint;
+  v_rows int;
+begin
+  if v_user_id is null then
+    raise exception 'ต้องเข้าสู่ระบบก่อน';
+  end if;
+
+  select id into v_pet_id
+  from public.pets
+  where user_id = v_user_id and is_active = true
+  limit 1;
+
+  if v_pet_id is null then
+    return query select false, null::smallint, true;
+    return;
+  end if;
+
+  update public.daily_missions
+  set bonus_awarded_at = now()
+  where id = p_mission_id
+    and user_id = v_user_id
+    and bonus_awarded_at is null
+  returning daily_missions.bonus_exp into v_bonus_exp;
+
+  if not found then
+    return query select false, null::smallint, false;
+    return;
+  end if;
+
+  -- โบนัสข้ามระบบ daily EXP cap โดยเจตนา: บวก pets.exp ตรง ไม่แตะ exp_today/exp_today_date
+  update public.pets
+  set exp = exp + v_bonus_exp
+  where id = v_pet_id;
+
+  get diagnostics v_rows = row_count;
+  if v_rows = 0 then
+    raise exception 'claim_daily_mission_bonus: pet % หายไประหว่างเคลมโบนัส (mission %)', v_pet_id, p_mission_id;
+  end if;
+
+  return query select true, v_bonus_exp, false;
+end;
+$$;
+
+grant execute on function public.claim_daily_mission_bonus(uuid) to authenticated;

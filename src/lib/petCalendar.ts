@@ -44,10 +44,11 @@ function nextDateStr(dateStr: string): string {
 
 type SubjectCounts = { mathCorrect: number; scienceCorrect: number };
 
-// นับคณิต/วิทย์ที่ตอบถูกรายวัน — ต้อง join quiz_attempts.question_id (text) กับ questions.id
-// (bigint) เอง เพราะไม่มี FK/select policy เชื่อมให้ (ดูผล survey เฟส 1.3) คำถามเก่าก่อนมีตาราง
-// questions อาจมี question_id ที่ไม่ใช่ตัวเลขล้วน (id เดิมจากคนละสคีมา) — ตัดทิ้งด้วย regex แทนที่จะ
-// ปล่อยให้ cast พังทั้งก้อน เดือนนั้นแค่นับคณิต/วิทย์ต่ำกว่าจริงเล็กน้อย (ยอมรับได้ตามหลัก v6 3.2)
+// นับคณิต/วิทย์ที่ตอบถูกรายวัน — ต้อง join quiz_attempts.question_id (bigint — เดิมเอกสาร schema.sql
+// เขียนผิดว่าเป็น text, แก้แล้ว) กับ questions.id (bigint) เอง เพราะไม่มี FK/select policy เชื่อมให้
+// (ดูผล survey เฟส 1.3) คำถามเก่าก่อนมีตาราง questions อาจมี question_id ที่ไม่ใช่ตัวเลขล้วน (id เดิม
+// จากคนละสคีมา) — ตัดทิ้งด้วย regex แทนที่จะปล่อยให้ cast พังทั้งก้อน เดือนนั้นแค่นับคณิต/วิทย์ต่ำกว่า
+// จริงเล็กน้อย (ยอมรับได้ตามหลัก v6 3.2)
 async function getSubjectCountsByDay(
   supabase: SupabaseServerClient,
   userId: string,

@@ -12,6 +12,18 @@ import {
   getTodayInBangkok,
 } from "@/lib/exp";
 import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
+import {
+  EXPLORATION_DIFFICULTY,
+  getMissionProgress,
+  claimMissionBonusIfComplete,
+  type ClaimMissionBonusResult,
+  type MissionType,
+} from "@/lib/missions";
+// ห้าม re-export type ผ่าน "use server" ไฟล์นี้ (เจอจริงตอน Phase 6: `export type { X };` ทำให้
+// SWC server-actions codegen ของ Next 16 canary นี้งง คิดว่า X เป็น action reference จริง แล้ว throw
+// "ReferenceError: X is not defined" ตอน module evaluation ทั้งที่ type ถูก erase ไปแล้วตอน compile
+// — type ที่ import มาจากที่อื่น (ไม่ได้ประกาศเองในไฟล์นี้) ให้ผู้ใช้ import ตรงจากต้นทาง
+// (@/lib/missions) แทน อย่า re-export ผ่านไฟล์นี้
 
 const ROUND_SIZE = 5;
 
@@ -86,27 +98,73 @@ async function getLastAttemptBeforeRound(
   return data?.created_at ?? null;
 }
 
+export type MissionRoundInfo = {
+  missionId: string;
+  missionType: MissionType;
+  subject: Subject;
+  category: string;
+  targetCount: number;
+  answeredCountBefore: number;
+};
+
+// "practice" = โหมดฝึกปกติเดิม (เลือกวิชาเอง) / "mission" = ภารกิจประจำวัน (ดู src/lib/missions.ts)
+// รวมเป็น union เดียวแทนการรับ mode เฉยๆ เพราะโหมด mission ต้องโหลด subject/category/เกณฑ์จบ
+// จาก daily_missions เอง ไม่ใช่ให้ client กำหนด mode/จำนวนข้อเอง (server เป็น source of truth)
+export type StartQuizRoundInput = { type: "practice"; mode: QuizMode } | { type: "mission"; missionId: string };
+
 export type StartQuizRoundResult = {
   questions: QuizRoundQuestion[];
   currentCombo: number;
   lastAttemptBeforeRound: string | null;
+  missionInfo: MissionRoundInfo | null;
 };
 
-export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResult> {
-  if (mode !== "math" && mode !== "science") {
-    throw new Error("โหมดไม่ถูกต้อง");
-  }
-
+export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQuizRoundResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   const admin = createAdminClient();
+
+  let mode: QuizMode;
+  let categoryFilter: string | null = null;
+  let difficultyFilter: number | null = null;
+  let excludeIds = new Set<number>();
+  let roundSize = ROUND_SIZE;
+  let missionInfo: MissionRoundInfo | null = null;
+
+  if (input.type === "mission") {
+    if (!user) throw new Error("ต้องเข้าสู่ระบบก่อนเล่นภารกิจ");
+    // ล็อกบทเดียวเสมอทั้ง personalized/exploration (ดู migration 021 + design doc เปลี่ยน 1) —
+    // exploration เพิ่ม filter difficulty=1 ทับอีกชั้น
+    const progress = await getMissionProgress(supabase, input.missionId);
+    mode = progress.mission.subject;
+    categoryFilter = progress.mission.category;
+    difficultyFilter = progress.mission.mission_type === "exploration" ? EXPLORATION_DIFFICULTY : null;
+    excludeIds = new Set(progress.answeredQuestionIds);
+    roundSize = Math.max(0, progress.mission.target_count - progress.answeredCount);
+    missionInfo = {
+      missionId: input.missionId,
+      missionType: progress.mission.mission_type,
+      subject: progress.mission.subject,
+      category: progress.mission.category,
+      targetCount: progress.mission.target_count,
+      answeredCountBefore: progress.answeredCount,
+    };
+  } else {
+    mode = input.mode;
+  }
+
+  if (mode !== "math" && mode !== "science") {
+    throw new Error("โหมดไม่ถูกต้อง");
+  }
+
+  let idQuery = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+  if (categoryFilter) idQuery = idQuery.eq("category", categoryFilter);
+  if (difficultyFilter !== null) idQuery = idQuery.eq("difficulty", difficultyFilter);
 
   // 3 อย่างนี้ไม่ขึ้นต่อกัน — ยิงพร้อมกันแทนการรอทีละตัว (เดิมเป็น waterfall 4 round-trip
   // ก่อนจะได้เริ่มดึงคำถามจริง ทำให้กดเลือกโหมดแล้วรอนาน)
-  const idQuery = admin.from("questions").select("id").eq("status", "active");
   const [currentCombo, lastAttemptBeforeRound, { data: idRows, error: idError }] = await Promise.all([
     // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
     (async () => {
@@ -115,12 +173,35 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
       return activePetId ? getCurrentComboStreak(supabase, activePetId) : 0;
     })(),
     user ? getLastAttemptBeforeRound(supabase, user.id) : Promise.resolve(null),
-    idQuery.eq("subject", mode),
+    idQuery,
   ]);
   if (idError) throw new Error(idError.message);
-  if (!idRows || idRows.length === 0) return { questions: [], currentCombo, lastAttemptBeforeRound };
 
-  const pickedIds = shuffle(idRows.map((r) => r.id)).slice(0, ROUND_SIZE);
+  let candidateIds = (idRows ?? []).map((r) => r.id as number).filter((id) => !excludeIds.has(id));
+
+  // บทของภารกิจมีคำถาม active เหลือไม่พอ (หลัง exclude ที่ตอบไปแล้ว) — เติมจากทั้งวิชาแทน (ยัง
+  // เคารพ difficulty filter ของ exploration อยู่) แค่ log ไว้เฉยๆ ไม่ throw (ดู design doc Phase 3)
+  if (missionInfo && candidateIds.length < roundSize) {
+    console.log(
+      `startQuizRound: ภารกิจ "${missionInfo.category}" (${mode}) มีคำถามเหลือไม่พอ (${candidateIds.length}/${roundSize}) เติมจากทั้งวิชาแทน`
+    );
+    let widerQuery = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+    if (difficultyFilter !== null) widerQuery = widerQuery.eq("difficulty", difficultyFilter);
+    const { data: widerRows, error: widerError } = await widerQuery;
+    if (widerError) throw new Error(widerError.message);
+
+    const existing = new Set(candidateIds);
+    const extra = (widerRows ?? [])
+      .map((r) => r.id as number)
+      .filter((id) => !excludeIds.has(id) && !existing.has(id));
+    candidateIds = [...candidateIds, ...extra];
+  }
+
+  if (roundSize === 0 || candidateIds.length === 0) {
+    return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo };
+  }
+
+  const pickedIds = shuffle(candidateIds).slice(0, roundSize);
 
   const { data: rows, error } = await admin
     .from("questions")
@@ -144,7 +225,7 @@ export async function startQuizRound(mode: QuizMode): Promise<StartQuizRoundResu
     ])
   );
   const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
-  return { questions, currentCombo, lastAttemptBeforeRound };
+  return { questions, currentCombo, lastAttemptBeforeRound, missionInfo };
 }
 
 export type SubmitAnswerResult = {
@@ -160,6 +241,7 @@ export async function submitAnswer(input: {
   choiceIndex: number;
   comboBefore: number;
   mode: QuizMode;
+  missionId?: string | null;
 }): Promise<SubmitAnswerResult> {
   const supabase = await createClient();
   const {
@@ -218,6 +300,7 @@ export async function submitAnswer(input: {
       question_id: input.questionId,
       is_correct: isCorrect,
       pet_id: activePet.id,
+      mission_id: input.missionId ?? null,
     }),
     supabase.rpc("apply_quiz_answer_pet_update", {
       p_pet_id: activePet.id,
@@ -326,4 +409,12 @@ export async function finishQuizRound(
     fromStage: activePet.stage,
     toStage: newStage,
   };
+}
+
+// server action บางๆ ห่อ claimMissionBonusIfComplete (src/lib/missions.ts) ไว้ให้ QuizClient
+// ("use client") เรียกตอนจบรอบภารกิจ — missions.ts เองไม่ใช่ "use server" (เหตุผลดู comment บน
+// getOrCreateTodayMission) เลยต้องมี wrapper แบบนี้ในไฟล์ที่ "use server" อยู่แล้ว
+export async function claimMissionBonus(missionId: string): Promise<ClaimMissionBonusResult> {
+  const supabase = await createClient();
+  return claimMissionBonusIfComplete(supabase, missionId);
 }

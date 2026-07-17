@@ -10,6 +10,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
 import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
+import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
@@ -59,9 +60,10 @@ export default async function PetPage({
     strong: [],
     notEnoughData: [],
   };
+  let mission: TodayMissionResult | null = null;
 
   if (user) {
-    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult] = await Promise.all([
+    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult, missionResult] = await Promise.all([
       supabase
         .from("pets")
         .select(
@@ -77,10 +79,17 @@ export default async function PetPage({
         .order("id", { ascending: true }),
       getWeeklyJourney(supabase, user.id),
       getWeeklyTopicStats(supabase, user.id),
+      // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
+      // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
+      getOrCreateTodayMission(supabase, user.id).catch((err) => {
+        console.error("getOrCreateTodayMission failed:", err);
+        return null;
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
     topicStats = topicStatsResult;
+    mission = missionResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -176,6 +185,8 @@ export default async function PetPage({
           eggChoices={eggChoices}
           journeyDays={journeyDays}
           topicStats={topicStats}
+          mission={mission}
+          subline={(subline ?? null) as Subline | null}
         />
         </>
       ) : (

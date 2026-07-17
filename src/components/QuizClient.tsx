@@ -7,8 +7,14 @@ import {
   startQuizRound,
   submitAnswer,
   finishQuizRound,
+  claimMissionBonus,
   type RoundFinishResult,
+  type MissionRoundInfo,
 } from "@/app/quiz/actions";
+// import ตรงจากต้นทาง ไม่ผ่าน re-export ของ quiz/actions.ts (ไฟล์ "use server") — เจอบั๊กจริงตอน
+// Phase 6 ว่า `export type {...}` ใน "use server" ไฟล์ทำให้ SWC server-actions codegen ของ
+// Next 16 canary นี้ throw ตอน module evaluation (ดูคอมเมนต์เต็มใน quiz/actions.ts)
+import type { ClaimMissionBonusResult } from "@/lib/missions";
 import { BASE_EXP_PER_CORRECT, calculateExpForAnswer, getComboMultiplier } from "@/lib/exp";
 import StageUpModal from "@/components/StageUpModal";
 import SpeechBubble from "@/components/SpeechBubble";
@@ -62,6 +68,7 @@ async function submitAnswerWithRetry(input: {
   choiceIndex: number;
   comboBefore: number;
   mode: QuizMode;
+  missionId?: string | null;
 }): Promise<BackgroundSubmission> {
   try {
     const res = await submitAnswer(input);
@@ -81,11 +88,13 @@ export default function QuizClient({
   petAvatarPath,
   petEvolutionProgress = 0,
   petDailyCapped = false,
+  initialMissionId = null,
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
   petEvolutionProgress?: number;
   petDailyCapped?: boolean;
+  initialMissionId?: string | null;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
@@ -101,6 +110,13 @@ export default function QuizClient({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  // ไม่ null เฉพาะตอนเล่นภารกิจประจำวัน (ผ่าน /quiz?mission=<id>) — practice mode ปกติเป็น null ตลอด
+  const [missionInfo, setMissionInfo] = useState<MissionRoundInfo | null>(null);
+  // ผลจากเช็ค+เคลมโบนัสตอนจบภารกิจ (claimMissionBonus) — null ถ้ายังไม่เรียก/เรียกไม่สำเร็จ
+  const [missionClaim, setMissionClaim] = useState<ClaimMissionBonusResult | null>(null);
+  const [missionClaimFailed, setMissionClaimFailed] = useState(false);
+  // กัน useEffect เรียก handleStartMission ซ้ำ (เช่น React StrictMode dev เรียก effect 2 ครั้ง)
+  const missionStartedRef = useRef(false);
   const pendingSubmissionsRef = useRef<Promise<BackgroundSubmission>[]>([]);
   // คำขอจริงไปเซิร์ฟเวอร์ต้องเข้าคิวทีละตัว (กัน race condition ตอนอัปเดต pets แบบ
   // read-then-write) — แต่ละ submission ต่อท้าย queue นี้ ไม่ได้ยิงพร้อมกัน
@@ -157,6 +173,9 @@ export default function QuizClient({
     setSummary(null);
     setErrorMessage(null);
     setSaveWarning(null);
+    setMissionInfo(null);
+    setMissionClaim(null);
+    setMissionClaimFailed(false);
     pendingSubmissionsRef.current = [];
     submissionQueueRef.current = Promise.resolve();
     // เริ่มรอบใหม่ = บริบทเปลี่ยน กันข้อความค้างจากรอบก่อนเด้งแทรกรอบใหม่แบบหลุดบริบท
@@ -167,13 +186,35 @@ export default function QuizClient({
     }
   }
 
+  // เรียกตอนจบรอบภารกิจ (ทั้งเพิ่งเล่นจบและกรณีเปิดหน้ามาแล้วภารกิจครบอยู่แล้วตั้งแต่ก่อนหน้า) —
+  // เช็ค+เคลมโบนัสจาก DB จริงเสมอ ไม่เชื่อ client ว่า "answered ครบ target แล้ว" เฉยๆ คืนค่า claim
+  // result กลับไปด้วย (ไม่ใช่แค่ set state) ให้ handleNext เอาไปแนบ event mission_completed ได้ตรงๆ
+  // โดยไม่ต้องพึ่ง state ที่อาจยังไม่ทันอัปเดตในติ๊กเดียวกัน
+  async function finalizeMissionSummary(missionId: string): Promise<ClaimMissionBonusResult | null> {
+    let claimResult: ClaimMissionBonusResult | null = null;
+    try {
+      claimResult = await claimMissionBonus(missionId);
+      setMissionClaim(claimResult);
+    } catch {
+      // เรียก server action ไม่สำเร็จ (เน็ตหลุด/RPC พังกลางทางเคสหายาก) — ไม่ให้จอสรุปพัง แค่ไม่มี
+      // บรรทัดโบนัส/ตัวเลขจาก DB โชว์ (fallback ไปใช้ตัวเลขจาก state ฝั่ง client แทนตอน render)
+      setMissionClaim(null);
+      setMissionClaimFailed(true);
+    }
+    setPhase("summary");
+    return claimResult;
+  }
+
   function handleSelectMode(nextMode: QuizMode) {
     resetRoundState();
     setMode(nextMode);
     setPhase("loading");
     startTransition(async () => {
       try {
-        const { questions: round, currentCombo, lastAttemptBeforeRound } = await startQuizRound(nextMode);
+        const { questions: round, currentCombo, lastAttemptBeforeRound } = await startQuizRound({
+          type: "practice",
+          mode: nextMode,
+        });
         if (round.length === 0) {
           setErrorMessage("ยังไม่มีคำถามในโหมดนี้ ลองโหมดอื่นนะ");
           setPhase("select");
@@ -198,6 +239,69 @@ export default function QuizClient({
       }
     });
   }
+
+  function handleStartMission(missionId: string) {
+    resetRoundState();
+    setPhase("loading");
+    startTransition(async () => {
+      try {
+        const {
+          questions: round,
+          currentCombo,
+          lastAttemptBeforeRound,
+          missionInfo: info,
+        } = await startQuizRound({ type: "mission", missionId });
+
+        if (!info) {
+          // ไม่ควรเกิดจริง (โหมด mission ต้องได้ missionInfo กลับมาเสมอ) — กันพังไว้เผื่อ
+          setErrorMessage("ไม่พบภารกิจนี้ ลองกลับไปหน้า Qmon แล้วเริ่มใหม่นะ");
+          setPhase("select");
+          return;
+        }
+        setMode(info.subject);
+        setMissionInfo(info);
+
+        if (round.length === 0) {
+          // ภารกิจทำครบ target ไปแล้วตั้งแต่ก่อนเปิดหน้านี้ (เช่นรีเฟรช/กลับมาเปิดซ้ำ) — ไม่มีคำถาม
+          // ให้เล่นต่อ ข้ามไปสรุปเลย (finalizeMissionSummary เช็ค+เคลมโบนัสจริงจาก DB เอง)
+          await finalizeMissionSummary(info.missionId);
+          return;
+        }
+
+        setQuestions(round);
+        setCombo(currentCombo);
+        lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        setPhase("playing");
+
+        track("mission_started", {
+          mission_type: info.missionType,
+          subject: info.subject,
+          category: info.category,
+        });
+
+        const firstQuestion = round[0];
+        questionShownAtRef.current = Date.now();
+        track("question_start", {
+          question_id: firstQuestion.id,
+          subject: firstQuestion.subject,
+          category: firstQuestion.category,
+        });
+      } catch {
+        setErrorMessage("โหลดภารกิจไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+        setPhase("select");
+      }
+    });
+  }
+
+  useEffect(() => {
+    if (initialMissionId && !missionStartedRef.current) {
+      missionStartedRef.current = true;
+      handleStartMission(initialMissionId);
+    }
+    // เริ่มภารกิจครั้งเดียวตอน mount ถ้ามี ?mission= มาด้วย — ไม่ใส่ handleStartMission ใน deps
+    // เพราะเป็นฟังก์ชันสร้างใหม่ทุก render อยู่แล้ว จะวนซ้ำไม่รู้จบ ref ด้านบนกันเรียกซ้ำแทน
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMissionId]);
 
   function handleSelectChoice(choiceIndex: number) {
     if (result || isPending) return;
@@ -240,6 +344,7 @@ export default function QuizClient({
         choiceIndex,
         comboBefore: combo,
         mode: mode!,
+        missionId: missionInfo?.missionId ?? null,
       })
     );
     submissionQueueRef.current = submissionPromise;
@@ -292,7 +397,26 @@ export default function QuizClient({
       setFinalExpEarned(roundExpEarned);
       const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
       setSummary(finishResult);
-      setPhase("summary");
+
+      if (missionInfo) {
+        // เช็ค+เคลมโบนัสภารกิจ (ถ้าถึง target แล้วจริงตาม DB) แล้ว setPhase("summary") ให้เอง —
+        // ตรงนี้เป็นรอบที่ทำให้ answered ครบ target จริง (roundSize ถูกคำนวณเป็น target-answered
+        // เป๊ะเสมอ ดู startQuizRound) เข้าถึงจุดนี้ได้แค่ครั้งเดียวต่อภารกิจ — เรียกครั้งเดียวจริง
+        // ไม่ใช่ทุกครั้งที่เปิดหน้าซ้ำ (เคสนั้นไปทาง handleStartMission's round.length===0 branch แทน
+        // ซึ่งตั้งใจไม่ยิง mission_completed ซ้ำ)
+        const claimResult = await finalizeMissionSummary(missionInfo.missionId);
+        const missionCorrectCount = claimResult
+          ? claimResult.correctCount
+          : missionInfo.answeredCountBefore + answers.filter((a) => a.isCorrect).length;
+        track("mission_completed", {
+          mission_type: missionInfo.missionType,
+          subject: missionInfo.subject,
+          category: missionInfo.category,
+          correct_count: missionCorrectCount,
+        });
+      } else {
+        setPhase("summary");
+      }
 
       // ทักทายก่อนเสมอ (ดู QUIZ_EVENT_PRIORITY) — enterGame/comeback fire เฉพาะรอบแรกของวันเท่านั้น
       if (finishResult.greetingEvent) queuePersonalityEvent(finishResult.greetingEvent);
@@ -352,16 +476,27 @@ export default function QuizClient({
 
   if (phase === "playing") {
     const current = questions[index];
-    const progress = ((index + 1) / questions.length) * 100;
     const isLastQuestion = index + 1 >= questions.length;
+    // โหมดภารกิจ: progress/เลขข้อนับรวมทั้งภารกิจ (รวมข้อที่ตอบไปแล้วก่อนรอบนี้ ถ้ากลับมาทำต่อ)
+    // ไม่ใช่แค่รอบปัจจุบัน ต่างจากโหมดฝึกปกติที่นับแค่ในรอบ 5 ข้อนี้
+    const progress = missionInfo
+      ? ((missionInfo.answeredCountBefore + index + 1) / missionInfo.targetCount) * 100
+      : ((index + 1) / questions.length) * 100;
 
     return (
       <div className="flex flex-col gap-5">
         <div>
-          <div className="flex items-center justify-between text-sm font-medium text-text3">
-            <span>ข้อที่ {index + 1}/{questions.length}</span>
-            <span>{current.category}</span>
-          </div>
+          {missionInfo ? (
+            <p className="text-sm font-medium text-text3">
+              ภารกิจวันนี้: {missionInfo.category} — ข้อ {missionInfo.answeredCountBefore + index + 1} จาก{" "}
+              {missionInfo.targetCount}
+            </p>
+          ) : (
+            <div className="flex items-center justify-between text-sm font-medium text-text3">
+              <span>ข้อที่ {index + 1}/{questions.length}</span>
+              <span>{current.category}</span>
+            </div>
+          )}
           <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-track">
             <div
               className="h-full rounded-full bg-amber transition-all duration-300"
@@ -448,7 +583,81 @@ export default function QuizClient({
     );
   }
 
-  // phase === "summary"
+  if (phase === "summary" && missionInfo) {
+    // ตัวเลขถูก/target มาจาก DB จริง (claimMissionBonus เช็คให้แล้ว) เชื่อถือได้กว่า answers
+    // ฝั่ง client (ซึ่งนับได้แค่ข้อในรอบนี้ ไม่รู้ยอดรวมทั้งภารกิจถ้าเคยทำต่อจากรอบก่อน) — fallback
+    // ไปใช้ answers เฉพาะตอน claimMissionBonus ยิงไม่สำเร็จเท่านั้น (ดู missionClaimFailed)
+    const missionCorrectCount = missionClaim
+      ? missionClaim.correctCount
+      : missionInfo.answeredCountBefore + answers.filter((a) => a.isCorrect).length;
+
+    return (
+      <div className="flex flex-col gap-6 text-center">
+        {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
+
+        <div className="flex justify-center">
+          <SpeechBubble
+            message={personalityMessage}
+            avatarPath={petAvatarPath}
+            evolutionProgress={petEvolutionProgress}
+            dailyCapped={petDailyCapped}
+          />
+        </div>
+
+        <div>
+          <p className="text-6xl">🎯</p>
+          {/* ข้อความ Qmon เชิงความพยายามเสมอ ไม่อิงจำนวนถูก (ห้ามลงโทษ/ตำหนิ ตามหลักดีไซน์) */}
+          <h1 className="mt-2 text-2xl font-bold text-gold-hi">วันนี้เราฝึกครบแล้ว!</h1>
+        </div>
+
+        <div className="rounded-3xl border border-gold-dim bg-card p-6">
+          {/* ห้ามแปลงเป็น % และห้ามเทียบกับ baseline เป็นลูกศรขึ้น/ลง */}
+          <p className="text-lg text-text">
+            วันนี้คุณตอบถูก <span className="font-bold text-gold-hi">{missionCorrectCount}</span> จาก{" "}
+            {missionInfo.targetCount} ข้อ
+          </p>
+
+          {finalExpEarned > 0 && (
+            <p className="mt-2 text-lg text-text">
+              ได้ EXP รวม <span className="font-bold text-amber">{finalExpEarned}</span> EXP
+            </p>
+          )}
+
+          {missionClaim?.claimed && (
+            <p className="mt-2 text-lg text-text">
+              โบนัสภารกิจประจำวัน <span className="font-bold text-amber">+{missionClaim.bonusExp}</span> EXP
+            </p>
+          )}
+
+          {summary?.capped && (
+            <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
+              🍚 Qmon ของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
+            </p>
+          )}
+
+          {saveWarning && (
+            <p className="mt-3 rounded-xl border border-red bg-red/10 p-3 text-sm text-red">⚠️ {saveWarning}</p>
+          )}
+          {missionClaimFailed && (
+            <p className="mt-3 rounded-xl border border-red bg-red/10 p-3 text-sm text-red">
+              ⚠️ ยืนยันผลภารกิจล่าสุดไม่สำเร็จ (เน็ตอาจหลุด) ตัวเลขด้านบนอาจไม่ตรงเป๊ะ แต่ผลตอบที่บันทึกไปแล้วปลอดภัยดี
+            </p>
+          )}
+        </div>
+
+        {/* ปุ่มเดียว: กลับไปหา Qmon — ภารกิจไม่มีปุ่ม "เล่นอีกรอบ" (ทำซ้ำได้ในโหมดฝึกปกติ) */}
+        <button
+          type="button"
+          onClick={handleBackToSubjects}
+          className="rounded-2xl border-2 border-border py-4 text-lg font-bold text-text2 transition active:scale-95"
+        >
+          กลับไปหา Qmon
+        </button>
+      </div>
+    );
+  }
+
+  // phase === "summary" (โหมดฝึกปกติ)
   const correctCount = answers.filter((a) => a.isCorrect).length;
   const roundExpEarned = finalExpEarned;
 

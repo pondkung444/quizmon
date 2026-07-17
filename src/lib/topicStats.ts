@@ -30,17 +30,19 @@ export type TopicStatsResult = {
   notEnoughData: NotEnoughDataTopic[];
 };
 
-function bangkokMidnightUtcIso(dateStr: string): string {
+// export ไว้ให้ src/lib/missions.ts (ระบบภารกิจประจำวัน) เรียกใช้ pattern เดียวกันสำหรับ
+// ช่วง 14/7 วัน — ไม่ต้อง copy สูตรแปลงวันแบบ Bangkok ซ้ำอีกไฟล์
+export function bangkokMidnightUtcIso(dateStr: string): string {
   return new Date(`${dateStr}T00:00:00+07:00`).toISOString();
 }
 
-function nextDateStr(dateStr: string): string {
+export function nextDateStr(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + 1);
   return d.toISOString().slice(0, 10);
 }
 
-function daysBeforeStr(dateStr: string, days: number): string {
+export function daysBeforeStr(dateStr: string, days: number): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
@@ -49,9 +51,10 @@ function daysBeforeStr(dateStr: string, days: number): string {
 // สถิติแยกหมวด (category) ย้อนหลัง 7 วัน (Bangkok, trailing — ไม่ใช่ Mon-Sun แบบ Weekly Journey)
 // ข้าม pet_id ตั้งใจ นับรวมทุกตัวที่ user เคยเลี้ยงในช่วงนี้ เหมือน getWeeklyJourney/getCalendarMonth
 //
-// join quiz_attempts.question_id (text) กับ questions.id (bigint) เอง เพราะไม่มี FK/select policy
-// เชื่อมให้ (ดู petCalendar.ts:getSubjectCountsByDay) — คำถามเก่าบางแถวมี question_id ที่ไม่ใช่
-// ตัวเลขล้วน ตัดทิ้งด้วย regex แทนที่จะปล่อยให้ cast พังทั้งก้อน
+// join quiz_attempts.question_id (bigint — เดิมเอกสาร schema.sql เขียนผิดว่าเป็น text, แก้แล้ว)
+// กับ questions.id (bigint) เอง เพราะไม่มี FK/select policy เชื่อมให้ (ดู
+// petCalendar.ts:getSubjectCountsByDay) — supabase-js คืนค่าเป็น number อยู่แล้ว แต่ regex กันไว้
+// เผื่อค่าที่ผิดปกติ (ไม่ได้อาศัยว่าเป็น text จริง)
 export async function getWeeklyTopicStats(
   supabase: SupabaseServerClient,
   userId: string

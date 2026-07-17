@@ -5,7 +5,14 @@ import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evol
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import QuizClient from "@/components/QuizClient";
 
-export default async function QuizPage() {
+export default async function QuizPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { mission } = await searchParams;
+  const initialMissionId = typeof mission === "string" ? mission : null;
+
   const supabase = await createClient();
   const user = await getUser();
 
@@ -61,6 +68,7 @@ export default async function QuizPage() {
         petAvatarPath={petAvatarPath}
         petEvolutionProgress={petEvolutionProgress}
         petDailyCapped={petDailyCapped}
+        initialMissionId={initialMissionId}
       />
     </main>
   );
