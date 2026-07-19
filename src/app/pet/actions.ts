@@ -8,6 +8,7 @@ import {
   type Subline,
   type Personality,
 } from "@/lib/evolution";
+import { getTodayInBangkok } from "@/lib/exp";
 
 export async function collectPet(): Promise<{ collected: true }> {
   const supabase = await createClient();
@@ -142,7 +143,13 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ไม่พบผู้ใช้");
 
-  const requestedPersonality = determinePersonality(choiceRaw);
+  // choiceRaw มาจาก 2 ทาง: บุคลิกที่ตัดสินแล้วจากอาหาร (getPersonalityFoodDecision) หรือคำตอบดิบจาก
+  // คำถาม fallback ใน PersonalityDecisionModal — validate ตรงนี้เอง (determinePersonality ใน
+  // evolution.ts เปลี่ยนไปรับยอดนับอาหารแทนแล้ว ไม่ได้ทำหน้าที่ validate string นี้อีกต่อไป)
+  if (choiceRaw !== "A" && choiceRaw !== "B") {
+    throw new Error(`choosePersonalityAfterEvolve: บุคลิกไม่ถูกต้อง ต้องเป็น "A" หรือ "B" แต่ได้ "${choiceRaw}"`);
+  }
+  const requestedPersonality: Personality = choiceRaw;
 
   const { data: pet, error: petError } = await supabase
     .from("pets")
@@ -244,4 +251,72 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
   }
 
   return { personality: lockedPersonality, stats: finalStats };
+}
+
+export type PersonalityFoodDecision = { decided: true; personality: Personality } | { decided: false };
+
+// เช็คว่าตัดสิน personality จากอาหารสะสมได้เลยไหม (majority vote จาก pet_feedings) — เรียกคู่กับ
+// getStageUpContext() ตอนเปิด PersonalityDecisionModal เสมอ คืน { decided: false } ทั้งกรณีเสมอกัน
+// (รวม 0-0 ถ้าไม่เคยป้อนเลย) และกรณีไม่มีอะไรต้องตัดสิน (ไม่มี active pet ที่รอ/personality ล็อกไปแล้ว)
+// — สองเคสนี้แยกกันไม่ออกจากผลลัพธ์ฟังก์ชันนี้เพียวๆ แต่ไม่ต้องแยก เพราะ getStageUpContext() คืน
+// null ให้แยกเคสหลัง (ไม่มีอะไรต้องตัดสิน) ออกไปเองอยู่แล้วฝั่ง caller
+export async function getPersonalityFoodDecision(): Promise<PersonalityFoodDecision> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("id, stage, personality")
+    .eq("user_id", user.id)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!pet || pet.stage !== 4 || pet.personality) return { decided: false };
+
+  const { data: feedings } = await supabase.from("pet_feedings").select("food_type").eq("pet_id", pet.id);
+
+  const counts = { A: 0, B: 0 };
+  for (const row of feedings ?? []) {
+    if (row.food_type === "A") counts.A++;
+    else if (row.food_type === "B") counts.B++;
+  }
+
+  const personality = determinePersonality(counts);
+  return personality ? { decided: true, personality } : { decided: false };
+}
+
+export type FeedPetResult = { quantityRemaining: number };
+
+// ป้อนอาหาร A/B ให้ pet ที่กำลังเลี้ยง — เฉพาะก่อน stage 4 เท่านั้น (RPC feed_pet เองไม่บังคับ stage
+// แต่ปุ่มป้อนอาหารตัว stage 4 ยังไม่เปิด scope นี้ ต้องกันเองที่ชั้นนี้) เช็ค ownership +
+// stage ก่อนเรียก RPC เสมอ ไม่ปล่อยให้ RPC เป็นด่านเดียว
+export async function feedPet(petId: string, foodType: "A" | "B"): Promise<FeedPetResult> {
+  if (foodType !== "A" && foodType !== "B") throw new Error("food_type ไม่ถูกต้อง");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ต้องเข้าสู่ระบบก่อน");
+
+  const { data: pet, error: petError } = await supabase
+    .from("pets")
+    .select("id, stage")
+    .eq("id", petId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (petError || !pet) throw new Error("ไม่พบสัตว์เลี้ยงตัวนี้ของผู้ใช้");
+  if (pet.stage >= 4) throw new Error("Qmon ตัวนี้โตเต็มที่แล้ว ป้อนอาหารเพื่อกำหนดบุคลิกไม่ได้อีก");
+
+  const { data, error } = await supabase
+    .rpc("feed_pet", { p_pet_id: petId, p_food_type: foodType, p_fed_date: getTodayInBangkok() })
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "ป้อนอาหารไม่สำเร็จ");
+
+  return { quantityRemaining: (data as { quantity_remaining: number }).quantity_remaining };
 }

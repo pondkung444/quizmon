@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   startQuizRound,
@@ -16,12 +17,13 @@ import {
 // Next 16 canary นี้ throw ตอน module evaluation (ดูคอมเมนต์เต็มใน quiz/actions.ts)
 import type { ClaimMissionBonusResult } from "@/lib/missions";
 import { BASE_EXP_PER_CORRECT, calculateExpForAnswer, getComboMultiplier } from "@/lib/exp";
-import StageUpModal from "@/components/StageUpModal";
+import PersonalityDecisionModal from "@/components/PersonalityDecisionModal";
 import SpeechBubble from "@/components/SpeechBubble";
 import { usePersonalityMessage, MESSAGE_DISPLAY_MS } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import type { PersonalityEventKey } from "@/lib/personalityMessages";
 import { track } from "@/lib/analytics";
+import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -44,7 +46,7 @@ const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
 ];
 
-type Phase = "select" | "loading" | "playing" | "summary";
+type Phase = "select" | "loading" | "playing" | "chooseFood" | "summary";
 
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
@@ -190,10 +192,13 @@ export default function QuizClient({
   // เช็ค+เคลมโบนัสจาก DB จริงเสมอ ไม่เชื่อ client ว่า "answered ครบ target แล้ว" เฉยๆ คืนค่า claim
   // result กลับไปด้วย (ไม่ใช่แค่ set state) ให้ handleNext เอาไปแนบ event mission_completed ได้ตรงๆ
   // โดยไม่ต้องพึ่ง state ที่อาจยังไม่ทันอัปเดตในติ๊กเดียวกัน
-  async function finalizeMissionSummary(missionId: string): Promise<ClaimMissionBonusResult | null> {
+  async function finalizeMissionSummary(
+    missionId: string,
+    foodType: "A" | "B"
+  ): Promise<ClaimMissionBonusResult | null> {
     let claimResult: ClaimMissionBonusResult | null = null;
     try {
-      claimResult = await claimMissionBonus(missionId);
+      claimResult = await claimMissionBonus(missionId, foodType);
       setMissionClaim(claimResult);
     } catch {
       // เรียก server action ไม่สำเร็จ (เน็ตหลุด/RPC พังกลางทางเคสหายาก) — ไม่ให้จอสรุปพัง แค่ไม่มี
@@ -203,6 +208,46 @@ export default function QuizClient({
     }
     setPhase("summary");
     return claimResult;
+  }
+
+  // ทักทาย/exp/evolved tracking หลังจบรอบ — แยกออกมาเพราะโหมดภารกิจต้องรอผู้เล่นเลือกอาหาร
+  // (handleChooseFood) ก่อนถึงจะรันส่วนนี้ได้ ต่างจากโหมดฝึกปกติที่รันต่อทันทีใน handleNext
+  function runPostRoundEvents(finishResult: RoundFinishResult) {
+    if (finishResult.greetingEvent) queuePersonalityEvent(finishResult.greetingEvent);
+    if (finishResult.nearEvolution) queuePersonalityEvent("nearEvolution");
+    if (finishResult.expAddedToPet > 0) queuePersonalityEvent("gainExp");
+
+    if (finishResult.evolved) {
+      track(
+        "stage_up",
+        { from_stage: finishResult.fromStage, to_stage: finishResult.toStage },
+        finishResult.petId
+      );
+    }
+  }
+
+  // เรียกจากปุ่มเลือกอาหารในเฟส "chooseFood" (เฉพาะโหมดภารกิจ) — เคลมโบนัสพร้อมชนิดอาหารที่เลือก
+  // แล้วรัน post-round events ต่อ (เดิมรันทันทีใน handleNext แต่ตอนนี้ต้องรอเลือกอาหารก่อน)
+  function handleChooseFood(foodType: "A" | "B") {
+    if (!missionInfo) return;
+    const currentMissionInfo = missionInfo;
+    // summary เป็น null ได้ในเคสเปิดหน้ามาแล้วภารกิจครบอยู่แล้วตั้งแต่ก่อนหน้า (ไม่มีรอบให้เล่น
+    // ในเซสชันนี้ ดู handleStartMission's round.length===0 branch) — ข้าม post-round events
+    // (greeting/exp/evolved) เพราะไม่มี finishQuizRound ให้อ้างอิงจริงๆ ในเคสนั้น
+    const currentSummary = summary;
+    startTransition(async () => {
+      const claimResult = await finalizeMissionSummary(currentMissionInfo.missionId, foodType);
+      const missionCorrectCount = claimResult
+        ? claimResult.correctCount
+        : currentMissionInfo.answeredCountBefore + answers.filter((a) => a.isCorrect).length;
+      track("mission_completed", {
+        mission_type: currentMissionInfo.missionType,
+        subject: currentMissionInfo.subject,
+        category: currentMissionInfo.category,
+        correct_count: missionCorrectCount,
+      });
+      if (currentSummary) runPostRoundEvents(currentSummary);
+    });
   }
 
   function handleSelectMode(nextMode: QuizMode) {
@@ -263,8 +308,8 @@ export default function QuizClient({
 
         if (round.length === 0) {
           // ภารกิจทำครบ target ไปแล้วตั้งแต่ก่อนเปิดหน้านี้ (เช่นรีเฟรช/กลับมาเปิดซ้ำ) — ไม่มีคำถาม
-          // ให้เล่นต่อ ข้ามไปสรุปเลย (finalizeMissionSummary เช็ค+เคลมโบนัสจริงจาก DB เอง)
-          await finalizeMissionSummary(info.missionId);
+          // ให้เล่นต่อ ข้ามไปให้เลือกอาหารก่อนเคลม (handleChooseFood เช็ค+เคลมโบนัสจริงจาก DB เอง)
+          setPhase("chooseFood");
           return;
         }
 
@@ -399,37 +444,15 @@ export default function QuizClient({
       setSummary(finishResult);
 
       if (missionInfo) {
-        // เช็ค+เคลมโบนัสภารกิจ (ถ้าถึง target แล้วจริงตาม DB) แล้ว setPhase("summary") ให้เอง —
         // ตรงนี้เป็นรอบที่ทำให้ answered ครบ target จริง (roundSize ถูกคำนวณเป็น target-answered
-        // เป๊ะเสมอ ดู startQuizRound) เข้าถึงจุดนี้ได้แค่ครั้งเดียวต่อภารกิจ — เรียกครั้งเดียวจริง
-        // ไม่ใช่ทุกครั้งที่เปิดหน้าซ้ำ (เคสนั้นไปทาง handleStartMission's round.length===0 branch แทน
-        // ซึ่งตั้งใจไม่ยิง mission_completed ซ้ำ)
-        const claimResult = await finalizeMissionSummary(missionInfo.missionId);
-        const missionCorrectCount = claimResult
-          ? claimResult.correctCount
-          : missionInfo.answeredCountBefore + answers.filter((a) => a.isCorrect).length;
-        track("mission_completed", {
-          mission_type: missionInfo.missionType,
-          subject: missionInfo.subject,
-          category: missionInfo.category,
-          correct_count: missionCorrectCount,
-        });
+        // เป๊ะเสมอ ดู startQuizRound) เข้าถึงจุดนี้ได้แค่ครั้งเดียวต่อภารกิจ — ต้องให้เลือกอาหารก่อน
+        // เคลม (handleChooseFood เรียก finalizeMissionSummary + track mission_completed +
+        // runPostRoundEvents ต่อเองหลังเลือก ไม่ใช่ทุกครั้งที่เปิดหน้าซ้ำ (เคสนั้นไปทาง
+        // handleStartMission's round.length===0 branch แทน ซึ่งตั้งใจไม่ยิง mission_completed ซ้ำ)
+        setPhase("chooseFood");
       } else {
         setPhase("summary");
-      }
-
-      // ทักทายก่อนเสมอ (ดู QUIZ_EVENT_PRIORITY) — enterGame/comeback fire เฉพาะรอบแรกของวันเท่านั้น
-      if (finishResult.greetingEvent) queuePersonalityEvent(finishResult.greetingEvent);
-      // gainExp เฉพาะตอนมี exp เข้าตัวสัตว์จริง — โดน cap เต็มจนไม่ได้เข้าเลยไม่เด้ง (กันหลอกผู้เล่น)
-      if (finishResult.nearEvolution) queuePersonalityEvent("nearEvolution");
-      if (finishResult.expAddedToPet > 0) queuePersonalityEvent("gainExp");
-
-      if (finishResult.evolved) {
-        track(
-          "stage_up",
-          { from_stage: finishResult.fromStage, to_stage: finishResult.toStage },
-          finishResult.petId
-        );
+        runPostRoundEvents(finishResult);
       }
     });
   }
@@ -583,6 +606,53 @@ export default function QuizClient({
     );
   }
 
+  if (phase === "chooseFood" && missionInfo) {
+    return (
+      <div className="flex flex-col gap-6 text-center">
+        <div className="flex justify-center">
+          <SpeechBubble
+            message={personalityMessage}
+            avatarPath={petAvatarPath}
+            evolutionProgress={petEvolutionProgress}
+            dailyCapped={petDailyCapped}
+          />
+        </div>
+
+        <div>
+          <p className="text-6xl">🍚</p>
+          <h1 className="mt-2 text-2xl font-bold text-gold-hi">เลือกอาหารให้ Qmon</h1>
+          <p className="mt-1 text-sm text-text3">
+            ทำภารกิจวันนี้ครบแล้ว! เลือกอาหารที่จะสะสมไว้ตัดสินบุคลิกตอน Qmon โตเต็มที่
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {(["A", "B"] as const).map((foodType) => (
+            <button
+              key={foodType}
+              type="button"
+              disabled={isPending}
+              onClick={() => handleChooseFood(foodType)}
+              className="flex flex-col items-center gap-2 rounded-2xl border border-gold bg-amber/10 py-4 text-base font-bold text-gold-hi shadow-lg transition active:scale-95 disabled:opacity-50"
+            >
+              {/* unoptimized: Next's image optimizer flattens this PNG's alpha to opaque white when
+                  re-encoding to WebP/AVIF at small sizes — see FeedPetCard.tsx for the full writeup */}
+              <Image
+                src={FOOD_IMAGE_PATH[foodType]}
+                alt={FOOD_LABEL[foodType]}
+                width={64}
+                height={64}
+                unoptimized
+                className="h-16 w-16 object-contain"
+              />
+              {FOOD_LABEL[foodType]}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (phase === "summary" && missionInfo) {
     // ตัวเลขถูก/target มาจาก DB จริง (claimMissionBonus เช็คให้แล้ว) เชื่อถือได้กว่า answers
     // ฝั่ง client (ซึ่งนับได้แค่ข้อในรอบนี้ ไม่รู้ยอดรวมทั้งภารกิจถ้าเคยทำต่อจากรอบก่อน) — fallback
@@ -593,7 +663,7 @@ export default function QuizClient({
 
     return (
       <div className="flex flex-col gap-6 text-center">
-        {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
+        {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
 
         <div className="flex justify-center">
           <SpeechBubble
@@ -629,6 +699,8 @@ export default function QuizClient({
             </p>
           )}
 
+          {missionClaim?.foodCredited && <p className="mt-1 text-sm text-text3">ได้อาหารเพิ่มเข้าคลังแล้ว 🍚</p>}
+
           {summary?.capped && (
             <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
               🍚 Qmon ของเราอิ่มความรู้แล้ววันนี้ ได้เข้าตัวไป {summary.expAddedToPet} EXP พรุ่งนี้มาต่อกันนะ!
@@ -663,7 +735,7 @@ export default function QuizClient({
 
   return (
     <div className="flex flex-col gap-6 text-center">
-      {summary?.reachedStage4 && <StageUpModal onClose={() => router.push("/pet")} />}
+      {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
 
       <div className="flex justify-center">
         <SpeechBubble

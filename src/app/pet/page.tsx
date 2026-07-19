@@ -11,6 +11,7 @@ import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
 import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
+import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
 import PetCard from "@/components/PetCard";
@@ -61,35 +62,39 @@ export default async function PetPage({
     notEnoughData: [],
   };
   let mission: TodayMissionResult | null = null;
+  let foodInventory: FoodInventory = { A: 0, B: 0 };
 
   if (user) {
-    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult, missionResult] = await Promise.all([
-      supabase
-        .from("pets")
-        .select(
-          "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
-        )
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .maybeSingle(),
-      supabase
-        .from("egg_types")
-        .select("id, name_th, tier, description, sprite_prefix")
-        .eq("is_obtainable", true)
-        .order("id", { ascending: true }),
-      getWeeklyJourney(supabase, user.id),
-      getWeeklyTopicStats(supabase, user.id),
-      // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
-      // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
-      getOrCreateTodayMission(supabase, user.id).catch((err) => {
-        console.error("getOrCreateTodayMission failed:", err);
-        return null;
-      }),
-    ]);
+    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult, missionResult, foodResult] =
+      await Promise.all([
+        supabase
+          .from("pets")
+          .select(
+            "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
+          )
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .maybeSingle(),
+        supabase
+          .from("egg_types")
+          .select("id, name_th, tier, description, sprite_prefix")
+          .eq("is_obtainable", true)
+          .order("id", { ascending: true }),
+        getWeeklyJourney(supabase, user.id),
+        getWeeklyTopicStats(supabase, user.id),
+        // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
+        // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
+        getOrCreateTodayMission(supabase, user.id).catch((err) => {
+          console.error("getOrCreateTodayMission failed:", err);
+          return null;
+        }),
+        getPlayerFoodInventory(supabase, user.id),
+      ]);
     pet = data;
     journeyDays = journeyResult;
     topicStats = topicStatsResult;
     mission = missionResult;
+    foodInventory = foodResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -161,6 +166,7 @@ export default async function PetPage({
         <>
         <TrackOnMount event="pet_detail_open" props={{ source: "active" }} petId={pet.id} />
         <PetCard
+          petId={pet.id}
           stage={stage}
           stageName={stageInfo.name}
           stageDescription={stageInfo.description}
@@ -187,6 +193,8 @@ export default async function PetPage({
           topicStats={topicStats}
           mission={mission}
           subline={(subline ?? null) as Subline | null}
+          foodA={foodInventory.A}
+          foodB={foodInventory.B}
         />
         </>
       ) : (

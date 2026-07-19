@@ -20,10 +20,12 @@ import type { TopicStatsResult } from "@/lib/topicStats";
 import MissionCard from "@/components/MissionCard";
 import type { TodayMissionResult } from "@/lib/missions";
 import type { Subline } from "@/lib/evolution";
+import FeedPetCard from "@/components/FeedPetCard";
 
 const EVOLVE_ANIMATION_MS = 650;
 
 export default function PetCard({
+  petId,
   stage,
   stageName,
   stageDescription,
@@ -50,7 +52,10 @@ export default function PetCard({
   topicStats,
   mission,
   subline,
+  foodA,
+  foodB,
 }: {
+  petId: string;
   stage: number;
   stageName: string;
   stageDescription: string;
@@ -77,6 +82,8 @@ export default function PetCard({
   topicStats: TopicStatsResult;
   mission: TodayMissionResult | null;
   subline: Subline | null;
+  foodA: number;
+  foodB: number;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -108,6 +115,10 @@ export default function PetCard({
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
       {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) — กดเข้าปฏิทินเต็มเดือนได้ */}
       <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
+
+      {/* 1.6 ป้อนอาหาร — เฉพาะก่อน stage 4 เท่านั้น (ตัดสินบุคลิกตอนโตเต็มที่ ดู
+          determinePersonality ใน src/lib/evolution.ts) หายไปทันทีที่ถึง stage 4 */}
+      {!isMaxStage && <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />}
 
       {/* 1.5 ปุ่มเปิดสถิติแยกบท ย้อนหลัง 7 วัน */}
       <div className="flex w-full justify-end">

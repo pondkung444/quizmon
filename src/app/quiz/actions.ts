@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   BASE_EXP_PER_CORRECT,
@@ -159,13 +160,16 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     throw new Error("โหมดไม่ถูกต้อง");
   }
 
-  let idQuery = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
-  if (categoryFilter) idQuery = idQuery.eq("category", categoryFilter);
-  if (difficultyFilter !== null) idQuery = idQuery.eq("difficulty", difficultyFilter);
+  const idPageQuery = (from: number, to: number) => {
+    let q = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+    if (categoryFilter) q = q.eq("category", categoryFilter);
+    if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
+    return q.range(from, to);
+  };
 
   // 3 อย่างนี้ไม่ขึ้นต่อกัน — ยิงพร้อมกันแทนการรอทีละตัว (เดิมเป็น waterfall 4 round-trip
   // ก่อนจะได้เริ่มดึงคำถามจริง ทำให้กดเลือกโหมดแล้วรอนาน)
-  const [currentCombo, lastAttemptBeforeRound, { data: idRows, error: idError }] = await Promise.all([
+  const [currentCombo, lastAttemptBeforeRound, idRows] = await Promise.all([
     // server คือ source of truth ของคอมโบเสมอ — คำนวณจาก quiz_attempts จริง ไม่ใช่ค่าที่ client จำไว้
     (async () => {
       if (!user) return 0;
@@ -173,11 +177,10 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       return activePetId ? getCurrentComboStreak(supabase, activePetId) : 0;
     })(),
     user ? getLastAttemptBeforeRound(supabase, user.id) : Promise.resolve(null),
-    idQuery,
+    fetchAllRows<{ id: number }>(idPageQuery),
   ]);
-  if (idError) throw new Error(idError.message);
 
-  let candidateIds = (idRows ?? []).map((r) => r.id as number).filter((id) => !excludeIds.has(id));
+  let candidateIds = idRows.map((r) => r.id).filter((id) => !excludeIds.has(id));
 
   // บทของภารกิจมีคำถาม active เหลือไม่พอ (หลัง exclude ที่ตอบไปแล้ว) — เติมจากทั้งวิชาแทน (ยัง
   // เคารพ difficulty filter ของ exploration อยู่) แค่ log ไว้เฉยๆ ไม่ throw (ดู design doc Phase 3)
@@ -185,14 +188,15 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     console.log(
       `startQuizRound: ภารกิจ "${missionInfo.category}" (${mode}) มีคำถามเหลือไม่พอ (${candidateIds.length}/${roundSize}) เติมจากทั้งวิชาแทน`
     );
-    let widerQuery = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
-    if (difficultyFilter !== null) widerQuery = widerQuery.eq("difficulty", difficultyFilter);
-    const { data: widerRows, error: widerError } = await widerQuery;
-    if (widerError) throw new Error(widerError.message);
+    const widerRows = await fetchAllRows<{ id: number }>((from, to) => {
+      let q = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+      if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
+      return q.range(from, to);
+    });
 
     const existing = new Set(candidateIds);
-    const extra = (widerRows ?? [])
-      .map((r) => r.id as number)
+    const extra = widerRows
+      .map((r) => r.id)
       .filter((id) => !excludeIds.has(id) && !existing.has(id));
     candidateIds = [...candidateIds, ...extra];
   }
@@ -414,7 +418,10 @@ export async function finishQuizRound(
 // server action บางๆ ห่อ claimMissionBonusIfComplete (src/lib/missions.ts) ไว้ให้ QuizClient
 // ("use client") เรียกตอนจบรอบภารกิจ — missions.ts เองไม่ใช่ "use server" (เหตุผลดู comment บน
 // getOrCreateTodayMission) เลยต้องมี wrapper แบบนี้ในไฟล์ที่ "use server" อยู่แล้ว
-export async function claimMissionBonus(missionId: string): Promise<ClaimMissionBonusResult> {
+export async function claimMissionBonus(
+  missionId: string,
+  foodType: "A" | "B"
+): Promise<ClaimMissionBonusResult> {
   const supabase = await createClient();
-  return claimMissionBonusIfComplete(supabase, missionId);
+  return claimMissionBonusIfComplete(supabase, missionId, foodType);
 }

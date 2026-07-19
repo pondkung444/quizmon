@@ -50,18 +50,18 @@ export function determineSubline(mathCorrect: number, scienceCorrect: number): S
   return "balanced";
 }
 
-// --- Personality: ผู้เล่นเลือกเองผ่านคำถาม 1 ข้อตอนขยับเข้า stage 4 เท่านั้น (ครั้งเดียว, lock ไว้ถาวร)
-// (เดิมคำนวณจาก playDaysLast7 อัตโนมัติ — เปลี่ยนมาให้ผู้เล่นเลือกตรงๆ ดู StageUpModal +
-// choosePersonalityAfterEvolve ใน src/app/pet/actions.ts) ---
+// --- Personality: ตัดสินจากอาหาร A/B ที่ป้อนสะสมไว้ก่อน stage 4 (majority vote) ตอนขยับเข้า
+// stage 4 เท่านั้น (ครั้งเดียว, lock ไว้ถาวร) — เสมอ (รวม 0-0 ถ้าไม่เคยป้อนเลย) ต้องถามคำถาม
+// fallback แทน (ดู PersonalityDecisionModal.tsx + getPersonalityFoodDecision ใน
+// src/app/pet/actions.ts ที่ query pet_feedings แล้วส่งยอดนับมาให้ฟังก์ชันนี้ตัดสิน — ฟังก์ชันนี้
+// เอง pure ไม่แตะ DB) ---
 export type Personality = "A" | "B";
 
-// รับ choice ดิบจาก client (unknown ทางสายไฟ JSON) แล้ว validate เป็น Personality ที่แท้จริง
-// โยน error ทันทีถ้าไม่ใช่ "A"/"B" — กันค่าเพี้ยนหลุดไปคำนวณ stat ต่อ
-export function determinePersonality(choice: string): Personality {
-  if (choice !== "A" && choice !== "B") {
-    throw new Error(`determinePersonality: บุคลิกไม่ถูกต้อง ต้องเป็น "A" หรือ "B" แต่ได้ "${choice}"`);
-  }
-  return choice;
+// เสมอ (รวม 0-0) คืน null ให้ชั้นบนรู้ว่าต้องถามคำถาม fallback ต่อ ไม่สุ่มตัดสินเงียบๆ ในนี้
+export function determinePersonality(counts: { A: number; B: number }): Personality | null {
+  if (counts.A > counts.B) return "A";
+  if (counts.B > counts.A) return "B";
+  return null;
 }
 
 // --- ชื่อสายพันธุ์ (copy ที่โชว์ผู้เล่น) — key ด้วย egg_types.sprite_prefix ---

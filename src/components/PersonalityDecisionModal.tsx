@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { getStageUpContext, choosePersonalityAfterEvolve, type StageUpContext } from "@/app/pet/actions";
+import {
+  getStageUpContext,
+  getPersonalityFoodDecision,
+  choosePersonalityAfterEvolve,
+  type StageUpContext,
+} from "@/app/pet/actions";
 import { getSpeciesName, getSublineBaseName, type Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
+import { PERSONALITY_LABEL } from "@/lib/labels";
 import {
   pickRandomPersonalityQuestion,
   formatPersonalityPrompt,
@@ -17,6 +23,7 @@ const MIN_ANIMATION_MS = 1100;
 type Phase = "intro" | "question" | "submitting" | "reveal" | "error";
 
 type Reveal = {
+  personality: Personality;
   fullName: string;
   imagePath: string;
   stats: { hp: number; atk: number; def: number; spd: number; foc: number };
@@ -24,8 +31,9 @@ type Reveal = {
 
 // เต็มจอ ไม่ใช่ toast — เรียกตอน finishQuizRound ตรวจพบ stage 3→4 (จาก QuizClient) หรือตอนผู้เล่น
 // กลับมาตอบต่อจากสถานะ "รอตอบคำถาม" บน /pet (จาก PendingPersonalityCard) — สองทางเข้าเดียวกันหมด
-// ลำดับ: a) แอนิเมชันสั้นๆ b) คำถามสุ่ม c) เลือกแล้ว -> ล็อก personality + snapshot stat d) เผยผล e) ปิด
-export default function StageUpModal({ onClose }: { onClose: () => void }) {
+// ลำดับ: a) แอนิเมชันสั้นๆ b) เช็คอาหารสะสม (majority vote) — ตัดสินได้เลยไม่ถามคำถาม / เสมอค่อยสุ่ม
+// คำถาม fallback c) เลือก/ตัดสินแล้ว -> ล็อก personality + snapshot stat d) เผยผล e) ปิด
+export default function PersonalityDecisionModal({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const [context, setContext] = useState<StageUpContext | null>(null);
   const [question] = useState<PersonalityQuestion>(() => pickRandomPersonalityQuestion());
@@ -37,16 +45,22 @@ export default function StageUpModal({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     let minAnimDone = false;
     let fetchedContext: StageUpContext | null | "pending" = "pending";
+    let decidedPersonality: Personality | null | "pending" = "pending";
 
     function tryAdvance() {
-      if (cancelled || !minAnimDone || fetchedContext === "pending") return;
+      if (cancelled || !minAnimDone || fetchedContext === "pending" || decidedPersonality === "pending") return;
       if (fetchedContext === null) {
         // ไม่มีคำถามค้าง (เช่นเลือกไปแล้วจากแท็บ/รอบอื่น) — ปิดจอเงียบๆ ไม่ใช่ error
         onClose();
         return;
       }
       setContext(fetchedContext);
-      setPhase("question");
+      if (decidedPersonality) {
+        // อาหารสะสมตัดสินได้เลย (ไม่เสมอ) — ล็อกตรงๆ ไม่ต้องถามคำถาม
+        submit(decidedPersonality, fetchedContext);
+      } else {
+        setPhase("question");
+      }
     }
 
     const timer = setTimeout(() => {
@@ -54,10 +68,11 @@ export default function StageUpModal({ onClose }: { onClose: () => void }) {
       tryAdvance();
     }, MIN_ANIMATION_MS);
 
-    getStageUpContext()
-      .then((ctx) => {
+    Promise.all([getStageUpContext(), getPersonalityFoodDecision()])
+      .then(([ctx, decision]) => {
         if (cancelled) return;
         fetchedContext = ctx;
+        decidedPersonality = decision.decided ? decision.personality : null;
         tryAdvance();
       })
       .catch((err) => {
@@ -81,6 +96,7 @@ export default function StageUpModal({ onClose }: { onClose: () => void }) {
     choosePersonalityAfterEvolve(choice)
       .then((result) => {
         setReveal({
+          personality: result.personality,
           fullName: getSpeciesName(ctx.spritePrefix, 4, ctx.subline, result.personality, ctx.eggNameTh),
           imagePath: getPetImagePath(ctx.spritePrefix, 4, ctx.subline, result.personality),
           stats: result.stats,
@@ -141,6 +157,9 @@ export default function StageUpModal({ onClose }: { onClose: () => void }) {
           <>
             <p className="text-sm text-text3">ร่างสมบูรณ์ของเรา!</p>
             <h2 className="text-xl font-bold text-gold-hi">{reveal.fullName}</h2>
+            <p className="text-sm font-medium text-amber">
+              บุคลิก: {PERSONALITY_LABEL[reveal.personality]} {reveal.personality === "A" ? "🔥" : "🌙"}
+            </p>
             <Image
               src={reveal.imagePath}
               alt={reveal.fullName}

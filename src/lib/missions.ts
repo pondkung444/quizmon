@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { Subject } from "@/types/quiz";
 import { getTodayInBangkok } from "@/lib/exp";
 import { bangkokMidnightUtcIso, daysBeforeStr, nextDateStr } from "@/lib/topicStats";
@@ -54,13 +55,19 @@ export type ClaimMissionBonusResult = {
   bonusExp: number;
   answeredCount: number;
   correctCount: number;
+  foodCredited: boolean;
 };
 
 type AttemptRow = { question_id: number; is_correct: boolean; created_at: string };
 type QuestionMeta = { subject: Subject; category: string };
 type CategoryAgg = { subject: Subject; attempted: number; correct: number };
 type RecentMissionRow = { mission_date: string; mission_type: MissionType; subject: Subject; category: string };
-type ClaimBonusResult = { awarded: boolean; bonus_exp: number | null; no_active_pet: boolean };
+type ClaimBonusResult = {
+  awarded: boolean;
+  bonus_exp: number | null;
+  no_active_pet: boolean;
+  food_credited?: boolean;
+};
 
 type MissionDraft = {
   mission_type: MissionType;
@@ -97,7 +104,10 @@ export async function getOrCreateTodayMission(
   // Qmon ตัวใหม่ ตามหลักไม่ลงโทษ) ขอบเขตแค่ภารกิจ "วันนี้" เท่านั้น ไม่ backfill ย้อนวันเก่ากว่านี้
   // (ภารกิจเก่าหมดอายุเงียบๆ ตามปกติเหมือนที่อื่นในระบบ)
   if (answeredCount >= mission.target_count && mission.bonus_awarded_at === null) {
-    mission = await tryClaimBonusSilently(supabase, mission);
+    // ไม่มี UI ให้เลือกอาหารตรงนี้ (เคลมย้อนหลังแบบเงียบ ไม่ใช่ทางเคลมจริงที่มาจากปุ่ม) — ส่ง
+    // p_food_type เป็น null เสมอ (ไม่ได้อาหารสำหรับการเคลมย้อนหลังนี้ ดู tryClaimBonusSilently)
+    const { updated } = await tryClaimBonusSilently(supabase, mission, null);
+    mission = updated;
   }
 
   return { mission, answeredCount, correctCount };
@@ -190,42 +200,51 @@ export async function getMissionProgress(supabase: SupabaseServerClient, mission
 // จำนวนตอบจริงจาก DB เอง ไม่เชื่อ client ว่า "ตอบครบแล้ว" เฉยๆ (client อาจ submitAnswer บางข้อไม่ผ่าน
 // เน็ตหลุดกลางทาง ดู saveWarning ใน QuizClient.tsx) ใช้ logic เดียวกับที่ getOrCreateTodayMission
 // ใช้เคลมย้อนหลังแบบเงียบ (tryClaimBonusSilently) กันพฤติกรรมสองจุดเพี้ยนไปคนละแบบ
+// foodType: ชนิดอาหารที่ผู้เล่นเลือกก่อนกดเคลม (UI บังคับเลือกเสมอในทางเคลมจริงจาก
+// QuizClient.tsx) — null เฉพาะทางเคลมย้อนหลังแบบเงียบใน getOrCreateTodayMission เท่านั้น
 export async function claimMissionBonusIfComplete(
   supabase: SupabaseServerClient,
-  missionId: string
+  missionId: string,
+  foodType: "A" | "B" | null
 ): Promise<ClaimMissionBonusResult> {
   const { mission, answeredCount, correctCount } = await getMissionProgress(supabase, missionId);
 
   if (answeredCount < mission.target_count || mission.bonus_awarded_at !== null) {
-    return { claimed: false, bonusExp: mission.bonus_exp, answeredCount, correctCount };
+    return { claimed: false, bonusExp: mission.bonus_exp, answeredCount, correctCount, foodCredited: false };
   }
 
-  const updated = await tryClaimBonusSilently(supabase, mission);
+  const { updated, foodCredited } = await tryClaimBonusSilently(supabase, mission, foodType);
   return {
     claimed: updated.bonus_awarded_at !== null,
     bonusExp: mission.bonus_exp,
     answeredCount,
     correctCount,
+    foodCredited,
   };
 }
 
 async function tryClaimBonusSilently(
   supabase: SupabaseServerClient,
-  mission: TodayMission
-): Promise<TodayMission> {
+  mission: TodayMission,
+  foodType: "A" | "B" | null
+): Promise<{ updated: TodayMission; foodCredited: boolean }> {
   try {
     const { data } = await supabase
-      .rpc("claim_daily_mission_bonus", { p_mission_id: mission.id })
+      .rpc("claim_daily_mission_bonus", { p_mission_id: mission.id, p_food_type: foodType })
       .single();
-    if ((data as ClaimBonusResult | null)?.awarded) {
-      return { ...mission, bonus_awarded_at: new Date().toISOString() };
+    const result = data as ClaimBonusResult | null;
+    if (result?.awarded) {
+      return {
+        updated: { ...mission, bonus_awarded_at: new Date().toISOString() },
+        foodCredited: !!result.food_credited,
+      };
     }
   } catch {
     // ไม่มี active pet ตอนนี้เหมือนกัน (no_active_pet=true) หรือ RPC พังกลางทาง (เคสหายากมาก
     // pet ถูกลบระหว่างเคลม) — เงียบเสมอ ไม่ให้หน้าเพจพังเพราะโบนัสเคลมย้อนหลังที่ไม่ใช่ critical
     // path ผู้เล่นจะได้ลองใหม่เองตอนโหลดหน้าครั้งถัดไป
   }
-  return mission;
+  return { updated: mission, foodCredited: false };
 }
 
 // ---------------------------------------------------------------------------
@@ -426,15 +445,18 @@ async function pickExplorationMission(
   subject: Subject,
   recentCategories: Set<string>
 ): Promise<MissionDraft> {
-  const { data } = await admin
-    .from("questions")
-    .select("category")
-    .eq("subject", subject)
-    .eq("status", "active")
-    .eq("difficulty", EXPLORATION_DIFFICULTY);
+  const rows = await fetchAllRows<{ category: string }>((from, to) =>
+    admin
+      .from("questions")
+      .select("category")
+      .eq("subject", subject)
+      .eq("status", "active")
+      .eq("difficulty", EXPLORATION_DIFFICULTY)
+      .range(from, to)
+  );
 
   const counts = new Map<string, number>();
-  for (const row of data ?? []) {
+  for (const row of rows) {
     counts.set(row.category, (counts.get(row.category) ?? 0) + 1);
   }
 

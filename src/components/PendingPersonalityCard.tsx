@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import StageUpModal from "@/components/StageUpModal";
+import PersonalityDecisionModal from "@/components/PersonalityDecisionModal";
 
 // เคสที่ต้องจัดการ: stage=4 แต่ personality=null (ปิดแอป/รีเฟรชกลางคันก่อนตอบคำถามตอน
 // StageUpModal ครั้งแรก) — แสดงสถานะรอตอบคำถามแทนที่จะปล่อยให้ PetCard ปกติพัง/โชว์เรดาร์เพี้ยน
@@ -31,7 +31,7 @@ export default function PendingPersonalityCard() {
       </button>
 
       {open && (
-        <StageUpModal
+        <PersonalityDecisionModal
           onClose={() => {
             setOpen(false);
             router.refresh();
