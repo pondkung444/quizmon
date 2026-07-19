@@ -65,19 +65,19 @@ export default function MissionCard({
   }
 
   return (
-    <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-4 text-center">
+    <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-3 text-center">
       <p className="text-sm font-bold text-gold-hi">{m.category}</p>
 
       {m.mission_type === "personalized" && m.baseline_accuracy !== null && (
-        <p className="mt-1 text-xs text-text3">ช่วง 7 วันที่ผ่านมา คุณตอบถูก {m.baseline_accuracy}%</p>
+        <p className="mt-0.5 text-xs text-text3">ช่วง 7 วันที่ผ่านมา คุณตอบถูก {m.baseline_accuracy}%</p>
       )}
 
-      <p className="mt-2 text-xs text-text3">{getStartMessage(m, subline)}</p>
+      <p className="mt-1 text-xs text-text3">{getStartMessage(m, subline)}</p>
 
       <button
         type="button"
         onClick={goToMission}
-        className="mt-3 w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+        className="mt-2 w-full rounded-2xl border border-gold bg-amber py-2.5 text-lg font-bold text-track shadow-lg transition active:scale-95"
       >
         {started ? `ฝึกต่อ (${answeredCount}/${target})` : "เริ่มภารกิจ"}
       </button>
@@ -86,7 +86,7 @@ export default function MissionCard({
       <button
         type="button"
         onClick={goToPractice}
-        className="mt-2 text-xs text-text3 underline underline-offset-2"
+        className="mt-1.5 text-xs text-text3 underline underline-offset-2"
       >
         หรือเลือกฝึกบทอื่นเอง
       </button>

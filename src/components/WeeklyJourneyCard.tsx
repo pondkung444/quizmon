@@ -1,7 +1,3 @@
-import Image from "next/image";
-import { Repeat } from "lucide-react";
-import { getPetImagePath } from "@/lib/petImage";
-import type { Subline, Personality } from "@/lib/evolution";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import { expTierClass } from "@/lib/expTier";
 
@@ -9,47 +5,21 @@ import { expTierClass } from "@/lib/expTier";
 // วันในสัปดาห์ใหม่จาก JourneyDay.date
 const DAY_LABEL_TH = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
 
+// v2 (ux pass 2026-07): ตัดรูปสัตว์ + ไอคอน evolve/collect ออกจากแถบนี้ทั้งหมด เหลือแค่สี tier —
+// รายละเอียดเต็ม (รูปสัตว์รายวัน, ดาว evolve, ไอคอนสลับตัว) ยังดูได้ครบที่ /pet/calendar
+// (กดแถบนี้เข้าไปได้อยู่แล้วผ่าน onClick) แถบนี้เปลี่ยนบทบาทจาก "การ์ดรายละเอียด" เป็น
+// "แถบสรุปกวาดตาเดียว" แทน จุดประสงค์คือให้ไม่แย่งความสำคัญจากตัว Qmon/CTA ที่ fold แรก
 function DayCell({ day }: { day: JourneyDay }) {
   if (day.isFuture) {
-    return <div className="h-11 w-11 rounded-xl border border-dashed border-border" />;
-  }
-
-  let petImagePath: string | null = null;
-  if (day.spritePrefix && day.stage) {
-    try {
-      petImagePath = getPetImagePath(
-        day.spritePrefix,
-        day.stage,
-        day.subline as Subline | null,
-        day.personality as Personality | null
-      );
-    } catch {
-      // stage 4 ระหว่างรอเลือกบุคลิก (personality ยัง null ชั่วคราว) — ไม่มีรูปให้แสดง ไม่ถือเป็น error
-      petImagePath = null;
-    }
+    return <div className="h-7 w-7 rounded-lg border border-dashed border-border" />;
   }
 
   return (
     <div
-      className={`relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border ${
+      className={`h-7 w-7 rounded-lg border ${
         day.isToday ? "border-2 border-gold-hi" : "border-border"
       } ${expTierClass(day.expEarned)}`}
-    >
-      {day.didEvolveThisDay && <span className="absolute right-0.5 top-0.5 text-[10px] leading-none text-gold-hi">✦</span>}
-      {day.didCollectThisDay && (
-        <Repeat className="absolute left-0.5 top-0.5 h-2.5 w-2.5 text-gold-hi" strokeWidth={2.5} />
-      )}
-
-      {petImagePath ? (
-        <Image
-          src={petImagePath}
-          alt=""
-          width={28}
-          height={28}
-          className={day.expEarned === 0 ? "opacity-40 grayscale" : ""}
-        />
-      ) : null}
-    </div>
+    />
   );
 }
 
@@ -58,18 +28,16 @@ export default function WeeklyJourneyCard({ days, onClick }: { days: JourneyDay[
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4 text-left"
+      className="flex w-full items-start justify-between gap-1 rounded-xl border border-gold-dim bg-card px-3 py-2 text-left"
     >
-      <div className="flex items-start justify-between gap-1">
-        {days.map((day, i) => (
-          <div key={day.date} className="flex flex-col items-center gap-1">
-            <span className={`text-[10px] ${day.isToday ? "font-bold text-gold-hi" : "text-text3"}`}>
-              {DAY_LABEL_TH[i]}
-            </span>
-            <DayCell day={day} />
-          </div>
-        ))}
-      </div>
+      {days.map((day, i) => (
+        <div key={day.date} className="flex flex-col items-center gap-1">
+          <span className={`text-[9px] ${day.isToday ? "font-bold text-gold-hi" : "text-text3"}`}>
+            {DAY_LABEL_TH[i]}
+          </span>
+          <DayCell day={day} />
+        </div>
+      ))}
     </button>
   );
 }

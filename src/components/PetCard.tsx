@@ -111,37 +111,30 @@ export default function PetCard({
   const idleAnimClass = stage === 1 ? "animate-egg-wobble" : "animate-pet-bob";
   const evolutionProgress = getEvolutionProgress(stage, exp);
 
+  // segmented evolution bar (ux pass 2026-07): แถบเดิมเป็น smooth bar สีเดียวกับหลอด "พลังวันนี้"
+  // (amber ทั้งคู่) แยกไม่ออกถ้าไม่อ่าน label ตัวเล็ก — เปลี่ยนเป็น 4 ช่อง segmented สี indigo แทน
+  // (โทนเย็น คนละกลุ่มกับ amber ของหลอดรายวัน + รูปทรงต่างกันชัด) แต่ละช่อง = 1 ระยะ ช่องที่ผ่านแล้ว
+  // เต็ม 100% ช่องปัจจุบันเติมตาม progress ช่องที่ยังไม่ถึงว่างเปล่า ให้เห็นภาพรวมทั้ง 4 ระยะในแถบเดียว
+  // ต่างจากเดิมที่โชว์แค่ % ภายในระยะปัจจุบันเท่านั้น
+  const evolutionSegments = [1, 2, 3, 4].map((s) => {
+    if (s < stage) return 1;
+    if (s === stage) return isMaxStage ? 1 : progress;
+    return 0;
+  });
+
   return (
-    <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
-      {/* 1. weekly journey (แทนที่ stage indicator วงกลม 4 จุดเดิม) — กดเข้าปฏิทินเต็มเดือนได้ */}
+    <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-5 text-center">
+      {/* 1. weekly journey — แถบสรุปสีบางๆ เท่านั้น (รายละเอียดเต็มดูที่ /pet/calendar) กดเข้าได้ */}
       <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
 
-      {/* 1.6 ป้อนอาหาร — เฉพาะก่อน stage 4 เท่านั้น (ตัดสินบุคลิกตอนโตเต็มที่ ดู
-          determinePersonality ใน src/lib/evolution.ts) หายไปทันทีที่ถึง stage 4 */}
-      {!isMaxStage && <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />}
-
-      {/* 1.5 ปุ่มเปิดสถิติแยกบท ย้อนหลัง 7 วัน */}
-      <div className="flex w-full justify-end">
-        <button
-          type="button"
-          onClick={() => setShowTopicStats(true)}
-          aria-label="ดูสถิติแยกบท 7 วันล่าสุด"
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-gold-dim bg-track text-text2 transition active:scale-95"
-        >
-          <BarChart3 size={16} />
-        </button>
-      </div>
-      {showTopicStats && (
-        <TopicStatsSheet stats={topicStats} onClose={() => setShowTopicStats(false)} />
-      )}
-
-      <p className="text-xs text-text3">
-        ระยะ {stage} · {stageName} — {stageDescription}
-      </p>
-
-      {/* 2. nameplate */}
-      <div className="relative flex h-14 w-14 items-center justify-center rotate-45 border-2 border-gold bg-track">
-        <span className="-rotate-45 px-1 text-[10px] font-bold leading-tight text-gold-hi">
+      {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
+          เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ
+          บรรทัดเดียวที่จริงสูงแค่ ~14px) พอเปลี่ยนเป็น pill เหลือแค่ ~36px — ได้พื้นที่คืนอีก ~24-28px
+          ช่วยลด scroll เคส mission-active ที่ยังเหลืออยู่ ไม่ต้องมี whitespace-nowrap hack กันตัดมุม
+          อีกต่อไปเพราะไม่มีมุมให้ตัดแล้ว — เปลี่ยนพร้อมกันทั้ง CollectedPetCard.tsx (/collection) ด้วย
+          เพื่อความสม่ำเสมอ ตามที่ปอนด์เลือก (ทางเลือกที่ 2 จาก 3 ตัวเลือกที่เสนอไป) */}
+      <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
+        <span className="whitespace-nowrap text-xs font-bold text-gold-hi">
           {nickname ?? speciesName ?? stageName}
         </span>
       </div>
@@ -193,20 +186,26 @@ export default function PetCard({
         </div>
       </button>
 
-      {/* 4. exp -> next stage */}
-      {nextThreshold !== undefined ? (
-        <div className="w-full max-w-xs">
-          <p className="mb-1 text-left text-xs text-text2">พลังวิวัฒนาการ → ร่างถัดไป</p>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-track">
-            <div className="h-full bg-amber transition-all" style={{ width: `${progress * 100}%` }} />
-          </div>
-          <p className="mt-2 text-xs text-text3">
-            อีก {Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป
-          </p>
+      {/* 4. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
+          label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
+          (ตัด stageDescription ทิ้ง — เป็น flavor text ซ้ำความหมายกับชื่อระยะ ไม่ใช่ข้อมูลที่ต้องรู้) */}
+      <div className="w-full max-w-xs">
+        <p className="mb-1 text-left text-xs text-text2">
+          พลังวิวัฒนาการ · ระยะ {stage}: {stageName}
+        </p>
+        <div className="flex gap-1">
+          {evolutionSegments.map((fill, i) => (
+            <div key={i} className="h-2.5 flex-1 overflow-hidden rounded-full bg-track">
+              <div className="h-full bg-indigo transition-all" style={{ width: `${fill * 100}%` }} />
+            </div>
+          ))}
         </div>
-      ) : (
-        <p className="text-sm font-medium text-gold-hi">โตเต็มที่แล้ว! เก่งมาก 🎉</p>
-      )}
+        <p className="mt-2 text-xs text-text3">
+          {nextThreshold !== undefined
+            ? `อีก ${Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป`
+            : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
+        </p>
+      </div>
 
       {/* 5. daily training bar */}
       <div className="w-full max-w-xs">
@@ -258,24 +257,33 @@ export default function PetCard({
         </>
       )}
 
-      {/* 6.5 quiz stat cards — always visible, no click needed */}
-      <div className="grid w-full max-w-xs grid-cols-3 gap-2">
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
-          <span className="text-xl">🔥</span>
-          <span className="text-lg font-bold text-gold-hi">{mathCorrect}</span>
-          <span className="text-[10px] text-text3">คณิตถูก</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
-          <span className="text-xl">💧</span>
-          <span className="text-lg font-bold text-gold-hi">{scienceCorrect}</span>
-          <span className="text-[10px] text-text3">วิทย์ถูก</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
-          <span className="text-xl">⚡</span>
-          <span className="text-lg font-bold text-gold-hi">{comboMilestones}</span>
-          <span className="text-[10px] text-text3">คอมโบ</span>
-        </div>
-      </div>
+      {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> evolution/daily bars -> CTA) ── */}
+      {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
+
+      {/* 6.6 ป้อนอาหาร — เฉพาะก่อน stage 4 และเฉพาะตอนมีอาหารในคลังจริง (กัน dead-end กดเข้าไป
+          แล้วเจอ "มี 0 ชิ้น" — หลักเดียวกับ mission chip: สถานะที่ไม่รอ action ไม่ควรกินที่) */}
+      {!isMaxStage && foodA + foodB > 0 && (
+        <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />
+      )}
+
+      {/* 6.7 ปุ่มเปิดสถิติแยกบท — ขยาย touch target เป็น 44px + ใส่ label (เดิม 32px icon ล้วน
+          ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก) */}
+      <button
+        type="button"
+        onClick={() => setShowTopicStats(true)}
+        className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+      >
+        <BarChart3 size={18} />
+        สถิติ
+      </button>
+      {showTopicStats && (
+        <TopicStatsSheet
+          stats={topicStats}
+          petStats={{ mathCorrect, scienceCorrect, comboMilestones }}
+          onClose={() => setShowTopicStats(false)}
+        />
+      )}
+
       {/* 7. expandable detail */}
       {expanded && isMaxStage && hasFullStats && (
         <div className="flex w-full flex-col items-center gap-4 border-t border-border pt-5">

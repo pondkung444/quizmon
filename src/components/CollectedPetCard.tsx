@@ -35,10 +35,10 @@ export default function CollectedPetCard({
         ))}
       </div>
 
-      <div className="relative flex h-14 w-14 items-center justify-center rotate-45 border-2 border-gold bg-track">
-        <span className="-rotate-45 px-1 text-[10px] font-bold leading-tight text-gold-hi">
-          {nickname ?? speciesName}
-        </span>
+      {/* nameplate — pill/แคปซูล ตามที่เปลี่ยนใน PetCard.tsx (ux pass 2026-07 รอบ 3) เพื่อความสม่ำเสมอ
+          ทั้งแอป แม้หน้านี้จะไม่มีปัญหา fold โดยตรงก็ตาม (ปอนด์เลือกทางเลือกนี้เอง) */}
+      <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
+        <span className="whitespace-nowrap text-xs font-bold text-gold-hi">{nickname ?? speciesName}</span>
       </div>
 
       <div className="relative flex h-[220px] w-[220px] items-center justify-center">

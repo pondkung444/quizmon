@@ -4,9 +4,13 @@ import type { CategoryStat, NotEnoughDataTopic, TopicStatsResult } from "@/lib/t
 
 export default function TopicStatsSheet({
   stats,
+  petStats,
   onClose,
 }: {
   stats: TopicStatsResult;
+  // ย้ายมาจากการ์ด 3 ใบที่เคยโชว์ตลอดเวลาใน /pet (ux pass 2026-07) — เป็นตัวเลขสะสมตลอดชีพ
+  // ไม่มี action ต่อรายวัน จึงย้ายมารวมกับสถิติอื่นในชีตนี้แทนที่จะกินพื้นที่ fold แรกตลอด
+  petStats?: { mathCorrect: number; scienceCorrect: number; comboMilestones: number };
   onClose: () => void;
 }) {
   return (
@@ -16,7 +20,29 @@ export default function TopicStatsSheet({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-        <h2 className="mb-1 text-sm font-bold text-gold-hi">สถิติแยกบท 7 วันล่าสุด</h2>
+        <h2 className="mb-1 text-sm font-bold text-gold-hi">สถิติของฉัน</h2>
+
+        {petStats && (
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+              <span className="text-xl">🔥</span>
+              <span className="text-lg font-bold text-gold-hi">{petStats.mathCorrect}</span>
+              <span className="text-[10px] text-text3">คณิตถูก (ตัวนี้)</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+              <span className="text-xl">💧</span>
+              <span className="text-lg font-bold text-gold-hi">{petStats.scienceCorrect}</span>
+              <span className="text-[10px] text-text3">วิทย์ถูก (ตัวนี้)</span>
+            </div>
+            <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-3">
+              <span className="text-xl">⚡</span>
+              <span className="text-lg font-bold text-gold-hi">{petStats.comboMilestones}</span>
+              <span className="text-[10px] text-text3">คอมโบ (ตัวนี้)</span>
+            </div>
+          </div>
+        )}
+
+        <h3 className="mb-1 text-sm font-bold text-gold-hi">สถิติแยกบท 7 วันล่าสุด</h3>
         <p className="mb-4 text-xs text-text3">นับรวมทุกวิชา คณิต + วิทย์ ของทุก Qmon ที่เคยเลี้ยง</p>
 
         {!stats.hasAnyData ? (

@@ -112,6 +112,10 @@ export default function QuizClient({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  // ปุ่มออกกลางรอบ (ux pass 2026-07) — เดิม phase "playing" ไม่มีทางออกเลย นอกจากเล่นจบ/กด back
+  // ของ browser เด็กเข้าผิดวิชาจะติดอยู่ในรอบ ใส่ confirm กันกดพลาด (submit เป็นรายข้ออยู่แล้ว
+  // ข้อที่ตอบไปก่อนออกยังนับปกติ ไม่เสียอะไร)
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   // ไม่ null เฉพาะตอนเล่นภารกิจประจำวัน (ผ่าน /quiz?mission=<id>) — practice mode ปกติเป็น null ตลอด
   const [missionInfo, setMissionInfo] = useState<MissionRoundInfo | null>(null);
   // ผลจากเช็ค+เคลมโบนัสตอนจบภารกิจ (claimMissionBonus) — null ถ้ายังไม่เรียก/เรียกไม่สำเร็จ
@@ -508,6 +512,42 @@ export default function QuizClient({
 
     return (
       <div className="flex flex-col gap-5">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowExitConfirm(true)}
+            aria-label="ออกจากรอบทำโจทย์"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-text3 transition active:scale-95"
+          >
+            ✕
+          </button>
+        </div>
+
+        {showExitConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+            <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5 text-center">
+              <p className="mb-1 text-sm font-bold text-text">ออกตอนนี้เลยไหม?</p>
+              <p className="mb-4 text-xs text-text3">ข้อที่ตอบไปแล้วยังนับคะแนนตามปกตินะ</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExitConfirm(false)}
+                  className="flex-1 rounded-2xl border border-gold-dim py-2.5 text-sm font-bold text-text2"
+                >
+                  เล่นต่อ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/pet")}
+                  className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-track"
+                >
+                  ออก
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           {missionInfo ? (
             <p className="text-sm font-medium text-text3">
