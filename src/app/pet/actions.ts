@@ -9,6 +9,7 @@ import {
   type Personality,
 } from "@/lib/evolution";
 import { getTodayInBangkok } from "@/lib/exp";
+import { getWeeklyLeaderboard, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
 
 export async function collectPet(): Promise<{ collected: true }> {
   const supabase = await createClient();
@@ -319,4 +320,12 @@ export async function feedPet(petId: string, foodType: "A" | "B"): Promise<FeedP
   if (error || !data) throw new Error(error?.message ?? "ป้อนอาหารไม่สำเร็จ");
 
   return { quantityRemaining: (data as { quantity_remaining: number }).quantity_remaining };
+}
+
+// Top 5 ของสัปดาห์นี้ — เรียกเฉพาะตอนกดขยาย WeeklyLeaderboardCard ครั้งแรก (lazy) ไม่ใช่ตอนโหลดหน้า
+// /pet ทุกครั้ง (get_my_weekly_rank เบากว่าใช้ query ตอน render หน้าแทน ดู getMyWeeklyRank ใน page.tsx)
+// RPC นี้ public ไม่ผูก user เลย เรียกผ่าน server action ได้ตรงๆ ไม่ต้องเช็ค session
+export async function getWeeklyLeaderboardTop5(): Promise<LeaderboardEntry[]> {
+  const supabase = await createClient();
+  return getWeeklyLeaderboard(supabase);
 }

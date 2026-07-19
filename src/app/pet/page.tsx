@@ -9,6 +9,7 @@ import {
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
+import { getMyWeeklyRank, type MyWeeklyRank } from "@/lib/weeklyLeaderboard";
 import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
@@ -63,38 +64,52 @@ export default async function PetPage({
   };
   let mission: TodayMissionResult | null = null;
   let foodInventory: FoodInventory = { A: 0, B: 0 };
+  let myWeeklyRank: MyWeeklyRank = { hasRank: false };
 
   if (user) {
-    const [{ data }, { data: eggTypeRows }, journeyResult, topicStatsResult, missionResult, foodResult] =
-      await Promise.all([
-        supabase
-          .from("pets")
-          .select(
-            "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
-          )
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle(),
-        supabase
-          .from("egg_types")
-          .select("id, name_th, tier, description, sprite_prefix")
-          .eq("is_obtainable", true)
-          .order("id", { ascending: true }),
-        getWeeklyJourney(supabase, user.id),
-        getWeeklyTopicStats(supabase, user.id),
-        // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
-        // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
-        getOrCreateTodayMission(supabase, user.id).catch((err) => {
-          console.error("getOrCreateTodayMission failed:", err);
-          return null;
-        }),
-        getPlayerFoodInventory(supabase, user.id),
-      ]);
+    const [
+      { data },
+      { data: eggTypeRows },
+      journeyResult,
+      topicStatsResult,
+      missionResult,
+      foodResult,
+      myWeeklyRankResult,
+    ] = await Promise.all([
+      supabase
+        .from("pets")
+        .select(
+          "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
+        )
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle(),
+      supabase
+        .from("egg_types")
+        .select("id, name_th, tier, description, sprite_prefix")
+        .eq("is_obtainable", true)
+        .order("id", { ascending: true }),
+      getWeeklyJourney(supabase, user.id),
+      getWeeklyTopicStats(supabase, user.id),
+      // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
+      // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
+      getOrCreateTodayMission(supabase, user.id).catch((err) => {
+        console.error("getOrCreateTodayMission failed:", err);
+        return null;
+      }),
+      getPlayerFoodInventory(supabase, user.id),
+      // เช่นเดียวกับภารกิจ — การ์ด leaderboard เป็นของเสริม พังไม่ควรทำทั้งหน้า /pet ล่ม
+      getMyWeeklyRank(supabase, user.id).catch((err) => {
+        console.error("getMyWeeklyRank failed:", err);
+        return { hasRank: false } as MyWeeklyRank;
+      }),
+    ]);
     pet = data;
     journeyDays = journeyResult;
     topicStats = topicStatsResult;
     mission = missionResult;
     foodInventory = foodResult;
+    myWeeklyRank = myWeeklyRankResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -192,6 +207,7 @@ export default async function PetPage({
           journeyDays={journeyDays}
           topicStats={topicStats}
           mission={mission}
+          myWeeklyRank={myWeeklyRank}
           subline={(subline ?? null) as Subline | null}
           foodA={foodInventory.A}
           foodB={foodInventory.B}

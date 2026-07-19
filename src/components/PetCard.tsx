@@ -15,6 +15,8 @@ import { getEvolutionProgress } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
 import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
+import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
+import type { MyWeeklyRank } from "@/lib/weeklyLeaderboard";
 import TopicStatsSheet from "@/components/TopicStatsSheet";
 import type { TopicStatsResult } from "@/lib/topicStats";
 import MissionCard from "@/components/MissionCard";
@@ -51,6 +53,7 @@ export default function PetCard({
   journeyDays,
   topicStats,
   mission,
+  myWeeklyRank,
   subline,
   foodA,
   foodB,
@@ -81,6 +84,7 @@ export default function PetCard({
   journeyDays: JourneyDay[];
   topicStats: TopicStatsResult;
   mission: TodayMissionResult | null;
+  myWeeklyRank: MyWeeklyRank;
   subline: Subline | null;
   foodA: number;
   foodB: number;
@@ -126,6 +130,10 @@ export default function PetCard({
     <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-5 text-center">
       {/* 1. weekly journey — แถบสรุปสีบางๆ เท่านั้น (รายละเอียดเต็มดูที่ /pet/calendar) กดเข้าได้ */}
       <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
+
+      {/* 1.5 weekly leaderboard — ทดลอง (2026-07) collapsed แถวเดียว กดขยาย Top 5 in-place อยู่ใต้
+          journey strip ทันที เหนือ nameplate/avatar ของ pet card หลัก ดู WeeklyLeaderboardCard.tsx */}
+      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} />
 
       {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
           เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ
