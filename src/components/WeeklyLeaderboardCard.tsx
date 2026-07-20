@@ -108,7 +108,7 @@ export default function WeeklyLeaderboardCard({ myWeeklyRank }: { myWeeklyRank: 
                 const isMe = inTop5 && row.rnk === myRank;
                 return (
                   <li
-                    key={row.rnk}
+                    key={`${row.rnk}-${row.username}`}
                     className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs ${
                       isMe ? "bg-gold-dim/40 text-gold-hi" : "text-text2"
                     }`}

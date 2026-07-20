@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import { Crown } from "lucide-react";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUBLINE_LABEL } from "@/lib/labels";
+import { getWeeklyLeaderboardTopN } from "@/lib/weeklyLeaderboard";
 import StatTile from "@/components/admin/StatTile";
 import BarChartCard, { CHART_AMBER, CHART_INDIGO, CHART_RED } from "@/components/admin/BarChartCard";
 import QuestionsPerDayChart, { type QuestionsPerDayDatum } from "@/components/admin/QuestionsPerDayChart";
@@ -112,20 +114,25 @@ export default async function AdminAnalyticsPage() {
 
   const admin = createAdminClient();
 
-  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes, allAttempts, profsRes] = await Promise.all([
-    // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
-    admin.auth.admin.listUsers({ perPage: 1000 }),
-    // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
-    // collection_slot_click / session duration) เป็น subset ของ "ทุก event 14 วัน" ก้อนเดียว
-    fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
-    admin.from("egg_types").select("id, name_th"),
-    // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
-    admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
-    admin.from("pets").select("id, stage, is_active"),
-    // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
-    fetchAllAttempts(admin),
-    admin.from("profiles").select("id, username"),
-  ]);
+  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes, allAttempts, profsRes, weeklyLeaderboard] =
+    await Promise.all([
+      // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+      // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
+      // collection_slot_click / session duration) เป็น subset ของ "ทุก event 14 วัน" ก้อนเดียว
+      fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
+      admin.from("egg_types").select("id, name_th"),
+      // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
+      admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
+      admin.from("pets").select("id, stage, is_active"),
+      // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
+      fetchAllAttempts(admin),
+      admin.from("profiles").select("id, username"),
+      // สูตรแต้มเดียวกับที่ /pet ใช้ (weekly_scores_bkk, migration 021_weekly_leaderboard.sql) แต่โชว์
+      // Top 10 แทน Top 5 ของการ์ดผู้เล่น — ดู getWeeklyLeaderboardTopN สำหรับเหตุผลที่ไม่เรียก
+      // get_weekly_leaderboard() RPC ตรงๆ (RPC นั้น hardcode limit 5)
+      getWeeklyLeaderboardTopN(admin, 10),
+    ]);
 
   const adminUserIds = new Set(
     (usersListRes.data?.users ?? [])
@@ -535,6 +542,45 @@ export default async function AdminAnalyticsPage() {
           )}
         </ChartCard>
       </div>
+
+      {/* Weekly Leaderboard (ทดลอง) — ตารางเดียวกับที่โชว์ใน WeeklyLeaderboardCard บน /pet ทุกประการ
+          (get_weekly_leaderboard RPC) ต่างจาก 2 การ์ดข้างบนตรงนี้ใช้สูตรแต้มในเกมจริง (ถูก+2/ผิด+1
+          cap 40/วัน + ภารกิจสำเร็จ+10 cap 50/วัน) ไม่ใช่ raw answer count */}
+      <ChartCard title="Weekly Leaderboard (ทดลอง)" subtitle="Top 10 สัปดาห์นี้ (จ-อา) — สูตรแต้มเดียวกับที่โชว์ผู้เล่นใน /pet">
+        {weeklyLeaderboard.length === 0 ? (
+          <p className="py-8 text-center text-sm text-text3">ยังไม่มีใครทำแต้มสัปดาห์นี้</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs text-text3">
+                  <th className="py-2 pr-3 font-medium">อันดับ</th>
+                  <th className="py-2 pr-3 font-medium">ชื่อ</th>
+                  <th className="py-2 pr-3 font-medium text-right">แต้ม</th>
+                  <th className="py-2 pr-3 font-medium text-right">ความแม่น</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weeklyLeaderboard.map((row) => (
+                  <tr key={`${row.rnk}-${row.username}`} className="border-b border-border/50">
+                    <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
+                      <span className="inline-flex items-center gap-1">
+                        {row.rnk === 1 && <Crown size={14} className="text-gold" />}
+                        {row.rnk}
+                      </span>
+                    </td>
+                    <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
+                      {row.username}
+                    </td>
+                    <td className="py-2 pr-3 text-right text-text2">{row.total_points.toLocaleString("th-TH")}</td>
+                    <td className="py-2 pr-3 text-right text-text3">{row.accuracy.toFixed(0)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </ChartCard>
 
       {/* บล็อก 2: คำถามต่อวัน */}
       <ChartCard title="คำถามต่อวัน" subtitle={`${DETAIL_WINDOW_DAYS} วันล่าสุด`}>

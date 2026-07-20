@@ -59,3 +59,28 @@ export async function getWeeklyLeaderboard(supabase: SupabaseServerClient): Prom
   if (error) throw new Error("ดึง leaderboard ไม่สำเร็จ: " + error.message);
   return (data ?? []) as LeaderboardEntry[];
 }
+
+// สำหรับ /admin/analytics เท่านั้น — get_weekly_leaderboard() (ด้านบน) hardcode limit 5 ไว้สำหรับการ์ด
+// ผู้เล่นที่ /pet โดยเฉพาะ (ไม่ต้องแก้ RPC/migration) เรียก weekly_scores_bkk() ตรงๆ แทน (ตัวเดียวกับที่
+// get_weekly_leaderboard() ห่ออยู่ ให้ทุกคนที่มี rank ทั้งหมด) แล้ว rank/slice เอาเองฝั่งนี้ — จำลอง
+// rank() over (order by total_points desc, accuracy desc) ให้ตรงกับที่ RPC ทำ (คนแต้ม+accuracy เท่ากัน
+// ได้อันดับเดียวกัน อันดับถัดไปข้ามเลข ตาม standard competition ranking)
+export async function getWeeklyLeaderboardTopN(supabase: SupabaseServerClient, limit: number): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase.rpc("weekly_scores_bkk");
+  if (error) throw new Error("ดึง weekly leaderboard ไม่สำเร็จ: " + error.message);
+
+  const rows = (data ?? []) as { username: string; total_points: number; accuracy: number }[];
+  const sorted = [...rows].sort((a, b) => b.total_points - a.total_points || b.accuracy - a.accuracy);
+
+  const ranked: LeaderboardEntry[] = [];
+  let rank = 0;
+  sorted.forEach((row, i) => {
+    const prev = sorted[i - 1];
+    if (i === 0 || row.total_points !== prev.total_points || row.accuracy !== prev.accuracy) {
+      rank = i + 1;
+    }
+    ranked.push({ rnk: rank, username: row.username, total_points: row.total_points, accuracy: row.accuracy });
+  });
+
+  return ranked.slice(0, limit);
+}
