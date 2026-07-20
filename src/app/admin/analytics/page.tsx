@@ -73,6 +73,29 @@ async function fetchAllEventsSince(
   return rows;
 }
 
+type QuizAttemptRow = { user_id: string | null; is_correct: boolean; created_at: string };
+
+// quiz_attempts insert server-side ทุกครั้งที่ตอบ (ไม่ต้อง client fire เหมือน analytics_events)
+// และไม่มี admin-filter asymmetry — แม่นกว่าสำหรับ active-today / leaderboard
+// เกิน 1000 แถว (all-time ~3,300) ต้อง paginate เหมือน fetchAllEventsSince ไม่งั้นโดน cap เงียบๆ
+async function fetchAllAttempts(admin: ReturnType<typeof createAdminClient>): Promise<QuizAttemptRow[]> {
+  const PAGE_SIZE = 1000;
+  const rows: QuizAttemptRow[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("quiz_attempts")
+      .select("user_id, is_correct, created_at")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as QuizAttemptRow[]));
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+const MIN_ATTEMPTS_FOR_ACCURACY = 20;
+
 export default async function AdminAnalyticsPage() {
   // gate ซ้ำอีกชั้นในหน้า นอกจาก middleware (src/lib/supabase/middleware.ts) — กันกรณี
   // middleware ถูก bypass หรือถูกแก้ในอนาคตแล้วลืมทดสอบ /admin/*
@@ -89,7 +112,7 @@ export default async function AdminAnalyticsPage() {
 
   const admin = createAdminClient();
 
-  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes] = await Promise.all([
+  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes, allAttempts, profsRes] = await Promise.all([
     // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
     admin.auth.admin.listUsers({ perPage: 1000 }),
     // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
@@ -99,6 +122,9 @@ export default async function AdminAnalyticsPage() {
     // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
     admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
     admin.from("pets").select("id, stage, is_active"),
+    // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
+    fetchAllAttempts(admin),
+    admin.from("profiles").select("id, username"),
   ]);
 
   const adminUserIds = new Set(
@@ -152,6 +178,57 @@ export default async function AdminAnalyticsPage() {
     if (days.size >= 2) returningUsers++;
   }
   const returnRatePct = activeUsers7d > 0 ? (returningUsers / activeUsers7d) * 100 : 0;
+
+  // ============================================================
+  // บล็อก 1b: Active วันนี้ + Leaderboards (จาก quiz_attempts ตรงๆ, 7 วันล่าสุด)
+  // ============================================================
+  const nameById = new Map(
+    (profsRes.data ?? []).map((p) => [p.id as string, ((p.username as string | null) ?? "").trim() || "(ไม่มีชื่อ)"])
+  );
+
+  // ตัวทดสอบ — ไม่นับรวมในสถิติ
+  const EXCLUDED_TEST_USERNAMES = new Set(["Dawu", "PonDKunG", "Gunzu", "Phase6 Verify"]);
+  const excludedUserIds = new Set(
+    Array.from(nameById.entries())
+      .filter(([, name]) => EXCLUDED_TEST_USERNAMES.has(name))
+      .map(([id]) => id)
+  );
+
+  const todayBkkDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+  const todayCutoffMs = new Date(`${todayBkkDateStr}T00:00:00+07:00`).getTime();
+
+  const activeTodayIds = new Set<string>();
+  const perUser = new Map<string, { answered: number; correct: number }>();
+  for (const r of allAttempts) {
+    if (!r.user_id || excludedUserIds.has(r.user_id)) continue;
+    const ts = new Date(r.created_at).getTime();
+    if (ts >= todayCutoffMs) activeTodayIds.add(r.user_id);
+    if (ts < summaryCutoffMs) continue; // leaderboard: เฉพาะ 7 วันล่าสุด
+    const agg = perUser.get(r.user_id) ?? { answered: 0, correct: 0 };
+    agg.answered++;
+    if (r.is_correct) agg.correct++;
+    perUser.set(r.user_id, agg);
+  }
+  const activeToday = activeTodayIds.size;
+
+  const mostAnswered = Array.from(perUser.entries())
+    .map(([uid, a]) => ({
+      name: nameById.get(uid) ?? "(ไม่ทราบ)",
+      answered: a.answered,
+      accuracy: a.answered > 0 ? (a.correct / a.answered) * 100 : 0,
+    }))
+    .sort((x, y) => y.answered - x.answered)
+    .slice(0, 10);
+
+  const mostAccurate = Array.from(perUser.entries())
+    .filter(([, a]) => a.answered >= MIN_ATTEMPTS_FOR_ACCURACY)
+    .map(([uid, a]) => ({
+      name: nameById.get(uid) ?? "(ไม่ทราบ)",
+      answered: a.answered,
+      accuracy: (a.correct / a.answered) * 100,
+    }))
+    .sort((x, y) => y.accuracy - x.accuracy || y.answered - x.answered)
+    .slice(0, 10);
 
   // ============================================================
   // บล็อก 2: คำถามต่อวัน (14 วัน, รวม/เฉลี่ยต่อคน สลับได้ที่ client)
@@ -364,8 +441,13 @@ export default async function AdminAnalyticsPage() {
       </div>
 
       {/* บล็อก 1: แถบสรุป */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
         <StatTile label={`Active users (${SUMMARY_WINDOW_DAYS} วัน)`} value={activeUsers7d.toLocaleString("th-TH")} />
+        <StatTile
+          label="Active วันนี้"
+          value={activeToday.toLocaleString("th-TH")}
+          sublabel="ตอบคำถามอย่างน้อย 1 ข้อวันนี้"
+        />
         <StatTile
           label="Session เฉลี่ย/คน/วัน"
           value={avgSessionsPerUserPerDay.toFixed(1)}
@@ -378,6 +460,80 @@ export default async function AdminAnalyticsPage() {
           value={formatDurationTh(avgSessionDurationSec)}
           sublabel={`${sessionCount.toLocaleString("th-TH")} session (${DETAIL_WINDOW_DAYS} วัน, ไม่รวมแอดมิน)`}
         />
+      </div>
+
+      {/* Leaderboards: ตอบมากสุด / แม่นสุด (7 วันล่าสุด, จาก quiz_attempts, ไม่รวมบัญชีทดสอบ) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ChartCard title="ตอบมากสุด" subtitle={`10 อันดับแรก (${SUMMARY_WINDOW_DAYS} วันล่าสุด)`}>
+          {mostAnswered.length === 0 ? (
+            <p className="py-8 text-center text-sm text-text3">ยังไม่มีข้อมูล</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-text3">
+                    <th className="py-2 pr-3 font-medium">อันดับ</th>
+                    <th className="py-2 pr-3 font-medium">ชื่อ</th>
+                    <th className="py-2 pr-3 font-medium text-right">จำนวนข้อ</th>
+                    <th className="py-2 pr-3 font-medium text-right">ความแม่น</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mostAnswered.map((row, i) => (
+                    <tr key={`${row.name}-${i}`} className="border-b border-border/50">
+                      <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{i + 1}</td>
+                      <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{row.name}</td>
+                      <td className="py-2 pr-3 text-right text-text2">{row.answered.toLocaleString("th-TH")}</td>
+                      <td className="py-2 pr-3 text-right text-text3">{row.accuracy.toFixed(0)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="แม่นสุด"
+          subtitle={`เฉพาะผู้ตอบตั้งแต่ ${MIN_ATTEMPTS_FOR_ACCURACY} ข้อขึ้นไป (${SUMMARY_WINDOW_DAYS} วันล่าสุด)`}
+        >
+          {mostAccurate.length === 0 ? (
+            <p className="py-8 text-center text-sm text-text3">ยังไม่มีผู้ตอบถึง {MIN_ATTEMPTS_FOR_ACCURACY} ข้อ</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-text3">
+                    <th className="py-2 pr-3 font-medium">อันดับ</th>
+                    <th className="py-2 pr-3 font-medium">ชื่อ</th>
+                    <th className="py-2 pr-3 font-medium">ความแม่น</th>
+                    <th className="py-2 pr-3 font-medium text-right">จำนวนข้อ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mostAccurate.map((row, i) => (
+                    <tr key={`${row.name}-${i}`} className="border-b border-border/50">
+                      <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{i + 1}</td>
+                      <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{row.name}</td>
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-20 overflow-hidden rounded-full bg-track">
+                            <div
+                              className="h-full rounded-full"
+                              style={{ width: `${Math.min(100, row.accuracy)}%`, backgroundColor: CHART_INDIGO, opacity: 0.85 }}
+                            />
+                          </div>
+                          <span className="text-text2">{row.accuracy.toFixed(0)}%</span>
+                        </div>
+                      </td>
+                      <td className="py-2 pr-3 text-right text-text2">{row.answered.toLocaleString("th-TH")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </ChartCard>
       </div>
 
       {/* บล็อก 2: คำถามต่อวัน */}
