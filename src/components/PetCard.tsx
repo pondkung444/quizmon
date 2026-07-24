@@ -9,6 +9,7 @@ import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
 import SpeechBubble from "@/components/SpeechBubble";
+import QmonChatBubble from "@/components/QmonChatBubble";
 import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress } from "@/lib/evolution";
@@ -147,52 +148,57 @@ export default function PetCard({
         </span>
       </div>
 
-      {/* 3. avatar (click to expand) */}
-      <button
-        type="button"
-        onClick={() => {
-          setExpanded((v) => !v);
-          setTapPulse((n) => n + 1);
-          triggerPersonalityEvent("tapQmon");
-        }}
-        className="relative flex h-[220px] w-[220px] items-center justify-center"
-        aria-expanded={expanded}
-      >
-        {personalityMessage && (
-          <div className="absolute -top-2 z-10 -translate-y-full">
-            <SpeechBubble message={personalityMessage} />
+      {/* 3. avatar (click to expand) — ห่อด้วย wrapper "relative" แยกจากปุ่ม avatar เอง เพื่อวาง
+          QmonChatBubble เป็น badge ติดมุมล่างขวาของกรอบนี้ (ต้องเป็น sibling ของปุ่ม ไม่ใช่ลูกของมัน
+          เพราะ QmonChatBubble มี <button> ของตัวเอง — ปุ่มซ้อนปุ่มผิด HTML ทำให้ hydration พัง) */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setExpanded((v) => !v);
+            setTapPulse((n) => n + 1);
+            triggerPersonalityEvent("tapQmon");
+          }}
+          className="relative flex h-[220px] w-[220px] items-center justify-center"
+          aria-expanded={expanded}
+        >
+          {personalityMessage && (
+            <div className="absolute -top-2 z-10 -translate-y-full">
+              <SpeechBubble message={personalityMessage} />
+            </div>
+          )}
+          <span className="absolute h-[200px] w-[200px] rounded-full bg-amber opacity-20 blur-2xl" />
+          <svg viewBox="0 0 200 200" className="absolute h-[190px] w-[190px] animate-spin-slow opacity-40">
+            <circle cx="100" cy="100" r="90" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="4 10" />
+            <circle cx="100" cy="100" r="72" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="1 8" />
+          </svg>
+          <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
+            <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
+              {petImagePath ? (
+                <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
+                  <Image
+                    src={petImagePath}
+                    alt="ภาพ Qmon"
+                    width={180}
+                    height={180}
+                    priority
+                    className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
+                  />
+                </EvolutionGlow>
+              ) : (
+                <div
+                  className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${
+                    justEvolved ? "animate-evolve-pop" : ""
+                  }`}
+                >
+                  ไม่พบรูป Qmon
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        <span className="absolute h-[200px] w-[200px] rounded-full bg-amber opacity-20 blur-2xl" />
-        <svg viewBox="0 0 200 200" className="absolute h-[190px] w-[190px] animate-spin-slow opacity-40">
-          <circle cx="100" cy="100" r="90" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="4 10" />
-          <circle cx="100" cy="100" r="72" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="1 8" />
-        </svg>
-        <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
-          <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
-            {petImagePath ? (
-              <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
-                <Image
-                  src={petImagePath}
-                  alt="ภาพ Qmon"
-                  width={180}
-                  height={180}
-                  priority
-                  className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
-                />
-              </EvolutionGlow>
-            ) : (
-              <div
-                className={`relative flex h-[180px] w-[180px] items-center justify-center rounded-xl bg-track text-sm text-text3 ${
-                  justEvolved ? "animate-evolve-pop" : ""
-                }`}
-              >
-                ไม่พบรูป Qmon
-              </div>
-            )}
-          </div>
-        </div>
-      </button>
+        </button>
+        <QmonChatBubble />
+      </div>
 
       {/* 4. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
           label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
@@ -275,7 +281,9 @@ export default function PetCard({
       )}
 
       {/* 6.7 ปุ่มเปิดสถิติแยกบท — ขยาย touch target เป็น 44px + ใส่ label (เดิม 32px icon ล้วน
-          ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก) */}
+          ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)
+          "ขอแรงใจ" ย้ายออกจากแถวนี้ไปเป็น floating chat bubble แล้ว (ดู QmonChatBubble.tsx —
+          จับคู่ผิดกลุ่มกับปุ่ม "สถิติ" ที่เป็น data view ไม่ใช่การคุยกับสัตว์เลี้ยง) */}
       <button
         type="button"
         onClick={() => setShowTopicStats(true)}
