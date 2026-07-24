@@ -194,49 +194,17 @@ export default function PetCard({
         </div>
       </button>
 
-      {/* 4. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
-          label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
-          (ตัด stageDescription ทิ้ง — เป็น flavor text ซ้ำความหมายกับชื่อระยะ ไม่ใช่ข้อมูลที่ต้องรู้) */}
-      <div className="w-full max-w-xs">
-        <p className="mb-1 text-left text-xs text-text2">
-          พลังวิวัฒนาการ · ระยะ {stage}: {stageName}
-        </p>
-        <div className="flex gap-1">
-          {evolutionSegments.map((fill, i) => (
-            <div key={i} className="h-2.5 flex-1 overflow-hidden rounded-full bg-track">
-              <div className="h-full bg-indigo transition-all" style={{ width: `${fill * 100}%` }} />
-            </div>
-          ))}
-        </div>
-        <p className="mt-2 text-xs text-text3">
-          {nextThreshold !== undefined
-            ? `อีก ${Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป`
-            : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
-        </p>
-      </div>
-
-      {/* 5. daily training bar */}
-      <div className="w-full max-w-xs">
-        <p className="mb-1 text-left text-xs text-text2">พลังวันนี้</p>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-track">
-          <div className="h-full bg-amber transition-all" style={{ width: `${dailyProgress * 100}%` }} />
-        </div>
-        <p className="mt-2 text-xs text-text3">
-          {Math.min(expToday, dailyCap)} / {dailyCap} แต้ม
-        </p>
-        {cappedToday && (
-          <p className="mt-2 rounded-xl border border-amber-dim bg-amber/10 p-2 text-xs text-amber">
-            น้องอิ่มความรู้แล้ววันนี้ พรุ่งนี้มาฝึกต่อนะ
-          </p>
-        )}
-      </div>
-
-      {/* 5.5/6 บล็อกแอ็กชันรวม — การ์ดภารกิจกับ CTA "ฝึก Qmon" เดิมเคยเป็นสองบล็อกซ้อนกัน ทำหน้าที่
+      {/* 4. บล็อกแอ็กชันรวม — การ์ดภารกิจกับ CTA "ฝึก Qmon" เดิมเคยเป็นสองบล็อกซ้อนกัน ทำหน้าที่
           ซ้ำกัน (ทั้งคู่คือ "จะฝึกอะไรวันนี้") รวมเป็นก้อนเดียวที่สลับตามสถานะภารกิจแทน:
           - ภารกิจยังไม่จบ (missionActive) -> MissionCard คือ CTA หลักไปเลย ไม่โชว์ปุ่ม "ฝึก Qmon" ซ้ำ
           - ภารกิจจบแล้ว/ไม่มีภารกิจ -> MissionCard ยุบเหลือ chip (หรือไม่โชว์อะไรถ้า mission null)
             แล้ว CTA "ฝึก Qmon"/"ฝึกต่อได้" เดิมกลับมาเป็นหลักตามเดิม
-          isMaxStage ยังทับทุกกรณีเหมือนเดิม (เก็บสัตว์เข้าสมุดสำคัญกว่าเสมอตอนโตเต็มที่แล้ว) */}
+          isMaxStage ยังทับทุกกรณีเหมือนเดิม (เก็บสัตว์เข้าสมุดสำคัญกว่าเสมอตอนโตเต็มที่แล้ว)
+          ตำแหน่ง (ux pass 2026-07 รอบ 4): ย้ายขึ้นมาอยู่ต่อจาก avatar ทันที ก่อนแถบวิวัฒนาการ/พลังวันนี้
+          — ข้อมูล production จริงชี้ว่า 92% ของ session สั้นกว่า 30 วิ ไม่กดเริ่มภารกิจเลยสักข้อ แต่ถ้า
+          กดแล้ว 89% เล่นจบ ปัญหาคือปุ่มนี้หลุด fold บนมือถือ ไม่ใช่ engagement ระหว่างเล่น จึงต้องเป็น
+          สิ่งแรกที่เห็นได้โดยไม่ต้อง scroll สำคัญกว่าสถิติวิวัฒนาการ/พลังวันนี้ (ยังอยู่ครบด้านล่าง
+          แค่ไม่ใช่สิ่งแรกที่ต้องเห็นแล้ว) */}
       {isMaxStage ? (
         <CollectPetButton eggChoices={eggChoices} />
       ) : missionActive ? (
@@ -265,7 +233,45 @@ export default function PetCard({
         </>
       )}
 
-      {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> evolution/daily bars -> CTA) ── */}
+      {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> CTA) ── */}
+
+      {/* 5. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
+          label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
+          (ตัด stageDescription ทิ้ง — เป็น flavor text ซ้ำความหมายกับชื่อระยะ ไม่ใช่ข้อมูลที่ต้องรู้) */}
+      <div className="w-full max-w-xs">
+        <p className="mb-1 text-left text-xs text-text2">
+          พลังวิวัฒนาการ · ระยะ {stage}: {stageName}
+        </p>
+        <div className="flex gap-1">
+          {evolutionSegments.map((fill, i) => (
+            <div key={i} className="h-2.5 flex-1 overflow-hidden rounded-full bg-track">
+              <div className="h-full bg-indigo transition-all" style={{ width: `${fill * 100}%` }} />
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-text3">
+          {nextThreshold !== undefined
+            ? `อีก ${Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป`
+            : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
+        </p>
+      </div>
+
+      {/* 6. daily training bar */}
+      <div className="w-full max-w-xs">
+        <p className="mb-1 text-left text-xs text-text2">พลังวันนี้</p>
+        <div className="h-3 w-full overflow-hidden rounded-full bg-track">
+          <div className="h-full bg-amber transition-all" style={{ width: `${dailyProgress * 100}%` }} />
+        </div>
+        <p className="mt-2 text-xs text-text3">
+          {Math.min(expToday, dailyCap)} / {dailyCap} แต้ม
+        </p>
+        {cappedToday && (
+          <p className="mt-2 rounded-xl border border-amber-dim bg-amber/10 p-2 text-xs text-amber">
+            น้องอิ่มความรู้แล้ววันนี้ พรุ่งนี้มาฝึกต่อนะ
+          </p>
+        )}
+      </div>
+
       {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
 
       {/* 6.6 ป้อนอาหาร — เฉพาะก่อน stage 4 และเฉพาะตอนมีอาหารในคลังจริง (กัน dead-end กดเข้าไป
