@@ -143,6 +143,25 @@ body {
   animation: speech-pop 200ms ease-out;
 }
 
+/* typing indicator (3 จุดเด้งสลับกัน) — ดู SpeechBubble.tsx TypingDots, ใช้ตอนรอผล AI ใน
+   QmonChatBubble.tsx สลับ delay ทีละจุดผ่าน inline style animationDelay */
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.animate-typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+
 /* "ใกล้วิวัฒนาการ" — ห่อรูปสัตว์ตัว active (ดู EvolutionGlow.tsx) รับ --evo-progress (0-1) ผ่าน
    inline style ตัว glow เองไล่ความเข้มจาก --evo-progress ล้วนๆ ใน CSS (ไม่ผ่าน JS) เริ่มปรากฏ
    ชัดเจนเฉพาะ progress > 0.7 เท่านั้น — ก่อนหน้านั้น strength = 0 ไม่มีเอฟเฟกต์เลย (ไม่ใช่แอบเรืองจางๆ) */
@@ -177,6 +196,7 @@ body {
   .animate-pet-tap,
   .animate-card-bob,
   .animate-speech-pop,
+  .animate-typing-dot,
   .evo-glow-pulse {
     animation: none;
   }
