@@ -1,26 +1,11 @@
--- เพิ่มฟิลด์เบอร์โทรและโรงเรียนให้โปรไฟล์ผู้ใช้ (กรอกตอนสมัครสมาชิก)
+-- แก้ไข 2026-07-24: ไฟล์นี้เดิมตั้งใจเพิ่มทั้ง phone และ school พร้อมแก้
+-- handle_new_user() ให้ดึง phone/school จาก raw_user_meta_data ด้วย แต่ตรวจกับ
+-- production จริงผ่าน Supabase MCP (list_tables + pg_get_functiondef) แล้วพบว่า
+-- ไม่เคย apply ตามนี้ทั้งหมด — production มีแค่ column school (ไม่มี phone) และ
+-- handle_new_user() ยังเป็นเวอร์ชันของ 008_fix_handle_new_user_starter_egg.sql
+-- (insert แค่ id, username) เท่านั้น จึงแก้ไฟล์นี้ให้ตรงกับสิ่งที่ apply จริง
+-- ไม่แตะ production เพิ่ม — ถ้าจะเพิ่ม phone column จริงในอนาคตต้องเป็น migration ใหม่
+
+-- เพิ่มฟิลด์โรงเรียนให้โปรไฟล์ผู้ใช้ (กรอกตอนสมัครสมาชิก)
 alter table public.profiles
-  add column if not exists phone text,
   add column if not exists school text;
-
--- อัปเดต trigger ให้ดึงค่าจาก raw_user_meta_data มาใส่ตอนสร้างโปรไฟล์ใหม่
-create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security definer set search_path = public
-as $$
-begin
-  insert into public.profiles (id, username, phone, school)
-  values (
-    new.id,
-    new.raw_user_meta_data ->> 'username',
-    new.raw_user_meta_data ->> 'phone',
-    new.raw_user_meta_data ->> 'school'
-  );
-
-  insert into public.player_eggs (user_id, egg_type_id, source)
-  values (new.id, 'egg_common_01', 'starter');
-
-  return new;
-end;
-$$;
