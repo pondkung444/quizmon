@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [school, setSchool] = useState("");
   const [schoolOther, setSchoolOther] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -40,7 +41,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username, phone, school: finalSchool } },
+        options: { data: { username, phone, school: finalSchool, grade_level: gradeLevel } },
       });
       setLoading(false);
       if (error) {
@@ -99,6 +100,26 @@ export default function LoginPage() {
                 className="rounded-md border border-border bg-track px-3 py-2 text-text placeholder:text-text3 focus:border-gold focus:outline-none"
                 placeholder="เช่น น้องพลอย"
               />
+            </div>
+          )}
+
+          {mode === "signup" && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-text2">ระดับชั้น</label>
+              <select
+                required
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+                className="rounded-md border border-border bg-track px-3 py-2 text-text focus:border-gold focus:outline-none"
+              >
+                <option value="">-- เลือกระดับชั้น --</option>
+                <option value="ม.1">ม.1</option>
+                <option value="ม.2">ม.2</option>
+                <option value="ม.3">ม.3</option>
+                <option value="ม.4">ม.4</option>
+                <option value="ม.5">ม.5</option>
+                <option value="ม.6">ม.6</option>
+              </select>
             </div>
           )}
 

@@ -13,6 +13,7 @@ import {
   getTodayInBangkok,
 } from "@/lib/exp";
 import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
+import { getGradeBand, visibleBands } from "@/lib/gradeBand";
 import {
   EXPLORATION_DIFFICULTY,
   getMissionProgress,
@@ -126,6 +127,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     data: { user },
   } = await supabase.auth.getUser();
   const admin = createAdminClient();
+  const band = user ? await getGradeBand(user.id) : "junior";
 
   let mode: QuizMode;
   let categoryFilter: string | null = null;
@@ -161,7 +163,12 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   }
 
   const idPageQuery = (from: number, to: number) => {
-    let q = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+    let q = admin
+      .from("questions")
+      .select("id")
+      .eq("status", "active")
+      .eq("subject", mode)
+      .in("grade_band", visibleBands(band));
     if (categoryFilter) q = q.eq("category", categoryFilter);
     if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
     return q.range(from, to);
@@ -189,7 +196,12 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       `startQuizRound: ภารกิจ "${missionInfo.category}" (${mode}) มีคำถามเหลือไม่พอ (${candidateIds.length}/${roundSize}) เติมจากทั้งวิชาแทน`
     );
     const widerRows = await fetchAllRows<{ id: number }>((from, to) => {
-      let q = admin.from("questions").select("id").eq("status", "active").eq("subject", mode);
+      let q = admin
+        .from("questions")
+        .select("id")
+        .eq("status", "active")
+        .eq("subject", mode)
+        .in("grade_band", visibleBands(band));
       if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
       return q.range(from, to);
     });

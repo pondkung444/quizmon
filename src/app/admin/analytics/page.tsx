@@ -127,7 +127,7 @@ export default async function AdminAnalyticsPage() {
       admin.from("pets").select("id, stage, is_active"),
       // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
       fetchAllAttempts(admin),
-      admin.from("profiles").select("id, username"),
+      admin.from("profiles").select("id, username, grade_band"),
       // สูตรแต้มเดียวกับที่ /pet ใช้ (weekly_scores_bkk, migration 021_weekly_leaderboard.sql) แต่โชว์
       // Top 10 แทน Top 5 ของการ์ดผู้เล่น — ดู getWeeklyLeaderboardTopN สำหรับเหตุผลที่ไม่เรียก
       // get_weekly_leaderboard() RPC ตรงๆ (RPC นั้น hardcode limit 5)
@@ -192,6 +192,13 @@ export default async function AdminAnalyticsPage() {
   const nameById = new Map(
     (profsRes.data ?? []).map((p) => [p.id as string, ((p.username as string | null) ?? "").trim() || "(ไม่มีชื่อ)"])
   );
+  // grade_band ผูกกับ user (profiles) ไม่ใช่ quiz_attempts เอง — กันสถิติปนสองรุ่น (ม.1-3/junior
+  // กับ ม.4-6/senior) ในตาราง leaderboard ด้านล่าง (หมวด 5.1 ของแผน)
+  const bandById = new Map(
+    (profsRes.data ?? []).map((p) => [p.id as string, (p.grade_band as "junior" | "senior" | null) ?? null])
+  );
+  const bandLabel = (band: "junior" | "senior" | null) =>
+    band === "senior" ? "ม.ปลาย" : band === "junior" ? "ม.ต้น" : "-";
 
   // ตัวทดสอบ — ไม่นับรวมในสถิติ
   const EXCLUDED_TEST_USERNAMES = new Set(["Dawu", "PonDKunG", "Gunzu", "Phase6 Verify"]);
@@ -221,6 +228,7 @@ export default async function AdminAnalyticsPage() {
   const mostAnswered = Array.from(perUser.entries())
     .map(([uid, a]) => ({
       name: nameById.get(uid) ?? "(ไม่ทราบ)",
+      band: bandById.get(uid) ?? null,
       answered: a.answered,
       accuracy: a.answered > 0 ? (a.correct / a.answered) * 100 : 0,
     }))
@@ -231,6 +239,7 @@ export default async function AdminAnalyticsPage() {
     .filter(([, a]) => a.answered >= MIN_ATTEMPTS_FOR_ACCURACY)
     .map(([uid, a]) => ({
       name: nameById.get(uid) ?? "(ไม่ทราบ)",
+      band: bandById.get(uid) ?? null,
       answered: a.answered,
       accuracy: (a.correct / a.answered) * 100,
     }))
@@ -481,6 +490,7 @@ export default async function AdminAnalyticsPage() {
                   <tr className="border-b border-border text-xs text-text3">
                     <th className="py-2 pr-3 font-medium">อันดับ</th>
                     <th className="py-2 pr-3 font-medium">ชื่อ</th>
+                    <th className="py-2 pr-3 font-medium">ระดับชั้น</th>
                     <th className="py-2 pr-3 font-medium text-right">จำนวนข้อ</th>
                     <th className="py-2 pr-3 font-medium text-right">ความแม่น</th>
                   </tr>
@@ -490,6 +500,7 @@ export default async function AdminAnalyticsPage() {
                     <tr key={`${row.name}-${i}`} className="border-b border-border/50">
                       <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{i + 1}</td>
                       <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{row.name}</td>
+                      <td className="py-2 pr-3 text-text3">{bandLabel(row.band)}</td>
                       <td className="py-2 pr-3 text-right text-text2">{row.answered.toLocaleString("th-TH")}</td>
                       <td className="py-2 pr-3 text-right text-text3">{row.accuracy.toFixed(0)}%</td>
                     </tr>
@@ -513,6 +524,7 @@ export default async function AdminAnalyticsPage() {
                   <tr className="border-b border-border text-xs text-text3">
                     <th className="py-2 pr-3 font-medium">อันดับ</th>
                     <th className="py-2 pr-3 font-medium">ชื่อ</th>
+                    <th className="py-2 pr-3 font-medium">ระดับชั้น</th>
                     <th className="py-2 pr-3 font-medium">ความแม่น</th>
                     <th className="py-2 pr-3 font-medium text-right">จำนวนข้อ</th>
                   </tr>
@@ -522,6 +534,7 @@ export default async function AdminAnalyticsPage() {
                     <tr key={`${row.name}-${i}`} className="border-b border-border/50">
                       <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{i + 1}</td>
                       <td className={`py-2 pr-3 ${i < 3 ? "font-bold text-gold-hi" : "text-text"}`}>{row.name}</td>
+                      <td className="py-2 pr-3 text-text3">{bandLabel(row.band)}</td>
                       <td className="py-2 pr-3">
                         <div className="flex items-center gap-2">
                           <div className="h-2 w-20 overflow-hidden rounded-full bg-track">

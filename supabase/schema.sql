@@ -14,6 +14,14 @@
 -- (ดูท้ายไฟล์) — แก้ไปพร้อมกัน: quiz_attempts.question_id เอกสารเก่าเขียนผิดเป็น text
 -- ที่จริงเป็น bigint มาตลอด (ยืนยันจาก live DB ตรงๆ ผ่าน service role ไม่ได้เดา)
 --
+-- 20260725144924/933 เพิ่มระบบ ม.6 (grade_band): profiles.grade_level +
+-- profiles.grade_band (generated), questions.grade_band + index — sync วันที่
+-- 2026-07-25 ยืนยันจาก schema_migrations.statements ตรงๆ ไม่ได้เดา
+--
+-- หมายเหตุ: qmon_ai_schema (20260724063950) และ qmon_messages_diagnostics
+-- (20260725123800) มีไฟล์ migration sync แล้ว แต่ตาราง qmon_messages/qmon_pet_state
+-- ยังไม่ได้ backfill ลง schema.sql นี้ (นอกสโคปงาน ม.6 รอบนี้)
+--
 -- ส่วนที่ตกหล่นจากรอบก่อน (001-013):
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
@@ -26,11 +34,21 @@
 -- ============================================================
 
 -- 1) โปรไฟล์ผู้ใช้ (เสริมจาก auth.users)
+-- grade_level/grade_band เพิ่มโดย migration 20260725144924 (ระบบ ม.6):
+-- grade_band เป็น generated column (junior = ม.1-3, senior = ม.4-6) ห้าม insert/update ตรง
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text,
   phone text,
   school text,
+  grade_level text check (grade_level is null or grade_level in ('ม.1','ม.2','ม.3','ม.4','ม.5','ม.6')),
+  grade_band text generated always as (
+    case
+      when grade_level in ('ม.4','ม.5','ม.6') then 'senior'
+      when grade_level in ('ม.1','ม.2','ม.3') then 'junior'
+      else null
+    end
+  ) stored,
   created_at timestamptz not null default now()
 );
 
@@ -248,18 +266,22 @@ create policy "quiz_attempts: insert own" on public.quiz_attempts
 -- ไข่ starter เข้า player_eggs แทน — ผู้เล่นกดฟักเองจากคลังไข่ ไม่ฟักอัตโนมัติ)
 -- ============================================================
 
+-- แก้โดย migration 20260725144924: nullif ค่าว่างเป็น null แทนสตริงว่าง + เพิ่ม grade_level
+-- (ของเดิมทิ้ง phone/school/grade_level ไปเฉยๆ เพราะ insert คอลัมน์ไม่ตรงกับที่ UI ส่งมา)
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
-security definer set search_path = public
+security definer
+set search_path to 'public'
 as $$
 begin
-  insert into public.profiles (id, username, phone, school)
+  insert into public.profiles (id, username, phone, school, grade_level)
   values (
     new.id,
     new.raw_user_meta_data ->> 'username',
-    new.raw_user_meta_data ->> 'phone',
-    new.raw_user_meta_data ->> 'school'
+    nullif(new.raw_user_meta_data ->> 'phone', ''),
+    nullif(new.raw_user_meta_data ->> 'school', ''),
+    nullif(new.raw_user_meta_data ->> 'grade_level', '')
   );
 
   insert into public.player_eggs (user_id, egg_type_id, source)
@@ -345,12 +367,18 @@ create table if not exists public.questions (
   correct_index smallint not null,
   explanation text,
   created_at timestamptz not null default now(),
-  status text not null default 'active' check (status in ('active', 'inactive'))
+  status text not null default 'active' check (status in ('active', 'inactive')),
+  grade_band text not null default 'junior' check (grade_band in ('junior', 'senior'))
 );
 
 -- ล็อก RLS ไว้โดยไม่มี select policy ใดๆ: อ่านได้เฉพาะฝั่ง server ผ่าน service role
 -- (กันไม่ให้ client ยิง REST API ตรงไปเห็น correct_index/explanation ก่อนตอบ)
 alter table public.questions enable row level security;
+
+-- grade_band เพิ่มโดย migration 20260725144933 (ระบบ ม.6): ม.1-3 = junior, ม.4-6 = senior
+-- คำถามเดิมทั้งหมด (2,154 แถว) เป็น junior หมด — ยังไม่มีคลังคำถาม ม.6 (senior) จริง
+create index if not exists idx_questions_band_subject_status
+  on public.questions (grade_band, subject, status, difficulty);
 
 -- ระบบ EXP รายวัน: จำกัด exp ที่เข้าตัวสัตว์วันละ 180 ต่อสัตว์ที่ active อยู่
 -- (ดูตรรกะที่ src/app/quiz/actions.ts — exp_today/exp_today_date อยู่บน pets โดยตรงแล้ว)

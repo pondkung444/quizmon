@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTodayInBangkok } from "@/lib/exp";
+import { getGradeBand, visibleBands } from "@/lib/gradeBand";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -85,9 +86,14 @@ export async function getWeeklyTopicStats(
 
   // questions ไม่มี select policy (RLS เปิดแต่ไม่มี policy) — ต้องอ่านผ่าน service role
   const admin = createAdminClient();
+  const band = await getGradeBand(userId);
   const { data: questionRows } =
     numericIds.size > 0
-      ? await admin.from("questions").select("id, category, subject").in("id", Array.from(numericIds))
+      ? await admin
+          .from("questions")
+          .select("id, category, subject")
+          .in("id", Array.from(numericIds))
+          .in("grade_band", visibleBands(band))
       : { data: [] as { id: number; category: string; subject: string }[] };
 
   const questionById = new Map(
