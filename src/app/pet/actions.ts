@@ -8,6 +8,7 @@ import {
   type Subline,
   type Personality,
 } from "@/lib/evolution";
+import { artLane, parsePetLine } from "@/lib/petLine";
 import { getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyLeaderboard, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
 import { getGradeBand } from "@/lib/gradeBand";
@@ -230,7 +231,14 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
     accuracyPct,
     comboMilestones: pet.combo_milestones,
   });
-  const finalStats = snapshotStats(raw, pet.subline as Subline, lockedPersonality, eggType.stat_profile);
+  // pet.subline อาจเป็นสาย senior (physics/chemistry/biology) — evolution.ts รู้จักแค่ 3 เลน
+  // ศิลป์/สเตตัสเดิม (math/science/balanced) ต้องแปลงผ่าน artLane() ก่อนเสมอ (กฎเหล็กหมวด 4.1)
+  // ไม่งั้น SUBLINE_MULTIPLIER[subline] จะเป็น undefined แล้ว throw ตอนอ่าน .atk ทันที
+  const line = parsePetLine(pet.subline);
+  if (!line) {
+    throw new Error(`choosePersonalityAfterEvolve: subline "${pet.subline}" ไม่รู้จัก — คำนวณสเตตัสไม่ได้`);
+  }
+  const finalStats = snapshotStats(raw, artLane(line), lockedPersonality, eggType.stat_profile);
 
   const { error: statError } = await supabase
     .from("pets")

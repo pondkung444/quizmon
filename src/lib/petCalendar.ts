@@ -1,7 +1,8 @@
 import type { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTodayInBangkok } from "@/lib/exp";
-import { getSpeciesName, type Subline, type Personality } from "@/lib/evolution";
+import { type Subline, type Personality } from "@/lib/evolution";
+import { getSpeciesName } from "@/lib/petLine";
 import { getJourneyDaysForRange } from "@/lib/weeklyJourney";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;

@@ -132,7 +132,7 @@ create table if not exists public.pets (
   exp integer not null default 0 check (exp >= 0),
   math_correct integer not null default 0 check (math_correct >= 0),
   science_correct integer not null default 0 check (science_correct >= 0),
-  subline text check (subline in ('math','science','balanced')), -- lock ครั้งเดียวตอนขยับเข้า stage 3 (ดู src/lib/evolution.ts)
+  subline text check (subline in ('math','science','balanced','physics','chemistry','biology')), -- lock ครั้งเดียวตอนขยับเข้า stage 3 (ดู src/lib/evolution.ts) — physics/chemistry/biology เพิ่มโดย migration 20260726234151 สำหรับ senior (ม.6)
   personality text check (personality in ('A','B')), -- lock ครั้งเดียวตอนขยับเข้า stage 4
   is_active boolean not null default true,
   best_combo smallint not null default 0,
@@ -386,6 +386,30 @@ alter table public.questions enable row level security;
 -- คำถามเดิมทั้งหมด (2,154 แถว) เป็น junior หมด — ยังไม่มีคลังคำถาม ม.6 (senior) จริง
 create index if not exists idx_questions_band_subject_status
   on public.questions (grade_band, subject, status, difficulty);
+
+-- นับข้อที่ "ตอบถูก" แยกตามสาย (questions.branch) สำหรับ pet 1 ตัว — เพิ่มโดย migration
+-- 20260726234151 (senior subline เฟส 0) เหตุผลที่ต้องเป็น SQL function ไม่ใช่ query จาก
+-- supabase-js: PostgREST ไม่มี group-by aggregate และถ้าดึงแถวมานับใน JS จะติดเพดาน 1,000
+-- แถวเงียบๆ
+create or replace function public.get_pet_branch_counts(p_pet_id uuid)
+returns table (branch text, correct_count integer)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select q.branch, count(*)::int as correct_count
+  from public.quiz_attempts qa
+  join public.questions q on q.id = qa.question_id
+  where qa.pet_id = p_pet_id
+    and qa.is_correct
+    and q.branch is not null
+    and (auth.uid() is null or qa.user_id = auth.uid())  -- service role ผ่าน / user เห็นแค่ของตัวเอง
+  group by q.branch;
+$$;
+
+revoke all on function public.get_pet_branch_counts(uuid) from public;
+grant execute on function public.get_pet_branch_counts(uuid) to authenticated, service_role;
 
 -- ระบบ EXP รายวัน: จำกัด exp ที่เข้าตัวสัตว์วันละ 180 ต่อสัตว์ที่ active อยู่
 -- (ดูตรรกะที่ src/app/quiz/actions.ts — exp_today/exp_today_date อยู่บน pets โดยตรงแล้ว)

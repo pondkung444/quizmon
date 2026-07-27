@@ -8,7 +8,8 @@ import {
   choosePersonalityAfterEvolve,
   type StageUpContext,
 } from "@/app/pet/actions";
-import { getSpeciesName, getSublineBaseName, type Personality } from "@/lib/evolution";
+import { type Personality } from "@/lib/evolution";
+import { getSpeciesName, getSublineBaseName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { PERSONALITY_LABEL } from "@/lib/labels";
 import {

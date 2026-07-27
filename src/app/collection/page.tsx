@@ -1,15 +1,24 @@
 import { createClient, getUser } from "@/lib/supabase/server";
-import { getSpeciesName, getSpeciesNameParts, type Subline, type Personality } from "@/lib/evolution";
+import { type Subline, type Personality } from "@/lib/evolution";
+import { getSpeciesName, getSpeciesNameParts, SENIOR_LINE_ORDER, type PetLine } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
+import { getGradeBand } from "@/lib/gradeBand";
 import SignOutLink from "@/components/SignOutLink";
 import CollectionGrid, { type CollectionSection, type CollectionSlot } from "@/components/CollectionGrid";
 
-const SUBLINE_ORDER: Subline[] = ["math", "science", "balanced"];
+const JUNIOR_LINE_ORDER: Subline[] = ["math", "science", "balanced"];
 const PERSONALITY_ORDER: Personality[] = ["A", "B"];
 
 export default async function CollectionPage() {
   const supabase = await createClient();
   const user = await getUser();
+  const band = user ? await getGradeBand(user.id) : "junior";
+  // สายที่โชว์ในกริดขึ้นกับ band ของ "คนที่ดูหน้านี้ตอนนี้" ไม่ใช่ band ตอนที่ pet ล็อก subline
+  // — grade_band เป็น generated column จาก grade_level เด็กแก้ระดับชั้นตัวเองได้ ทำให้ band พลิกได้
+  // (ดูหมวด 8.6) pet เก่าที่ subline ไม่อยู่ใน SUBLINE_ORDER ของ band ปัจจุบันจะหาคอมโบไม่เจอใน
+  // firstPetIdByCombo แล้วไม่โชว์ในกริดเงียบๆ (ไม่ throw เพราะ loop ด้านล่างเรียกฟังก์ชันด้วยค่าจาก
+  // SUBLINE_ORDER เองเท่านั้น ไม่เคยส่ง raw pet.subline เข้า getSpeciesName/getPetImagePath ตรงๆ)
+  const SUBLINE_ORDER: PetLine[] = band === "senior" ? SENIOR_LINE_ORDER : JUNIOR_LINE_ORDER;
 
   let eggTypes: { id: string; name_th: string; sprite_prefix: string }[] = [];
   // combo (eggTypeId_subline_personality) -> id ของ "ตัวแรกที่เก็บ" (evolved_at เก่าสุด)
@@ -67,7 +76,7 @@ export default async function CollectionPage() {
     return { eggTypeId: eggType.id, eggNameTh: eggType.name_th, slots };
   });
 
-  const totalSlots = sections.length * 6;
+  const totalSlots = sections.length * SUBLINE_ORDER.length * PERSONALITY_ORDER.length;
   const totalUnlocked = sections.reduce(
     (sum, section) => sum + section.slots.filter((s) => s.unlocked).length,
     0

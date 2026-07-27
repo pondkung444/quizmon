@@ -2,10 +2,10 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import {
   STAGE_EXP_THRESHOLD,
   STAGE_LABEL_TH,
-  getSpeciesName,
   type Subline,
   type Personality,
 } from "@/lib/evolution";
+import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
