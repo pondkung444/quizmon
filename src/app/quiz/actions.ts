@@ -14,6 +14,7 @@ import {
 } from "@/lib/exp";
 import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
 import { getGradeBand, visibleBands } from "@/lib/gradeBand";
+import { resolveSeniorLine, type PetLine, type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
   getMissionProgress,
@@ -369,12 +370,35 @@ export async function finishQuizRound(
   const newExp = activePet.exp + expAddedToPet;
 
   const newStage = tryAdvanceStage(activePet.stage, newExp);
-  const evolutionFields: Record<string, unknown> = { stage: newStage };
+
+  // เพิ่งขยับเข้า stage 3 -> ต้องตัดสิน subline ครั้งเดียว (ล็อกถาวร) — junior ใช้
+  // math_correct/science_correct ตรงๆ เหมือนเดิม (ห้ามแตะ path นี้เด็ดขาด), senior ต้องแยก
+  // ฟิสิกส์/เคมี/ชีวะจาก quiz_attempts ผ่าน get_pet_branch_counts() เพราะ math_correct/
+  // science_correct รวมเคมี+ชีวะเป็นก้อนเดียว แยกไม่ออก (ดู src/lib/petLine.ts + หมวด 4
+  // ของแผน senior subline) — ค่าจริงยังไม่เขียนตรงนี้ รอ guard กันเขียนทับด้านล่าง
+  let computedSubline: PetLine | null = null;
+  let seniorLockLog: { line: SeniorLine; counts: Partial<Record<SeniorLine, number>> } | null = null;
 
   if (activePet.stage < 3 && newStage === 3) {
-    // เพิ่งขยับเข้า stage 3 -> คำนวณ subline ครั้งเดียว
-    evolutionFields.subline = determineSubline(activePet.math_correct, activePet.science_correct);
+    const band = await getGradeBand(user.id);
+    if (band === "junior") {
+      computedSubline = determineSubline(activePet.math_correct, activePet.science_correct);
+    } else {
+      const { data: branchCounts } = await supabase.rpc("get_pet_branch_counts", {
+        p_pet_id: activePet.id,
+      });
+      const counts: Partial<Record<SeniorLine, number>> = {};
+      for (const row of (branchCounts ?? []) as { branch: string; correct_count: number }[]) {
+        if (row.branch === "physics" || row.branch === "chemistry" || row.branch === "biology") {
+          counts[row.branch] = row.correct_count;
+        }
+      }
+      computedSubline = resolveSeniorLine(counts);
+      seniorLockLog = { line: computedSubline, counts };
+    }
   }
+
+  const evolutionFields: Record<string, unknown> = { stage: newStage };
 
   // stage 4 ไม่คำนวณ personality/stat_* ที่นี่แล้ว — เข้าถึง stage 4 ก่อน (stage อย่างเดียว)
   // แล้วให้ StageUpModal พาไปเลือกบุคลิกเอง จากนั้นเรียก choosePersonalityAfterEvolve()
@@ -413,6 +437,41 @@ export async function finishQuizRound(
       ...evolutionFields,
     })
     .eq("id", activePet.id);
+
+  if (computedSubline) {
+    // idempotency guard: ล็อกได้ครั้งเดียว กันเขียนทับด้วยค่าใหม่ถ้า finishQuizRound ถูกเรียกซ้ำ
+    // (สำคัญกับ senior เพราะ resolveSeniorLine() เสมอ = สุ่ม เรียกซ้ำได้ค่าไม่เหมือนเดิม)
+    // pattern เดียวกับ choosePersonalityAfterEvolve() ใน src/app/pet/actions.ts ที่ใช้
+    // .is("personality", null) — แยก update นี้ออกจากก้อนบนเพราะ exp/stage ต้องเขียนเสมอ
+    // ไม่ว่า guard ของ subline จะแพ้ race หรือไม่
+    const { data: lockedPet } = await supabase
+      .from("pets")
+      .update({ subline: computedSubline })
+      .eq("id", activePet.id)
+      .is("subline", null)
+      .select("id, subline")
+      .maybeSingle();
+
+    // ยิง event เฉพาะตอนล็อกสำเร็จจริง (ไม่ใช่ตอนแพ้ guard race) เก็บ counts ที่ใช้ตัดสินไว้ตรวจ
+    // ย้อนหลังว่าเด็กได้สายตามเกณฑ์จริงไหม — insert ตรงๆ ไม่ใช้ track() (no-op บน server action
+    // เพราะ typeof window === "undefined" เสมอฝั่งนี้ ดู src/lib/analytics.ts)
+    if (lockedPet && seniorLockLog) {
+      await supabase.from("analytics_events").insert({
+        user_id: user.id,
+        session_id: crypto.randomUUID(),
+        event_name: "senior_subline_locked",
+        screen: "/quiz",
+        pet_id: activePet.id,
+        props: {
+          line: seniorLockLog.line,
+          physics: seniorLockLog.counts.physics ?? 0,
+          chemistry: seniorLockLog.counts.chemistry ?? 0,
+          biology: seniorLockLog.counts.biology ?? 0,
+        },
+        client_ts: new Date().toISOString(),
+      });
+    }
+  }
 
   return {
     expAddedToPet,

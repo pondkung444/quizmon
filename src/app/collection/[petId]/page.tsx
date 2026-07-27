@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient, getUser } from "@/lib/supabase/server";
-import { getSpeciesName, type Subline, type Personality } from "@/lib/evolution";
+import { type Subline, type Personality } from "@/lib/evolution";
+import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { SUBLINE_LABEL } from "@/lib/labels";
 import SignOutLink from "@/components/SignOutLink";

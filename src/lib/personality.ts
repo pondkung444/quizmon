@@ -1,5 +1,6 @@
 import { PERSONALITY_MESSAGES, type PersonalityEventKey } from "@/lib/personalityMessages";
 import type { Subline } from "@/lib/evolution";
+import { artLane, parsePetLine } from "@/lib/petLine";
 
 export type PersonalityKey = "stage2" | "math" | "science" | "balance";
 
@@ -13,8 +14,12 @@ const SUBLINE_TO_PERSONALITY_KEY: Record<Subline, PersonalityKey> = {
 
 export function getPersonalityKey(stage: number, subline: string | null): PersonalityKey {
   if (stage <= 2) return "stage2";
-  if (subline === "math" || subline === "science" || subline === "balanced") {
-    return SUBLINE_TO_PERSONALITY_KEY[subline];
+  // ค่าใหม่ทั้ง 3 (physics/chemistry/biology) ต้องผ่าน artLane() ก่อนเสมอตามกฎเหล็กหมวด 4.1 —
+  // ห้าม fallback เงียบไปที่ "stage2" สำหรับสายที่ parsePetLine() รู้จัก (แค่ค่าที่ไม่รู้จักจริงๆ
+  // เช่น subline ยังเป็น null ตอนข้อมูลกำลัง sync ถึงจะ fallback)
+  const line = parsePetLine(subline);
+  if (line) {
+    return SUBLINE_TO_PERSONALITY_KEY[artLane(line)];
   }
   // stage >= 3 แต่ subline ยังไม่ถูก set (เช่นข้อมูลกำลัง sync) — fallback ปลอดภัยสุดคือ stage2
   return "stage2";

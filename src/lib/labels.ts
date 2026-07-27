@@ -1,8 +1,15 @@
 // ป้ายชื่อสาย (subline) ที่โชว์ผู้เล่น — จุดเดียวที่ควรแก้ข้อความพวกนี้
+// ⚠️ type คงเป็น Record<string, string> (หลวม) ไว้ก่อน ไม่ใช่ Record<PetLine, string> — เพราะ
+// src/app/admin/analytics/page.tsx อินเด็กซ์ด้วย c.subline ที่เป็น string เฉยๆ (มาจาก Map<string, ...>
+// สรุปยอด combo ในไฟล์นั้น ไม่ได้ narrow เป็น PetLine) ถ้า tighten type ตรงนี้จะพัง compile ที่ไฟล์นั้น
+// ทันที ซึ่งอยู่นอกขอบเขต 3 ไฟล์ของเฟสนี้ — ปล่อยให้ tighten พร้อมกับตอนแก้ import swap เฟส 4/5 แทน
 export const SUBLINE_LABEL: Record<string, string> = {
   math: "สายคณิต",
   science: "สายวิทย์",
   balanced: "สายสมดุล",
+  physics: "สายฟิสิกส์",
+  chemistry: "สายเคมี",
+  biology: "สายชีวะ",
 };
 
 // ป้ายชื่อวิชา — ใช้กับข้อความภารกิจสำรวจ ("ไปสำรวจดินแดน...") ใน MissionCard
