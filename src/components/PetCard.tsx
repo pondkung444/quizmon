@@ -18,6 +18,7 @@ import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
 import type { MyWeeklyRank } from "@/lib/weeklyLeaderboard";
+import type { GradeBand } from "@/lib/gradeBand";
 import TopicStatsSheet from "@/components/TopicStatsSheet";
 import type { TopicStatsResult } from "@/lib/topicStats";
 import MissionCard from "@/components/MissionCard";
@@ -55,6 +56,7 @@ export default function PetCard({
   topicStats,
   mission,
   myWeeklyRank,
+  gradeBand,
   subline,
   foodA,
   foodB,
@@ -86,6 +88,7 @@ export default function PetCard({
   topicStats: TopicStatsResult;
   mission: TodayMissionResult | null;
   myWeeklyRank: MyWeeklyRank;
+  gradeBand: GradeBand | null;
   subline: Subline | null;
   foodA: number;
   foodB: number;
@@ -134,7 +137,7 @@ export default function PetCard({
 
       {/* 1.5 weekly leaderboard — ทดลอง (2026-07) collapsed แถวเดียว กดขยาย Top 5 in-place อยู่ใต้
           journey strip ทันที เหนือ nameplate/avatar ของ pet card หลัก ดู WeeklyLeaderboardCard.tsx */}
-      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} />
+      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
 
       {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
           เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ

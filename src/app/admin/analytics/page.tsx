@@ -3,7 +3,7 @@ import { Crown } from "lucide-react";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SUBLINE_LABEL } from "@/lib/labels";
-import { getWeeklyLeaderboardTopN } from "@/lib/weeklyLeaderboard";
+import { getWeeklyLeaderboardTopN, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
 import StatTile from "@/components/admin/StatTile";
 import BarChartCard, { CHART_AMBER, CHART_INDIGO, CHART_RED } from "@/components/admin/BarChartCard";
 import QuestionsPerDayChart, { type QuestionsPerDayDatum } from "@/components/admin/QuestionsPerDayChart";
@@ -114,25 +114,39 @@ export default async function AdminAnalyticsPage() {
 
   const admin = createAdminClient();
 
-  const [usersListRes, allEvents, eggTypesRes, playerEggsRes, petsRes, allAttempts, profsRes, weeklyLeaderboard] =
-    await Promise.all([
-      // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
-      admin.auth.admin.listUsers({ perPage: 1000 }),
-      // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
-      // collection_slot_click / session duration) เป็น subset ของ "ทุก event 14 วัน" ก้อนเดียว
-      fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
-      admin.from("egg_types").select("id, name_th"),
-      // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
-      admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
-      admin.from("pets").select("id, stage, is_active"),
-      // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
-      fetchAllAttempts(admin),
-      admin.from("profiles").select("id, username, grade_band"),
-      // สูตรแต้มเดียวกับที่ /pet ใช้ (weekly_scores_bkk, migration 021_weekly_leaderboard.sql) แต่โชว์
-      // Top 10 แทน Top 5 ของการ์ดผู้เล่น — ดู getWeeklyLeaderboardTopN สำหรับเหตุผลที่ไม่เรียก
-      // get_weekly_leaderboard() RPC ตรงๆ (RPC นั้น hardcode limit 5)
-      getWeeklyLeaderboardTopN(admin, 10),
-    ]);
+  const [
+    usersListRes,
+    allEvents,
+    eggTypesRes,
+    playerEggsRes,
+    petsRes,
+    allAttempts,
+    profsRes,
+    weeklyLeaderboardJunior,
+    weeklyLeaderboardSenior,
+  ] = await Promise.all([
+    // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+    // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer / screen_view / egg_selected /
+    // collection_slot_click / session duration) เป็น subset ของ "ทุก event 14 วัน" ก้อนเดียว
+    fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
+    admin.from("egg_types").select("id, name_th"),
+    // egg funnel: นับทั้งหมด (all-time) ไม่ใช้ analytics_events เพราะข้อมูล player_eggs/pets แม่นกว่า
+    admin.from("player_eggs").select("hatched_at, hatched_pet_id"),
+    admin.from("pets").select("id, stage, is_active"),
+    // active-today + leaderboards: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
+    fetchAllAttempts(admin),
+    admin.from("profiles").select("id, username, grade_band"),
+    // สูตรแต้มเดียวกับที่ /pet ใช้ (weekly_scores_bkk, migration 021_weekly_leaderboard.sql) แต่โชว์
+    // Top 10 แทน Top 5 ของการ์ดผู้เล่น — ดู getWeeklyLeaderboardTopN สำหรับเหตุผลที่ไม่เรียก
+    // get_weekly_leaderboard() RPC ตรงๆ (RPC นั้น hardcode limit 5)
+    //
+    // phase 3 (แผนแยก junior/senior): เรียกแยก 2 ครั้งด้วย gradeBand คนละค่า แทนเรียกครั้งเดียว
+    // ไม่กรอง — pool ของแต่ละกลุ่มถูกกรองจริงฝั่ง SQL (weekly_scores_bkk filter ก่อน rank() คำนวณ)
+    // ไม่ใช่แค่กรองผลลัพธ์รวมที่ mix กันมาแล้วฝั่ง client
+    getWeeklyLeaderboardTopN(admin, 10, "junior"),
+    getWeeklyLeaderboardTopN(admin, 10, "senior"),
+  ]);
 
   const adminUserIds = new Set(
     (usersListRes.data?.users ?? [])
@@ -449,6 +463,51 @@ export default async function AdminAnalyticsPage() {
     { label: "Stage 4", count: allPets.filter((p) => p.stage >= 4).length },
   ];
 
+  // phase 3 (แผนแยก junior/senior): ตาราง Weekly Leaderboard (ทดลอง) แยกเป็น 2 กลุ่มจริง — ใช้
+  // bandLabel เดิม (ประกาศด้านบน) ทั้ง heading และ empty state กันข้อความไม่ตรงกับ 2 ตาราง
+  // "ตอบมากสุด"/"แม่นสุด" ที่ยังไม่แยก (คนละ data source กัน ไม่ต้องแตะ)
+  function renderWeeklyLeaderboardTable(rows: LeaderboardEntry[], band: "junior" | "senior") {
+    if (rows.length === 0) {
+      return (
+        <p className="py-8 text-center text-sm text-text3">
+          ยังไม่มีข้อมูลกลุ่ม {bandLabel(band)} ในสัปดาห์นี้
+        </p>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b border-border text-xs text-text3">
+              <th className="py-2 pr-3 font-medium">อันดับ</th>
+              <th className="py-2 pr-3 font-medium">ชื่อ</th>
+              <th className="py-2 pr-3 font-medium text-right">แต้ม</th>
+              <th className="py-2 pr-3 font-medium text-right">ความแม่น</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row.rnk}-${row.username}`} className="border-b border-border/50">
+                <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
+                  <span className="inline-flex items-center gap-1">
+                    {row.rnk === 1 && <Crown size={14} className="text-gold" />}
+                    {row.rnk}
+                  </span>
+                </td>
+                <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
+                  {row.username}
+                </td>
+                <td className="py-2 pr-3 text-right text-text2">{row.total_points.toLocaleString("th-TH")}</td>
+                <td className="py-2 pr-3 text-right text-text3">{row.accuracy.toFixed(0)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-6 p-6 pb-16">
       <div>
@@ -557,43 +616,26 @@ export default async function AdminAnalyticsPage() {
       </div>
 
       {/* Weekly Leaderboard (ทดลอง) — ตารางเดียวกับที่โชว์ใน WeeklyLeaderboardCard บน /pet ทุกประการ
-          (get_weekly_leaderboard RPC) ต่างจาก 2 การ์ดข้างบนตรงนี้ใช้สูตรแต้มในเกมจริง (ถูก+2/ผิด+1
-          cap 40/วัน + ภารกิจสำเร็จ+10 cap 50/วัน) ไม่ใช่ raw answer count */}
-      <ChartCard title="Weekly Leaderboard (ทดลอง)" subtitle="Top 10 สัปดาห์นี้ (จ-อา) — สูตรแต้มเดียวกับที่โชว์ผู้เล่นใน /pet">
-        {weeklyLeaderboard.length === 0 ? (
-          <p className="py-8 text-center text-sm text-text3">ยังไม่มีใครทำแต้มสัปดาห์นี้</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs text-text3">
-                  <th className="py-2 pr-3 font-medium">อันดับ</th>
-                  <th className="py-2 pr-3 font-medium">ชื่อ</th>
-                  <th className="py-2 pr-3 font-medium text-right">แต้ม</th>
-                  <th className="py-2 pr-3 font-medium text-right">ความแม่น</th>
-                </tr>
-              </thead>
-              <tbody>
-                {weeklyLeaderboard.map((row) => (
-                  <tr key={`${row.rnk}-${row.username}`} className="border-b border-border/50">
-                    <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
-                      <span className="inline-flex items-center gap-1">
-                        {row.rnk === 1 && <Crown size={14} className="text-gold" />}
-                        {row.rnk}
-                      </span>
-                    </td>
-                    <td className={`py-2 pr-3 ${row.rnk === 1 ? "font-bold text-gold-hi" : "text-text"}`}>
-                      {row.username}
-                    </td>
-                    <td className="py-2 pr-3 text-right text-text2">{row.total_points.toLocaleString("th-TH")}</td>
-                    <td className="py-2 pr-3 text-right text-text3">{row.accuracy.toFixed(0)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </ChartCard>
+          (get_weekly_leaderboard/weekly_scores_bkk RPC) ต่างจาก 2 การ์ดข้างบนตรงนี้ใช้สูตรแต้มในเกมจริง
+          (ถูก+2/ผิด+1 cap 40/วัน + ภารกิจสำเร็จ+10 cap 50/วัน) ไม่ใช่ raw answer count
+          phase 3 (แผนแยก junior/senior): แยก 2 ตารางจริงตาม grade_band (pool คำนวณแยกกันฝั่ง SQL ผ่าน
+          weekly_scores_bkk(p_grade_band) ไม่ใช่กรองผลลัพธ์รวมฝั่งนี้) — ใช้ bandLabel เดิมด้านบนเป็น
+          heading + empty state ห้ามคิด wording ใหม่ */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ChartCard
+          title={`Weekly Leaderboard (ทดลอง) · ${bandLabel("junior")}`}
+          subtitle="Top 10 สัปดาห์นี้ (จ-อา) — สูตรแต้มเดียวกับที่โชว์ผู้เล่นใน /pet"
+        >
+          {renderWeeklyLeaderboardTable(weeklyLeaderboardJunior, "junior")}
+        </ChartCard>
+
+        <ChartCard
+          title={`Weekly Leaderboard (ทดลอง) · ${bandLabel("senior")}`}
+          subtitle="Top 10 สัปดาห์นี้ (จ-อา) — สูตรแต้มเดียวกับที่โชว์ผู้เล่นใน /pet"
+        >
+          {renderWeeklyLeaderboardTable(weeklyLeaderboardSenior, "senior")}
+        </ChartCard>
+      </div>
 
       {/* บล็อก 2: คำถามต่อวัน */}
       <ChartCard title="คำถามต่อวัน" subtitle={`${DETAIL_WINDOW_DAYS} วันล่าสุด`}>

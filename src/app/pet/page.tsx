@@ -10,6 +10,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
 import { getMyWeeklyRank, type MyWeeklyRank } from "@/lib/weeklyLeaderboard";
+import { getGradeBand, type GradeBand } from "@/lib/gradeBand";
 import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
@@ -65,8 +66,15 @@ export default async function PetPage({
   let mission: TodayMissionResult | null = null;
   let foodInventory: FoodInventory = { A: 0, B: 0 };
   let myWeeklyRank: MyWeeklyRank = { hasRank: false };
+  let gradeBand: GradeBand | null = null;
 
   if (user) {
+    // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
+    // getMyWeeklyRank ด้านล่าง — .catch เผื่อไว้ (getGradeBand เองไม่ throw อยู่แล้ว แต่กันไว้อีกชั้น
+    // ไม่ให้ Promise.all ทั้งก้อนพังถ้ามีอะไรผิดปกติจริงๆ) อ้าง promise เดิมซ้ำสองที่ด้านล่างไม่ทำให้
+    // ยิง query ซ้ำ (resolved ค่าเดิมจากที่เดียว)
+    const gradeBandPromise = getGradeBand(user.id).catch(() => "junior" as GradeBand);
+
     const [
       { data },
       { data: eggTypeRows },
@@ -75,6 +83,7 @@ export default async function PetPage({
       missionResult,
       foodResult,
       myWeeklyRankResult,
+      gradeBandResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -99,10 +108,19 @@ export default async function PetPage({
       }),
       getPlayerFoodInventory(supabase, user.id),
       // เช่นเดียวกับภารกิจ — การ์ด leaderboard เป็นของเสริม พังไม่ควรทำทั้งหน้า /pet ล่ม
-      getMyWeeklyRank(supabase, user.id).catch((err) => {
-        console.error("getMyWeeklyRank failed:", err);
-        return { hasRank: false } as MyWeeklyRank;
-      }),
+      // ต้องรู้ grade_band ก่อนถึงจะเรียก getMyWeeklyRank ได้ (RPC overload ใหม่ไม่มี default
+      // ต้องส่ง p_grade_band เสมอ) — หน้านี้ไม่เคย query profiles เลย ใช้ getGradeBand() ตัวเดิม
+      // ที่ quiz/actions.ts และ missions.ts ใช้อยู่แล้วแทนการ query เอง (อ่านผ่าน admin client
+      // กัน RLS ของ profiles คืน null เงียบๆ ตามที่ src/lib/gradeBand.ts เตือนไว้)
+      gradeBandPromise
+        .then((band) => getMyWeeklyRank(supabase, user.id, band))
+        .catch((err) => {
+          console.error("getMyWeeklyRank failed:", err);
+          return { hasRank: false } as MyWeeklyRank;
+        }),
+      // phase 3: PetCard ต้อง gradeBand ไปโชว์ label กลุ่มบน WeeklyLeaderboardCard ด้วย —
+      // reuse promise เดียวกับด้านบน (ดูคอมเมนต์ต้นบล็อก)
+      gradeBandPromise,
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -110,6 +128,7 @@ export default async function PetPage({
     mission = missionResult;
     foodInventory = foodResult;
     myWeeklyRank = myWeeklyRankResult;
+    gradeBand = gradeBandResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -208,6 +227,7 @@ export default async function PetPage({
           topicStats={topicStats}
           mission={mission}
           myWeeklyRank={myWeeklyRank}
+          gradeBand={gradeBand}
           subline={(subline ?? null) as Subline | null}
           foodA={foodInventory.A}
           foodB={foodInventory.B}

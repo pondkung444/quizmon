@@ -10,6 +10,7 @@ import {
 } from "@/lib/evolution";
 import { getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyLeaderboard, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
+import { getGradeBand } from "@/lib/gradeBand";
 
 export async function collectPet(): Promise<{ collected: true }> {
   const supabase = await createClient();
@@ -324,8 +325,18 @@ export async function feedPet(petId: string, foodType: "A" | "B"): Promise<FeedP
 
 // Top 5 ของสัปดาห์นี้ — เรียกเฉพาะตอนกดขยาย WeeklyLeaderboardCard ครั้งแรก (lazy) ไม่ใช่ตอนโหลดหน้า
 // /pet ทุกครั้ง (get_my_weekly_rank เบากว่าใช้ query ตอน render หน้าแทน ดู getMyWeeklyRank ใน page.tsx)
-// RPC นี้ public ไม่ผูก user เลย เรียกผ่าน server action ได้ตรงๆ ไม่ต้องเช็ค session
+//
+// เดิม RPC นี้ public ไม่ผูก user เลย เรียกได้ตรงๆ ไม่ต้องเช็ค session — ตอนนี้ต้องรู้ grade_band
+// ของผู้เรียกก่อนถึงจะกรอง leaderboard ได้ จึงต้องผูก session แล้ว (pattern เดียวกับ action อื่น
+// ในไฟล์นี้ทั้งหมด — throw เมื่อไม่มี user, ฝั่ง WeeklyLeaderboardCard.tsx catch ไว้อยู่แล้วจะ
+// แสดง list ว่างเปล่าเงียบๆ ไม่ทำหน้าอื่นพัง)
 export async function getWeeklyLeaderboardTop5(): Promise<LeaderboardEntry[]> {
   const supabase = await createClient();
-  return getWeeklyLeaderboard(supabase);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const band = await getGradeBand(user.id);
+  return getWeeklyLeaderboard(supabase, band);
 }

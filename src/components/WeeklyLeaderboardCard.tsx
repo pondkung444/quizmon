@@ -4,6 +4,14 @@ import { useState } from "react";
 import { Trophy, Crown, ChevronDown, Flame } from "lucide-react";
 import { getWeeklyLeaderboardTop5 } from "@/app/pet/actions";
 import type { LeaderboardEntry, MyWeeklyRank } from "@/lib/weeklyLeaderboard";
+import type { GradeBand } from "@/lib/gradeBand";
+
+// ข้อความ ม.ต้น/ม.ปลาย ต้องตรงกับ bandLabel() ใน src/app/admin/analytics/page.tsx เป๊ะๆ (คนละไฟล์
+// ไม่มี export กลางให้ import ร่วมกัน — ห้ามคิด wording ใหม่ถ้าจะแก้ ให้ sync คู่กับที่นั่นด้วย)
+const GRADE_BAND_LABEL_TH: Record<GradeBand, string> = {
+  junior: "ม.ต้น",
+  senior: "ม.ปลาย",
+};
 
 // collapsed-by-default บรรทัดเดียว แตะขยายเป็น Top 5 in-place — ไม่ใช่การ์ดใหญ่ถาวร เพื่อไม่เพิ่ม
 // ความสูงหน้า /pet ตอนปิด ดู game-design-document-v6.md หมวด Weekly Journey สำหรับ pattern เดิมที่
@@ -12,7 +20,13 @@ import type { LeaderboardEntry, MyWeeklyRank } from "@/lib/weeklyLeaderboard";
 // myWeeklyRank มาจาก getMyWeeklyRank() ที่ page.tsx fetch ให้แล้ว (เบา, มาพร้อม initial render ไม่ต้อง
 // รอ client fetch) ส่วน Top 5 เต็ม (get_weekly_leaderboard) lazy-load เฉพาะตอนกดขยายครั้งแรกเท่านั้น
 // (state top5 เก็บว่าเคยโหลดหรือยัง — null = ยังไม่เคยโหลด ไม่ fetch ซ้ำทุกครั้งที่ toggle)
-export default function WeeklyLeaderboardCard({ myWeeklyRank }: { myWeeklyRank: MyWeeklyRank }) {
+export default function WeeklyLeaderboardCard({
+  myWeeklyRank,
+  gradeBand,
+}: {
+  myWeeklyRank: MyWeeklyRank;
+  gradeBand: GradeBand | null;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [top5, setTop5] = useState<LeaderboardEntry[] | null>(null);
   const [loadingTop5, setLoadingTop5] = useState(false);
@@ -30,6 +44,13 @@ export default function WeeklyLeaderboardCard({ myWeeklyRank }: { myWeeklyRank: 
   }
 
   const { inTop5, myRank, band, points, pointsToNext } = myWeeklyRank;
+
+  // gradeBand ("junior"/"senior") มาจาก profiles ผ่าน getGradeBand() คนละความหมายกับ band ด้านบน
+  // (percentile tier "top"/"mid"/"start" ของ myWeeklyRank) — null เกิดได้ถ้า parent ยังไม่มี user
+  // (ไม่ควรถึงจุดนี้จริงในทางปฏิบัติเพราะเงื่อนไข hasRank กรองไปแล้ว) fallback เป็น junior ให้ตรงกับ
+  // ค่า default ของ getGradeBand() เอง
+  const groupLabelTh = GRADE_BAND_LABEL_TH[gradeBand ?? "junior"];
+  const weekPrefix = `อันดับสัปดาห์นี้ (${groupLabelTh})`;
 
   async function handleToggle() {
     const next = !expanded;
@@ -53,7 +74,7 @@ export default function WeeklyLeaderboardCard({ myWeeklyRank }: { myWeeklyRank: 
   let icon = <Trophy size={18} className="shrink-0 text-gold" />;
 
   if (inTop5) {
-    headline = `อันดับสัปดาห์นี้ · อันดับ ${myRank}`;
+    headline = `${weekPrefix} · อันดับ ${myRank}`;
     if (myRank === 1) {
       icon = <Crown size={18} className="shrink-0 text-gold-hi" />;
       subline = "🏆 อันดับ 1 ของสัปดาห์!";
@@ -65,13 +86,13 @@ export default function WeeklyLeaderboardCard({ myWeeklyRank }: { myWeeklyRank: 
     }
   } else if (band === "top") {
     icon = <Flame size={18} className="shrink-0 text-amber" />;
-    headline = `อันดับสัปดาห์นี้ · ราวอันดับ ${myRank}`;
+    headline = `${weekPrefix} · ราวอันดับ ${myRank}`;
     subline = `🔥 กลุ่มหัวตาราง · อีก ${pointsToNext ?? 0} แต้มขึ้น Top 5`;
   } else if (band === "mid") {
-    headline = `อันดับสัปดาห์นี้ · ราวอันดับ ${myRank}`;
+    headline = `${weekPrefix} · ราวอันดับ ${myRank}`;
     subline = `🌱 กลางตาราง · อีก ${pointsToNext ?? 0} แต้มขยับขึ้น`;
   } else {
-    headline = `อันดับสัปดาห์นี้ · ราวอันดับ ${myRank}`;
+    headline = `${weekPrefix} · ราวอันดับ ${myRank}`;
     subline = "✨ กำลังเริ่ม · ทุกวันที่มาช่วยไต่อันดับได้";
   }
 
