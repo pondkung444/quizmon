@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
+import type { QuizRoundQuestion, QuizMode, Subject, SeniorBranch } from "@/types/quiz";
+import type { GradeBand } from "@/lib/gradeBand";
 import {
   startQuizRound,
   submitAnswer,
@@ -44,6 +45,12 @@ const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
   { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
+];
+
+const SENIOR_MODES: { id: SeniorBranch; label: string; emoji: string }[] = [
+  { id: "physics", label: "ฟิสิกส์", emoji: "⚛️" },
+  { id: "chemistry", label: "เคมี", emoji: "⚗️" },
+  { id: "biology", label: "ชีวะ", emoji: "🧬" },
 ];
 
 type Phase = "select" | "loading" | "playing" | "chooseFood" | "summary";
@@ -91,12 +98,14 @@ export default function QuizClient({
   petEvolutionProgress = 0,
   petDailyCapped = false,
   initialMissionId = null,
+  gradeBand = "junior",
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
   petEvolutionProgress?: number;
   petDailyCapped?: boolean;
   initialMissionId?: string | null;
+  gradeBand?: GradeBand;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
@@ -484,7 +493,7 @@ export default function QuizClient({
         )}
 
         <div className="flex flex-col gap-4">
-          {MODES.map((m) => (
+          {(gradeBand === "senior" ? SENIOR_MODES : MODES).map((m) => (
             <button
               key={m.id}
               type="button"

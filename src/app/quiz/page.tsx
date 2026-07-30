@@ -3,6 +3,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { getPersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evolution";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getGradeBand } from "@/lib/gradeBand";
 import QuizClient from "@/components/QuizClient";
 
 export default async function QuizPage({
@@ -15,6 +16,7 @@ export default async function QuizPage({
 
   const supabase = await createClient();
   const user = await getUser();
+  const gradeBand = user ? await getGradeBand(user.id) : "junior";
 
   let pet: {
     stage: number;
@@ -69,6 +71,7 @@ export default async function QuizPage({
         petEvolutionProgress={petEvolutionProgress}
         petDailyCapped={petDailyCapped}
         initialMissionId={initialMissionId}
+        gradeBand={gradeBand}
       />
     </main>
   );

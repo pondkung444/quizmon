@@ -1,7 +1,12 @@
 export type Subject = "math" | "science";
 
-// ใช้เลือกโหมดของ "รอบ" quiz ไม่ใช่ subject ของคำถามแต่ละข้อ (questions.subject มีแค่ math/science เสมอ)
-export type QuizMode = Subject;
+// สายฝึกของ senior (ม.6) — คนละมิติกับ Subject เดิม (questions.subject ยังมีแค่ math/science เสมอ
+// แม้แถวที่มี branch: branch=physics -> subject=math, branch=chemistry/biology -> subject=science)
+export type SeniorBranch = "physics" | "chemistry" | "biology";
+
+// ใช้เลือกโหมดของ "รอบ" quiz ไม่ใช่ subject ของคำถามแต่ละข้อ — junior ส่ง Subject (math/science) เดิม,
+// senior ส่ง SeniorBranch (physics/chemistry/biology) แทน
+export type QuizMode = Subject | SeniorBranch;
 
 // เวอร์ชันพื้นฐาน ไม่มีเฉลย — ใช้เป็น base type เท่านั้น
 export type PublicQuestion = {
