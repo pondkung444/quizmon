@@ -159,7 +159,13 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     mode = input.mode;
   }
 
-  if (mode !== "math" && mode !== "science") {
+  // senior เลือกฝึกจากปุ่มสาย (physics/chemistry/biology) แทน subject เดิม — ต้อง filter ด้วย branch
+  // เท่านั้น ไม่ใช่ subject เพราะเคมี/ชีวะ subject เดียวกัน (science) กรองด้วย subject จะได้โจทย์ปนสาย
+  const isSeniorBranchMode = mode === "physics" || mode === "chemistry" || mode === "biology";
+
+  if (input.type === "practice" && band === "senior") {
+    if (!isSeniorBranchMode) throw new Error("โหมดไม่ถูกต้อง");
+  } else if (isSeniorBranchMode || (mode !== "math" && mode !== "science")) {
     throw new Error("โหมดไม่ถูกต้อง");
   }
 
@@ -168,8 +174,8 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       .from("questions")
       .select("id")
       .eq("status", "active")
-      .eq("subject", mode)
       .in("grade_band", visibleBands(band));
+    q = isSeniorBranchMode ? q.eq("branch", mode) : q.eq("subject", mode);
     if (categoryFilter) q = q.eq("category", categoryFilter);
     if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
     return q.range(from, to);
