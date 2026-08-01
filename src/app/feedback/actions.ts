@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getTodayInBangkok } from "@/lib/exp";
+
+const MIN_DISTINCT_PLAY_DAYS = 3;
 
 const MOODS = ["great", "good", "neutral", "bad"] as const;
 const FRICTIONS = ["no_start_button", "pet_growth_unclear", "exp_unclear", "none"] as const;
@@ -78,8 +81,18 @@ export async function submitFeedback(input: FeedbackInput): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// นับจำนวนวัน (distinct, อิงปฏิทิน Asia/Bangkok) ที่ user มีแถว quiz_attempts อย่างน้อย 1 แถว —
+// แปลงเป็นวันไทยก่อนนับเสมอ (ห้ามนับ UTC date ตรงๆ เพราะแถวช่วงหลังเที่ยงคืน UTC จะเลื่อนวันผิด)
+// ใช้ getTodayInBangkok() ตัวเดียวกับที่ weeklyJourney.ts/missions.ts ใช้แปลง timestamp -> วันไทย
+// ไม่ limit จำนวนแถว (ตาราง quiz_attempts ทั้งระบบยังหลักพันแถว ต่อ user ยิ่งน้อยกว่ามาก โอเคที่จะดึงเต็ม)
+async function getDistinctPlayDaysCount(supabase: SupabaseServerClient, userId: string): Promise<number> {
+  const { data } = await supabase.from("quiz_attempts").select("created_at").eq("user_id", userId);
+  const days = new Set((data ?? []).map((row) => getTodayInBangkok(new Date(row.created_at as string))));
+  return days.size;
+}
+
 // เช็คว่าควรเปิด feedback popup อัตโนมัติหลังภารกิจไหม — เรียกจาก QuizClient ตอนปิด popup อาหารแล้ว
-// (ไม่ใช่ปุ่มถาวรที่ /pet ซึ่งเปิดได้ไม่จำกัดครั้งโดยไม่เช็คเงื่อนไขนี้)
+// (ไม่ใช่ปุ่มถาวรที่ /pet ซึ่งเปิดได้ไม่จำกัดครั้งโดยไม่เช็คเงื่อนไขนี้ ไม่ผ่านเงื่อนไขนี้เลย)
 export async function shouldShowFeedbackPrompt(): Promise<boolean> {
   const supabase = await createClient();
   const {
@@ -96,9 +109,16 @@ export async function shouldShowFeedbackPrompt(): Promise<boolean> {
   const userEmail = user.email?.toLowerCase();
   if (userEmail && adminEmails.includes(userEmail)) return false;
 
+  // ต้องเล่นมาแล้วมากกว่า 3 วัน (>=4 วันที่ต่างกัน) ถึงจะเริ่มถามอัตโนมัติ — เด็กที่เพิ่งมาเล่นวันแรกๆ
+  // ยังไม่รู้จักฟีเจอร์พอจะให้ความเห็นที่มีความหมาย
+  const [distinctPlayDays, { data: existingFeedback }] = await Promise.all([
+    getDistinctPlayDaysCount(supabase, user.id),
+    supabase.from("player_feedback").select("id").eq("user_id", user.id).limit(1).maybeSingle(),
+  ]);
+  if (distinctPlayDays <= MIN_DISTINCT_PLAY_DAYS) return false;
+
   // เคยตอบไปแล้ว (แถวไหนก็ได้ ไม่จำกัด source) = ไม่ต้องถามอัตโนมัติซ้ำอีก รอบทดสอบนี้ถามครั้งเดียวพอ
-  const { data } = await supabase.from("player_feedback").select("id").eq("user_id", user.id).limit(1).maybeSingle();
-  return !data;
+  return !existingFeedback;
 }
 
 export type WrongQuestionOption = { id: number; questionText: string; category: string };
