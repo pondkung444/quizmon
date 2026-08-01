@@ -29,6 +29,10 @@
 -- sync เลยตั้งแต่สร้าง) เลย backfill กลับเข้ามาพร้อมกันรอบนี้ ยืนยัน definition จริงจาก
 -- production ผ่าน pg_get_functiondef ตรงๆ (ดูท้ายไฟล์)
 --
+-- 20260801151015 (player_feedback_survey): เพิ่มตาราง player_feedback (แบบสำรวจความคิดเห็น
+-- tester) — sync จาก production ตรงๆ ผ่าน pg_policies/information_schema (ยืนยัน free_text เป็น
+-- varchar(60) จริง ไม่ใช่ check constraint แยก)
+--
 -- ส่วนที่ตกหล่นจากรอบก่อน (001-013):
 -- seed data + RLS ของ egg_types (001), check constraint ของ pets/egg_types (001),
 -- egg_type_id not null (001), hatched_at not null default now() (001),
@@ -736,4 +740,45 @@ grant execute on function public.current_week_bounds_bkk()      to authenticated
 grant execute on function public.weekly_scores_bkk(text)        to authenticated;
 grant execute on function public.get_weekly_leaderboard(text)   to authenticated;
 grant execute on function public.get_my_weekly_rank(uuid)       to authenticated;
+
+-- 20260801151015 (player_feedback_survey): แบบสำรวจความคิดเห็น tester (feedback popup) —
+-- append-only, insert/select เฉพาะแถวของตัวเอง (pattern เดียวกับ qmon_messages) user_id เก็บไว้
+-- เพื่อ safety follow-up เท่านั้น ห้ามโชว์ตัวตนในหน้า aggregate/admin (masking ทำที่ชั้น UI/query)
+create table public.player_feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  pet_id uuid references public.pets(id) on delete set null,
+  mood text not null check (mood in ('great','good','neutral','bad')),
+  friction text[] not null default '{}'
+    check (friction <@ array['no_start_button','pet_growth_unclear','exp_unclear','none']),
+  content_difficulty text not null check (content_difficulty in ('good','hard','too_hard')),
+  -- เฉพาะตอน content_difficulty = 'too_hard' — id คำถามที่ผู้เล่นแตะเลือกจาก 3 ข้อล่าสุดที่ตอบผิด
+  -- ไม่มี FK ตั้งใจ (คำถามลบ/ปิด active ภายหลังไม่ควรทำให้แถว feedback เก่าอ่านไม่ได้)
+  flagged_question_ids bigint[] not null default '{}',
+  graphics_rating text not null check (graphics_rating in ('love','good','neutral','dislike')),
+  graphics_issues text[] not null default '{}'
+    check (graphics_issues <@ array['sprites_similar','theme_dull','text_hard_read','effects_plain','none']),
+  wants text[] not null default '{}'
+    check (wants <@ array['more_subjects','more_qmon_chat','see_classmates','other']),
+  -- ความยาวคุมที่ชั้น DB ตรงๆ ผ่าน varchar(60) (ไม่ใช้ check constraint แยก) — server action
+  -- ยัง validate ซ้ำก่อน insert เป็น defense in depth ชั้นแรก
+  free_text varchar(60),
+  source text not null default 'popup',
+  created_at timestamptz not null default now()
+);
+
+comment on table public.player_feedback is
+  'คำตอบแบบสำรวจความคิดเห็น tester — append-only ห้าม update/delete. user_id เก็บไว้เพื่อ safety follow-up เท่านั้น ห้ามโชว์ตัวตนในหน้า aggregate/admin (masking ทำที่ชั้น UI/query)';
+
+alter table public.player_feedback enable row level security;
+
+create policy "player_feedback: insert own"
+  on public.player_feedback
+  for insert
+  with check (auth.uid() = user_id);
+
+create policy "player_feedback: select own"
+  on public.player_feedback
+  for select
+  using (auth.uid() = user_id);
 grant execute on function public.get_my_weekly_rank(uuid, text) to authenticated;

@@ -25,6 +25,8 @@ import type { PersonalityKey } from "@/lib/personality";
 import type { PersonalityEventKey } from "@/lib/personalityMessages";
 import { track } from "@/lib/analytics";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
+import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
+import FeedbackModal from "@/components/FeedbackModal";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -130,6 +132,10 @@ export default function QuizClient({
   // ผลจากเช็ค+เคลมโบนัสตอนจบภารกิจ (claimMissionBonus) — null ถ้ายังไม่เรียก/เรียกไม่สำเร็จ
   const [missionClaim, setMissionClaim] = useState<ClaimMissionBonusResult | null>(null);
   const [missionClaimFailed, setMissionClaimFailed] = useState(false);
+  // feedback popup ต่อท้าย flow เคลมโบนัสภารกิจ (เรียงต่อกับ popup อาหาร ไม่ซ้อนพร้อมกัน) — เปิดก็ต่อเมื่อ
+  // shouldShowFeedbackPrompt() ผ่าน (ไม่ใช่ admin + ยังไม่เคยตอบ) ดู maybeShowFeedbackPrompt ด้านล่าง
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackPetId, setFeedbackPetId] = useState<string | null>(null);
   // กัน useEffect เรียก handleStartMission ซ้ำ (เช่น React StrictMode dev เรียก effect 2 ครั้ง)
   const missionStartedRef = useRef(false);
   const pendingSubmissionsRef = useRef<Promise<BackgroundSubmission>[]>([]);
@@ -191,6 +197,8 @@ export default function QuizClient({
     setMissionInfo(null);
     setMissionClaim(null);
     setMissionClaimFailed(false);
+    setShowFeedbackModal(false);
+    setFeedbackPetId(null);
     pendingSubmissionsRef.current = [];
     submissionQueueRef.current = Promise.resolve();
     // เริ่มรอบใหม่ = บริบทเปลี่ยน กันข้อความค้างจากรอบก่อนเด้งแทรกรอบใหม่แบบหลุดบริบท
@@ -239,6 +247,21 @@ export default function QuizClient({
     }
   }
 
+  // เช็ค+เปิด feedback popup อัตโนมัติ — เรียกหลังปิด popup อาหารแล้วเท่านั้น (เรียงต่อกัน ไม่ซ้อน
+  // พร้อมกัน) ข้ามถ้า reachedStage4 (PersonalityDecisionModal เต็มจอจะโชว์แทนในเฟส summary เดียวกัน
+  // กันสอง modal ซ้อนกัน — รอบหน้าที่ทำภารกิจสำเร็จ ค่อยมีโอกาสเจอ prompt นี้อีกถ้ายังไม่เคยตอบ)
+  async function maybeShowFeedbackPrompt(petId: string | null) {
+    try {
+      const eligible = await shouldShowFeedbackPrompt();
+      if (!eligible) return;
+      setFeedbackPetId(petId);
+      setShowFeedbackModal(true);
+      track("feedback_prompt_shown", { trigger: "post_mission" }, petId);
+    } catch {
+      // เช็ค eligibility พังไม่ควรทำให้จอสรุปภารกิจพังตาม — แค่ไม่เปิด popup รอบนี้
+    }
+  }
+
   // เรียกจากปุ่มเลือกอาหารในเฟส "chooseFood" (เฉพาะโหมดภารกิจ) — เคลมโบนัสพร้อมชนิดอาหารที่เลือก
   // แล้วรัน post-round events ต่อ (เดิมรันทันทีใน handleNext แต่ตอนนี้ต้องรอเลือกอาหารก่อน)
   function handleChooseFood(foodType: "A" | "B") {
@@ -260,6 +283,9 @@ export default function QuizClient({
         correct_count: missionCorrectCount,
       });
       if (currentSummary) runPostRoundEvents(currentSummary);
+      if (!currentSummary?.reachedStage4) {
+        await maybeShowFeedbackPrompt(currentSummary?.petId ?? null);
+      }
     });
   }
 
@@ -713,6 +739,7 @@ export default function QuizClient({
     return (
       <div className="flex flex-col gap-6 text-center">
         {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
+        {showFeedbackModal && <FeedbackModal petId={feedbackPetId} onClose={() => setShowFeedbackModal(false)} />}
 
         <div className="flex justify-center">
           <SpeechBubble

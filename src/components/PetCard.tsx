@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, MessageSquare } from "lucide-react";
+import FeedbackModal from "@/components/FeedbackModal";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -97,6 +98,9 @@ export default function PetCard({
   const [expanded, setExpanded] = useState(false);
   const [tapPulse, setTapPulse] = useState(0);
   const [showTopicStats, setShowTopicStats] = useState(false);
+  // ปุ่มถาวรเปิด feedback popup เอง — คนละกลไกกับ auto-trigger หลังภารกิจใน QuizClient.tsx (ไม่เช็ค
+  // ADMIN_EMAILS/เคยตอบไปหรือยัง เปิดได้ไม่จำกัดจำนวนครั้ง)
+  const [showFeedback, setShowFeedback] = useState(false);
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
 
@@ -293,14 +297,24 @@ export default function PetCard({
           ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)
           "ขอแรงใจ" ย้ายออกจากแถวนี้ไปเป็น floating chat bubble แล้ว (ดู QmonChatBubble.tsx —
           จับคู่ผิดกลุ่มกับปุ่ม "สถิติ" ที่เป็น data view ไม่ใช่การคุยกับสัตว์เลี้ยง) */}
-      <button
-        type="button"
-        onClick={() => setShowTopicStats(true)}
-        className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
-      >
-        <BarChart3 size={18} />
-        สถิติ
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setShowTopicStats(true)}
+          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+        >
+          <BarChart3 size={18} />
+          สถิติ
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowFeedback(true)}
+          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+        >
+          <MessageSquare size={18} />
+          ความคิดเห็น
+        </button>
+      </div>
       {showTopicStats && (
         <TopicStatsSheet
           stats={topicStats}
@@ -308,6 +322,7 @@ export default function PetCard({
           onClose={() => setShowTopicStats(false)}
         />
       )}
+      {showFeedback && <FeedbackModal petId={petId} onClose={() => setShowFeedback(false)} />}
 
       {/* 7. expandable detail */}
       {expanded && isMaxStage && hasFullStats && (
