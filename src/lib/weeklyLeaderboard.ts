@@ -86,22 +86,25 @@ export async function getWeeklyLeaderboard(
 // ได้อันดับเดียวกัน อันดับถัดไปข้ามเลข ตาม standard competition ranking)
 //
 // gradeBand optional เหมือน getWeeklyLeaderboard — undefined = p_grade_band null (ทุก band)
-// หมายเหตุจาก survey phase 0: weekly_scores_bkk() คืน user_id มาด้วยจริง แต่จงใจไม่ cast ผ่านมา
-// ในผลลัพธ์ตรงนี้ — ยังไม่มี caller ไหนต้องใช้ user_id (caller ในอนาคตเรียกแยกทีละ band อยู่แล้ว
-// ผ่าน gradeBand พารามิเตอร์นี้โดยตรง ไม่ต้อง join กับ grade_band ฝั่ง client อีก) เพิ่มไว้เฉยๆ
-// โดยไม่มีผู้ใช้จริงจะกลายเป็น dead field
+//
+// userIdFilter (เพิ่มโดย admin analytics school filter): weekly_scores_bkk() คืน user_id มาด้วยจริง
+// (ดู migration 20260727082823) เดิมจงใจไม่ cast ผ่านมาเพราะไม่มี caller ต้องใช้ ตอนนี้ต้องใช้กรอง
+// ตาม school ก่อนคำนวณ rank (ต้อง filter ก่อน sort/rank เสมอ ไม่ใช่กรองผลลัพธ์ที่ rank ไปแล้ว
+// ไม่งั้นเลขอันดับจะไม่ตรงกับ pool ที่กรอง)
 export async function getWeeklyLeaderboardTopN(
   supabase: SupabaseServerClient,
   limit: number,
-  gradeBand?: GradeBand
+  gradeBand?: GradeBand,
+  userIdFilter?: Set<string> | null
 ): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase.rpc("weekly_scores_bkk", {
     p_grade_band: gradeBand ?? null,
   });
   if (error) throw new Error("ดึง weekly leaderboard ไม่สำเร็จ: " + error.message);
 
-  const rows = (data ?? []) as { username: string; total_points: number; accuracy: number }[];
-  const sorted = [...rows].sort((a, b) => b.total_points - a.total_points || b.accuracy - a.accuracy);
+  const rows = (data ?? []) as { user_id: string; username: string; total_points: number; accuracy: number }[];
+  const filteredRows = userIdFilter ? rows.filter((r) => userIdFilter.has(r.user_id)) : rows;
+  const sorted = [...filteredRows].sort((a, b) => b.total_points - a.total_points || b.accuracy - a.accuracy);
 
   const ranked: LeaderboardEntry[] = [];
   let rank = 0;
