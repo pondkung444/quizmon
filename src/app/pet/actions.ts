@@ -331,6 +331,37 @@ export async function feedPet(petId: string, foodType: "A" | "B"): Promise<FeedP
   return { quantityRemaining: (data as { quantity_remaining: number }).quantity_remaining };
 }
 
+export type WeeklyRewardClaimResult =
+  | { awarded: true; eggNameTh: string; spritePrefix: string }
+  | { awarded: false };
+
+// เช็ค+เคลมรางวัลไข่ทิพย์จากอันดับ 1 weekly leaderboard "สัปดาห์ที่เพิ่งจบ" — เรียกทุกครั้งที่โหลด
+// หน้า /pet ปลอดภัย (idempotent): unique constraint บน weekly_leaderboard_rewards(user_id,
+// week_start_date) ในฝั่ง RPC กันแจกซ้ำอยู่แล้ว เรียกซ้ำหลังเคลมไปแล้วจะได้ awarded:false เฉยๆ
+export async function claimWeeklyLeaderboardReward(): Promise<WeeklyRewardClaimResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const { data, error } = await supabase.rpc("claim_weekly_leaderboard_reward").single();
+  if (error || !data) throw new Error(error?.message ?? "ตรวจสอบรางวัลรายสัปดาห์ไม่สำเร็จ");
+
+  const result = data as {
+    awarded: boolean;
+    egg_type_id: string | null;
+    egg_name_th: string | null;
+    egg_sprite_prefix: string | null;
+  };
+
+  if (!result.awarded || !result.egg_name_th || !result.egg_sprite_prefix) {
+    return { awarded: false };
+  }
+
+  return { awarded: true, eggNameTh: result.egg_name_th, spritePrefix: result.egg_sprite_prefix };
+}
+
 // Top 5 ของสัปดาห์นี้ — เรียกเฉพาะตอนกดขยาย WeeklyLeaderboardCard ครั้งแรก (lazy) ไม่ใช่ตอนโหลดหน้า
 // /pet ทุกครั้ง (get_my_weekly_rank เบากว่าใช้ query ตอน render หน้าแทน ดู getMyWeeklyRank ใน page.tsx)
 //

@@ -31,7 +31,6 @@ export default async function CollectionPage() {
       supabase
         .from("egg_types")
         .select("id, name_th, sprite_prefix")
-        .eq("is_obtainable", true)
         .order("id", { ascending: true }),
       supabase
         .from("pets")

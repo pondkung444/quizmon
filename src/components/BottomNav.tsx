@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Crown } from "lucide-react";
 
 const TABS = [
   {
@@ -32,6 +33,11 @@ const TABS = [
         <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
+  },
+  {
+    href: "/hall-of-fame",
+    label: "หอเกียรติยศ",
+    icon: (active: boolean) => <Crown strokeWidth={active ? 2 : 1.5} />,
   },
 ];
 

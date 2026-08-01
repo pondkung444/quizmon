@@ -16,6 +16,7 @@ import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
 import SignOutLink from "@/components/SignOutLink";
+import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
 import TrackOnMount from "@/components/TrackOnMount";
@@ -194,6 +195,7 @@ export default async function PetPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
       <SignOutLink />
+      {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
       ) : pet ? (
