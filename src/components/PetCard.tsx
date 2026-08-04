@@ -26,6 +26,8 @@ import MissionCard from "@/components/MissionCard";
 import type { TodayMissionResult } from "@/lib/missions";
 import type { Subline } from "@/lib/evolution";
 import FeedPetCard from "@/components/FeedPetCard";
+import DungeonAdventureCard from "@/components/DungeonAdventureCard";
+import type { DungeonCardState } from "@/lib/dungeon";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -61,6 +63,7 @@ export default function PetCard({
   subline,
   foodA,
   foodB,
+  dungeonCard,
 }: {
   petId: string;
   stage: number;
@@ -93,6 +96,7 @@ export default function PetCard({
   subline: Subline | null;
   foodA: number;
   foodB: number;
+  dungeonCard: DungeonCardState;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -247,6 +251,10 @@ export default function PetCard({
       )}
 
       {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> CTA) ── */}
+
+      {/* 4.5 การ์ดผจญภัย — ใต้ CTA หลักเสมอ (ห้ามอยู่เหนือ) ไม่แย่งพื้นที่ fold แรกที่ tune ไว้ข้างบน
+          ดู DungeonAdventureCard.tsx สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
+      <DungeonAdventureCard state={dungeonCard} />
 
       {/* 5. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
           label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
