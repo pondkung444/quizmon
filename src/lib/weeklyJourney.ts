@@ -141,6 +141,7 @@ export async function getJourneyDaysForRange(
       .from("quiz_attempts")
       .select("pet_id, is_correct, created_at")
       .eq("user_id", userId)
+      .is("source", null) // ตัดคำถามโบนัสดันเจี้ยนออก — ไม่ได้ให้ EXP จริง อย่าให้พองแถบสีปฏิทิน/journey
       .gte("created_at", rangeStartIso)
       .lt("created_at", rangeEndIso)
       .order("created_at", { ascending: true }),
