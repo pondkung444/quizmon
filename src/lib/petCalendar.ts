@@ -61,6 +61,7 @@ async function getSubjectCountsByDay(
     .select("question_id, created_at")
     .eq("user_id", userId)
     .eq("is_correct", true)
+    .is("source", null) // ตัดคำถามโบนัสดันเจี้ยนออก — เหตุผลเดียวกับ weeklyJourney.ts (ไม่ให้พองนับคณิต/วิทย์)
     .gte("created_at", rangeStartIso)
     .lt("created_at", rangeEndIso);
 
