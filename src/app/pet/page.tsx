@@ -15,6 +15,7 @@ import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
+import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
 import SignOutLink from "@/components/SignOutLink";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
@@ -68,6 +69,7 @@ export default async function PetPage({
   let foodInventory: FoodInventory = { A: 0, B: 0 };
   let myWeeklyRank: MyWeeklyRank = { hasRank: false };
   let gradeBand: GradeBand | null = null;
+  let dungeonCard: DungeonCardState = { status: "invite" };
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -85,6 +87,7 @@ export default async function PetPage({
       foodResult,
       myWeeklyRankResult,
       gradeBandResult,
+      dungeonCardResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -122,6 +125,11 @@ export default async function PetPage({
       // phase 3: PetCard ต้อง gradeBand ไปโชว์ label กลุ่มบน WeeklyLeaderboardCard ด้วย —
       // reuse promise เดียวกับด้านบน (ดูคอมเมนต์ต้นบล็อก)
       gradeBandPromise,
+      // phase 4: การ์ดผจญภัย — พังไม่ควรทำทั้งหน้า /pet ล่ม เช่นเดียวกับภารกิจ/leaderboard ข้างบน
+      getDungeonCardState(supabase, user.id).catch((err) => {
+        console.error("getDungeonCardState failed:", err);
+        return { status: "invite" } as DungeonCardState;
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -130,6 +138,7 @@ export default async function PetPage({
     foodInventory = foodResult;
     myWeeklyRank = myWeeklyRankResult;
     gradeBand = gradeBandResult;
+    dungeonCard = dungeonCardResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -233,6 +242,7 @@ export default async function PetPage({
           subline={(subline ?? null) as Subline | null}
           foodA={foodInventory.A}
           foodB={foodInventory.B}
+          dungeonCard={dungeonCard}
         />
         </>
       ) : (

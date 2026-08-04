@@ -190,6 +190,22 @@ body {
   animation: evo-pulse calc(2.4s - var(--evo-progress, 0) * 1.4s) ease-in-out infinite;
 }
 
+/* เด้งขึ้นลงของสไปรต์ระหว่างเดินทางในดันเจี้ยน (จอ B, /adventure) — เบากว่า .animate-pet-bob
+   (4px แทน 7px) เพราะสไปรต์ตรงนี้เล็กกว่าและอยู่บนพื้นหลังฉาก ไม่ใช่การ์ดหลัก */
+@keyframes dungeon-walk-bob {
+  0%,
+  100% {
+    transform: translate(-50%, -100%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -100%) translateY(-4px);
+  }
+}
+
+.animate-dungeon-walk-bob {
+  animation: dungeon-walk-bob 1.8s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
   .animate-egg-wobble,
@@ -197,6 +213,7 @@ body {
   .animate-card-bob,
   .animate-speech-pop,
   .animate-typing-dot,
+  .animate-dungeon-walk-bob,
   .evo-glow-pulse {
     animation: none;
   }

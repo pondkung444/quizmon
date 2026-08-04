@@ -22,6 +22,9 @@ export type CollectionSection = {
   eggTypeId: string;
   eggNameTh: string;
   slots: CollectionSlot[];
+  // บรรทัดบอกวิธีได้มา — ใช้เฉพาะชั้นวางไข่ tier หายาก (ดู page.tsx) กริดหลัก (common) ไม่ส่งค่านี้
+  // เลยไม่มีอะไรเปลี่ยนสำหรับกริดเดิม
+  subtitle?: string;
 };
 
 // แยกเป็น client component เพราะช่อง silhouette ที่ยังไม่ปลดล็อกต้องกดเปิด popup ได้
@@ -55,7 +58,10 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
     <>
       {sections.map((section) => (
         <section key={section.eggTypeId} className="flex flex-col gap-3">
-          <h2 className="text-sm font-bold text-gold-hi">{section.eggNameTh}</h2>
+          <div>
+            <h2 className="text-sm font-bold text-gold-hi">{section.eggNameTh}</h2>
+            {section.subtitle && <p className="text-xs text-text3">{section.subtitle}</p>}
+          </div>
           <div className="grid grid-cols-3 gap-3">
             {section.slots.map((slot, index) => {
               const card = (
