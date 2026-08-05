@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 
-// สเปกฉากรอบแก้ (2026-08-04): ความสูงเดิม ~60px (จาก aspect-ratio ตามภาพต้นฉบับ 2048x768) เตี้ยเกินไป
-// จนสไปรต์เหลือ ~10px มองไม่ออกว่าเป็นตัวอะไร — เปลี่ยนเป็นความสูงคงที่ 150px + สไปรต์ 32% ของความสูงฉาก
-// (~48px) แทนการคำนวณจาก aspect-ratio ของภาพเดิม
-const SCENE_HEIGHT_PX = 150;
+// สเปกฉากรอบแก้ (2026-08-05): กลับไปใช้ aspect-[8/3] เต็มความกว้าง ตามสเปกดีไซน์ล่าสุด — cave_frost.webp
+// เป็น 2048x768 ซึ่งคือ 8:3 พอดี ทำให้ object-cover ไม่ต้องครอปเลย เห็นฉากเต็มภาพเสมอไม่ว่ากว้างแค่ไหน
+// (รอบก่อน 2026-08-04 เคยล็อกความสูงคงที่ 150px ไว้เพราะกลัวสไปรต์เล็ก แต่วิธีนั้นทำให้ฉากผิดสัดส่วนบน
+// จอกว้าง — คงสไปรต์ไว้ที่ 32% ของความสูงฉากเหมือนเดิม ที่ความกว้างคอนเทนเนอร์ ~350-420px ตามสเปกจอ C
+// จะได้ความสูงฉาก ~130-160px ใกล้เคียงของเดิม สไปรต์ยังเห็นชัดไม่เล็กจมแบบที่เจอตอน 2026-08-03)
 const SPRITE_HEIGHT_PERCENT = 32; // อยู่ในช่วง 30-34% ตามสเปกใหม่
 const SPRITE_FEET_TOP_PERCENT = 82;
 
@@ -32,18 +33,14 @@ export default function DungeonScene({
   overlay?: DungeonSceneOverlay | null;
 }) {
   return (
-    <div
-      className="relative -mx-5 w-[calc(100%+2.5rem)] overflow-hidden"
-      style={{ height: `${SCENE_HEIGHT_PX}px` }}
-    >
+    <div className="relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden">
       <Image
         src={backgroundPath}
         alt=""
         fill
         sizes="100vw"
         priority
-        className="object-cover"
-        style={{ objectPosition: "center 62%" }}
+        className="object-cover object-center"
       />
 
       {overlay && (

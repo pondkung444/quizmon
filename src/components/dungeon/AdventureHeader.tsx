@@ -12,7 +12,7 @@ import { ChevronLeft } from "lucide-react";
 // หัว 2 บรรทัด — บรรทัดบน "‹ บ้าน" (chevron+คำติดกัน ไม่ใช่ปุ่มกลมไอคอนเดี่ยวเหมือนรอบก่อน ซึ่งไม่สื่อว่า
 // กดแล้วไปไหน) ใช้คำ "บ้าน" ให้ตรงกับ label เดียวกันในแถบเมนูล่าง (BottomNav.tsx) บรรทัดล่างชื่อดันเจี้ยน
 // ตัวใหญ่กว่าเป็นหัวข้อหลักของจอ
-export default function AdventureHeader({ title }: { title: string }) {
+export default function AdventureHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   const router = useRouter();
 
   return (
@@ -26,6 +26,7 @@ export default function AdventureHeader({ title }: { title: string }) {
         <span>บ้าน</span>
       </button>
       <h1 className="text-xl font-bold text-gold-hi">{title}</h1>
+      {subtitle && <p className="text-sm text-text3">{subtitle}</p>}
     </div>
   );
 }

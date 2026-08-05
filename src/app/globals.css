@@ -206,6 +206,22 @@ body {
   animation: dungeon-walk-bob 1.8s ease-in-out infinite;
 }
 
+/* ขีดมิเตอร์การันตีไข่ที่เพิ่งเติมหลังเคลม (ClaimScreen.tsx จอ C) — เรืองแสงเบาๆ ให้เห็นว่าขยับ
+   ไม่ใช่แค่ static เฉยๆ สีอิง --color-gold (#c8a86a) */
+@keyframes pip-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 168, 106, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(200, 168, 106, 0);
+  }
+}
+
+.animate-pip-glow {
+  animation: pip-glow 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
   .animate-egg-wobble,
@@ -214,6 +230,7 @@ body {
   .animate-speech-pop,
   .animate-typing-dot,
   .animate-dungeon-walk-bob,
+  .animate-pip-glow,
   .evo-glow-pulse {
     animation: none;
   }

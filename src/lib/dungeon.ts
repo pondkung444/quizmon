@@ -22,6 +22,7 @@ export type DungeonRunDetail = {
   bonusQuizUsed: boolean;
   bonusMinutesSaved: number;
   petImagePath: string;
+  petSpeciesName: string;
 };
 
 export type DungeonCardState =
@@ -185,6 +186,13 @@ export async function getOwnActiveRun(
     petRow.subline as Subline,
     petRow.personality as Personality
   );
+  const petSpeciesName = getSpeciesName(
+    eggType.sprite_prefix,
+    4,
+    petRow.subline as Subline,
+    petRow.personality as Personality,
+    eggType.name_th
+  );
 
   return {
     dungeon: mapDungeonRow(dungeonRow),
@@ -195,6 +203,7 @@ export async function getOwnActiveRun(
       bonusQuizUsed: data.bonus_quiz_used,
       bonusMinutesSaved: data.bonus_minutes_saved,
       petImagePath,
+      petSpeciesName,
     },
   };
 }
