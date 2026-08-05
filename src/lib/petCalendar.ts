@@ -4,6 +4,8 @@ import { getTodayInBangkok } from "@/lib/exp";
 import { type Subline, type Personality } from "@/lib/evolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getJourneyDaysForRange } from "@/lib/weeklyJourney";
+import { getGradeBand } from "@/lib/gradeBand";
+import { CALENDAR_STAT_LABEL_JUNIOR, CALENDAR_STAT_LABEL_SENIOR } from "@/lib/labels";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -17,8 +19,8 @@ export type CalendarDay = {
   personality: string | null;
   spritePrefix: string | null;
   formName: string | null; // จาก getSpeciesName() — null ถ้ายังไม่มี pet วันนั้น
-  mathCorrect: number;
-  scienceCorrect: number;
+  // junior: คณิต/วิทย์/รวม (3 entries) · senior: ฟิสิกส์/เคมี/ชีวะ (3 entries ไม่มี "รวม")
+  statBreakdown: { key: string; label: string; count: number }[];
   isToday: boolean;
   isFuture: boolean;
 };
@@ -102,6 +104,59 @@ async function getSubjectCountsByDay(
   return countsByDay;
 }
 
+type BranchCounts = { physics: number; chemistry: number; biology: number };
+
+// นับฟิสิกส์/เคมี/ชีวะที่ตอบถูกรายวันของ senior — มิเรอร์ getSubjectCountsByDay() ทุกจุด
+// (numeric-id guard, admin client, filter source is null) ต่างแค่ join questions.branch แทน subject
+async function getBranchCountsByDay(
+  supabase: SupabaseServerClient,
+  userId: string,
+  rangeStartIso: string,
+  rangeEndIso: string
+): Promise<Map<string, BranchCounts>> {
+  const { data: attemptRows } = await supabase
+    .from("quiz_attempts")
+    .select("question_id, created_at")
+    .eq("user_id", userId)
+    .eq("is_correct", true)
+    .is("source", null)
+    .gte("created_at", rangeStartIso)
+    .lt("created_at", rangeEndIso);
+
+  const attempts = (attemptRows ?? []) as { question_id: string; created_at: string }[];
+
+  const numericIds: number[] = [];
+  for (const attempt of attempts) {
+    if (/^\d+$/.test(attempt.question_id)) {
+      numericIds.push(Number(attempt.question_id));
+    } else {
+      console.warn(`getBranchCountsByDay: question_id ไม่ใช่ตัวเลขล้วน ข้ามไป (question_id=${attempt.question_id})`);
+    }
+  }
+
+  const admin = createAdminClient();
+  const { data: questionRows } =
+    numericIds.length > 0
+      ? await admin.from("questions").select("id, branch").in("id", numericIds)
+      : { data: [] as { id: number; branch: string | null }[] };
+
+  const branchById = new Map((questionRows ?? []).map((q) => [q.id as number, q.branch as string | null]));
+
+  const countsByDay = new Map<string, BranchCounts>();
+  for (const attempt of attempts) {
+    if (!/^\d+$/.test(attempt.question_id)) continue;
+    const branch = branchById.get(Number(attempt.question_id));
+    if (branch !== "physics" && branch !== "chemistry" && branch !== "biology") continue;
+
+    const day = getTodayInBangkok(new Date(attempt.created_at));
+    const counts = countsByDay.get(day) ?? { physics: 0, chemistry: 0, biology: 0 };
+    counts[branch] += 1;
+    countsByDay.set(day, counts);
+  }
+
+  return countsByDay;
+}
+
 export async function getCalendarMonth(
   supabase: SupabaseServerClient,
   userId: string,
@@ -112,10 +167,15 @@ export async function getCalendarMonth(
   const rangeStartIso = bangkokMidnightUtcIso(dateList[0]);
   const rangeEndIso = bangkokMidnightUtcIso(nextDateStr(dateList[dateList.length - 1]));
 
-  const [journeyDays, subjectCountsByDay] = await Promise.all([
+  const [journeyDays, gradeBand] = await Promise.all([
     getJourneyDaysForRange(supabase, userId, dateList),
-    getSubjectCountsByDay(supabase, userId, rangeStartIso, rangeEndIso),
+    getGradeBand(userId),
   ]);
+
+  const subjectCountsByDay =
+    gradeBand === "junior" ? await getSubjectCountsByDay(supabase, userId, rangeStartIso, rangeEndIso) : null;
+  const branchCountsByDay =
+    gradeBand === "senior" ? await getBranchCountsByDay(supabase, userId, rangeStartIso, rangeEndIso) : null;
 
   return journeyDays.map((day) => {
     let formName: string | null = null;
@@ -134,7 +194,24 @@ export async function getCalendarMonth(
       }
     }
 
-    const counts = subjectCountsByDay.get(day.date) ?? { mathCorrect: 0, scienceCorrect: 0 };
+    let statBreakdown: { key: string; label: string; count: number }[];
+    if (gradeBand === "senior") {
+      const counts = branchCountsByDay!.get(day.date) ?? { physics: 0, chemistry: 0, biology: 0 };
+      statBreakdown = CALENDAR_STAT_LABEL_SENIOR.map(({ key, label }) => ({
+        key,
+        label,
+        count: counts[key],
+      }));
+    } else {
+      const counts = subjectCountsByDay!.get(day.date) ?? { mathCorrect: 0, scienceCorrect: 0 };
+      const countByKey = { math: counts.mathCorrect, science: counts.scienceCorrect };
+      statBreakdown = CALENDAR_STAT_LABEL_JUNIOR.map(({ key, label }) => ({
+        key,
+        label,
+        count: countByKey[key],
+      }));
+      statBreakdown.push({ key: "total", label: "รวม", count: counts.mathCorrect + counts.scienceCorrect });
+    }
 
     return {
       date: day.date,
@@ -146,8 +223,7 @@ export async function getCalendarMonth(
       personality: day.personality,
       spritePrefix: day.spritePrefix,
       formName,
-      mathCorrect: counts.mathCorrect,
-      scienceCorrect: counts.scienceCorrect,
+      statBreakdown,
       isToday: day.isToday,
       isFuture: day.isFuture,
     };
