@@ -100,18 +100,12 @@ function DetailCard({ day, onClose }: { day: CalendarDay; onClose: () => void })
             </div>
 
             <div className="grid w-full grid-cols-3 gap-2">
-              <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-2">
-                <span className="text-lg font-bold text-gold-hi">{day.mathCorrect}</span>
-                <span className="text-[10px] text-text3">คณิต</span>
-              </div>
-              <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-2">
-                <span className="text-lg font-bold text-gold-hi">{day.scienceCorrect}</span>
-                <span className="text-[10px] text-text3">วิทย์</span>
-              </div>
-              <div className="flex flex-col items-center gap-1 rounded-xl bg-track py-2">
-                <span className="text-lg font-bold text-gold-hi">{day.mathCorrect + day.scienceCorrect}</span>
-                <span className="text-[10px] text-text3">รวม</span>
-              </div>
+              {day.statBreakdown.map((stat) => (
+                <div key={stat.key} className="flex flex-col items-center gap-1 rounded-xl bg-track py-2">
+                  <span className="text-lg font-bold text-gold-hi">{stat.count}</span>
+                  <span className="text-[10px] text-text3">{stat.label}</span>
+                </div>
+              ))}
             </div>
           </>
         )}

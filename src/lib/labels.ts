@@ -38,3 +38,16 @@ export const FOOD_IMAGE_PATH: Record<"A" | "B", string> = {
   A: "/food/food_a_crystal.png",
   B: "/food/food_b_aurora.png",
 };
+
+// ป้ายชื่อย่อ ใช้กับการ์ดสถิติรายวันในปฏิทิน (/pet/calendar) เท่านั้น — คนละชุดกับ SUBLINE_LABEL
+// (มีคำว่า "สาย" นำหน้า) และ SUBJECT_LABEL (ชื่อเต็ม "คณิตศาสตร์")
+export const CALENDAR_STAT_LABEL_JUNIOR: { key: "math" | "science"; label: string }[] = [
+  { key: "math", label: "คณิต" },
+  { key: "science", label: "วิทย์" },
+];
+
+export const CALENDAR_STAT_LABEL_SENIOR: { key: "physics" | "chemistry" | "biology"; label: string }[] = [
+  { key: "physics", label: "ฟิสิกส์" },
+  { key: "chemistry", label: "เคมี" },
+  { key: "biology", label: "ชีวะ" },
+];
