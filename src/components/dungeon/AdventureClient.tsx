@@ -19,5 +19,5 @@ export default function AdventureClient({ view }: { view: AdventureView }) {
   if (view.kind === "traveling") {
     return <InProgressScreen dungeon={view.dungeon} initialRun={view.run} pityMeter={view.pityMeter} />;
   }
-  return <ClaimScreen dungeon={view.dungeon} run={view.run} />;
+  return <ClaimScreen dungeon={view.dungeon} run={view.run} pityMeter={view.pityMeter} />;
 }
