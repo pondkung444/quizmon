@@ -83,6 +83,26 @@ async function fetchAllEventsSince(
   return rows;
 }
 
+// category -> grade_band map: `questions` มี 3,354+ แถว เกิน cap 1,000 ของ PostgREST
+// ต้อง paginate + ใส่ .order() ให้ลำดับ deterministic ไม่งั้นชุดที่หายจะสลับเองหลัง VACUUM
+async function fetchAllQuestionCategoryBands(
+  admin: ReturnType<typeof createAdminClient>
+): Promise<{ category: string; grade_band: Band }[]> {
+  const PAGE_SIZE = 1000;
+  const rows: { category: string; grade_band: Band }[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("questions")
+      .select("category, grade_band")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as { category: string; grade_band: Band }[]));
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 type QuizAttemptRow = { user_id: string | null; is_correct: boolean; created_at: string };
 
 // quiz_attempts insert server-side ทุกครั้งที่ตอบ (ไม่ต้อง client fire เหมือน analytics_events)
@@ -127,7 +147,7 @@ export default async function AdminAnalyticsPage({
 
   const admin = createAdminClient();
 
-  const [usersListRes, allEvents, allAttempts, profsRes, questionCategoryBandRes] = await Promise.all([
+  const [usersListRes, allEvents, allAttempts, profsRes, questionCategoryBands] = await Promise.all([
     // exclude แอดมินเองออกจากสถิติระยะเวลาเซสชัน (ไม่งั้นแอดมินเข้าดู dashboard เองจะปนเข้าสถิติ)
     admin.auth.admin.listUsers({ perPage: 1000 }),
     // ทุก subset ที่หน้านี้ใช้ (summary 7 วัน / question_answer 14 วัน) เป็น subset ของ
@@ -138,7 +158,7 @@ export default async function AdminAnalyticsPage({
     admin.from("profiles").select("id, username, grade_band, school"),
     // ใช้สร้าง category -> grade_band map (question_answer event props มีแค่ category/subject
     // ไม่มี grade_band ตรงๆ — survey แล้วพบว่า category ไม่ซ้ำข้ามกลุ่มเลย จึง join ทาง category ได้)
-    admin.from("questions").select("category, grade_band"),
+    fetchAllQuestionCategoryBands(admin),
   ]);
 
   const adminUserIds = new Set(
@@ -164,7 +184,7 @@ export default async function AdminAnalyticsPage({
   );
 
   const categoryToBand = new Map<string, Band>();
-  for (const q of (questionCategoryBandRes.data ?? []) as { category: string; grade_band: Band }[]) {
+  for (const q of questionCategoryBands) {
     categoryToBand.set(q.category, q.grade_band);
   }
 
