@@ -153,6 +153,8 @@ export default function LoginPage() {
                 <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
                 <option value="ธิดาแม่พระ">ธิดาแม่พระ</option>
                 <option value="เทพมิตรศึกษา">เทพมิตรศึกษา</option>
+                <option value="ศิริสาธิต">ศิริสาธิต</option>
+                <option value="อุตรดิตถ์">อุตรดิตถ์</option>
                 <option value="อื่นๆ">อื่นๆ</option>
               </select>
             </div>
