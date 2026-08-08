@@ -5,8 +5,11 @@ import { type Subline, type Personality } from "@/lib/evolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { SUBLINE_LABEL } from "@/lib/labels";
+import { getDungeonEntryState } from "@/lib/dungeon";
+import { getRaidEntryState } from "@/lib/raid";
 import SignOutLink from "@/components/SignOutLink";
 import CollectedPetCard from "@/components/CollectedPetCard";
+import CollectionPetActions from "@/components/CollectionPetActions";
 import TrackOnMount from "@/components/TrackOnMount";
 
 // หน้ารายละเอียด read-only ของ Qmon ที่เก็บเข้าสมุดแล้ว — ต่างจาก /pet ตรงที่ดึงจาก petId
@@ -54,10 +57,15 @@ export default async function CollectionPetDetailPage({
   const petImagePath = getPetImagePath(eggType.sprite_prefix, 4, subline, personality);
   const speciesName = getSpeciesName(eggType.sprite_prefix, 4, subline, personality, eggType.name_th);
 
+  const [dungeonState, raidState] = await Promise.all([
+    getDungeonEntryState(supabase, user.id, petId),
+    getRaidEntryState(supabase, user.id, petId),
+  ]);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center gap-4 p-6 pb-24">
       <SignOutLink />
-      <Link href="/collection" className="text-sm text-text3 transition hover:text-gold-hi">
+      <Link href="/collection" className="self-start text-sm text-text3 transition hover:text-gold-hi">
         ← กลับสมุดสะสม
       </Link>
       <TrackOnMount event="pet_detail_open" props={{ source: "collection" }} petId={petId} />
@@ -75,6 +83,7 @@ export default async function CollectionPetDetailPage({
           foc: pet.stat_foc as number,
         }}
       />
+      <CollectionPetActions petId={petId} dungeonState={dungeonState} raidState={raidState} />
     </main>
   );
 }

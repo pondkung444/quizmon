@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { DungeonInfo, EligiblePet } from "@/lib/dungeon";
 import { DUNGEON_PITY_GOAL } from "@/lib/dungeon";
@@ -20,17 +21,24 @@ export default function PreDeparture({
   dungeon,
   pets,
   pityMeter,
+  preselectedPetId,
 }: {
   dungeon: DungeonInfo;
   pets: EligiblePet[];
   pityMeter: number;
+  preselectedPetId?: string | null;
 }) {
   const router = useRouter();
-  const [selectedPetId, setSelectedPetId] = useState<string | null>(pets[0]?.id ?? null);
+  const [selectedPetId, setSelectedPetId] = useState<string | null>(
+    preselectedPetId ?? pets[0]?.id ?? null
+  );
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const durationHours = dungeon.durationMinutes / 60;
+  // มาจาก /collection/[petId] ด้วย ?pet= ที่ผ่านการเช็คสิทธิ์แล้วฝั่ง server (page.tsx) — ล็อกตัวไว้
+  // ไม่ต้องเลือกซ้ำ แต่ต้องมีทาง "เลือกตัวอื่น" กลับไปจอปกติเสมอ (แค่ทิ้ง ?pet= ไม่ใช่ path พิเศษ)
+  const lockedPet = preselectedPetId ? pets.find((p) => p.id === preselectedPetId) ?? null : null;
 
   async function handleDepart() {
     if (!selectedPetId || isSending) return;
@@ -55,25 +63,46 @@ export default function PreDeparture({
           overlay={{ nameTh: dungeon.nameTh, durationLabel: `${durationHours} ชั่วโมง` }}
         />
 
-        {/* เลือกตัว */}
+        {/* เลือกตัว — ล็อกแล้วถ้ามาจาก ?pet= ที่ผ่านสิทธิ์แล้ว */}
         <section className="w-full max-w-xs">
-          <p className="mb-2 text-xs text-text2">เลือกตัว</p>
-          <div className="flex flex-col gap-2">
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                type="button"
-                onClick={() => setSelectedPetId(pet.id)}
-                aria-pressed={selectedPetId === pet.id}
-                className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
-                  selectedPetId === pet.id ? "border-gold bg-amber/10" : "border-border bg-card"
-                }`}
-              >
-                <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
-                <span className="font-bold text-text">{pet.speciesName}</span>
-              </button>
-            ))}
-          </div>
+          {lockedPet ? (
+            <>
+              <p className="mb-2 text-xs text-text2">Qmon ที่จะไป</p>
+              <div className="flex items-center gap-3 rounded-xl border border-gold bg-amber/10 p-3">
+                <Image
+                  src={lockedPet.imagePath}
+                  alt={lockedPet.speciesName}
+                  width={48}
+                  height={48}
+                  className="shrink-0"
+                />
+                <span className="font-bold text-text">{lockedPet.speciesName}</span>
+              </div>
+              <Link href="/adventure" className="mt-2 inline-block text-xs text-text3 underline">
+                เลือกตัวอื่น
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="mb-2 text-xs text-text2">เลือกตัว</p>
+              <div className="flex flex-col gap-2">
+                {pets.map((pet) => (
+                  <button
+                    key={pet.id}
+                    type="button"
+                    onClick={() => setSelectedPetId(pet.id)}
+                    aria-pressed={selectedPetId === pet.id}
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
+                      selectedPetId === pet.id ? "border-gold bg-amber/10" : "border-border bg-card"
+                    }`}
+                  >
+                    <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
+                    <span className="font-bold text-text">{pet.speciesName}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         {/* กลับมาพร้อมอะไร — เพิ่มใหม่ (Phase 4.5): จอ A เดิมมีแต่มิเตอร์ลอยๆ ไม่บอกว่าได้ไข่อะไร
