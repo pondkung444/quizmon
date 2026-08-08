@@ -70,6 +70,7 @@ export default async function PetPage({
   let myWeeklyRank: MyWeeklyRank = { hasRank: false };
   let gradeBand: GradeBand | null = null;
   let dungeonCard: DungeonCardState = { status: "invite" };
+  let hasEverAnswered = false;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -88,6 +89,7 @@ export default async function PetPage({
       myWeeklyRankResult,
       gradeBandResult,
       dungeonCardResult,
+      { data: hasAnsweredRows },
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -130,6 +132,10 @@ export default async function PetPage({
         console.error("getDungeonCardState failed:", err);
         return { status: "invite" } as DungeonCardState;
       }),
+      // เช็คว่าเคยตอบคำถามมาก่อนไหม (ไม่จำกัดช่วงเวลา) — กันการ์ดภารกิจโผล่ก่อน user ใหม่ได้ลองตอบ
+      // สักข้อ (ดู PetCard.tsx missionActive) เลือก .select("id").limit(1) ไม่ใช้ count:"exact"
+      // เพราะ user เก่าบางคนมี quiz_attempts หลักพันแถว ไม่ต้องนับทั้งตารางแค่เช็คว่ามี/ไม่มี
+      supabase.from("quiz_attempts").select("id").eq("user_id", user.id).limit(1),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -139,6 +145,7 @@ export default async function PetPage({
     myWeeklyRank = myWeeklyRankResult;
     gradeBand = gradeBandResult;
     dungeonCard = dungeonCardResult;
+    hasEverAnswered = (hasAnsweredRows?.length ?? 0) > 0;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -237,6 +244,7 @@ export default async function PetPage({
           journeyDays={journeyDays}
           topicStats={topicStats}
           mission={mission}
+          hasEverAnswered={hasEverAnswered}
           myWeeklyRank={myWeeklyRank}
           gradeBand={gradeBand}
           subline={(subline ?? null) as Subline | null}
