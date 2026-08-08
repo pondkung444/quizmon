@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { GradeBand } from "@/lib/gradeBand";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -22,6 +23,7 @@ export type MyWeeklyRank =
       band: "top" | "mid" | "start";
       points: number;
       pointsToNext: number | null;
+      username: string;
     };
 
 // ต้องรับ userId จาก caller ที่ดึงจาก session (server component/action) เท่านั้น — ฟังก์ชันนี้ไม่ auth.getUser()
@@ -55,6 +57,12 @@ export async function getMyWeeklyRank(
 
   if (!row) return { hasRank: false };
 
+  // ต้องใช้ admin client อ่าน profiles.username เสมอ ไม่ใช่ user-session client (RLS ของ profiles
+  // เคยทำให้ query จาก client ปกติเงียบๆ คืน null แทน error — เหตุผลเดียวกับ getGradeBand() ใน
+  // src/lib/gradeBand.ts) ใช้แสดงชื่อตัวเองในแถว "ไม่ติด Top 5" ของ WeeklyLeaderboardCard.tsx เท่านั้น
+  const admin = createAdminClient();
+  const { data: profile } = await admin.from("profiles").select("username").eq("id", userId).single();
+
   return {
     hasRank: true,
     inTop5: row.in_top5,
@@ -63,6 +71,7 @@ export async function getMyWeeklyRank(
     band: row.band,
     points: row.points,
     pointsToNext: row.points_to_next,
+    username: profile?.username ?? "คุณ",
   };
 }
 

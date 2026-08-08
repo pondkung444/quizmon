@@ -252,10 +252,6 @@ export default function PetCard({
 
       {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> CTA) ── */}
 
-      {/* 4.5 การ์ดผจญภัย — ใต้ CTA หลักเสมอ (ห้ามอยู่เหนือ) ไม่แย่งพื้นที่ fold แรกที่ tune ไว้ข้างบน
-          ดู DungeonAdventureCard.tsx สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
-      <DungeonAdventureCard state={dungeonCard} />
-
       {/* 5. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
           label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
           (ตัด stageDescription ทิ้ง — เป็น flavor text ซ้ำความหมายกับชื่อระยะ ไม่ใช่ข้อมูลที่ต้องรู้) */}
@@ -300,6 +296,10 @@ export default function PetCard({
       {!isMaxStage && foodA + foodB > 0 && (
         <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />
       )}
+
+      {/* 6.65 การ์ดผจญภัย — ใต้บล็อกป้อนอาหาร (ux pass 2026-08) ดู DungeonAdventureCard.tsx
+          สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
+      <DungeonAdventureCard state={dungeonCard} />
 
       {/* 6.7 ปุ่มเปิดสถิติแยกบท — ขยาย touch target เป็น 44px + ใส่ label (เดิม 32px icon ล้วน
           ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)

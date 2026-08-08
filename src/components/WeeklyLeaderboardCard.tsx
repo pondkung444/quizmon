@@ -43,7 +43,7 @@ export default function WeeklyLeaderboardCard({
     );
   }
 
-  const { inTop5, myRank, band, points, pointsToNext } = myWeeklyRank;
+  const { inTop5, myRank, band, points, pointsToNext, username: myUsername } = myWeeklyRank;
 
   // gradeBand ("junior"/"senior") มาจาก profiles ผ่าน getGradeBand() คนละความหมายกับ band ด้านบน
   // (percentile tier "top"/"mid"/"start" ของ myWeeklyRank) — null เกิดได้ถ้า parent ยังไม่มี user
@@ -138,7 +138,7 @@ export default function WeeklyLeaderboardCard({
                     {row.rnk === 1 && <Crown size={14} className="shrink-0 text-gold" />}
                     <span className="min-w-0 flex-1 truncate">
                       {row.username}
-                      {isMe && <span className="ml-1 text-[10px] text-text3">(เธอ)</span>}
+                      {isMe && <span className="ml-1 text-[10px] text-text3">(คุณ)</span>}
                     </span>
                     <span className="shrink-0 font-bold">{row.total_points}</span>
                   </li>
@@ -147,7 +147,10 @@ export default function WeeklyLeaderboardCard({
               {!inTop5 && (
                 <li className="flex items-center gap-2 rounded-lg bg-amber/15 px-2 py-1.5 text-xs text-text">
                   <span className="w-4 shrink-0 text-center font-bold text-amber">~{myRank}</span>
-                  <span className="min-w-0 flex-1 truncate">คุณ</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {myUsername}
+                    <span className="ml-1 text-[10px] text-text3">(คุณ)</span>
+                  </span>
                   <span className="shrink-0 font-bold text-amber">{points}</span>
                 </li>
               )}
