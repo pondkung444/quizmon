@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
+import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +17,6 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [phone, setPhone] = useState("");
   const [school, setSchool] = useState("");
-  const [schoolOther, setSchoolOther] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +37,10 @@ export default function LoginPage() {
       }
       router.push("/pet");
     } else {
-      const finalSchool = school === "อื่นๆ" ? schoolOther : school;
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username, phone, school: finalSchool, grade_level: gradeLevel } },
+        options: { data: { username, phone, school, grade_level: gradeLevel } },
       });
       setLoading(false);
       if (error) {
@@ -138,40 +137,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {mode === "signup" && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-text2">โรงเรียน (ไม่บังคับ)</label>
-              <select
-                value={school}
-                onChange={(e) => setSchool(e.target.value)}
-                className="rounded-md border border-border bg-track px-3 py-2 text-text focus:border-gold focus:outline-none"
-              >
-                <option value="">-- เลือกโรงเรียน --</option>
-                <option value="สุราษฎร์ธานี">สุราษฎร์ธานี</option>
-                <option value="สุราษฎร์พิทยา">สุราษฎร์พิทยา</option>
-                <option value="มอ.ว. สุราษฎร์ธานี">มอ.ว. สุราษฎร์ธานี</option>
-                <option value="เมืองสุราษฎร์ธานี">เมืองสุราษฎร์ธานี</option>
-                <option value="ธิดาแม่พระ">ธิดาแม่พระ</option>
-                <option value="เทพมิตรศึกษา">เทพมิตรศึกษา</option>
-                <option value="ศิริสาธิต">ศิริสาธิต</option>
-                <option value="อุตรดิตถ์">อุตรดิตถ์</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-              </select>
-            </div>
-          )}
-
-          {mode === "signup" && school === "อื่นๆ" && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-text2">ระบุชื่อโรงเรียน</label>
-              <input
-                type="text"
-                value={schoolOther}
-                onChange={(e) => setSchoolOther(e.target.value)}
-                className="rounded-md border border-border bg-track px-3 py-2 text-text placeholder:text-text3 focus:border-gold focus:outline-none"
-                placeholder="ระบุชื่อโรงเรียน"
-              />
-            </div>
-          )}
+          {mode === "signup" && <SchoolAutocomplete value={school} onChange={setSchool} />}
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-text2">อีเมล</label>
