@@ -58,6 +58,7 @@ export default function PetCard({
   journeyDays,
   topicStats,
   mission,
+  hasEverAnswered,
   myWeeklyRank,
   gradeBand,
   subline,
@@ -91,6 +92,7 @@ export default function PetCard({
   journeyDays: JourneyDay[];
   topicStats: TopicStatsResult;
   mission: TodayMissionResult | null;
+  hasEverAnswered: boolean;
   myWeeklyRank: MyWeeklyRank;
   gradeBand: GradeBand | null;
   subline: Subline | null;
@@ -118,8 +120,33 @@ export default function PetCard({
   const cappedToday = expToday >= dailyCap;
   const dailyProgress = Math.min(1, dailyCap > 0 ? expToday / dailyCap : 1);
   // ภารกิจยังไม่จบ (state 1/2) -> การ์ดภารกิจเป็น CTA หลักแทนปุ่ม "ฝึก Qmon" ไปเต็มๆ ไม่ใช่การ์ด
-  // เสริมซ้อนกับ CTA อีกก้อน (แก้ปัญหาของสำคัญหลุด fold บนมือถือ)
-  const missionActive = !!mission && mission.answeredCount < mission.mission.target_count;
+  // เสริมซ้อนกับ CTA อีกก้อน (แก้ปัญหาของสำคัญหลุด fold บนมือถือ) — ต้อง hasEverAnswered ด้วย กัน
+  // การ์ดภารกิจโผล่ก่อน user ใหม่ได้ลองตอบสักข้อ (mission ถูกสร้าง lazy โดยไม่เช็คประวัติเลย
+  // ดู getOrCreateTodayMission ใน missions.ts — user วันแรกที่ยังไม่เคยเห็นหน้าคำถามเลยไม่ควรเจอ
+  // ภารกิจเป็น CTA เดียวที่เด้งเข้าคำถามทันทีโดยไม่มีหน้าคั่นเลือกวิชา)
+  const missionActive =
+    !!mission && mission.answeredCount < mission.mission.target_count && hasEverAnswered;
+
+  // CTA "ฝึก Qmon"/"ฝึกต่อได้" — ใช้ร่วมกันทั้งตอน hasEverAnswered=false (CTA เดียว) และตอนภารกิจ
+  // จบแล้ว/ไม่มี (คู่กับ MissionCard ที่ยุบเป็น chip) กันโค้ด markup ซ้ำสองจุด
+  const practiceCta = cappedToday ? (
+    <div className="flex w-full max-w-xs flex-col items-center gap-1">
+      <Link
+        href="/quiz"
+        className="w-full rounded-2xl border-2 border-gold py-3 text-lg font-bold text-gold-hi transition active:scale-95"
+      >
+        ฝึกต่อได้
+      </Link>
+      <p className="text-xs text-text3">ฝึกเพิ่มได้ แต่วันนี้ไม่ดันระยะแล้ว</p>
+    </div>
+  ) : (
+    <Link
+      href="/quiz"
+      className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+    >
+      ฝึก Qmon
+    </Link>
+  );
 
   const hasFullStats =
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
@@ -213,6 +240,10 @@ export default function PetCard({
 
       {/* 4. บล็อกแอ็กชันรวม — การ์ดภารกิจกับ CTA "ฝึก Qmon" เดิมเคยเป็นสองบล็อกซ้อนกัน ทำหน้าที่
           ซ้ำกัน (ทั้งคู่คือ "จะฝึกอะไรวันนี้") รวมเป็นก้อนเดียวที่สลับตามสถานะภารกิจแทน:
+          - hasEverAnswered=false (ยังไม่เคยตอบคำถามเลยสักข้อในชีวิต) -> ไม่โชว์ MissionCard เลยแม้
+            mission จะไม่ null (mission ถูกสร้าง lazy โดยไม่เช็คประวัติ ดู missions.ts) เหลือแค่ CTA
+            "ฝึก Qmon" อย่างเดียว เพราะ flow นั้นมีหน้าคั่นเลือกวิชาก่อนเห็นคำถามข้อแรกเสมอ ต่างจาก
+            flow ภารกิจที่เด้งเข้าคำถามทันที — user ครั้งแรกในชีวิตไม่ควรเจอ flow ที่ไม่มีหน้าคั่น
           - ภารกิจยังไม่จบ (missionActive) -> MissionCard คือ CTA หลักไปเลย ไม่โชว์ปุ่ม "ฝึก Qmon" ซ้ำ
           - ภารกิจจบแล้ว/ไม่มีภารกิจ -> MissionCard ยุบเหลือ chip (หรือไม่โชว์อะไรถ้า mission null)
             แล้ว CTA "ฝึก Qmon"/"ฝึกต่อได้" เดิมกลับมาเป็นหลักตามเดิม
@@ -224,29 +255,14 @@ export default function PetCard({
           แค่ไม่ใช่สิ่งแรกที่ต้องเห็นแล้ว) */}
       {isMaxStage ? (
         <CollectPetButton eggChoices={eggChoices} />
+      ) : !hasEverAnswered ? (
+        practiceCta
       ) : missionActive ? (
         <MissionCard mission={mission} subline={subline} />
       ) : (
         <>
           <MissionCard mission={mission} subline={subline} />
-          {cappedToday ? (
-            <div className="flex w-full max-w-xs flex-col items-center gap-1">
-              <Link
-                href="/quiz"
-                className="w-full rounded-2xl border-2 border-gold py-3 text-lg font-bold text-gold-hi transition active:scale-95"
-              >
-                ฝึกต่อได้
-              </Link>
-              <p className="text-xs text-text3">ฝึกเพิ่มได้ แต่วันนี้ไม่ดันระยะแล้ว</p>
-            </div>
-          ) : (
-            <Link
-              href="/quiz"
-              className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
-            >
-              ฝึก Qmon
-            </Link>
-          )}
+          {practiceCta}
         </>
       )}
 
