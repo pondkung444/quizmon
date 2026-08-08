@@ -63,7 +63,7 @@ export default function CollectedPetCard({
 
         <div>
           <h2 className="text-sm font-bold text-gold-hi">พลังประจำตัว</h2>
-          <p className="text-xs text-text3">จะได้ใช้เมื่อระบบผจญภัย &amp; ต่อสู้เปิดในอนาคต</p>
+          <p className="text-xs text-text3">ใช้ตัดสินผลตอนไปท้าทายด่านต่างๆ</p>
         </div>
 
         <StatRadar stats={stats} />

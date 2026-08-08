@@ -192,14 +192,18 @@ body {
 }
 
 /* เด้งขึ้นลงของสไปรต์ระหว่างเดินทางในดันเจี้ยน (จอ B, /adventure) — เบากว่า .animate-pet-bob
-   (4px แทน 7px) เพราะสไปรต์ตรงนี้เล็กกว่าและอยู่บนพื้นหลังฉาก ไม่ใช่การ์ดหลัก */
+   (4px แทน 7px) เพราะสไปรต์ตรงนี้เล็กกว่าและอยู่บนพื้นหลังฉาก ไม่ใช่การ์ดหลัก
+   --raid-ground-anchor (ค่าเริ่มต้น -100%): ระบบท้าทาย (RaidScene.tsx) reuse class นี้ให้ Qmon เดิน
+   เหมือนกัน แต่สไปรต์แต่ละไฟล์มีขอบล่างโปร่งใสไม่เท่ากัน เลยต้อง set ตัวแปรนี้ต่อสไปรต์เพื่อชดเชย
+   (ดูคอมเมนต์ RaidScene.tsx/spriteGroundOffsets.ts) ฝั่งดันเจี้ยนเดิมไม่ได้ set ตัวแปรนี้เลย จึง fallback
+   เป็น -100% เดิมเป๊ะ ไม่มีอะไรเปลี่ยนสำหรับฟีเจอร์นั้น */
 @keyframes dungeon-walk-bob {
   0%,
   100% {
-    transform: translate(-50%, -100%) translateY(0);
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateY(0);
   }
   50% {
-    transform: translate(-50%, -100%) translateY(-4px);
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateY(-4px);
   }
 }
 
@@ -223,6 +227,127 @@ body {
   animation: pip-glow 1.4s ease-in-out infinite;
 }
 
+/* จอสู้บอสระบบท้าทาย (RaidBossScreen.tsx) — เล่นครั้งเดียวจบ (ไม่ infinite) ทุกครั้งที่มีผลตอบ
+   ใหม่ (ใช้ React key remount ให้เล่นซ้ำได้ทุกข้อ 1-5) transform base ใช้ --raid-ground-anchor
+   เหมือน .animate-dungeon-walk-bob (ดูคอมเมนต์ตรงนั้น) เพราะสไปรต์ในฉากนี้ position ด้วย
+   left/top% + anchor แบบเดียวกัน ตอบถูก = บอสโดน (สั่น+วาบขาวชัดๆให้รู้สึกว่า "โดนแล้ว") ตอบผิด =
+   Qmon สะเทือนเบาๆ (ไม่ใช่ fail animation ที่ดูเหมือนลงโทษ ตามหลักไม่มีกลไกลงโทษของเกม) วาบขาวใช้
+   drop-shadow สีขาวคู่กับ brightness พีคที่ 20%/40% (ฟีดแบ็กรอบนี้ขอให้ "แรง" ขึ้นจากเดิม) */
+@keyframes boss-hit {
+  0%,
+  100% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(0) scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+  20% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(-4px) scale(0.97);
+    filter: brightness(1.9) drop-shadow(0 0 22px rgba(255, 255, 255, 0.95));
+  }
+  40% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(4px) scale(0.97);
+    filter: brightness(1.9) drop-shadow(0 0 22px rgba(255, 255, 255, 0.95));
+  }
+  60% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(-3px) scale(1);
+    filter: brightness(1.2) drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+  }
+  80% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(2px) scale(1);
+  }
+}
+
+.animate-boss-hit {
+  animation: boss-hit 400ms ease-out;
+}
+
+/* หายใจของบอส (RaidBossScreen.tsx) — idle animation แยกจาก .animate-dungeon-walk-bob ของ Qmon
+   ตั้งใจให้ช้า+หนักกว่าชัดเจน (4.2s ไม่ใช่ 1.8s, ขยับขึ้นลงน้อยกว่าแต่เพิ่ม scale เบาๆ แทนความรู้สึก
+   "พองยุบ" ของสิ่งมีชีวิตตัวใหญ่) transform base ใช้ --raid-ground-anchor ตาม convention เดียวกับ
+   สไปรต์อื่นในฉากนี้ */
+@keyframes boss-idle-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateY(0) scale(1);
+  }
+  50% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateY(-3px) scale(1.015);
+  }
+}
+
+.animate-boss-idle-breathe {
+  animation: boss-idle-breathe 4.2s ease-in-out infinite;
+}
+
+@keyframes qmon-flinch {
+  0%,
+  100% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(-3px) rotate(-3deg);
+  }
+  50% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(3px) rotate(3deg);
+  }
+  75% {
+    transform: translate(-50%, var(--raid-ground-anchor, -100%)) translateX(-2px) rotate(-1deg);
+  }
+}
+
+.animate-qmon-flinch {
+  animation: qmon-flinch 350ms ease-out;
+}
+
+/* จอทอยเต๋าระบบท้าทาย (RaidPathScreen.tsx) — ตัวเลขต้องเป็นจุดเด่นสุดของจอ ระหว่างหมุนต้องมีสัญญาณ
+   ชัดเจนกว่าแค่เลขเปลี่ยน (เรืองแสง+ขยับขนาดเบาๆ) โทนน้ำเงินน้ำแข็งอิง --color-indigo เท่านั้น
+   (โทนทอง --color-gold สงวนไว้ให้ไข่ legendary ห้ามใช้ตรงนี้) หยุดหมุนแล้วเจอผลจริง — ผ่านเรืองเขียว
+   ชัดเจน ไม่ผ่านแดงนวลๆ (ไม่ทำให้รู้สึกถูกลงโทษ ตามหลักไม่มีกลไกลงโทษของเกม) */
+@keyframes raid-roll-spin {
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 14px rgba(112, 137, 209, 0.65);
+  }
+  50% {
+    transform: scale(1.07);
+    text-shadow: 0 0 26px rgba(112, 137, 209, 1);
+  }
+}
+
+.animate-raid-roll-spin {
+  animation: raid-roll-spin 0.35s ease-in-out infinite;
+}
+
+@keyframes raid-roll-pass {
+  0% {
+    transform: scale(1.18);
+    text-shadow: 0 0 32px rgba(74, 222, 128, 0.95);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 16px rgba(74, 222, 128, 0.55);
+  }
+}
+
+.animate-raid-roll-pass {
+  animation: raid-roll-pass 500ms ease-out forwards;
+}
+
+@keyframes raid-roll-fail {
+  0% {
+    transform: scale(1.08);
+    text-shadow: 0 0 20px rgba(216, 54, 47, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(216, 54, 47, 0.22);
+  }
+}
+
+.animate-raid-roll-fail {
+  animation: raid-roll-fail 500ms ease-out forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
   .animate-egg-wobble,
@@ -232,6 +357,12 @@ body {
   .animate-typing-dot,
   .animate-dungeon-walk-bob,
   .animate-pip-glow,
+  .animate-boss-hit,
+  .animate-boss-idle-breathe,
+  .animate-qmon-flinch,
+  .animate-raid-roll-spin,
+  .animate-raid-roll-pass,
+  .animate-raid-roll-fail,
   .evo-glow-pulse {
     animation: none;
   }

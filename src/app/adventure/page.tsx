@@ -8,9 +8,15 @@ import {
 } from "@/lib/dungeon";
 import AdventureClient, { type AdventureView } from "@/components/dungeon/AdventureClient";
 
-export default async function AdventurePage() {
+export default async function AdventurePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pet?: string }>;
+}) {
   const user = await getUser();
   if (!user) redirect("/login");
+
+  const { pet: petParam } = await searchParams;
 
   const supabase = await createClient();
 
@@ -37,7 +43,11 @@ export default async function AdventurePage() {
     if (!dungeon) redirect("/pet");
 
     const pityMeter = await getPityMeter(supabase, user.id, dungeon.rewardTier);
-    view = { kind: "predeparture", dungeon, pets: eligiblePets, pityMeter };
+    // ?pet= จาก /collection/[petId] — ใช้ได้ก็ต่อเมื่อยังอยู่ในลิสต์ eligiblePets เท่านั้น (id ผิด/
+    // ไม่มี/ไม่พร้อม ตกกลับไปจอเลือกปกติเงียบๆ ไม่ error)
+    const preselectedPetId =
+      petParam && eligiblePets.some((p) => p.id === petParam) ? petParam : null;
+    view = { kind: "predeparture", dungeon, pets: eligiblePets, pityMeter, preselectedPetId };
   }
 
   return <AdventureClient view={view} />;

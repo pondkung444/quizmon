@@ -6,7 +6,13 @@ import InProgressScreen from "@/components/dungeon/InProgressScreen";
 import ClaimScreen from "@/components/dungeon/ClaimScreen";
 
 export type AdventureView =
-  | { kind: "predeparture"; dungeon: DungeonInfo; pets: EligiblePet[]; pityMeter: number }
+  | {
+      kind: "predeparture";
+      dungeon: DungeonInfo;
+      pets: EligiblePet[];
+      pityMeter: number;
+      preselectedPetId: string | null;
+    }
   | { kind: "traveling"; dungeon: DungeonInfo; run: DungeonRunDetail; pityMeter: number }
   | { kind: "claimable"; dungeon: DungeonInfo; run: DungeonRunDetail; pityMeter: number };
 
@@ -14,7 +20,14 @@ export type AdventureView =
 // แยกไฟล์ (ต้องมี state/timer ของตัวเอง) รวมไว้ที่นี่จุดเดียวแทนที่จะ if/else ใน page.tsx ตรงๆ
 export default function AdventureClient({ view }: { view: AdventureView }) {
   if (view.kind === "predeparture") {
-    return <PreDeparture dungeon={view.dungeon} pets={view.pets} pityMeter={view.pityMeter} />;
+    return (
+      <PreDeparture
+        dungeon={view.dungeon}
+        pets={view.pets}
+        pityMeter={view.pityMeter}
+        preselectedPetId={view.preselectedPetId}
+      />
+    );
   }
   if (view.kind === "traveling") {
     return <InProgressScreen dungeon={view.dungeon} initialRun={view.run} pityMeter={view.pityMeter} />;

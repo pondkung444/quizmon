@@ -1,0 +1,10 @@
+// ชื่อคงที่จาก naming session (7 ส.ค. 2026) — ช่องอุปกรณ์ไม่มีตาราง lookup ใน DB
+// (raid_gear_items.slot เป็น CHECK ตายตัว) ต่างจากคุณภาพอุปกรณ์ที่มี label_th ใน
+// raid_gear_qualities แล้ว ยังไม่มี UI เรียกใช้ (equip เป็นสไลซ์ 2) — ประกาศไว้ให้พร้อมก่อน
+export const RAID_GEAR_SLOT_LABEL_TH: Record<"head" | "body" | "feet", string> = {
+  head: "มงคลเศียร",
+  body: "มงคลกาย",
+  feet: "มงคลบาท",
+};
+
+export const RAID_MOUNTAIN_NAME_TH = "ภูเหนือเมฆ";

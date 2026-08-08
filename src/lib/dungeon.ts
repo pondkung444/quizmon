@@ -229,3 +229,46 @@ export async function getDungeonCardState(
 
   return count && count > 0 ? { status: "ready" } : { status: "invite" };
 }
+
+export type DungeonEntryState =
+  | { status: "ready" }
+  | { status: "own_traveling" }
+  | { status: "own_claimable" }
+  | { status: "blocked_other_pet"; otherPetName: string };
+
+// สถานะปุ่ม "ส่งไปผจญภัย" สำหรับ Qmon ตัวหนึ่งโดยเฉพาะ (ใช้ใน /collection/[petId]) — concurrency
+// เป็นต่อ user ไม่ใช่ต่อ Qmon จึงต้องแยกให้ชัดว่ารันที่ค้างอยู่ (ถ้ามี) เป็นของตัวนี้เอง (own_*)
+// หรือของตัวอื่น (blocked_other_pet) ไม่แตะ getOwnActiveRun/getDungeonCardState เดิมเลย เรียกใช้
+// ผ่านฟังก์ชันเดิมแล้วเสริมด้วย query pet_id เบาๆ อีกครั้งเท่านั้น
+export async function getDungeonEntryState(
+  supabase: SupabaseServerClient,
+  userId: string,
+  petId: string
+): Promise<DungeonEntryState> {
+  const activeRun = await getOwnActiveRun(supabase, userId);
+  if (!activeRun) return { status: "ready" };
+
+  const { data: runRow } = await supabase
+    .from("dungeon_runs")
+    .select("pet_id")
+    .eq("id", activeRun.run.id)
+    .maybeSingle();
+
+  if (runRow?.pet_id === petId) {
+    const isClaimable = new Date(activeRun.run.endsAt).getTime() <= Date.now();
+    return { status: isClaimable ? "own_claimable" : "own_traveling" };
+  }
+
+  // ชื่อที่โชว์: nickname ก่อนเสมอ (nullable) fallback เป็นชื่อพันธุ์ที่ getOwnActiveRun คำนวณไว้แล้ว
+  let otherPetName = activeRun.run.petSpeciesName;
+  if (runRow?.pet_id) {
+    const { data: otherPet } = await supabase
+      .from("pets")
+      .select("nickname")
+      .eq("id", runRow.pet_id)
+      .maybeSingle();
+    if (otherPet?.nickname) otherPetName = otherPet.nickname;
+  }
+
+  return { status: "blocked_other_pet", otherPetName };
+}
