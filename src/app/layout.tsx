@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Kanit } from "next/font/google";
+import { Kanit, Sarabun } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
@@ -9,6 +9,12 @@ const kanit = Kanit({
   variable: "--font-kanit",
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const sarabun = Sarabun({
+  variable: "--font-sarabun",
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -40,7 +46,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="th" className={`${kanit.variable} h-full antialiased`}>
+    <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-text">
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}

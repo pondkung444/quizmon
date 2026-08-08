@@ -610,7 +610,7 @@ export default function QuizClient({
           dailyCapped={petDailyCapped}
         />
 
-        <h2 className="text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
+        <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
         <div className="flex flex-col gap-3">
           {current.choices.map((choiceText, choiceIndex) => {
@@ -634,7 +634,7 @@ export default function QuizClient({
                 data-testid="choice-button"
                 disabled={!!result || isPending}
                 onClick={() => handleSelectChoice(choiceIndex)}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
+                className={`font-sarabun flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                   {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
@@ -652,16 +652,16 @@ export default function QuizClient({
             }`}
           >
             {result.correct ? (
-              <p className="animate-bounce text-lg font-bold">
+              <p className="font-sarabun animate-bounce text-lg font-bold">
                 ถูกต้อง! 🎉 ได้ +{result.expEarned} EXP
               </p>
             ) : (
               <div className="flex flex-col gap-1">
-                <p className="text-lg font-bold">ยังไม่ถูกนะ ไม่เป็นไร!</p>
-                <p className="text-sm">
+                <p className="font-sarabun text-lg font-bold">ยังไม่ถูกนะ ไม่เป็นไร!</p>
+                <p className="font-sarabun text-sm">
                   เฉลย: {THAI_LETTERS[result.correctIndex]}. {current.choices[result.correctIndex]}
                 </p>
-                {result.explanation && <p className="text-sm">{result.explanation}</p>}
+                {result.explanation && <p className="font-sarabun text-sm">{result.explanation}</p>}
               </div>
             )}
           </div>
