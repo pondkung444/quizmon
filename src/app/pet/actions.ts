@@ -76,6 +76,7 @@ export async function chooseEggAfterCollect(eggTypeId: string): Promise<{ player
     .select("id")
     .eq("id", eggTypeId)
     .eq("is_obtainable", true)
+    .eq("tier", "common")
     .maybeSingle();
 
   if (eggTypeError || !eggType) throw new Error("ไม่พบไข่ชนิดนี้");
