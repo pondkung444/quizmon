@@ -103,6 +103,7 @@ export default async function PetPage({
         .from("egg_types")
         .select("id, name_th, tier, description, sprite_prefix")
         .eq("is_obtainable", true)
+        .eq("tier", "common")
         .order("id", { ascending: true }),
       getWeeklyJourney(supabase, user.id),
       getWeeklyTopicStats(supabase, user.id),
