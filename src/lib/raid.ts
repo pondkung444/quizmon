@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
 import { getSpeciesName } from "@/lib/petLine";
 import type { Subline, Personality } from "@/lib/evolution";
-import { computeRollDisplay, type RaidStatKey } from "@/lib/raid/stats";
+import { computeRollDisplay, type RaidStatKey, type RaidStatRecord } from "@/lib/raid/stats";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -23,6 +23,8 @@ export type EligibleRaidPet = {
   id: string;
   imagePath: string;
   speciesName: string;
+  rawStats: RaidStatRecord;
+  caps: RaidStatRecord;
 };
 
 export type RaidGearItemView = {
@@ -35,6 +37,11 @@ export type RaidGearItemView = {
   quality: string;
   qualityLabel: string | null;
 };
+
+// เหมือน RaidGearItemView แต่รวม equippedPetId ไว้ด้วย — ใช้เฉพาะฝั่งจอ predeparture ที่ต้องรู้ว่า
+// ของชิ้นไหนใส่อยู่กับตัวไหน (null = อยู่ในคลัง ยังไม่ใส่ใคร) ต่างจาก RaidGearItemView ที่ใช้โชว์ของ
+// รางวัลชิ้นเดียวตอนจบรอบซึ่งไม่ต้องรู้เรื่องนี้
+export type RaidGearItemFull = RaidGearItemView & { equippedPetId: string | null };
 
 export type RaidPathOption = {
   side: "a" | "b";
@@ -49,6 +56,7 @@ export type RaidView =
       pets: EligibleRaidPet[];
       ticketCount: number;
       preselectedPetId: string | null;
+      gearItems: RaidGearItemFull[];
     }
   | {
       phase: "choosing";
@@ -150,7 +158,7 @@ export async function getActiveRaidType(supabase: SupabaseServerClient): Promise
   };
 }
 
-type EggTypeJoin = { sprite_prefix: string; name_th: string };
+type EggTypeJoin = { sprite_prefix: string; name_th: string; stat_profile: { caps?: RaidStatRecord } | null };
 function pickEggType(joined: EggTypeJoin | EggTypeJoin[] | null): EggTypeJoin | null {
   return Array.isArray(joined) ? (joined[0] ?? null) : joined;
 }
@@ -158,13 +166,18 @@ function pickEggType(joined: EggTypeJoin | EggTypeJoin[] | null): EggTypeJoin | 
 // pet ที่ท้าทายได้ — stage >= 4 เท่านั้น ห้ามกรอง is_active (pet stage 4 ทุกตัวเก็บเข้าคอลเลกชันแล้ว
 // เป็น is_active=false ทั้งหมด กรอง active จะทำให้ว่างเปล่าทั้งระบบ — ต่างจาก getEligiblePets ของ
 // ผจญภัยโดยตั้งใจ ห้ามลอกเงื่อนไขนั้นมา)
+// สไลซ์ 2: ดึง rawStats + caps มาด้วย ใช้คำนวณ readiness ของจอ predeparture ผ่าน effectiveStat()
+// เท่านั้น (ห้ามอ่าน stat_* ตรงๆ ในฝั่ง UI) — ไม่ใช่ตัวตัดสินผ่าน/ไม่ผ่านจริง (นั่นมาจาก stat_snapshot
+// ที่ start_raid_run ล็อกไว้ตอนเริ่มรอบ)
 export async function getEligibleRaidPets(
   supabase: SupabaseServerClient,
   userId: string
 ): Promise<EligibleRaidPet[]> {
   const { data } = await supabase
     .from("pets")
-    .select("id, hatched_at, stage, subline, personality, egg_types(sprite_prefix, name_th)")
+    .select(
+      "id, hatched_at, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, egg_types(sprite_prefix, name_th, stat_profile)"
+    )
     .eq("user_id", userId)
     .gte("stage", 4)
     .order("hatched_at", { ascending: false });
@@ -172,7 +185,8 @@ export async function getEligibleRaidPets(
   const pets: EligibleRaidPet[] = [];
   for (const row of data ?? []) {
     const eggType = pickEggType(row.egg_types as EggTypeJoin | EggTypeJoin[] | null);
-    if (!eggType || !row.subline || !row.personality) continue;
+    const caps = eggType?.stat_profile?.caps;
+    if (!eggType || !row.subline || !row.personality || !caps) continue;
     try {
       pets.push({
         id: row.id,
@@ -184,12 +198,53 @@ export async function getEligibleRaidPets(
           row.personality as Personality,
           eggType.name_th
         ),
+        rawStats: {
+          hp: row.stat_hp ?? 0,
+          atk: row.stat_atk ?? 0,
+          def: row.stat_def ?? 0,
+          spd: row.stat_spd ?? 0,
+          foc: row.stat_foc ?? 0,
+        },
+        caps,
       });
     } catch (err) {
       console.error("getEligibleRaidPets: skip pet with bad data", row.id, err);
     }
   }
   return pets;
+}
+
+type QualityJoin = { label_th: string };
+function pickQualityLabel(joined: QualityJoin | QualityJoin[] | null): string | null {
+  const row = Array.isArray(joined) ? (joined[0] ?? null) : joined;
+  return row?.label_th ?? null;
+}
+
+// อุปกรณ์ทั้งหมดที่ user เป็นเจ้าของ (ทั้งที่ใส่อยู่กับตัวไหนก็ตามและที่อยู่ในคลัง) — จอ predeparture
+// ใช้กรอง equippedPetId ตรงกับ pet ที่เลือกไว้เอง ไม่ query แยกต่อตัว
+export async function getUserRaidGearItems(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<RaidGearItemFull[]> {
+  const { data } = await supabase
+    .from("raid_gear_items")
+    .select(
+      "id, slot, main_stat, main_value, sub_stat, sub_value, quality, equipped_pet_id, raid_gear_qualities(label_th)"
+    )
+    .eq("owner_user_id", userId)
+    .order("obtained_at", { ascending: false });
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    slot: row.slot as "head" | "body" | "feet",
+    mainStat: row.main_stat as RaidStatKey,
+    mainValue: row.main_value,
+    subStat: row.sub_stat as RaidStatKey | null,
+    subValue: row.sub_value,
+    quality: row.quality,
+    qualityLabel: pickQualityLabel(row.raid_gear_qualities as QualityJoin | QualityJoin[] | null),
+    equippedPetId: row.equipped_pet_id,
+  }));
 }
 
 type RunRow = {

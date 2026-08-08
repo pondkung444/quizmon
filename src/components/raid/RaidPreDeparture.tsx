@@ -4,33 +4,50 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { RaidTypeInfo, EligibleRaidPet } from "@/lib/raid";
+import type { RaidTypeInfo, EligibleRaidPet, RaidGearItemFull } from "@/lib/raid";
 import { startRaidRun } from "@/app/raid/actions";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
+import RaidGearLoadout from "@/components/raid/RaidGearLoadout";
 import { RAID_MOUNTAIN_NAME_TH } from "@/lib/raid/labels";
 
-// จอก่อนใช้ตั๋ว — ต้องเขียนกติกาบอสเป็นข้อความตรงๆ (§7 ในดอค) กันสภาพ "แพ้เพราะเงื่อนไขที่ไม่รู้มาก่อน"
+function rawStatSum(pet: EligibleRaidPet): number {
+  return pet.rawStats.hp + pet.rawStats.atk + pet.rawStats.def + pet.rawStats.spd + pet.rawStats.foc;
+}
+
+// จอ "ตั้งค่าก่อนเข้าด่าน" หน้าเดียว (raid-slice2-ui-handoff §2) — รวมเลือกมอน + เลือกอุปกรณ์ + ดูสเตตัส
+// ไม่แยกเป็น 3 หน้าตามที่เคยคิดไว้ก่อนคุย UX จบ — ต้องเขียนกติกาบอสเป็นข้อความตรงๆ (§7 ในดอคเดิม) กัน
+// สภาพ "แพ้เพราะเงื่อนไขที่ไม่รู้มาก่อน" แต่ยุบเป็น expand แทนบล็อกเปิดค้าง (§2.8 ในดอคใหม่)
 export default function RaidPreDeparture({
   raidType,
   pets,
   ticketCount,
   preselectedPetId,
+  gearItems,
 }: {
   raidType: RaidTypeInfo;
   pets: EligibleRaidPet[];
   ticketCount: number;
   preselectedPetId?: string | null;
+  gearItems: RaidGearItemFull[];
 }) {
   const router = useRouter();
+  // มาจาก /collection/[petId] ด้วย ?pet= ที่ผ่านการเช็คสิทธิ์แล้วฝั่ง server (page.tsx) — ล็อกตัวไว้
+  // ไม่ต้องเลือกซ้ำ แต่ต้องมีทาง "เปลี่ยนตัว" กลับไปจอปกติเสมอ (แค่ทิ้ง ?pet= ไม่ใช่ path พิเศษ) จึงเป็น
+  // Link ไม่ใช่ toggle picker แบบตัวที่เลือกเอง
+  const lockedPet = preselectedPetId ? pets.find((p) => p.id === preselectedPetId) ?? null : null;
+
   const [selectedPetId, setSelectedPetId] = useState<string | null>(
     preselectedPetId ?? pets[0]?.id ?? null
   );
+  const selectedPet = pets.find((p) => p.id === selectedPetId) ?? null;
+  const [showPicker, setShowPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  // มาจาก /collection/[petId] ด้วย ?pet= ที่ผ่านการเช็คสิทธิ์แล้วฝั่ง server (page.tsx) — ล็อกตัวไว้
-  // ไม่ต้องเลือกซ้ำ แต่ต้องมีทาง "เลือกตัวอื่น" กลับไปจอปกติเสมอ (แค่ทิ้ง ?pet= ไม่ใช่ path พิเศษ)
-  const lockedPet = preselectedPetId ? pets.find((p) => p.id === preselectedPetId) ?? null : null;
+
+  // เรียงจาก stat รวม raw มากไปน้อย (§2.3, §7) — ใช้ raw ไม่ใช่ effective เพราะเป็นการเลือกตัวมอน
+  // โดยเนื้อแท้ ไม่เกี่ยวกับของที่ใส่อยู่
+  const sortedPets = [...pets].sort((a, b) => rawStatSum(b) - rawStatSum(a));
 
   async function handleDepart() {
     if (!selectedPetId || isSending || ticketCount === 0) return;
@@ -51,6 +68,9 @@ export default function RaidPreDeparture({
         title={`${RAID_MOUNTAIN_NAME_TH} · ${raidType.nameTh}`}
         subtitle={raidType.descriptionTh ?? undefined}
       />
+      <p className="-mt-2 text-xs text-text3">
+        {raidType.nameTh} → ตั้งค่าก่อนเข้าด่าน
+      </p>
 
       <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-5">
         <RaidScene backgroundPath={raidType.backgroundPath} />
@@ -61,37 +81,49 @@ export default function RaidPreDeparture({
         </section>
 
         <section className="w-full max-w-xs">
-          {lockedPet ? (
-            <>
-              <p className="mb-2 text-xs text-text2">Qmon ที่จะไป</p>
-              <div className="flex items-center gap-3 rounded-xl border border-gold bg-amber/10 p-3">
-                <Image
-                  src={lockedPet.imagePath}
-                  alt={lockedPet.speciesName}
-                  width={48}
-                  height={48}
-                  className="shrink-0"
-                />
-                <span className="font-bold text-text">{lockedPet.speciesName}</span>
-              </div>
-              <Link href="/raid" className="mt-2 inline-block text-xs text-text3 underline">
-                เลือกตัวอื่น
-              </Link>
-            </>
+          {pets.length === 0 ? (
+            <p className="rounded-xl border border-border bg-track p-3 text-center text-sm text-text3">
+              ยังไม่มี Qmon ที่โตเต็มที่พร้อมท้าทาย
+            </p>
           ) : (
             <>
-              <p className="mb-2 text-xs text-text2">เลือกตัว</p>
-              {pets.length === 0 ? (
-                <p className="rounded-xl border border-border bg-track p-3 text-center text-sm text-text3">
-                  ยังไม่มี Qmon ที่โตเต็มที่พร้อมท้าทาย
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {pets.map((pet) => (
+              <p className="mb-2 text-xs text-text2">Qmon ที่จะไป</p>
+              {selectedPet && (
+                <div className="flex items-center gap-3 rounded-xl border border-gold bg-amber/10 p-3">
+                  <Image
+                    src={selectedPet.imagePath}
+                    alt={selectedPet.speciesName}
+                    width={48}
+                    height={48}
+                    className="shrink-0"
+                  />
+                  <span className="flex-1 font-bold text-text">{selectedPet.speciesName}</span>
+                  {lockedPet ? (
+                    <Link href="/raid" className="shrink-0 text-xs text-text3 underline">
+                      เปลี่ยนตัว
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowPicker((v) => !v)}
+                      className="shrink-0 text-xs text-text3 underline"
+                    >
+                      เปลี่ยนตัว
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {!lockedPet && showPicker && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {sortedPets.map((pet) => (
                     <button
                       key={pet.id}
                       type="button"
-                      onClick={() => setSelectedPetId(pet.id)}
+                      onClick={() => {
+                        setSelectedPetId(pet.id);
+                        setShowPicker(false);
+                      }}
                       aria-pressed={selectedPetId === pet.id}
                       className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${
                         selectedPetId === pet.id ? "border-gold bg-amber/10" : "border-border bg-card"
@@ -107,13 +139,16 @@ export default function RaidPreDeparture({
           )}
         </section>
 
-        <section className="w-full max-w-xs rounded-2xl border border-gold-dim bg-track p-3">
-          <p className="mb-1 text-xs font-bold text-text2">กติกาบอส</p>
-          <p className="text-sm text-text">
-            ต้องตอบคำถามให้ถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ
-            และสถิติรวมของ Qmon ต้องถึงเกณฑ์ด่านนี้ — พลาดข้อไหนก็ไปต่อได้เสมอ ไม่มีทางตัน
-          </p>
-        </section>
+        {selectedPet && (
+          <RaidGearLoadout
+            key={selectedPet.id}
+            petId={selectedPet.id}
+            rawStats={selectedPet.rawStats}
+            caps={selectedPet.caps}
+            thresholdPct={raidType.bossThresholdPct}
+            gearItems={gearItems}
+          />
+        )}
 
         <section className="w-full max-w-xs rounded-xl border border-border bg-card p-3 text-center">
           <p className="text-sm font-bold text-text">ผ่านหรือไม่ผ่าน ก็ได้อุปกรณ์ติดมือกลับมาเสมอ</p>
@@ -129,6 +164,14 @@ export default function RaidPreDeparture({
         >
           {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีตั๋วท้าทาย" : "ใช้ตั๋วเริ่มท้าทาย"}
         </button>
+
+        <details className="w-full max-w-xs text-center">
+          <summary className="cursor-pointer text-xs text-text3 underline">ดูกติกาบอส</summary>
+          <p className="mt-2 text-sm text-text">
+            ต้องตอบคำถามให้ถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ
+            และสถิติรวมของ Qmon ต้องถึงเกณฑ์ด่านนี้ — พลาดข้อไหนก็ไปต่อได้เสมอ ไม่มีทางตัน
+          </p>
+        </details>
       </div>
     </main>
   );
