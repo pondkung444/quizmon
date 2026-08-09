@@ -22,6 +22,7 @@ import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
 import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
+import EggsClient, { type EggListItem } from "@/components/EggsClient";
 
 export default async function PetPage({
   searchParams,
@@ -71,6 +72,7 @@ export default async function PetPage({
   let gradeBand: GradeBand | null = null;
   let dungeonCard: DungeonCardState = { status: "invite" };
   let hasEverAnswered = false;
+  let unhatchedEggs: EggListItem[] = [];
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -154,6 +156,33 @@ export default async function PetPage({
       description: egg.description,
       imagePath: getPetImagePath(egg.sprite_prefix, 1, null, null),
     }));
+
+    // ไม่มี active pet ตอนนี้ — ดึงไข่ที่ยังไม่ฟักมาให้เลือกฟักตรงนี้เลย (ไม่ต้อง fetch
+    // ตอนมี pet active อยู่แล้ว เพราะ empty state จะไม่ได้โชว์อยู่ดี)
+    if (!pet) {
+      const { data: eggRows } = await supabase
+        .from("player_eggs")
+        .select(
+          "id, source, obtained_at, egg_type_id, egg_types(name_th, tier, description, sprite_prefix)"
+        )
+        .eq("user_id", user.id)
+        .is("hatched_at", null)
+        .order("obtained_at", { ascending: true });
+
+      unhatchedEggs = (eggRows ?? []).map((row) => {
+        const eggType = Array.isArray(row.egg_types) ? row.egg_types[0] : row.egg_types;
+        return {
+          id: row.id,
+          source: row.source,
+          obtainedAt: row.obtained_at,
+          eggTypeId: row.egg_type_id,
+          nameTh: eggType?.name_th ?? row.egg_type_id,
+          tier: eggType?.tier ?? "common",
+          description: eggType?.description ?? null,
+          imagePath: eggType ? getPetImagePath(eggType.sprite_prefix, 1, null, null) : null,
+        };
+      });
+    }
   }
 
   const exp = pet?.exp ?? 0;
@@ -255,8 +284,12 @@ export default async function PetPage({
         />
         </>
       ) : (
-        <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">
-          ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่ — ไปที่คลังไข่เพื่อฟักไข่ใบแรก
+        <div className="flex flex-col gap-4">
+          <div className="rounded-2xl border border-gold-dim bg-card p-4 text-center">
+            <p className="text-sm font-bold text-gold-hi">ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่</p>
+            <p className="mt-1 text-xs text-text3">เลือกไข่ที่จะฟักได้เลย</p>
+          </div>
+          <EggsClient eggs={unhatchedEggs} hasActivePet={false} />
         </div>
       )}
     </main>
