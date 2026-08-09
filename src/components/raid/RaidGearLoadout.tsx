@@ -107,7 +107,11 @@ export default function RaidGearLoadout({
     setBusyId(item.id);
     setErrorMessage(null);
     try {
-      await unequipRaidGear(item.id);
+      const result = await unequipRaidGear(item.id);
+      if (!result.ok) {
+        setErrorMessage(result.message);
+        return;
+      }
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, equippedPetId: null } : i)));
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ถอดอุปกรณ์ไม่สำเร็จ");
@@ -121,7 +125,24 @@ export default function RaidGearLoadout({
     setBusyId(item.id);
     setErrorMessage(null);
     try {
-      await equipRaidGear(item.id, petId);
+      // ของเดิมที่ชนช่องเดียวกันหรือชนแกน (mainStat) เดียวกันบนตัวนี้ — ถอดให้อัตโนมัติก่อนใส่ของใหม่
+      const conflicts = items.filter(
+        (i) => i.equippedPetId === petId && i.id !== item.id && (i.slot === item.slot || i.mainStat === item.mainStat)
+      );
+      for (const conflict of conflicts) {
+        const unequipResult = await unequipRaidGear(conflict.id);
+        if (!unequipResult.ok) {
+          setErrorMessage(unequipResult.message);
+          return;
+        }
+        setItems((prev) => prev.map((i) => (i.id === conflict.id ? { ...i, equippedPetId: null } : i)));
+      }
+
+      const result = await equipRaidGear(item.id, petId);
+      if (!result.ok) {
+        setErrorMessage(result.message);
+        return;
+      }
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, equippedPetId: petId } : i)));
       setOpenSlot(null);
     } catch (err) {

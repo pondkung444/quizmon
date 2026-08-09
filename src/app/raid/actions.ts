@@ -154,20 +154,24 @@ function mapGearRow(row: {
   };
 }
 
-export async function equipRaidGear(itemId: string, petId: string): Promise<EquipRaidGearResult> {
+export type EquipRaidGearOutcome =
+  | { ok: true; item: EquipRaidGearResult }
+  | { ok: false; message: string };
+
+export async function equipRaidGear(itemId: string, petId: string): Promise<EquipRaidGearOutcome> {
   const supabase = await requireUser();
   const { data, error } = await supabase
     .rpc("equip_raid_gear", { p_item_id: itemId, p_pet_id: petId })
     .single();
-  if (error || !data) throw new Error(error?.message ?? "ใส่อุปกรณ์ไม่สำเร็จ");
-  return mapGearRow(data as Parameters<typeof mapGearRow>[0]);
+  if (error || !data) return { ok: false, message: error?.message ?? "ใส่อุปกรณ์ไม่สำเร็จ" };
+  return { ok: true, item: mapGearRow(data as Parameters<typeof mapGearRow>[0]) };
 }
 
-export async function unequipRaidGear(itemId: string): Promise<EquipRaidGearResult> {
+export async function unequipRaidGear(itemId: string): Promise<EquipRaidGearOutcome> {
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("unequip_raid_gear", { p_item_id: itemId }).single();
-  if (error || !data) throw new Error(error?.message ?? "ถอดอุปกรณ์ไม่สำเร็จ");
-  return mapGearRow(data as Parameters<typeof mapGearRow>[0]);
+  if (error || !data) return { ok: false, message: error?.message ?? "ถอดอุปกรณ์ไม่สำเร็จ" };
+  return { ok: true, item: mapGearRow(data as Parameters<typeof mapGearRow>[0]) };
 }
 
 export type ClaimRaidRewardResult = {
