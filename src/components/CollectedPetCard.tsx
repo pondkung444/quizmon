@@ -1,6 +1,14 @@
 import Image from "next/image";
 import StatRadar from "@/components/StatRadar";
 
+const SUBJECT_LABEL_TH: Record<string, string> = {
+  math: "คณิตศาสตร์",
+  science: "วิทยาศาสตร์",
+  physics: "ฟิสิกส์",
+  chemistry: "เคมี",
+  biology: "ชีวะ",
+};
+
 function SublineChip({ label }: { label: string | null }) {
   return (
     <span className="rounded-full border border-gold-dim bg-track px-3 py-1 text-xs font-medium text-gold-hi">
@@ -22,7 +30,7 @@ export default function CollectedPetCard({
   evolvedAtLabel,
   questionsAnswered,
   accuracyPct,
-  subjectStats,
+  subjectBreakdown,
 }: {
   nickname: string | null;
   speciesName: string;
@@ -33,8 +41,9 @@ export default function CollectedPetCard({
   evolvedAtLabel: string | null;
   questionsAnswered: number | null;
   accuracyPct: number | null;
-  subjectStats: { label: string; answered: number; accuracyPct: number }[];
+  subjectBreakdown: Record<string, { answered: number; correct: number }> | null;
 }) {
+  const subjectEntries = Object.entries(subjectBreakdown ?? {});
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
       <div className="flex gap-2">
@@ -46,7 +55,7 @@ export default function CollectedPetCard({
       {/* nameplate — pill/แคปซูล ตามที่เปลี่ยนใน PetCard.tsx (ux pass 2026-07 รอบ 3) เพื่อความสม่ำเสมอ
           ทั้งแอป แม้หน้านี้จะไม่มีปัญหา fold โดยตรงก็ตาม (ปอนด์เลือกทางเลือกนี้เอง) */}
       <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
-        <span className="whitespace-nowrap text-xs font-bold text-gold-hi">{nickname ?? speciesName}</span>
+        <span className="font-sarabun whitespace-nowrap text-xs font-bold text-gold-hi">{nickname ?? speciesName}</span>
       </div>
 
       <div className="relative flex h-[220px] w-[220px] items-center justify-center">
@@ -92,18 +101,19 @@ export default function CollectedPetCard({
           </div>
         )}
 
-        {subjectStats.length > 0 && (
+        {subjectEntries.length > 0 && (
           <div className="w-full">
             <h2 className="mb-2 text-sm font-bold text-gold-hi">แยกตามวิชา</h2>
             <div className="flex flex-col gap-2">
-              {subjectStats.map((s) => (
+              {subjectEntries.map(([subject, s]) => (
                 <div
-                  key={s.label}
+                  key={subject}
                   className="flex items-center justify-between rounded-xl border border-border bg-track px-3 py-2"
                 >
-                  <span className="text-sm font-medium text-text">{s.label}</span>
+                  <span className="text-sm font-medium text-text">{SUBJECT_LABEL_TH[subject] ?? subject}</span>
                   <span className="text-xs text-text2">
-                    {s.answered} ข้อ · แม่นยำ {s.accuracyPct}%
+                    {s.answered} ข้อ
+                    {s.answered > 0 && ` · แม่นยำ ${Math.round((s.correct / s.answered) * 100)}%`}
                   </span>
                 </div>
               ))}

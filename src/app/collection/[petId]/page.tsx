@@ -4,10 +4,9 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { type Subline, type Personality } from "@/lib/evolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
-import { SUBLINE_LABEL, SUBJECT_LABEL } from "@/lib/labels";
+import { SUBLINE_LABEL } from "@/lib/labels";
 import { getDungeonEntryState } from "@/lib/dungeon";
 import { getRaidEntryState } from "@/lib/raid";
-import { getPetSubjectStats } from "@/lib/topicStats";
 import SignOutLink from "@/components/SignOutLink";
 import CollectedPetCard from "@/components/CollectedPetCard";
 import CollectionPetActions from "@/components/CollectionPetActions";
@@ -30,7 +29,7 @@ export default async function CollectionPetDetailPage({
   const { data: pet } = await supabase
     .from("pets")
     .select(
-      "nickname, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, evolved_at, growth_questions_answered, growth_questions_correct, egg_types(sprite_prefix, name_th)"
+      "nickname, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, evolved_at, growth_questions_answered, growth_questions_correct, growth_subject_breakdown, egg_types(sprite_prefix, name_th)"
     )
     .eq("id", petId)
     .eq("user_id", user.id)
@@ -69,17 +68,15 @@ export default async function CollectionPetDetailPage({
       ? Math.round(((pet.growth_questions_correct ?? 0) / questionsAnswered) * 100)
       : null;
 
-  const [dungeonState, raidState, subjectStatsRaw] = await Promise.all([
+  const [dungeonState, raidState] = await Promise.all([
     getDungeonEntryState(supabase, user.id, petId),
     getRaidEntryState(supabase, user.id, petId),
-    getPetSubjectStats(supabase, petId),
   ]);
 
-  const subjectStats = subjectStatsRaw.map((s) => ({
-    label: SUBJECT_LABEL[s.subject] ?? s.subject,
-    answered: s.answered,
-    accuracyPct: s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0,
-  }));
+  const subjectBreakdown = pet.growth_subject_breakdown as Record<
+    string,
+    { answered: number; correct: number }
+  > | null;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center gap-4 p-6 pb-24">
@@ -104,7 +101,7 @@ export default async function CollectionPetDetailPage({
         evolvedAtLabel={evolvedAtLabel}
         questionsAnswered={questionsAnswered}
         accuracyPct={accuracyPct}
-        subjectStats={subjectStats}
+        subjectBreakdown={subjectBreakdown}
       />
       <CollectionPetActions petId={petId} dungeonState={dungeonState} raidState={raidState} />
     </main>

@@ -77,7 +77,7 @@ export default function PreDeparture({
                   height={48}
                   className="shrink-0"
                 />
-                <span className="font-bold text-text">{lockedPet.nickname ?? lockedPet.speciesName}</span>
+                <span className="font-sarabun font-bold text-text">{lockedPet.nickname ?? lockedPet.speciesName}</span>
               </div>
               <Link href="/adventure" className="mt-2 inline-block text-xs text-text3 underline">
                 เลือกตัวอื่น
@@ -98,7 +98,7 @@ export default function PreDeparture({
                     }`}
                   >
                     <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
-                    <span className="font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
+                    <span className="font-sarabun font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
                   </button>
                 ))}
               </div>

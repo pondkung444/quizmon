@@ -96,7 +96,7 @@ export default async function CollectionFarmPage() {
                 height={90}
                 className="h-16 w-16 object-contain"
               />
-              <p className="w-full truncate text-[11px] font-bold text-gold-hi">
+              <p className="font-sarabun w-full truncate text-[11px] font-bold text-gold-hi">
                 {pet.nickname ?? pet.speciesName}
               </p>
             </Link>

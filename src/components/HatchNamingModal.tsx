@@ -46,7 +46,7 @@ export default function HatchNamingModal({
             maxLength={NICKNAME_MAX_LENGTH}
             placeholder="ตั้งชื่อ Qmon"
             autoFocus
-            className="w-full rounded-xl border border-gold-dim bg-track px-4 py-3 text-center text-lg font-bold text-text outline-none focus:border-gold"
+            className="font-sarabun w-full rounded-xl border border-gold-dim bg-track px-4 py-3 text-center text-lg font-bold text-text outline-none focus:border-gold"
           />
           <p className="text-right text-xs text-text3">
             {trimmed.length}/{NICKNAME_MAX_LENGTH}

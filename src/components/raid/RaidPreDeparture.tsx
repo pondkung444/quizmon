@@ -97,7 +97,7 @@ export default function RaidPreDeparture({
                     height={48}
                     className="shrink-0"
                   />
-                  <span className="flex-1 font-bold text-text">{selectedPet.nickname ?? selectedPet.speciesName}</span>
+                  <span className="font-sarabun flex-1 font-bold text-text">{selectedPet.nickname ?? selectedPet.speciesName}</span>
                   {lockedPet ? (
                     <Link href="/raid" className="shrink-0 text-xs text-text3 underline">
                       เปลี่ยนตัว
@@ -130,7 +130,7 @@ export default function RaidPreDeparture({
                       }`}
                     >
                       <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
-                      <span className="font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
+                      <span className="font-sarabun font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
                     </button>
                   ))}
                 </div>
