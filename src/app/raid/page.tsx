@@ -1,52 +1,14 @@
 import { redirect } from "next/navigation";
-import { createClient, getUser } from "@/lib/supabase/server";
-import {
-  isRaidAllowlisted,
-  getActiveRaidRun,
-  getActiveRaidType,
-  getEligibleRaidPets,
-  getRaidTicketCount,
-  getUserRaidGearItems,
-} from "@/lib/raid";
-import RaidClient from "@/components/raid/RaidClient";
+import { getUser } from "@/lib/supabase/server";
 
-// ระบบท้าทายยังไม่เปิดให้นักเรียนเห็น — ไม่มีปุ่มเข้าจากหน้าไหนเลย และเช็ค allowlist ฝั่ง server
-// ตรงนี้ด้วย (ซ่อนปุ่มอย่างเดียวไม่พอ กลุ่ม stage 4 คือกลุ่มที่จะลองเดา URL มากที่สุด)
-export default async function RaidPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ pet?: string }>;
-}) {
+// ระบบท้าทายยังไม่เปิดให้นักเรียนเห็น — ไม่มีปุ่มเข้าจากหน้าไหนเลย และปิดทั้งหน้านี้ตรงๆ ด้วย
+// (ซ่อนปุ่มอย่างเดียวไม่พอ กลุ่ม stage 4 คือกลุ่มที่จะลองเดา URL มากที่สุด)
+//
+// ⚠️ ปิดใช้งานทั้งหน้าชั่วคราว (2026-08-09) — แม้อยู่ใน raid_allowlist หรือมีรันค้างอยู่ก็เข้าไม่ได้
+// (เจอเคส own_run หลุดผ่านปุ่ม "กลับไปต่อ" ที่ยังไม่ได้ปิดมาก่อน) กันทุกทางเข้ารวมถึง URL ตรงๆ
+// โค้ดจริงของหน้านี้ (allowlist/resume/predeparture) อยู่ใน git history — เอากลับมาทีหลังตอนพร้อมเปิด
+export default async function RaidPage() {
   const user = await getUser();
   if (!user) redirect("/login");
-
-  const { pet: petParam } = await searchParams;
-
-  const supabase = await createClient();
-  const allowed = await isRaidAllowlisted(supabase, user.id);
-  if (!allowed) redirect("/pet");
-
-  const activeView = await getActiveRaidRun(supabase, user.id);
-  if (activeView) {
-    return <RaidClient view={activeView} />;
-  }
-
-  const raidType = await getActiveRaidType(supabase);
-  if (!raidType) redirect("/pet");
-
-  const [pets, ticketCount, gearItems] = await Promise.all([
-    getEligibleRaidPets(supabase, user.id),
-    getRaidTicketCount(supabase, user.id),
-    getUserRaidGearItems(supabase, user.id),
-  ]);
-
-  // ?pet= จาก /collection/[petId] — ใช้ได้ก็ต่อเมื่อยังอยู่ในลิสต์ pets ที่ท้าทายได้เท่านั้น (id ผิด/
-  // ไม่มี/ไม่พร้อม ตกกลับไปจอเลือกปกติเงียบๆ ไม่ error)
-  const preselectedPetId = petParam && pets.some((p) => p.id === petParam) ? petParam : null;
-
-  return (
-    <RaidClient
-      view={{ phase: "predeparture", raidType, pets, ticketCount, preselectedPetId, gearItems }}
-    />
-  );
+  redirect("/pet");
 }
