@@ -8,3 +8,8 @@ export const RAID_GEAR_SLOT_LABEL_TH: Record<"head" | "body" | "feet", string> =
 };
 
 export const RAID_MOUNTAIN_NAME_TH = "ภูเหนือเมฆ";
+
+// ตั๋วเข้าด่านท้าทาย — รางวัลจาก adventure (dungeon_claim) แทนที่อาหารตั้งแต่ 9 ส.ค. 2026
+// ไฟล์รูปยังไม่มี เจ้าของโปรเจกต์จะส่งมาวางที่ path นี้เอง (ดู ClaimScreen.tsx สำหรับ fallback)
+export const RAID_TICKET_NAME_TH = "กุญแจภูเหนือเมฆ";
+export const RAID_TICKET_ICON_PATH = "/tickets/mountain_key.webp";

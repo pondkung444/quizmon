@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { DungeonInfo, DungeonRunDetail } from "@/lib/dungeon";
 import { DUNGEON_PITY_GOAL } from "@/lib/dungeon";
 import { useDungeonProgress, formatCountdown } from "@/hooks/useDungeonProgress";
+import { RAID_TICKET_NAME_TH } from "@/lib/raid/labels";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import DungeonScene from "@/components/dungeon/DungeonScene";
 import BonusQuizBox from "@/components/dungeon/BonusQuizBox";
@@ -60,8 +61,8 @@ export default function InProgressScreen({
         {/* รออะไรอยู่ — ให้เห็นของรางวัลตลอดเวลาที่รอ ไม่ใช่เห็นแค่ตอนกดส่ง (จอ A) */}
         <div className="flex gap-2">
           <div className="flex flex-1 items-center gap-2 rounded-xl border border-border bg-track px-3 py-2">
-            <span className="text-lg">🍽️</span>
-            <span className="text-xs text-text2">อาหาร 1</span>
+            <span className="text-lg">🗝️</span>
+            <span className="text-xs text-text2">{RAID_TICKET_NAME_TH} 1</span>
           </div>
           <div className="flex flex-1 items-center gap-2 rounded-xl border border-gold-dim bg-track px-3 py-2">
             <Image src="/pets/egg4_stage1_egg.png" alt="" width={20} height={20} />

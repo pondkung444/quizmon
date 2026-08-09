@@ -6,12 +6,12 @@ import Image from "next/image";
 import type { DungeonInfo, DungeonRunDetail } from "@/lib/dungeon";
 import { DUNGEON_PITY_GOAL } from "@/lib/dungeon";
 import { claimDungeonRun, type ClaimDungeonRunResult } from "@/app/dungeon/actions";
-import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
+import { RAID_TICKET_NAME_TH, RAID_TICKET_ICON_PATH } from "@/lib/raid/labels";
 import { getPetImagePath } from "@/lib/petImage";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import DungeonScene from "@/components/dungeon/DungeonScene";
 
-type ModalStage = "none" | "food" | "egg" | "meter";
+type ModalStage = "none" | "ticket" | "egg" | "meter";
 
 const CLAIM_TIMEOUT_MS = 15000;
 const EGG_MODAL_DELAY_MS = 600;
@@ -51,7 +51,7 @@ export default function ClaimScreen({
       clearTimeout(timeoutId);
       if (claimAttemptRef.current !== attemptId) return;
       setResult(claimResult);
-      setModalStage("food");
+      setModalStage("ticket");
     } catch (err) {
       clearTimeout(timeoutId);
       if (claimAttemptRef.current !== attemptId) return;
@@ -61,9 +61,9 @@ export default function ClaimScreen({
     }
   }
 
-  // อาหารกับไข่เด้งแยกจังหวะกัน — ปิดโมดัลอาหารก่อน หน่วง ~600ms แล้วค่อยเปิดโมดัลไข่ (ถ้าได้)
+  // ตั๋วกับไข่เด้งแยกจังหวะกัน — ปิดโมดัลตั๋วก่อน หน่วง ~600ms แล้วค่อยเปิดโมดัลไข่ (ถ้าได้)
   // ถ้าไม่ได้ไข่รอบนี้ ไม่พูดเชิงลบเด็ดขาด — โชว์มิเตอร์ที่ขยับแทนเสมอ
-  function handleCloseFoodModal() {
+  function handleCloseTicketModal() {
     if (result?.eggAwarded) {
       setModalStage("none");
       setTimeout(() => setModalStage("egg"), EGG_MODAL_DELAY_MS);
@@ -117,9 +117,7 @@ export default function ClaimScreen({
         </button>
       </div>
 
-      {modalStage === "food" && result && (
-        <FoodRewardModal foodKind={result.foodKind} onClose={handleCloseFoodModal} />
-      )}
+      {modalStage === "ticket" && result && <TicketRewardModal onClose={handleCloseTicketModal} />}
       {modalStage === "egg" && result?.eggAwarded && result.eggNameTh && result.eggSpritePrefix && (
         <EggRewardModal
           eggNameTh={result.eggNameTh}
@@ -162,22 +160,31 @@ function PityPips({ filled, total }: { filled: number; total: number }) {
   );
 }
 
-// ฉลองได้อาหาร — สไตล์เดียวกับระบบป้อนอาหาร (FOOD_LABEL/FOOD_IMAGE_PATH) โมดัลเต็มจอแบบเดียวกับ
-// WeeklyRewardCelebration.tsx
-function FoodRewardModal({ foodKind, onClose }: { foodKind: "A" | "B"; onClose: () => void }) {
+// ฉลองได้ตั๋ว — โมดัลเต็มจอแบบเดียวกับ WeeklyRewardCelebration.tsx (เดิมเคยเป็นการ์ดอาหาร ก่อน
+// adventure เปลี่ยนมาแจกตั๋วเข้าด่านท้าทายแทน ดู RAID_TICKET_ICON_PATH — ไฟล์รูปยังไม่ถูกส่งมาวาง
+// ตอนเขียนโค้ดนี้ ถ้าโหลดไม่สำเร็จโชว์ไอคอน emoji แทนไว้ก่อน)
+function TicketRewardModal({ onClose }: { onClose: () => void }) {
+  const [iconFailed, setIconFailed] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
         <p className="text-sm text-text3">🎁 กลับมาจากผจญภัยพร้อมของกำนัล!</p>
-        <h2 className="text-xl font-bold text-gold-hi">ได้รับ {FOOD_LABEL[foodKind]}</h2>
-        <Image
-          src={FOOD_IMAGE_PATH[foodKind]}
-          alt={FOOD_LABEL[foodKind]}
-          width={96}
-          height={96}
-          unoptimized
-          className="animate-evolve-pop"
-        />
+        <h2 className="text-xl font-bold text-gold-hi">ได้รับ {RAID_TICKET_NAME_TH}</h2>
+        {iconFailed ? (
+          <span className="animate-evolve-pop text-6xl" role="img" aria-label={RAID_TICKET_NAME_TH}>
+            🗝️
+          </span>
+        ) : (
+          <Image
+            src={RAID_TICKET_ICON_PATH}
+            alt={RAID_TICKET_NAME_TH}
+            width={96}
+            height={96}
+            unoptimized
+            className="animate-evolve-pop"
+            onError={() => setIconFailed(true)}
+          />
+        )}
         <button
           type="button"
           onClick={onClose}
