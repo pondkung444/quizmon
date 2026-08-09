@@ -117,7 +117,7 @@ export function totalPct(statSnapshot: RaidStatRecord): number {
   return (sum / 500) * 100;
 }
 
-export type RollDisplay = { displayNeed: number; displayRoll: number };
+export type RollDisplay = { displayNeed: number; displayRoll: number; isGuaranteedPass: boolean };
 
 // การแสดงผลของการทอยเท่านั้น — ไม่แตะตรรกะตัดสินผ่าน/ไม่ผ่านเลย (roll_passed จาก DB ยังเป็นความจริง
 // สุดท้ายเสมอ) DB เก็บ roll_value < roll_threshold = ผ่าน (ยิ่งทอยได้น้อยยิ่งดี ซึ่งขัดสัญชาตญาณเกม
@@ -136,5 +136,5 @@ export function computeRollDisplay(
   let displayRoll = 100 - valueScaled;
   if (rollPassed && displayRoll <= displayNeed) displayRoll = Math.min(100, displayNeed + 1);
   if (!rollPassed && displayRoll > displayNeed) displayRoll = displayNeed;
-  return { displayNeed, displayRoll };
+  return { displayNeed, displayRoll, isGuaranteedPass: displayNeed <= 0 };
 }

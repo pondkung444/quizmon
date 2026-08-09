@@ -88,6 +88,7 @@ export type RaidView =
       // ไม่ใช่ตอนที่มาดู)
       displayNeed: number;
       displayRoll: number;
+      isGuaranteedPass: boolean;
       question: { id: number; questionText: string; choices: string[] };
     }
   | {

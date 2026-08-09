@@ -163,7 +163,9 @@ export default function RaidPathScreen({
             {/* กล่องทอยเต๋า — ตัวเลขต้องเป็นจุดเด่นสุดของจอ "ต้องทอยเกิน N" ต้องอยู่ตลอดทั้ง 3 จังหวะ
                 (revealed/rolling/settled) ไม่หายไประหว่างหมุน โทนน้ำเงินน้ำแข็งล้วน ไม่ใช้โทนทอง */}
             <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-indigo-dim bg-indigo/10 p-6">
-              <p className="text-sm font-bold text-indigo-hi">ต้องทอยเกิน {result.displayNeed}</p>
+              <p className="text-sm font-bold text-indigo-hi">
+                {result.isGuaranteedPass ? "สเตตัสสูงพอ ผ่านจุดนี้แน่นอน" : `ต้องทอยเกิน ${result.displayNeed}`}
+              </p>
 
               <span
                 className={`font-mono text-7xl font-black tabular-nums ${

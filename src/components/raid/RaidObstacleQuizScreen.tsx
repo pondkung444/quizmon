@@ -23,6 +23,7 @@ export default function RaidObstacleQuizScreen({
   revealedTh,
   displayNeed,
   displayRoll,
+  isGuaranteedPass,
   question,
 }: {
   runId: string;
@@ -36,6 +37,7 @@ export default function RaidObstacleQuizScreen({
   revealedTh: string;
   displayNeed: number;
   displayRoll: number;
+  isGuaranteedPass: boolean;
   question: { id: number; questionText: string; choices: string[] };
 }) {
   const router = useRouter();
@@ -93,8 +95,14 @@ export default function RaidObstacleQuizScreen({
         {/* ผลทอยที่ล็อกไว้แล้ว — โชว์ตัวเลขทันทีแบบนิ่งๆ ไม่มีปุ่ม ไม่ animate (ทั้งตอนมาจากจอทางแยก
             สดๆ ซึ่งกดทอยไปแล้วบนจอนั้น และตอน resume ซึ่งผลลัพธ์ล็อกไปตั้งแต่ตอนทอยจริงแล้ว — นี่คือ
             จุดที่พลาดง่ายสุด ห้าม auto-replay การหมุนซ้ำที่นี่) เกณฑ์เดียวกับจอทางแยก "ต้องทอยเกิน N" */}
-        <div className="flex flex-col items-center gap-1 rounded-2xl border border-red bg-red/10 p-3">
-          <p className="text-xs text-text2">ต้องทอยเกิน {displayNeed} · ทอยได้ {displayRoll}</p>
+        <div
+          className={`flex flex-col items-center gap-1 rounded-2xl border p-3 ${
+            isGuaranteedPass ? "border-gold bg-gold/10" : "border-red bg-red/10"
+          }`}
+        >
+          <p className="text-xs text-text2">
+            {isGuaranteedPass ? "สเตตัสสูงพอ ผ่านแน่นอน!" : `ต้องทอยเกิน ${displayNeed}`} · ทอยได้ {displayRoll}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-gold-dim bg-track p-3 text-center">
