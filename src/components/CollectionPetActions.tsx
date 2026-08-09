@@ -10,6 +10,8 @@ const DISABLED_CLASS =
 // server component ล้วน (ไม่มี "use client") — ปุ่มทั้งสองเป็น Link อย่างเดียว ไม่มี state/เขียน DB
 // เลย วางเป็น sibling นอก CollectedPetCard.tsx (ไม่ใช่ prop ของมัน) เพื่อรักษาสัญญา write-free ของ
 // การ์ดนั้นไว้ตามเดิม — ปุ่มท้าทายไม่แสดงเลยถ้าไม่อยู่ใน raid_allowlist (ซ่อนทั้งปุ่ม ไม่ใช่ disabled)
+// ⚠️ "ready" ปิดใช้งานตั้งใจ (2026-08-09) — ยังไม่เปิดฟีเจอร์ท้าทายให้เล่นจริง แม้ allowlist ผ่านแล้ว
+// ก็ตาม โชว่ปุ่มเทาๆ ไว้เฉยๆ ไม่ลิงก์ไป /raid (ต่างจาก not_allowlisted ที่ซ่อนทั้งปุ่ม)
 export default function CollectionPetActions({
   petId,
   dungeonState,
@@ -50,9 +52,10 @@ export default function CollectionPetActions({
       )}
 
       {raidState.status === "ready" && (
-        <Link href={`/raid?pet=${petId}`} className={PRIMARY_LINK_CLASS}>
-          <span className="text-lg font-bold text-gold-hi">ส่งไปท้าทาย</span>
-        </Link>
+        <div className={DISABLED_CLASS}>
+          <span className="text-lg font-bold text-text3">ส่งไปท้าทาย</span>
+          <span className="text-xs text-text3">ยังไม่เปิดใช้งาน</span>
+        </div>
       )}
       {raidState.status === "own_run" && (
         <Link href="/raid" className={PRIMARY_LINK_CLASS}>
