@@ -119,6 +119,55 @@ export async function answerRaidBoss(
   return data as AnswerRaidBossResult;
 }
 
+export type EquipRaidGearResult = {
+  id: string;
+  slot: "head" | "body" | "feet";
+  mainStat: RaidStatKey;
+  mainValue: number;
+  subStat: RaidStatKey | null;
+  subValue: number | null;
+  quality: string;
+  equippedPetId: string | null;
+};
+
+function mapGearRow(row: {
+  id: string;
+  slot: "head" | "body" | "feet";
+  main_stat: RaidStatKey;
+  main_value: number;
+  sub_stat: RaidStatKey | null;
+  sub_value: number | null;
+  quality: string;
+  equipped_pet_id: string | null;
+}): EquipRaidGearResult {
+  return {
+    id: row.id,
+    slot: row.slot,
+    mainStat: row.main_stat,
+    mainValue: row.main_value,
+    subStat: row.sub_stat,
+    subValue: row.sub_value,
+    quality: row.quality,
+    equippedPetId: row.equipped_pet_id,
+  };
+}
+
+export async function equipRaidGear(itemId: string, petId: string): Promise<EquipRaidGearResult> {
+  const supabase = await requireUser();
+  const { data, error } = await supabase
+    .rpc("equip_raid_gear", { p_item_id: itemId, p_pet_id: petId })
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "ใส่อุปกรณ์ไม่สำเร็จ");
+  return mapGearRow(data as Parameters<typeof mapGearRow>[0]);
+}
+
+export async function unequipRaidGear(itemId: string): Promise<EquipRaidGearResult> {
+  const supabase = await requireUser();
+  const { data, error } = await supabase.rpc("unequip_raid_gear", { p_item_id: itemId }).single();
+  if (error || !data) throw new Error(error?.message ?? "ถอดอุปกรณ์ไม่สำเร็จ");
+  return mapGearRow(data as Parameters<typeof mapGearRow>[0]);
+}
+
 export type ClaimRaidRewardResult = {
   id: string;
   slot: "head" | "body" | "feet";

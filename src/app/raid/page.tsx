@@ -6,6 +6,7 @@ import {
   getActiveRaidType,
   getEligibleRaidPets,
   getRaidTicketCount,
+  getUserRaidGearItems,
 } from "@/lib/raid";
 import RaidClient from "@/components/raid/RaidClient";
 
@@ -33,9 +34,10 @@ export default async function RaidPage({
   const raidType = await getActiveRaidType(supabase);
   if (!raidType) redirect("/pet");
 
-  const [pets, ticketCount] = await Promise.all([
+  const [pets, ticketCount, gearItems] = await Promise.all([
     getEligibleRaidPets(supabase, user.id),
     getRaidTicketCount(supabase, user.id),
+    getUserRaidGearItems(supabase, user.id),
   ]);
 
   // ?pet= จาก /collection/[petId] — ใช้ได้ก็ต่อเมื่อยังอยู่ในลิสต์ pets ที่ท้าทายได้เท่านั้น (id ผิด/
@@ -43,6 +45,8 @@ export default async function RaidPage({
   const preselectedPetId = petParam && pets.some((p) => p.id === petParam) ? petParam : null;
 
   return (
-    <RaidClient view={{ phase: "predeparture", raidType, pets, ticketCount, preselectedPetId }} />
+    <RaidClient
+      view={{ phase: "predeparture", raidType, pets, ticketCount, preselectedPetId, gearItems }}
+    />
   );
 }

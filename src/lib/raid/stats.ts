@@ -22,19 +22,85 @@ const STAT_COLUMN: Record<RaidStatKey, keyof PetForStats> = {
   foc: "stat_foc",
 };
 
-// สไลซ์ 1: ยังไม่มี equip เลยคืน raw + 0 เสมอ (equippedGear รับไว้เฉยๆ ไม่ใช้ เผื่อ signature พร้อม
-// สไลซ์ 2 ที่จะแก้ฟังก์ชันนี้ที่เดียว) ทุกจุดที่อ่านค่า stat ของ raid ต้องเรียกผ่านฟังก์ชันนี้เท่านั้น
-// ห้ามอ่าน pet.stat_* ตรงๆ — clamp ไม่ให้เกิน cap ของไข่ตัวนั้นเสมอ (กฎเหล็ก: อุปกรณ์ดันได้ถึง cap
-// เท่านั้น) แม้สไลซ์นี้จะยังไม่มีอุปกรณ์ที่ดันเกิน raw ได้จริงก็ตาม
+export type EquippedGearForStats = {
+  slot: "head" | "body" | "feet";
+  qualityLabel: string | null;
+  mainStat: Exclude<RaidStatKey, "foc">;
+  mainValue: number;
+  subStat: Exclude<RaidStatKey, "foc"> | null;
+  subValue: number | null;
+};
+
+// สไลซ์ 2: ค่าโบนัสจากของที่ equipped_pet_id ตรงกับ pet ตัวนี้ (main_value + sub_value ต่อแกน)
+// บวกเข้า raw ก่อน clamp ไม่ให้เกิน cap ของไข่ตัวนั้น (กฎเหล็ก: อุปกรณ์ดันได้ถึง cap เท่านั้น)
+// ใช้แสดงผล readiness ก่อนเริ่มรอบเท่านั้น — ตัวเลขจริงที่ตัดสินผ่าน/ไม่ผ่านมาจาก stat_snapshot
+// ที่ start_raid_run คำนวณเองฝั่ง SQL (ล็อกตอนรอบเริ่ม ไม่อ่านสดระหว่างรอบ) ห้ามอ่าน pet.stat_* ตรงๆ
+// นอกจากผ่านฟังก์ชันนี้
 export function effectiveStat(
   pet: PetForStats,
   stat: RaidStatKey,
   caps: RaidStatRecord,
-  equippedGear: unknown[] = []
+  equippedGear: EquippedGearForStats[] = []
 ): number {
-  void equippedGear;
   const raw = pet[STAT_COLUMN[stat]] ?? 0;
-  return Math.min(raw, caps[stat]);
+  const bonus = equippedGear.reduce((sum, gear) => {
+    let add = 0;
+    if (gear.mainStat === stat) add += gear.mainValue;
+    if (gear.subStat === stat && gear.subValue) add += gear.subValue;
+    return sum + add;
+  }, 0);
+  return Math.min(raw + bonus, caps[stat]);
+}
+
+export type GearContributionRow = {
+  slot: "head" | "body" | "feet";
+  qualityLabel: string | null;
+  stat: Exclude<RaidStatKey, "foc">;
+  addition: number;
+  before: number;
+  after: number;
+  overflow: number;
+};
+
+const SLOT_ORDER: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
+
+// แต้มล้น (§6.8 ในดอค) — เดินตามลำดับช่อง หัว→ตัว→เท้า สะสมผลรวมต่อแกนไปเรื่อยๆ ชิ้นไหนดันเกิน cap
+// ก่อนจะแสดง "ล้น N" ตรงชิ้นนั้น ห้ามปัดตัวเลขทิ้งเงียบๆ ผลรวมสุดท้ายต่อแกนตรงกับ effectiveStat() เสมอ
+export function computeGearContributions(
+  pet: PetForStats,
+  caps: RaidStatRecord,
+  equippedGear: EquippedGearForStats[]
+): GearContributionRow[] {
+  const statKeys: Exclude<RaidStatKey, "foc">[] = ["hp", "atk", "def", "spd"];
+  const running: Record<Exclude<RaidStatKey, "foc">, number> = {} as never;
+  for (const stat of statKeys) {
+    running[stat] = Math.min(pet[STAT_COLUMN[stat]] ?? 0, caps[stat]);
+  }
+
+  const bySlot = new Map(equippedGear.map((g) => [g.slot, g]));
+  const rows: GearContributionRow[] = [];
+
+  for (const slot of SLOT_ORDER) {
+    const gear = bySlot.get(slot);
+    if (!gear) continue;
+
+    const contributions: Array<{ stat: Exclude<RaidStatKey, "foc">; addition: number }> = [
+      { stat: gear.mainStat, addition: gear.mainValue },
+    ];
+    if (gear.subStat && gear.subValue) {
+      contributions.push({ stat: gear.subStat, addition: gear.subValue });
+    }
+
+    for (const { stat, addition } of contributions) {
+      const before = running[stat];
+      const afterUnclamped = before + addition;
+      const after = Math.min(afterUnclamped, caps[stat]);
+      running[stat] = after;
+      rows.push({ slot, qualityLabel: gear.qualityLabel, stat, addition, before, after, overflow: afterUnclamped - after });
+    }
+  }
+
+  return rows;
 }
 
 export async function capsFor(supabase: SupabaseServerClient, eggTypeId: string): Promise<RaidStatRecord> {
