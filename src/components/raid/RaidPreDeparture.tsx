@@ -76,8 +76,8 @@ export default function RaidPreDeparture({
         <RaidScene backgroundPath={raidType.backgroundPath} />
 
         <section className="w-full max-w-xs rounded-xl border border-border bg-track px-3 py-2 text-center">
-          <p className="text-xs text-text2">ตั๋วท้าทายคงเหลือ</p>
-          <p className="text-lg font-bold text-gold-hi">{ticketCount} ใบ</p>
+          <p className="text-xs text-text2">กุญแจท้าทายคงเหลือ</p>
+          <p className="text-lg font-bold text-gold-hi">{ticketCount} ดอก</p>
         </section>
 
         <section className="w-full max-w-xs">
@@ -97,7 +97,7 @@ export default function RaidPreDeparture({
                     height={48}
                     className="shrink-0"
                   />
-                  <span className="flex-1 font-bold text-text">{selectedPet.speciesName}</span>
+                  <span className="flex-1 font-bold text-text">{selectedPet.nickname ?? selectedPet.speciesName}</span>
                   {lockedPet ? (
                     <Link href="/raid" className="shrink-0 text-xs text-text3 underline">
                       เปลี่ยนตัว
@@ -130,7 +130,7 @@ export default function RaidPreDeparture({
                       }`}
                     >
                       <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
-                      <span className="font-bold text-text">{pet.speciesName}</span>
+                      <span className="font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
                     </button>
                   ))}
                 </div>
@@ -162,7 +162,7 @@ export default function RaidPreDeparture({
           onClick={handleDepart}
           className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
         >
-          {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีตั๋วท้าทาย" : "ใช้ตั๋วเริ่มท้าทาย"}
+          {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีกุญแจท้าทาย" : "ใช้กุญแจเริ่มท้าทาย"}
         </button>
 
         <details className="w-full max-w-xs text-center">

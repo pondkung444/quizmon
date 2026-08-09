@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown } from "lucide-react";
+import { Crown, Warehouse } from "lucide-react";
 
 const TABS = [
   {
@@ -26,13 +26,8 @@ const TABS = [
   },
   {
     href: "/collection",
-    label: "สมุดสะสม",
-    icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5}>
-        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H12v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13Z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    label: "ฟาร์ม",
+    icon: (active: boolean) => <Warehouse strokeWidth={active ? 2 : 1.5} />,
   },
   {
     href: "/hall-of-fame",

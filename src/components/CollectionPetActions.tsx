@@ -21,6 +21,13 @@ export default function CollectionPetActions({
 }) {
   return (
     <div className="flex w-full max-w-xs flex-col gap-2">
+      <Link
+        href={`/collection/${petId}/name`}
+        className="flex w-full items-center justify-center rounded-2xl border border-border bg-track py-2 text-sm font-medium text-text2 transition active:scale-95"
+      >
+        แก้ไขชื่อ
+      </Link>
+
       {dungeonState.status === "ready" && (
         <Link href={`/adventure?pet=${petId}`} className={PRIMARY_LINK_CLASS}>
           <span className="text-lg font-bold text-gold-hi">ส่งไปผจญภัย</span>
@@ -45,7 +52,6 @@ export default function CollectionPetActions({
       {raidState.status === "ready" && (
         <Link href={`/raid?pet=${petId}`} className={PRIMARY_LINK_CLASS}>
           <span className="text-lg font-bold text-gold-hi">ส่งไปท้าทาย</span>
-          <span className="text-xs text-text3">ตั๋ว {raidState.ticketCount} ใบ</span>
         </Link>
       )}
       {raidState.status === "own_run" && (
@@ -60,7 +66,7 @@ export default function CollectionPetActions({
       )}
       {raidState.status === "no_ticket" && (
         <div className={DISABLED_CLASS}>
-          <span className="text-sm text-text3">ตั๋วได้จากการรับของผจญภัย</span>
+          <span className="text-sm text-text3">กุญแจได้จากการรับของผจญภัย</span>
         </div>
       )}
       {/* raidState.status === "not_allowlisted" -> ไม่ render อะไรเลย ซ่อนทั้งปุ่ม */}

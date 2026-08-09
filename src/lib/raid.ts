@@ -23,6 +23,7 @@ export type EligibleRaidPet = {
   id: string;
   imagePath: string;
   speciesName: string;
+  nickname: string | null;
   rawStats: RaidStatRecord;
   caps: RaidStatRecord;
 };
@@ -176,7 +177,7 @@ export async function getEligibleRaidPets(
   const { data } = await supabase
     .from("pets")
     .select(
-      "id, hatched_at, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, egg_types(sprite_prefix, name_th, stat_profile)"
+      "id, nickname, hatched_at, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, egg_types(sprite_prefix, name_th, stat_profile)"
     )
     .eq("user_id", userId)
     .gte("stage", 4)
@@ -190,6 +191,7 @@ export async function getEligibleRaidPets(
     try {
       pets.push({
         id: row.id,
+        nickname: row.nickname,
         imagePath: getPetImagePath(eggType.sprite_prefix, 4, row.subline as Subline, row.personality as Personality),
         speciesName: getSpeciesName(
           eggType.sprite_prefix,

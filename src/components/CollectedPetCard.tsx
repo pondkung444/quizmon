@@ -9,8 +9,8 @@ function SublineChip({ label }: { label: string | null }) {
   );
 }
 
-// การ์ดแบบ read-only สำหรับ Qmon ที่เก็บเข้าสมุดแล้ว (/collection/[petId]) — ไม่มี EXP bar/CTA/
-// ปุ่มเก็บเข้าสมุดใดๆ ตั้งใจไม่ import CollectPetButton/EggChoiceModal เข้ามาเลย เพื่อการันตี
+// การ์ดแบบ read-only สำหรับ Qmon ที่เก็บเข้าฟาร์มแล้ว (/collection/[petId]) — ไม่มี EXP bar/CTA/
+// ปุ่มเก็บเข้าฟาร์มใดๆ ตั้งใจไม่ import CollectPetButton/EggChoiceModal เข้ามาเลย เพื่อการันตี
 // ว่าหน้านี้เขียน DB ไม่ได้โดยโครงสร้าง ไม่ต้องพึ่ง flag เช็คหลายจุดแบบ PetCard
 export default function CollectedPetCard({
   nickname,
@@ -19,6 +19,10 @@ export default function CollectedPetCard({
   sublineLabel,
   eggNameTh,
   stats,
+  evolvedAtLabel,
+  questionsAnswered,
+  accuracyPct,
+  subjectStats,
 }: {
   nickname: string | null;
   speciesName: string;
@@ -26,6 +30,10 @@ export default function CollectedPetCard({
   sublineLabel: string | null;
   eggNameTh: string | null;
   stats: { hp: number; atk: number; def: number; spd: number; foc: number };
+  evolvedAtLabel: string | null;
+  questionsAnswered: number | null;
+  accuracyPct: number | null;
+  subjectStats: { label: string; answered: number; accuracyPct: number }[];
 }) {
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
@@ -67,6 +75,41 @@ export default function CollectedPetCard({
         </div>
 
         <StatRadar stats={stats} />
+
+        {(evolvedAtLabel || questionsAnswered !== null) && (
+          <div className="flex w-full flex-wrap items-center justify-center gap-2 border-t border-border pt-4">
+            {evolvedAtLabel && (
+              <span className="rounded-full border border-border bg-track px-3 py-1 text-xs text-text2">
+                โตเต็มที่เมื่อ {evolvedAtLabel}
+              </span>
+            )}
+            {questionsAnswered !== null && (
+              <span className="rounded-full border border-border bg-track px-3 py-1 text-xs text-text2">
+                ตอบไปแล้ว {questionsAnswered} ข้อ
+                {accuracyPct !== null && ` · แม่นยำ ${accuracyPct}%`}
+              </span>
+            )}
+          </div>
+        )}
+
+        {subjectStats.length > 0 && (
+          <div className="w-full">
+            <h2 className="mb-2 text-sm font-bold text-gold-hi">แยกตามวิชา</h2>
+            <div className="flex flex-col gap-2">
+              {subjectStats.map((s) => (
+                <div
+                  key={s.label}
+                  className="flex items-center justify-between rounded-xl border border-border bg-track px-3 py-2"
+                >
+                  <span className="text-sm font-medium text-text">{s.label}</span>
+                  <span className="text-xs text-text2">
+                    {s.answered} ข้อ · แม่นยำ {s.accuracyPct}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

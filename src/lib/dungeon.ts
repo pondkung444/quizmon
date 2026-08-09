@@ -35,6 +35,7 @@ export type EligiblePet = {
   id: string;
   imagePath: string;
   speciesName: string;
+  nickname: string | null;
 };
 
 type EggTypeJoin = { sprite_prefix: string; name_th: string };
@@ -91,14 +92,14 @@ export async function getPityMeter(
   return data?.meter ?? 0;
 }
 
-// pet ที่ส่งผจญภัยได้ — โตเต็มที่ (stage 4) และเก็บเข้าสมุดแล้ว (is_active=false) เรียงตัวที่ฟักล่าสุดก่อน
+// pet ที่ส่งผจญภัยได้ — โตเต็มที่ (stage 4) และเก็บเข้าฟาร์มแล้ว (is_active=false) เรียงตัวที่ฟักล่าสุดก่อน
 export async function getEligiblePets(
   supabase: SupabaseServerClient,
   userId: string
 ): Promise<EligiblePet[]> {
   const { data } = await supabase
     .from("pets")
-    .select("id, hatched_at, subline, personality, egg_types(sprite_prefix, name_th)")
+    .select("id, nickname, hatched_at, subline, personality, egg_types(sprite_prefix, name_th)")
     .eq("user_id", userId)
     .eq("stage", 4)
     .eq("is_active", false)
@@ -111,6 +112,7 @@ export async function getEligiblePets(
     try {
       pets.push({
         id: row.id,
+        nickname: row.nickname,
         imagePath: getPetImagePath(
           eggType.sprite_prefix,
           4,
