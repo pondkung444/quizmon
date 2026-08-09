@@ -1,4 +1,5 @@
-import type { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import { getUser, type createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
 import { getSpeciesName } from "@/lib/petLine";
@@ -158,6 +159,109 @@ export async function getActiveRaidType(supabase: SupabaseServerClient): Promise
     bossPassCount: data.boss_pass_count,
     bossNameTh: data.boss_name_th,
   };
+}
+
+// ด่านหนึ่งใบระบุด้วย slug (ใช้แทน getActiveRaidType() ใน /raid/[slug]/page.tsx ตั้งแต่มีหลายด่าน)
+export async function getRaidTypeBySlug(
+  supabase: SupabaseServerClient,
+  slug: string
+): Promise<RaidTypeInfo | null> {
+  const { data } = await supabase
+    .from("raid_types")
+    .select(
+      "id, name_th, description_th, background_path, obstacle_count, boss_threshold_pct, boss_question_count, boss_pass_count, boss_name_th"
+    )
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    id: data.id,
+    nameTh: data.name_th,
+    descriptionTh: data.description_th,
+    backgroundPath: data.background_path,
+    obstacleCount: data.obstacle_count,
+    bossThresholdPct: data.boss_threshold_pct,
+    bossQuestionCount: data.boss_question_count,
+    bossPassCount: data.boss_pass_count,
+    bossNameTh: data.boss_name_th,
+  };
+}
+
+export type RaidZoneWithLevels = {
+  zoneId: string;
+  zoneSlug: string;
+  zoneName: string;
+  levels: RaidLevelSummary[];
+};
+
+export type RaidLevelSummary = {
+  id: string;
+  slug: string;
+  nameTh: string;
+  bossNameTh: string | null;
+  backgroundPath: string | null;
+  bossThresholdPct: number;
+  sortOrder: number;
+  cleared: boolean;
+  unlocked: boolean;
+};
+
+// ทุกโซนที่ active พร้อมด่านในโซนนั้น แต่ละด่านมี cleared/unlocked ต่อ user — unlock gate เป็นระดับ
+// บัญชี (เช็คจาก raid_runs.outcome='win' ของ user_id เท่านั้น ไม่สน pet_id) คนละกลไกกับ readiness
+// gauge ในจอ predeparture ที่เช็คว่า Qmon+อุปกรณ์ชุดนี้พร้อมด่านนี้ไหม (มีอยู่แล้ว ไม่แตะ)
+export async function getRaidZonesWithLevels(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<RaidZoneWithLevels[]> {
+  const [{ data: zones }, { data: types }, { data: wins }] = await Promise.all([
+    supabase.from("zones").select("id, slug, name_th, sort_order").eq("is_active", true).order("sort_order"),
+    supabase
+      .from("raid_types")
+      .select("id, slug, name_th, boss_name_th, background_path, boss_threshold_pct, sort_order, zone_id")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase.from("raid_runs").select("raid_type_id").eq("user_id", userId).eq("outcome", "win"),
+  ]);
+
+  const clearedIds = new Set((wins ?? []).map((w) => w.raid_type_id));
+
+  return (zones ?? []).map((zone) => {
+    const levelsInZone = (types ?? [])
+      .filter((t) => t.zone_id === zone.id)
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    let previousCleared = true; // ด่านแรกของโซนปลดล็อกเสมอ
+    const levels: RaidLevelSummary[] = levelsInZone.map((t) => {
+      const cleared = clearedIds.has(t.id);
+      const unlocked = previousCleared;
+      previousCleared = cleared;
+      return {
+        id: t.id,
+        slug: t.slug,
+        nameTh: t.name_th,
+        bossNameTh: t.boss_name_th,
+        backgroundPath: t.background_path,
+        bossThresholdPct: Number(t.boss_threshold_pct),
+        sortOrder: t.sort_order,
+        cleared,
+        unlocked,
+      };
+    });
+
+    return { zoneId: zone.id, zoneSlug: zone.slug, zoneName: zone.name_th, levels };
+  });
+}
+
+// auth + allowlist ในจุดเดียว ให้ /raid/page.tsx กับ /raid/[slug]/page.tsx เรียกร่วมกัน กันลืมเช็คซ้ำรอย
+// บั๊กเดิม (ปุ่ม "กลับไปต่อ" เคยหลุดผ่านทั้งที่หน้าปิดอยู่) — redirect() throw ออกจาก helper ได้ปกติ
+export async function requireRaidAccess(supabase: SupabaseServerClient): Promise<{ id: string }> {
+  const user = await getUser();
+  if (!user) redirect("/login");
+  const allowed = await isRaidAllowlisted(supabase, user.id);
+  if (!allowed) redirect("/pet");
+  return user;
 }
 
 type EggTypeJoin = { sprite_prefix: string; name_th: string; stat_profile: { caps?: RaidStatRecord } | null };
