@@ -77,7 +77,7 @@ export default function PreDeparture({
                   height={48}
                   className="shrink-0"
                 />
-                <span className="font-bold text-text">{lockedPet.speciesName}</span>
+                <span className="font-sarabun font-bold text-text">{lockedPet.nickname ?? lockedPet.speciesName}</span>
               </div>
               <Link href="/adventure" className="mt-2 inline-block text-xs text-text3 underline">
                 เลือกตัวอื่น
@@ -98,7 +98,7 @@ export default function PreDeparture({
                     }`}
                   >
                     <Image src={pet.imagePath} alt={pet.speciesName} width={48} height={48} className="shrink-0" />
-                    <span className="font-bold text-text">{pet.speciesName}</span>
+                    <span className="font-sarabun font-bold text-text">{pet.nickname ?? pet.speciesName}</span>
                   </button>
                 ))}
               </div>
@@ -114,7 +114,7 @@ export default function PreDeparture({
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
               <span className="text-2xl">🗝️</span>
               <div>
-                <p className="text-sm font-bold text-text">{RAID_TICKET_NAME_TH} 1 ใบ</p>
+                <p className="text-sm font-bold text-text">{RAID_TICKET_NAME_TH} 1 ดอก</p>
                 <p className="text-xs text-text3">ได้ทุกครั้งแน่นอน</p>
               </div>
             </div>

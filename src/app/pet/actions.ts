@@ -12,8 +12,9 @@ import { artLane, parsePetLine } from "@/lib/petLine";
 import { getTodayInBangkok } from "@/lib/exp";
 import { getWeeklyLeaderboard, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
 import { getGradeBand } from "@/lib/gradeBand";
+import { isBlockedNickname } from "@/lib/moderation/nicknameBlocklist";
 
-export async function collectPet(): Promise<{ collected: true }> {
+export async function collectPet(): Promise<{ collected: true; petId: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,15 +30,15 @@ export async function collectPet(): Promise<{ collected: true }> {
     .single();
 
   if (petError || !pet) throw new Error("ไม่พบ Qmon ที่กำลังเลี้ยงอยู่");
-  if (pet.stage !== 4) throw new Error("Qmon ตัวนี้ยังโตไม่เต็มที่ เก็บเข้าสมุดไม่ได้");
+  if (pet.stage !== 4) throw new Error("Qmon ตัวนี้ยังโตไม่เต็มที่ เก็บเข้าฟาร์มไม่ได้");
 
-  // 2) เก็บเข้าสมุด (is_active = false)
-  const { error: collectError } = await supabase
-    .from("pets")
-    .update({ is_active: false })
-    .eq("id", pet.id);
+  // 2) เก็บเข้าฟาร์ม (is_active = false) + snapshot จำนวนโจทย์/ความแม่นยำที่ตอบระหว่างเลี้ยงตัวนี้
+  // (เฉพาะ quiz_attempts.source is null — ไม่รวม raid) ผ่าน RPC เดียว เพราะจังหวะนี้เป็นจังหวะสุดท้าย
+  // ที่ตัวเลขนิ่ง (submitAnswer() หา active pet เสมอ ไม่สนใจ stage — พอ collect แล้วจะไม่มี write ใหม่
+  // เข้า quiz_attempts ของ pet ตัวนี้อีก ปลอดภัยที่จะ snapshot ตรงนี้)
+  const { error: collectError } = await supabase.rpc("collect_pet_with_stats_snapshot", { p_pet_id: pet.id });
 
-  if (collectError) throw new Error("เก็บ Qmon เข้าสมุดไม่สำเร็จ: " + collectError.message);
+  if (collectError) throw new Error("เก็บ Qmon เข้าฟาร์มไม่สำเร็จ: " + collectError.message);
 
   // track เฉพาะตอน update ผ่านแล้วเท่านั้น — insert ตรงจากฝั่ง server (ไม่ใช้
   // src/lib/analytics.ts track() เพราะฟังก์ชันนั้น early-return ทุกครั้งถ้า
@@ -60,7 +61,7 @@ export async function collectPet(): Promise<{ collected: true }> {
   });
 
   // ไข่ใบต่อไปไม่ auto-grant แล้ว — ผู้เล่นเลือกเองผ่าน chooseEggAfterCollect() ทุกครั้ง
-  return { collected: true };
+  return { collected: true, petId: pet.id };
 }
 
 // ผู้เล่นยืนยันไข่ที่เลือกหลังเก็บสัตว์เข้าสมุด (จอ/modal เลือกไข่)
@@ -379,4 +380,35 @@ export async function getWeeklyLeaderboardTop5(): Promise<LeaderboardEntry[]> {
 
   const band = await getGradeBand(user.id);
   return getWeeklyLeaderboard(supabase, band);
+}
+
+// แก้ไขชื่อ Qmon ภายหลัง (หน้า /collection/[petId]/name) — เฉพาะตัวที่โตเต็มที่ (stage 4) แล้วเท่านั้น
+// ต่างจากตอนฟัก (hatchEgg) ตรงที่ชื่อบังคับตั้งตั้งแต่เกิดอยู่แล้ว จึงไม่อนุญาตให้เคลียร์กลับเป็นค่าว่าง
+// ที่นี่ (pet เก่าก่อนมีระบบนี้ที่ nickname เป็น null อยู่ ยัง fallback nickname ?? speciesName ได้ปกติ
+// ไม่ต้อง backfill)
+export async function setPetNickname(petId: string, nicknameRaw: string): Promise<{ nickname: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const nickname = nicknameRaw.trim();
+  if (nickname.length === 0) throw new Error("ชื่อห้ามว่างเปล่า");
+  if (nickname.length > 20) throw new Error("ชื่อยาวเกินไป (ไม่เกิน 20 ตัวอักษร)");
+  if (isBlockedNickname(nickname)) throw new Error("ชื่อนี้ใช้ไม่ได้ ลองชื่ออื่นนะ");
+
+  const { data: pet, error: petError } = await supabase
+    .from("pets")
+    .select("id, stage")
+    .eq("id", petId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (petError || !pet) throw new Error("ไม่พบ Qmon ตัวนี้ของคุณ");
+  if (pet.stage !== 4) throw new Error("แก้ไขชื่อได้เฉพาะ Qmon ที่โตเต็มที่แล้ว");
+
+  const { error } = await supabase.from("pets").update({ nickname }).eq("id", pet.id);
+  if (error) throw new Error("บันทึกชื่อไม่สำเร็จ: " + error.message);
+  return { nickname };
 }

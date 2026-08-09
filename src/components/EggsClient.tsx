@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
 import { track } from "@/lib/analytics";
+import HatchNamingModal from "@/components/HatchNamingModal";
 
 const TIER_LABEL: Record<string, string> = {
   common: "ธรรมดา",
@@ -34,14 +35,22 @@ export default function EggsClient({
   const [isPending, startTransition] = useTransition();
   const [hatchingId, setHatchingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [namingEggId, setNamingEggId] = useState<string | null>(null);
 
-  function handleHatch(eggId: string) {
+  function openNamingModal(eggId: string) {
     if (isPending) return;
+    setErrorMessage(null);
+    setNamingEggId(eggId);
+  }
+
+  function handleConfirmHatch(nickname: string) {
+    const eggId = namingEggId;
+    if (!eggId || isPending) return;
     setErrorMessage(null);
     setHatchingId(eggId);
     startTransition(async () => {
       try {
-        await hatchEgg(eggId);
+        await hatchEgg(eggId, nickname);
         const egg = eggs.find((e) => e.id === eggId);
         if (egg) track("egg_selected", { egg_type_id: egg.eggTypeId });
         router.push("/pet");
@@ -52,11 +61,13 @@ export default function EggsClient({
     });
   }
 
+  const namingEgg = namingEggId ? eggs.find((e) => e.id === namingEggId) ?? null : null;
+
   return (
     <div className="flex flex-col gap-4">
       {hasActivePet && (
         <p className="rounded-xl border border-amber-dim bg-amber/10 p-3 text-center text-sm text-amber">
-          กำลังเลี้ยงอยู่ 1 ตัว เก็บเข้าสมุดก่อนถึงจะฟักตัวใหม่ได้ —{" "}
+          กำลังเลี้ยงอยู่ 1 ตัว เก็บเข้าฟาร์มก่อนถึงจะฟักตัวใหม่ได้ —{" "}
           <a href="/pet" className="font-bold underline">
             ไปหน้าเลี้ยง Qmon
           </a>
@@ -105,7 +116,7 @@ export default function EggsClient({
               <button
                 type="button"
                 disabled={hasActivePet || isPending}
-                onClick={() => handleHatch(egg.id)}
+                onClick={() => openNamingModal(egg.id)}
                 className="shrink-0 rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-track shadow transition active:scale-95 disabled:opacity-50"
               >
                 {isPending && hatchingId === egg.id ? "กำลังฟัก..." : "ฟักไข่นี้"}
@@ -113,6 +124,16 @@ export default function EggsClient({
             </div>
           ))}
         </div>
+      )}
+
+      {namingEgg && (
+        <HatchNamingModal
+          eggNameTh={namingEgg.nameTh}
+          eggImagePath={namingEgg.imagePath}
+          isPending={isPending}
+          errorMessage={errorMessage}
+          onConfirm={handleConfirmHatch}
+        />
       )}
     </div>
   );

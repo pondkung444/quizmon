@@ -7,7 +7,7 @@ export type SubmitDungeonBonusAnswerResult = {
   isCorrect: boolean;
 };
 
-// ส่ง Qmon (stage 4, เก็บเข้าสมุดแล้ว) ไปผจญภัย — RPC เช็ค ownership/stage/รันค้างเองอยู่แล้ว
+// ส่ง Qmon (stage 4, เก็บเข้าฟาร์มแล้ว) ไปผจญภัย — RPC เช็ค ownership/stage/รันค้างเองอยู่แล้ว
 // (unique constraint กันมีรัน in_progress ซ้อนกัน 2 อันของ user เดียว)
 export async function startDungeonRun(petId: string, dungeonTypeId: string): Promise<{ runId: string }> {
   const supabase = await createClient();

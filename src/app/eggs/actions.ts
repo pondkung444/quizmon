@@ -1,13 +1,19 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isBlockedNickname } from "@/lib/moderation/nicknameBlocklist";
 
-export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> {
+export async function hatchEgg(playerEggId: string, nicknameRaw: string): Promise<{ petId: string }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const nickname = nicknameRaw.trim();
+  if (nickname.length === 0) throw new Error("ตั้งชื่อ Qmon ก่อนฟักไข่นะ");
+  if (nickname.length > 20) throw new Error("ชื่อยาวเกินไป (ไม่เกิน 20 ตัวอักษร)");
+  if (isBlockedNickname(nickname)) throw new Error("ชื่อนี้ใช้ไม่ได้ ลองชื่ออื่นนะ");
 
   // 1) เช็คว่ามี pet active อยู่แล้วหรือไม่ (กันฟักซ้อน — DB unique index เป็น backstop ชั้นสอง)
   const { data: activePet } = await supabase
@@ -18,7 +24,7 @@ export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> 
     .maybeSingle();
 
   if (activePet) {
-    throw new Error("มี Qmon ที่กำลังเลี้ยงอยู่แล้ว ต้องเก็บเข้าสมุดก่อนถึงจะฟักตัวใหม่ได้");
+    throw new Error("มี Qmon ที่กำลังเลี้ยงอยู่แล้ว ต้องเก็บเข้าฟาร์มก่อนถึงจะฟักตัวใหม่ได้");
   }
 
   // 2) เช็คว่าไข่ใบนี้เป็นของ user นี้จริง และยังไม่ฟัก
@@ -38,6 +44,7 @@ export async function hatchEgg(playerEggId: string): Promise<{ petId: string }> 
     .insert({
       user_id: user.id,
       egg_type_id: egg.egg_type_id,
+      nickname,
       stage: 1,
       exp: 0,
       math_correct: 0,

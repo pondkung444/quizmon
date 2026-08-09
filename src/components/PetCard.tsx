@@ -181,7 +181,7 @@ export default function PetCard({
           อีกต่อไปเพราะไม่มีมุมให้ตัดแล้ว — เปลี่ยนพร้อมกันทั้ง CollectedPetCard.tsx (/collection) ด้วย
           เพื่อความสม่ำเสมอ ตามที่ปอนด์เลือก (ทางเลือกที่ 2 จาก 3 ตัวเลือกที่เสนอไป) */}
       <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
-        <span className="whitespace-nowrap text-xs font-bold text-gold-hi">
+        <span className="font-sarabun whitespace-nowrap text-xs font-bold text-gold-hi">
           {nickname ?? speciesName ?? stageName}
         </span>
       </div>
@@ -353,7 +353,7 @@ export default function PetCard({
         <div className="flex w-full flex-col items-center gap-4 border-t border-border pt-5">
           <div>
             <h2 className="text-sm font-bold text-gold-hi">พลังประจำตัว</h2>
-            <p className="text-xs text-text3">พลังพวกนี้จะได้ใช้จริงตอนเก็บเข้าสมุดแล้ว — ไปผจญภัยและท้าทายด่านต่างๆ ได้เลย</p>
+            <p className="text-xs text-text3">พลังพวกนี้จะได้ใช้จริงตอนเก็บเข้าฟาร์มแล้ว — ไปผจญภัยและท้าทายด่านต่างๆ ได้เลย</p>
           </div>
           <StatRadar
             stats={{

@@ -1,6 +1,14 @@
 import Image from "next/image";
 import StatRadar from "@/components/StatRadar";
 
+const SUBJECT_LABEL_TH: Record<string, string> = {
+  math: "คณิตศาสตร์",
+  science: "วิทยาศาสตร์",
+  physics: "ฟิสิกส์",
+  chemistry: "เคมี",
+  biology: "ชีวะ",
+};
+
 function SublineChip({ label }: { label: string | null }) {
   return (
     <span className="rounded-full border border-gold-dim bg-track px-3 py-1 text-xs font-medium text-gold-hi">
@@ -9,8 +17,8 @@ function SublineChip({ label }: { label: string | null }) {
   );
 }
 
-// การ์ดแบบ read-only สำหรับ Qmon ที่เก็บเข้าสมุดแล้ว (/collection/[petId]) — ไม่มี EXP bar/CTA/
-// ปุ่มเก็บเข้าสมุดใดๆ ตั้งใจไม่ import CollectPetButton/EggChoiceModal เข้ามาเลย เพื่อการันตี
+// การ์ดแบบ read-only สำหรับ Qmon ที่เก็บเข้าฟาร์มแล้ว (/collection/[petId]) — ไม่มี EXP bar/CTA/
+// ปุ่มเก็บเข้าฟาร์มใดๆ ตั้งใจไม่ import CollectPetButton/EggChoiceModal เข้ามาเลย เพื่อการันตี
 // ว่าหน้านี้เขียน DB ไม่ได้โดยโครงสร้าง ไม่ต้องพึ่ง flag เช็คหลายจุดแบบ PetCard
 export default function CollectedPetCard({
   nickname,
@@ -19,6 +27,10 @@ export default function CollectedPetCard({
   sublineLabel,
   eggNameTh,
   stats,
+  evolvedAtLabel,
+  questionsAnswered,
+  accuracyPct,
+  subjectBreakdown,
 }: {
   nickname: string | null;
   speciesName: string;
@@ -26,7 +38,12 @@ export default function CollectedPetCard({
   sublineLabel: string | null;
   eggNameTh: string | null;
   stats: { hp: number; atk: number; def: number; spd: number; foc: number };
+  evolvedAtLabel: string | null;
+  questionsAnswered: number | null;
+  accuracyPct: number | null;
+  subjectBreakdown: Record<string, { answered: number; correct: number }> | null;
 }) {
+  const subjectEntries = Object.entries(subjectBreakdown ?? {});
   return (
     <div className="flex w-full flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
       <div className="flex gap-2">
@@ -38,7 +55,7 @@ export default function CollectedPetCard({
       {/* nameplate — pill/แคปซูล ตามที่เปลี่ยนใน PetCard.tsx (ux pass 2026-07 รอบ 3) เพื่อความสม่ำเสมอ
           ทั้งแอป แม้หน้านี้จะไม่มีปัญหา fold โดยตรงก็ตาม (ปอนด์เลือกทางเลือกนี้เอง) */}
       <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
-        <span className="whitespace-nowrap text-xs font-bold text-gold-hi">{nickname ?? speciesName}</span>
+        <span className="font-sarabun whitespace-nowrap text-xs font-bold text-gold-hi">{nickname ?? speciesName}</span>
       </div>
 
       <div className="relative flex h-[220px] w-[220px] items-center justify-center">
@@ -67,6 +84,42 @@ export default function CollectedPetCard({
         </div>
 
         <StatRadar stats={stats} />
+
+        {(evolvedAtLabel || questionsAnswered !== null) && (
+          <div className="flex w-full flex-wrap items-center justify-center gap-2 border-t border-border pt-4">
+            {evolvedAtLabel && (
+              <span className="rounded-full border border-border bg-track px-3 py-1 text-xs text-text2">
+                โตเต็มที่เมื่อ {evolvedAtLabel}
+              </span>
+            )}
+            {questionsAnswered !== null && (
+              <span className="rounded-full border border-border bg-track px-3 py-1 text-xs text-text2">
+                ตอบไปแล้ว {questionsAnswered} ข้อ
+                {accuracyPct !== null && ` · แม่นยำ ${accuracyPct}%`}
+              </span>
+            )}
+          </div>
+        )}
+
+        {subjectEntries.length > 0 && (
+          <div className="w-full">
+            <h2 className="mb-2 text-sm font-bold text-gold-hi">แยกตามวิชา</h2>
+            <div className="flex flex-col gap-2">
+              {subjectEntries.map(([subject, s]) => (
+                <div
+                  key={subject}
+                  className="flex items-center justify-between rounded-xl border border-border bg-track px-3 py-2"
+                >
+                  <span className="text-sm font-medium text-text">{SUBJECT_LABEL_TH[subject] ?? subject}</span>
+                  <span className="text-xs text-text2">
+                    {s.answered} ข้อ
+                    {s.answered > 0 && ` · แม่นยำ ${Math.round((s.correct / s.answered) * 100)}%`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

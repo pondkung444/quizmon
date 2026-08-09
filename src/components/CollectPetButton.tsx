@@ -19,7 +19,7 @@ export default function CollectPetButton({ eggChoices }: { eggChoices: EggChoice
         await collectPet();
         setShowEggChoice(true);
       } catch (err) {
-        setErrorMessage(err instanceof Error ? err.message : "เก็บเข้าสมุดไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+        setErrorMessage(err instanceof Error ? err.message : "เก็บเข้าฟาร์มไม่สำเร็จ ลองใหม่อีกครั้งนะ");
       }
     });
   }
@@ -56,7 +56,7 @@ export default function CollectPetButton({ eggChoices }: { eggChoices: EggChoice
         onClick={handleCollect}
         className="w-full rounded-2xl bg-red py-3 text-lg font-bold text-text shadow-lg transition active:scale-95 disabled:opacity-50"
       >
-        {isPending ? "กำลังเก็บ..." : "เก็บเข้าสมุด"}
+        {isPending ? "กำลังเก็บ..." : "เก็บเข้าฟาร์ม"}
       </button>
       {errorMessage && <p className="text-sm text-red">{errorMessage}</p>}
     </div>
