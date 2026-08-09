@@ -33,6 +33,7 @@ export type ChooseRaidPathResult = {
   // มาแล้วที่จุดเดียว (ในนี้) ห้ามคำนวณ/กลับด้านซ้ำใน component
   displayNeed: number;
   displayRoll: number;
+  isGuaranteedPass: boolean;
 };
 
 export async function chooseRaidPath(runId: string, side: "a" | "b"): Promise<ChooseRaidPathResult> {
@@ -51,7 +52,7 @@ export async function chooseRaidPath(runId: string, side: "a" | "b"): Promise<Ch
     rollThresholdScaled: number;
   };
 
-  const { displayNeed, displayRoll } = computeRollDisplay(
+  const { displayNeed, displayRoll, isGuaranteedPass } = computeRollDisplay(
     result.rollValueScaled,
     result.rollThresholdScaled,
     result.rollPassed
@@ -66,6 +67,7 @@ export async function chooseRaidPath(runId: string, side: "a" | "b"): Promise<Ch
     question: result.question ?? null,
     displayNeed,
     displayRoll,
+    isGuaranteedPass,
   };
 }
 

@@ -51,7 +51,13 @@ export default function ClaimScreen({
       clearTimeout(timeoutId);
       if (claimAttemptRef.current !== attemptId) return;
       setResult(claimResult);
-      setModalStage("ticket");
+      if (claimResult.ticketAwarded) {
+        setModalStage("ticket");
+      } else if (claimResult.eggAwarded) {
+        setModalStage("egg");
+      } else {
+        setModalStage("meter");
+      }
     } catch (err) {
       clearTimeout(timeoutId);
       if (claimAttemptRef.current !== attemptId) return;
