@@ -99,11 +99,12 @@ export type ClaimDungeonRunResult = {
   eggAwarded: boolean;
   eggNameTh: string | null;
   eggSpritePrefix: string | null;
-  foodKind: "A" | "B";
   pityMeter: number;
 };
 
 // เคลมรางวัลรันที่จบแล้ว — RPC ล็อกแถว/เช็ค ends_at/claimed_at เองอยู่แล้ว (ป้องกันเคลมซ้ำ/เคลมก่อนเวลา)
+// ตั้งแต่ 9 ส.ค. 2026 adventure ไม่แจกอาหารแล้ว (food_kind จาก RPC จะเป็น null เสมอ) รางวัลตั๋ว
+// (raid_tickets, source='dungeon_claim') RPC insert ให้เองอยู่แล้วไม่ได้อยู่ใน return value นี้
 export async function claimDungeonRun(dungeonRunId: string): Promise<ClaimDungeonRunResult> {
   const supabase = await createClient();
   const {
@@ -119,7 +120,7 @@ export async function claimDungeonRun(dungeonRunId: string): Promise<ClaimDungeo
     egg_type_id: string | null;
     egg_name_th: string | null;
     egg_sprite_prefix: string | null;
-    food_kind: "A" | "B";
+    food_kind: string | null;
     pity_meter: number;
   };
 
@@ -127,7 +128,6 @@ export async function claimDungeonRun(dungeonRunId: string): Promise<ClaimDungeo
     eggAwarded: result.egg_awarded,
     eggNameTh: result.egg_name_th,
     eggSpritePrefix: result.egg_sprite_prefix,
-    foodKind: result.food_kind,
     pityMeter: result.pity_meter,
   };
 }

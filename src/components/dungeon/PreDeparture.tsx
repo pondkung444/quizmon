@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { DungeonInfo, EligiblePet } from "@/lib/dungeon";
 import { DUNGEON_PITY_GOAL } from "@/lib/dungeon";
 import { startDungeonRun } from "@/app/dungeon/actions";
+import { RAID_TICKET_NAME_TH } from "@/lib/raid/labels";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import DungeonScene from "@/components/dungeon/DungeonScene";
 
@@ -111,9 +112,9 @@ export default function PreDeparture({
           <p className="mb-2 text-xs text-text2">กลับมาพร้อมอะไร</p>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-              <span className="text-2xl">🍽️</span>
+              <span className="text-2xl">🗝️</span>
               <div>
-                <p className="text-sm font-bold text-text">อาหาร 1 ชิ้น</p>
+                <p className="text-sm font-bold text-text">{RAID_TICKET_NAME_TH} 1 ใบ</p>
                 <p className="text-xs text-text3">ได้ทุกครั้งแน่นอน</p>
               </div>
             </div>
