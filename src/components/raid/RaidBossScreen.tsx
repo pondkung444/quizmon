@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { startRaidBoss, answerRaidBoss } from "@/app/raid/actions";
 import RaidScene from "@/components/raid/RaidScene";
+import { getSpriteAspectRatio } from "@/lib/raid/spriteGroundOffsets";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -16,8 +17,26 @@ const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 const GROUND_TOP_PCT = 82;
 const PET_LEFT_PCT = 14;
 const PET_HEIGHT_PCT = 26;
-const BOSS_LEFT_PCT = 92;
-const BOSS_HEIGHT_PCT = 78;
+
+// feedback สด 2026-08-10 (ระหว่างทดสอบจริง): "บอสต้องใหญ่กว่า Qmon" ตามด้วย "ตกขอบไปไกลมาก" — บอส
+// สี่เหลี่ยมจัตุรัส (boss_ridge_gale.png 1254×1254 อัตราส่วน 1:1) ที่ leftPercent 92% + heightPercent
+// 78% แบบเดิม (คิดความกว้างจาก % ของความสูง container ตรงๆ) ล้นขอบขวาไปไกลบนจอที่ไม่ได้กว้างมาก — ยิ่ง
+// แคบ/สูงขึ้น (มือถือจริง) ยิ่งล้นหนักเพราะ % ของความสูงไม่สนใจความกว้างจอเลย แม้แต่บอสแนวตั้ง (จิ้งจอก/
+// หมาป่า อัตราส่วน 0.667) ก็ล้นได้บนจอแคบพอ ไม่ใช่แค่ตัวที่เป็นสี่เหลี่ยมจัตุรัส
+// แก้ด้วย heightCss: min(<ความสูงปกติ>vh, calc(<ความกว้างสูงสุด>vw / อัตราส่วนภาพ)) — เทียบทั้งสอง
+// เงื่อนไขพร้อมกันจาก vh/vw ตรงๆ (ไม่ใช่ % ของ container ที่ไม่รู้อัตราส่วนจอ) ได้ค่าที่เล็กกว่าเสมอ
+// ดังนั้นความกว้างจริงจะไม่มีทางเกิน BOSS_MAX_WIDTH_VW ไม่ว่าจออัตราส่วนไหนหรือรูปสัดส่วนอะไรก็ตาม —
+// leftPercent ต้องปรับให้เหลือระยะขอบขวาพอสำหรับความกว้างสูงสุดนี้ด้วย (ครึ่งความกว้างสูงสุด = 31%
+// ต้อง left ไม่เกิน 100-31=69 ถึงจะชิดขอบขวาพอดีไม่ล้น เผื่อระยะไว้เป็น 68)
+const BOSS_LEFT_PCT = 68;
+const BOSS_NORMAL_HEIGHT_VH = 78;
+const BOSS_MAX_WIDTH_VW = 62;
+
+function getBossHeightCss(bossSpritePath: string | null): string {
+  if (!bossSpritePath) return `${BOSS_NORMAL_HEIGHT_VH}vh`;
+  const ratio = getSpriteAspectRatio(bossSpritePath);
+  return `min(${BOSS_NORMAL_HEIGHT_VH}vh, calc(${BOSS_MAX_WIDTH_VW}vw / ${ratio}))`;
+}
 
 // TODO(ปอนด์ — content session แยกต่างหาก): คำพูดบอสตอนนี้เป็น placeholder ทั้งหมด รอเนื้อหาจริง
 const BOSS_LINES_CORRECT = ["โฮก! เจ็บไปนะเนี่ย", "ยังไม่ยอมง่ายๆ หรอกนะ!", "แข็งแกร่งจริง..."];
@@ -224,7 +243,8 @@ export default function RaidBossScreen({
                   {
                     imagePath: bossSpritePath,
                     leftPercent: BOSS_LEFT_PCT,
-                    heightPercent: BOSS_HEIGHT_PCT,
+                    heightPercent: BOSS_NORMAL_HEIGHT_VH,
+                    heightCss: getBossHeightCss(bossSpritePath),
                     animationClass: lastCorrect === true ? "animate-boss-hit" : "animate-boss-idle-breathe",
                     alt: bossNameTh ?? "",
                     spriteKey: `boss-${hitKey}`,

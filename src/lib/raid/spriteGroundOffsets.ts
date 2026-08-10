@@ -8,9 +8,9 @@
 // ถ้าไฟล์บอสถูกเปลี่ยนเป็นเวอร์ชัน crop ชิดขอบแล้วในอนาคต ให้ลบ entry ของไฟล์นั้นออก (หรือตั้งเป็น 0)
 // ไม่ต้องคงตัวเลขเก่าไว้ กันการชดเชยซ้อนทับผิดพลาด
 export const SPRITE_GROUND_OFFSET_PCT: Record<string, number> = {
-  "/raid/boss_ridge_mist.png": 2.93,
-  "/raid/boss_ridge_gale.png": 16.8,
-  "/raid/boss_ridge_storm.png": 3.13,
+  "/raid/boss_ridge_mist.png": 2.41,
+  "/raid/boss_ridge_gale.png": 0.56,
+  "/raid/boss_ridge_storm.png": 0,
 
   "/pets/egg1_stage4_balance_A.png": 2.4,
   "/pets/egg1_stage4_balance_B.png": 5.0,
@@ -40,4 +40,23 @@ export const SPRITE_GROUND_OFFSET_PCT: Record<string, number> = {
 
 export function getSpriteGroundOffsetPercent(imagePath: string): number {
   return SPRITE_GROUND_OFFSET_PCT[imagePath] ?? 0;
+}
+
+// สไปรต์ Qmon ทุกไฟล์เป็นสี่เหลี่ยมจัตุรัส (1:1) มาตลอด ทำให้ next/image ใช้ width={220} height={220}
+// (ค่าคงที่มั่ว ไม่ใช่ขนาดจริง — แค่ให้ครบ prop ที่ next/image บังคับตอนไม่ใช้ fill) แล้ว
+// aspect-ratio ที่ browser คำนวณจาก attribute นั้นบังเอิญตรงกับภาพจริงพอดี ไม่มีใครสังเกตเห็นบั๊กนี้มาก่อน
+// พอเปลี่ยนสไปรต์บอสเป็นภาพแนวตั้งจริง (boss_ridge_mist/storm.png 1024×1536, boss_ridge_gale.png
+// 1254×1254 สี่เหลี่ยม) width/height 220×220 (1:1) ที่ผิดสัดส่วนทำให้ browser คำนวณ auto-width ของ
+// wrapper (h-full w-auto object-contain) พังไปเลย บอสเหลือกว้างแค่ ~75px จากที่ควรได้ ~470px ทั้งที่
+// สูง 700px (feedback pass 2026-08-10: "บอสต้องใหญ่กว่า Qmon" — ตอนนั้นบอสเล็กกว่าเพราะบั๊กนี้ ไม่ใช่
+// เพราะ heightPercent ตั้งค่าผิด) แก้โดยส่ง width/height ที่ตรงสัดส่วนจริงแทนค่าคงที่ 220×220 เดิม —
+// ไฟล์ไหนไม่มีในตารางนี้ (สไปรต์ Qmon ทุกไฟล์) fallback เป็น 1:1 เหมือนพฤติกรรมเดิมทุกประการ
+export const SPRITE_ASPECT_RATIO: Record<string, number> = {
+  "/raid/boss_ridge_mist.png": 1024 / 1536,
+  "/raid/boss_ridge_gale.png": 1254 / 1254,
+  "/raid/boss_ridge_storm.png": 1024 / 1536,
+};
+
+export function getSpriteAspectRatio(imagePath: string): number {
+  return SPRITE_ASPECT_RATIO[imagePath] ?? 1;
 }

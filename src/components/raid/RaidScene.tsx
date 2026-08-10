@@ -2,12 +2,17 @@
 
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import { getSpriteGroundOffsetPercent } from "@/lib/raid/spriteGroundOffsets";
+import { getSpriteGroundOffsetPercent, getSpriteAspectRatio } from "@/lib/raid/spriteGroundOffsets";
 
 export type RaidSceneSprite = {
   imagePath: string;
   leftPercent: number;
   heightPercent: number;
+  // override ค่า height ด้านบนด้วย CSS value ตรงๆ (เช่น "min(78vh, calc(50vw / 0.667))") — ใช้เฉพาะ
+  // เวลา heightPercent เดียวเสี่ยงล้นขอบจอแคบ (ดูคอมเมนต์ยาวที่ RaidBossScreen.tsx เรื่องบอสสัดส่วน
+  // กว้าง/สี่เหลี่ยมจัตุรัสตกขอบบนจอมือถือแคบ) heightPercent ยังต้องส่งมาปกติเผื่อจุดอื่นเอาไปคำนวณ
+  // ตำแหน่งซ้อนทับ (เช่น streak bar เหนือหัว) ต่อ ไม่ได้ผูกกับค่าที่เรนเดอร์จริงเสมอไปถ้ามี override นี้
+  heightCss?: string;
   // ""  = นิ่ง (ต้อง inline transform เอง) — ไม่ว่าง = ชื่อ animation class ที่ bake
   // translate(-50%, -100%) ไว้ในตัว keyframes แล้ว (ดู .animate-dungeon-walk-bob/.animate-boss-idle/
   // .animate-boss-hit ใน globals.css) ห้ามใส่ inline transform ซ้ำเวลามี class เพราะจะชนกัน
@@ -91,7 +96,15 @@ export default function RaidScene({
               {
                 left: `${sprite.leftPercent}%`,
                 top: "82%",
-                height: `${sprite.heightPercent}%`,
+                height: sprite.heightCss ?? `${sprite.heightPercent}%`,
+                // aspectRatio (ไม่ใช่ width={n} height={n} props ของ next/image เอง) เป็นตัวกำหนด
+                // ความกว้างจริง — เจอบั๊กจริง 2026-08-10: การพึ่ง "auto-width จาก aspect-ratio attribute
+                // ของ <img>" (h-full w-auto object-contain) คำนวณผิดในทรีจริงของหน้านี้ (กว้างเหลือ ~75px
+                // ไม่ว่าจะตั้ง attribute ให้ตรงสัดส่วนแค่ไหนก็ตาม ทดสอบยืนยันด้วย !important ตรงๆ ยังไม่ขยับ
+                // ทั้งที่ element เดียวกันนอกทรี React ทำงานถูกต้อง) ตั้ง aspect-ratio บน wrapper div ตรงนี้
+                // แทน (คู่กับ height ที่มีอยู่แล้ว) ให้ browser คำนวณความกว้างจาก CSS aspect-ratio spec
+                // ตรงๆ แล้วให้ Image ข้างในใช้ fill เติมเต็มกล่องที่ได้ขนาดถูกต้องแล้วแทน
+                aspectRatio: getSpriteAspectRatio(sprite.imagePath),
                 "--raid-ground-anchor": `-${100 - getSpriteGroundOffsetPercent(sprite.imagePath)}%`,
                 transform: "translate(-50%, var(--raid-ground-anchor))",
               } as CSSProperties
@@ -100,9 +113,9 @@ export default function RaidScene({
             <Image
               src={sprite.imagePath}
               alt={sprite.alt ?? ""}
-              width={220}
-              height={220}
-              className={`h-full w-auto object-contain drop-shadow-lg ${sprite.flip ? "-scale-x-100" : ""}`}
+              fill
+              sizes="50vw"
+              className={`object-contain drop-shadow-lg ${sprite.flip ? "-scale-x-100" : ""}`}
             />
           </div>
         </div>
