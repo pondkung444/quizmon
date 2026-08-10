@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { RaidGearItemView } from "@/lib/raid";
 import { claimRaidReward } from "@/app/raid/actions";
+import { getPetImagePath } from "@/lib/petImage";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
 
@@ -43,6 +45,11 @@ export default function RaidRewardScreen({
   const [claimedGear, setClaimedGear] = useState<RaidGearItemView | null>(gearItem);
   const [isClaiming, setIsClaiming] = useState(gearItem === null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // ไข่ epic (ridge_storm เท่านั้น) — แยก popup จากของ gear เดิมเพราะเด้งไม่พร้อมกันเสมอ (การันตี
+  // ครั้งแรกสุด/ผ่าน pity meter) ต้องเปิดเองหลัง claim สำเร็จ ปิดแล้วไม่ navigate ออก ให้เห็นการ์ด
+  // gear ด้านล่างต่อ (ปุ่ม "กลับไปหา Qmon" เดิมเป็นทางออกจริงจุดเดียว)
+  const [eggResult, setEggResult] = useState<{ nameTh: string; spritePrefix: string } | null>(null);
+  const [showEggModal, setShowEggModal] = useState(false);
 
   // จบรอบแล้ว (claim_raid_reward เปลี่ยน raid_runs.status เป็น 'completed') — ตั้งใจไม่
   // router.refresh() หลัง claim สำเร็จ เพราะ getActiveRaidRun() กรองเฉพาะ status='in_progress'
@@ -52,7 +59,13 @@ export default function RaidRewardScreen({
     if (claimedGear !== null || claimedRef.current) return;
     claimedRef.current = true;
     claimRaidReward(runId)
-      .then((gear) => setClaimedGear(gear))
+      .then((result) => {
+        setClaimedGear(result);
+        if (result.eggAwarded && result.eggNameTh && result.eggSpritePrefix) {
+          setEggResult({ nameTh: result.eggNameTh, spritePrefix: result.eggSpritePrefix });
+          setShowEggModal(true);
+        }
+      })
       .catch((err) => {
         setErrorMessage(err instanceof Error ? err.message : "รับของไม่สำเร็จ");
       })
@@ -106,6 +119,43 @@ export default function RaidRewardScreen({
           กลับไปหา Qmon
         </button>
       </div>
+
+      {showEggModal && eggResult && (
+        <RaidEggRewardModal
+          eggNameTh={eggResult.nameTh}
+          imagePath={getPetImagePath(eggResult.spritePrefix, 1, null, null)}
+          onClose={() => setShowEggModal(false)}
+        />
+      )}
     </main>
+  );
+}
+
+// ฉลองได้ไข่ epic — ลีลาเดียวกับ EggRewardModal ใน dungeon/ClaimScreen.tsx แค่ปิดแล้วไม่ navigate
+// ออก (แตกต่างจากของ adventure) เพราะจอนี้ยังมีการ์ด gear ให้ดูต่อ + ปุ่ม "กลับไปหา Qmon" ของตัวเอง
+function RaidEggRewardModal({
+  eggNameTh,
+  imagePath,
+  onClose,
+}: {
+  eggNameTh: string;
+  imagePath: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+        <p className="text-sm text-text3">✨ ของรางวัลพิเศษจากการท้าทาย!</p>
+        <h2 className="text-xl font-bold text-gold-hi">ได้รับ {eggNameTh}</h2>
+        <Image src={imagePath} alt={eggNameTh} width={160} height={160} className="animate-evolve-pop" />
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+        >
+          เย้!
+        </button>
+      </div>
+    </div>
   );
 }

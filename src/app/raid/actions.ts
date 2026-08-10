@@ -183,32 +183,46 @@ export type ClaimRaidRewardResult = {
   subValue: number | null;
   quality: string;
   qualityLabel: string | null;
+  eggAwarded: boolean;
+  eggTypeId: string | null;
+  eggNameTh: string | null;
+  eggSpritePrefix: string | null;
+  pityMeter: number;
 };
 
+// claim_raid_reward return shape เปลี่ยน 11 ส.ค. 2026 (migration เพิ่ม egg_epic_01 pity) — เดิมคืน
+// single gear row (คอลัมน์ id) ตอนนี้คืน TABLE ที่ column ของอุปกรณ์เปลี่ยนชื่อเป็น gear_id +
+// เพิ่ม egg_awarded/egg_type_id/egg_name_th/pity_meter ต่อท้าย ไข่การันตีเฉพาะ ridge_storm ครั้งแรก
+// ของ user เท่านั้น ครั้งถัดไปเข้า pity meter ปกติ (ดู raid_pity)
 export async function claimRaidReward(runId: string): Promise<ClaimRaidRewardResult> {
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("claim_raid_reward", { p_run_id: runId }).single();
   if (error || !data) throw new Error(error?.message ?? "รับของไม่สำเร็จ");
   const row = data as {
-    id: string;
+    gear_id: string;
     slot: "head" | "body" | "feet";
     main_stat: RaidStatKey;
     main_value: number;
     sub_stat: RaidStatKey | null;
     sub_value: number | null;
     quality: string;
+    egg_awarded: boolean;
+    egg_type_id: string | null;
+    egg_name_th: string | null;
+    pity_meter: number;
   };
 
-  // ไม่แตะ RPC เลย — อ่าน label_th (แสงริบหรี่/นวล/จ้า/เจิดจ้า) เพิ่มจาก raid_gear_qualities
-  // แยกต่างหากหลังเรียก RPC เสร็จ
-  const { data: qualityRow } = await supabase
-    .from("raid_gear_qualities")
-    .select("label_th")
-    .eq("code", row.quality)
-    .maybeSingle();
+  // ไม่แตะ RPC เลย — อ่าน label_th (แสงริบหรี่/นวล/จ้า/เจิดจ้า) เพิ่มจาก raid_gear_qualities กับ
+  // sprite_prefix ของไข่ (เฉพาะตอนได้ไข่รอบนี้) แยกต่างหากหลังเรียก RPC เสร็จ ยิงคู่กันได้ไม่ต้องรอกัน
+  const [{ data: qualityRow }, { data: eggTypeRow }] = await Promise.all([
+    supabase.from("raid_gear_qualities").select("label_th").eq("code", row.quality).maybeSingle(),
+    row.egg_awarded && row.egg_type_id
+      ? supabase.from("egg_types").select("sprite_prefix").eq("id", row.egg_type_id).maybeSingle()
+      : Promise.resolve({ data: null as { sprite_prefix: string } | null }),
+  ]);
 
   return {
-    id: row.id,
+    id: row.gear_id,
     slot: row.slot,
     mainStat: row.main_stat,
     mainValue: row.main_value,
@@ -216,5 +230,10 @@ export async function claimRaidReward(runId: string): Promise<ClaimRaidRewardRes
     subValue: row.sub_value,
     quality: row.quality,
     qualityLabel: qualityRow?.label_th ?? null,
+    eggAwarded: row.egg_awarded,
+    eggTypeId: row.egg_type_id,
+    eggNameTh: row.egg_name_th,
+    eggSpritePrefix: eggTypeRow?.sprite_prefix ?? null,
+    pityMeter: row.pity_meter,
   };
 }

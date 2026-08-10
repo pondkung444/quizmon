@@ -16,6 +16,7 @@ import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
 import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
+import { getRaidTicketCount } from "@/lib/raid";
 import SignOutLink from "@/components/SignOutLink";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
@@ -73,6 +74,7 @@ export default async function PetPage({
   let dungeonCard: DungeonCardState = { status: "invite" };
   let hasEverAnswered = false;
   let unhatchedEggs: EggListItem[] = [];
+  let raidTicketCount = 0;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -92,6 +94,7 @@ export default async function PetPage({
       gradeBandResult,
       dungeonCardResult,
       { data: hasAnsweredRows },
+      raidTicketCountResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -139,6 +142,12 @@ export default async function PetPage({
       // สักข้อ (ดู PetCard.tsx missionActive) เลือก .select("id").limit(1) ไม่ใช้ count:"exact"
       // เพราะ user เก่าบางคนมี quiz_attempts หลักพันแถว ไม่ต้องนับทั้งตารางแค่เช็คว่ามี/ไม่มี
       supabase.from("quiz_attempts").select("id").eq("user_id", user.id).limit(1),
+      // แถบด่วนบน sticky banner ต้องรู้จำนวนตั๋วท้าทาย — พังไม่ควรทำทั้งหน้า /pet ล่ม เช่นเดียวกับ
+      // ของเสริมตัวอื่นๆ ข้างบน
+      getRaidTicketCount(supabase, user.id).catch((err) => {
+        console.error("getRaidTicketCount failed:", err);
+        return 0;
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -149,6 +158,7 @@ export default async function PetPage({
     gradeBand = gradeBandResult;
     dungeonCard = dungeonCardResult;
     hasEverAnswered = (hasAnsweredRows?.length ?? 0) > 0;
+    raidTicketCount = raidTicketCountResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -281,6 +291,7 @@ export default async function PetPage({
           foodA={foodInventory.A}
           foodB={foodInventory.B}
           dungeonCard={dungeonCard}
+          raidTicketCount={raidTicketCount}
         />
         </>
       ) : (

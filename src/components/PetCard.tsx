@@ -28,6 +28,7 @@ import type { Subline } from "@/lib/evolution";
 import FeedPetCard from "@/components/FeedPetCard";
 import DungeonAdventureCard from "@/components/DungeonAdventureCard";
 import type { DungeonCardState } from "@/lib/dungeon";
+import StickyActionBanner from "@/components/StickyActionBanner";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -65,6 +66,7 @@ export default function PetCard({
   foodA,
   foodB,
   dungeonCard,
+  raidTicketCount,
 }: {
   petId: string;
   stage: number;
@@ -99,6 +101,7 @@ export default function PetCard({
   foodA: number;
   foodB: number;
   dungeonCard: DungeonCardState;
+  raidTicketCount: number;
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -173,6 +176,10 @@ export default function PetCard({
       {/* 1.5 weekly leaderboard — ทดลอง (2026-07) collapsed แถวเดียว กดขยาย Top 5 in-place อยู่ใต้
           journey strip ทันที เหนือ nameplate/avatar ของ pet card หลัก ดู WeeklyLeaderboardCard.tsx */}
       <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
+
+      {/* 1.6 แถบด่วนผจญภัย/ท้าทาย — sticky ค้างบนสุดตอนเลื่อนผ่าน (11 ส.ค. 2026 เปิดระบบท้าทาย)
+          ดู StickyActionBanner.tsx */}
+      <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
 
       {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
           เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ
