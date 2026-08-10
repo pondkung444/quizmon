@@ -29,17 +29,28 @@ export default function RaidScene({
   backgroundPath,
   sprites = [],
   nameLabel,
+  fullScreen = false,
 }: {
   backgroundPath: string | null;
   sprites?: RaidSceneSprite[];
   // ป้ายชื่อมุมบนซ้ายของฉาก — ใช้บอกว่ากำลังสู้กับใคร (จอบอส) สไตล์ตามพิลชื่อ/เวลา ของ
   // DungeonScene.tsx (bg-black/50 px-3 py-1 rounded-full) ให้ดูเป็นระบบเดียวกัน ไม่มีก็ไม่โชว์
   nameLabel?: string | null;
+  // true เฉพาะจอสู้บอสโฉมใหม่ (RaidBossScreen.tsx) — เต็มความสูง/กว้างของ container แม่แทนกรอบ
+  // การ์ด aspect-[8/3] เดิม ค่าเริ่มต้น false ให้จอเดิม (predeparture/choosing/quiz/reward) ที่ยังใช้
+  // ดีไซน์การ์ดแบบเก่าเรนเดอร์เหมือนเดิมทุกประการ ไม่ต้องแก้ที่เรียกใช้เดิมเลย
+  fullScreen?: boolean;
 }) {
   if (!backgroundPath) return null;
 
   return (
-    <div className="relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden">
+    <div
+      className={
+        fullScreen
+          ? "relative h-full w-full overflow-hidden"
+          : "relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden"
+      }
+    >
       <Image src={backgroundPath} alt="" fill sizes="100vw" priority className="object-cover object-center" />
 
       {nameLabel && (
