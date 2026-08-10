@@ -13,14 +13,16 @@ const PERSONALITY_ORDER: Personality[] = ["A", "B"];
 // (ไม่ hardcode egg4/egg_rare_01 ที่ไหนเลย กรองจาก tier เท่านั้น เพิ่มไข่ rare ใบที่ 2 หรือ epic
 // ในอนาคตไม่ต้องแก้ไฟล์นี้ซ้ำ — tier ที่ไม่อยู่ใน order นี้ เช่น epic ที่ยังไม่มีใช้จริง จะต่อท้าย
 // ตามลำดับ id แทน ไม่ throw)
-const RARITY_TIER_ORDER = ["rare", "legendary"];
+const RARITY_TIER_ORDER = ["rare", "epic", "legendary"];
 // หัวข้อชั้น (ฤทธิ์ vs เทพ เป็นคนละชั้นโดยเจตนาตามระบบตั้งชื่อของเกม — ไม่ใช้หัวข้อคลุมเดียวทั้งคู่)
 const RARITY_TIER_LABEL: Record<string, string> = {
   rare: "Qmon หายาก",
+  epic: "Qmon สุดยอด",
   legendary: "Qmon ในตำนาน",
 };
 const RARITY_TIER_SUBTITLE: Record<string, string> = {
   rare: "ได้จากการผจญภัย",
+  epic: "ได้จากการพิชิตด่านยากสุดของระบบท้าทาย",
   legendary: "ได้จากการเป็นอันดับ 1 ประจำสัปดาห์",
 };
 
