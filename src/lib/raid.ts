@@ -101,6 +101,7 @@ export type RaidView =
       bossQuestionCount: number;
       bossNameTh: string | null;
       backgroundPath: string | null;
+      bossScenePath: string | null;
       bossSpritePath: string | null;
       petImagePath: string | null;
       thresholdPct: number;
@@ -385,7 +386,9 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
 
   const { data: raidType } = await supabase
     .from("raid_types")
-    .select("obstacle_count, boss_question_count, boss_pass_count, boss_name_th, background_path, boss_sprite_path")
+    .select(
+      "obstacle_count, boss_question_count, boss_pass_count, boss_name_th, background_path, boss_scene_path, boss_sprite_path"
+    )
     .eq("id", run.raid_type_id)
     .single();
   if (!raidType) return null;
@@ -518,6 +521,7 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
       bossQuestionCount: raidType.boss_question_count,
       bossNameTh: raidType.boss_name_th,
       backgroundPath: raidType.background_path,
+      bossScenePath: raidType.boss_scene_path,
       bossSpritePath: raidType.boss_sprite_path,
       petImagePath,
       thresholdPct: run.threshold_pct,
