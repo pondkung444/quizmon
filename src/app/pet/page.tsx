@@ -142,7 +142,7 @@ export default async function PetPage({
       // สักข้อ (ดู PetCard.tsx missionActive) เลือก .select("id").limit(1) ไม่ใช้ count:"exact"
       // เพราะ user เก่าบางคนมี quiz_attempts หลักพันแถว ไม่ต้องนับทั้งตารางแค่เช็คว่ามี/ไม่มี
       supabase.from("quiz_attempts").select("id").eq("user_id", user.id).limit(1),
-      // แถบด่วนบน sticky banner ต้องรู้จำนวนตั๋วท้าทาย — พังไม่ควรทำทั้งหน้า /pet ล่ม เช่นเดียวกับ
+      // แถบด่วนบน sticky banner ต้องรู้จำนวนกุญแจท้าทาย — พังไม่ควรทำทั้งหน้า /pet ล่ม เช่นเดียวกับ
       // ของเสริมตัวอื่นๆ ข้างบน
       getRaidTicketCount(supabase, user.id).catch((err) => {
         console.error("getRaidTicketCount failed:", err);

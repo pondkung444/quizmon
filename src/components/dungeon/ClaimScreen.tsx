@@ -67,7 +67,7 @@ export default function ClaimScreen({
     }
   }
 
-  // ตั๋วกับไข่เด้งแยกจังหวะกัน — ปิดโมดัลตั๋วก่อน หน่วง ~600ms แล้วค่อยเปิดโมดัลไข่ (ถ้าได้)
+  // กุญแจกับไข่เด้งแยกจังหวะกัน — ปิดโมดัลกุญแจก่อน หน่วง ~600ms แล้วค่อยเปิดโมดัลไข่ (ถ้าได้)
   // ถ้าไม่ได้ไข่รอบนี้ ไม่พูดเชิงลบเด็ดขาด — โชว์มิเตอร์ที่ขยับแทนเสมอ
   function handleCloseTicketModal() {
     if (result?.eggAwarded) {
@@ -166,8 +166,8 @@ function PityPips({ filled, total }: { filled: number; total: number }) {
   );
 }
 
-// ฉลองได้ตั๋ว — โมดัลเต็มจอแบบเดียวกับ WeeklyRewardCelebration.tsx (เดิมเคยเป็นการ์ดอาหาร ก่อน
-// adventure เปลี่ยนมาแจกตั๋วเข้าด่านท้าทายแทน ดู RAID_TICKET_ICON_PATH — ไฟล์รูปยังไม่ถูกส่งมาวาง
+// ฉลองได้กุญแจ — โมดัลเต็มจอแบบเดียวกับ WeeklyRewardCelebration.tsx (เดิมเคยเป็นการ์ดอาหาร ก่อน
+// adventure เปลี่ยนมาแจกกุญแจเข้าด่านท้าทายแทน ดู RAID_TICKET_ICON_PATH — ไฟล์รูปยังไม่ถูกส่งมาวาง
 // ตอนเขียนโค้ดนี้ ถ้าโหลดไม่สำเร็จโชว์ไอคอน emoji แทนไว้ก่อน)
 function TicketRewardModal({ onClose }: { onClose: () => void }) {
   const [iconFailed, setIconFailed] = useState(false);

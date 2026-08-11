@@ -26,7 +26,7 @@ export default function StickyActionBanner({
         </span>
         <span className="min-w-0 flex-1 text-left">
           <span className="block text-[11px] font-bold text-text2">ท้าทาย</span>
-          <span className="block truncate text-xs text-text3">มีตั๋ว {raidTicketCount} ใบ</span>
+          <span className="block truncate text-xs text-text3">มีกุญแจ {raidTicketCount} ดอก</span>
         </span>
       </Link>
     </div>
