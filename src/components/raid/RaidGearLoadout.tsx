@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import type { RaidGearItemFull } from "@/lib/raid";
 import {
   effectiveStat,
@@ -32,15 +32,16 @@ export default function RaidGearLoadout({
   rawStats,
   caps,
   thresholdPct,
-  gearItems,
+  items,
+  setItems,
 }: {
   petId: string;
   rawStats: RaidStatRecord;
   caps: RaidStatRecord;
   thresholdPct: number;
-  gearItems: RaidGearItemFull[];
+  items: RaidGearItemFull[];
+  setItems: Dispatch<SetStateAction<RaidGearItemFull[]>>;
 }) {
-  const [items, setItems] = useState(gearItems);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<"head" | "body" | "feet" | null>(null);
