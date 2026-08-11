@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +9,9 @@ import { startRaidRun } from "@/app/raid/actions";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
 import RaidGearLoadout from "@/components/raid/RaidGearLoadout";
-import { RAID_MOUNTAIN_NAME_TH } from "@/lib/raid/labels";
+import { RAID_MOUNTAIN_NAME_TH, RAID_GEAR_SLOT_ANATOMY_TH } from "@/lib/raid/labels";
+
+const SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
 
 function rawStatSum(pet: EligibleRaidPet): number {
   return pet.rawStats.hp + pet.rawStats.atk + pet.rawStats.def + pet.rawStats.spd + pet.rawStats.foc;
@@ -44,6 +46,22 @@ export default function RaidPreDeparture({
   const [showPicker, setShowPicker] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [items, setItems] = useState(gearItems);
+  const [showGearWarning, setShowGearWarning] = useState(false);
+
+  // ช่องที่ยังว่างและมีของชนิดตรงช่องนั้นค้างในคลัง (ไม่ได้ใส่กับตัวไหน) — เตือนก่อนเข้าด่านเท่านั้น
+  // ไม่บล็อก และไม่เตือนถ้าคลังไม่มีของให้ใส่จริงๆ (ยืนยันคำ 11 ส.ค.)
+  const missingEquippableSlots = useMemo(() => {
+    if (!selectedPet) return [];
+    const equippedSlots = new Set(
+      items.filter((i) => i.equippedPetId === selectedPet.id).map((i) => i.slot)
+    );
+    return SLOTS.filter(
+      (slot) =>
+        !equippedSlots.has(slot) &&
+        items.some((i) => i.equippedPetId === null && i.slot === slot)
+    );
+  }, [items, selectedPet]);
 
   // เรียงจาก stat รวม raw มากไปน้อย (§2.3, §7) — ใช้ raw ไม่ใช่ effective เพราะเป็นการเลือกตัวมอน
   // โดยเนื้อแท้ ไม่เกี่ยวกับของที่ใส่อยู่
@@ -60,6 +78,14 @@ export default function RaidPreDeparture({
       setErrorMessage(err instanceof Error ? err.message : "เริ่มการท้าทายไม่สำเร็จ");
       setIsSending(false);
     }
+  }
+
+  function handleDepartClick() {
+    if (missingEquippableSlots.length > 0) {
+      setShowGearWarning(true);
+      return;
+    }
+    handleDepart();
   }
 
   return (
@@ -146,7 +172,8 @@ export default function RaidPreDeparture({
             rawStats={selectedPet.rawStats}
             caps={selectedPet.caps}
             thresholdPct={raidType.bossThresholdPct}
-            gearItems={gearItems}
+            items={items}
+            setItems={setItems}
           />
         )}
 
@@ -159,7 +186,7 @@ export default function RaidPreDeparture({
         <button
           type="button"
           disabled={!selectedPetId || isSending || ticketCount === 0}
-          onClick={handleDepart}
+          onClick={handleDepartClick}
           className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีกุญแจท้าทาย" : "ใช้กุญแจเริ่มท้าทาย"}
@@ -173,6 +200,38 @@ export default function RaidPreDeparture({
           </p>
         </details>
       </div>
+
+      {showGearWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5">
+            <p className="font-sarabun mb-2 text-base font-bold text-text">มีอุปกรณ์ที่ยังไม่ได้ใส่</p>
+            <p className="mb-4 text-sm text-text2">
+              Qmon ตัวนี้ยังมีของว่าง{" "}
+              {missingEquippableSlots.map((s) => RAID_GEAR_SLOT_ANATOMY_TH[s]).join(" และ ")}{" "}
+              อยู่ในคลัง ใส่ก่อนได้เกจพร้อมกว่านี้
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setShowGearWarning(false)}
+                className="w-full rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-track"
+              >
+                กลับไปใส่อุปกรณ์
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowGearWarning(false);
+                  handleDepart();
+                }}
+                className="w-full rounded-xl border border-border py-2.5 text-sm text-text2"
+              >
+                ลุยต่อโดยไม่ใส่
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
