@@ -603,13 +603,6 @@ export default function QuizClient({
           </div>
         </div>
 
-        <SpeechBubble
-          message={personalityMessage}
-          avatarPath={petAvatarPath}
-          evolutionProgress={petEvolutionProgress}
-          dailyCapped={petDailyCapped}
-        />
-
         <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
         <div className="flex flex-col gap-3">
