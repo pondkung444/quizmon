@@ -104,9 +104,9 @@ export type ClaimDungeonRunResult = {
 };
 
 // เคลมรางวัลรันที่จบแล้ว — RPC ล็อกแถว/เช็ค ends_at/claimed_at เองอยู่แล้ว (ป้องกันเคลมซ้ำ/เคลมก่อนเวลา)
-// ตั้งแต่ 9 ส.ค. 2026 adventure ไม่แจกอาหารแล้ว (food_kind จาก RPC จะเป็น null เสมอ) รางวัลตั๋ว
-// (raid_tickets, source='dungeon_claim') RPC insert ให้เองอยู่แล้ว แต่มีเพดานสะสม 10 ใบ (นับรวมทุกโซน) —
-// เต็มแล้ว RPC ข้ามการออกตั๋วเงียบๆ ticket_awarded บอก client ว่ารอบนี้ได้ตั๋วจริงไหม
+// ตั้งแต่ 9 ส.ค. 2026 adventure ไม่แจกอาหารแล้ว (food_kind จาก RPC จะเป็น null เสมอ) รางวัลกุญแจ
+// (raid_tickets, source='dungeon_claim') RPC insert ให้เองอยู่แล้ว แต่มีเพดานสะสม 10 ดอก (นับรวมทุกโซน) —
+// เต็มแล้ว RPC ข้ามการออกกุญแจเงียบๆ ticket_awarded บอก client ว่ารอบนี้ได้กุญแจจริงไหม
 export async function claimDungeonRun(dungeonRunId: string): Promise<ClaimDungeonRunResult> {
   const supabase = await createClient();
   const {
