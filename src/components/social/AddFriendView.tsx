@@ -9,14 +9,10 @@ import {
   sendFriendRequest,
   type SearchFriendCodeResult,
 } from "@/app/social/actions";
-import { normalizeFriendCode } from "@/lib/friendCode";
+import { normalizeFriendCode, formatFriendCode } from "@/lib/friendCode";
 import { resolvePetDisplay, type PetPreview } from "@/components/social/petSummary";
 import { FRIEND_STATUS_MESSAGE, FRIEND_ACTIONABLE_STATUSES } from "@/components/social/friendActionStatus";
 import Toast from "@/components/social/Toast";
-
-function formatFriendCode(code: string): string {
-  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
-}
 
 export default function AddFriendView({ myFriendCode }: { myFriendCode: string }) {
   const [copied, setCopied] = useState(false);

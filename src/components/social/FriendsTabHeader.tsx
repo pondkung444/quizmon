@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { UserPlus, Inbox, Users, UsersRound, Copy, Check, HeartHandshake } from "lucide-react";
 import FriendListSection from "@/components/social/FriendListSection";
+import { formatFriendCode } from "@/lib/friendCode";
 import type { FriendListItem } from "@/lib/friends";
 
 export type FriendsHeaderData = {
@@ -13,10 +14,6 @@ export type FriendsHeaderData = {
   friends: FriendListItem[];
   unreadEncouragementCount: number;
 };
-
-function formatFriendCode(code: string): string {
-  return code.length === 8 ? `${code.slice(0, 4)}-${code.slice(4)}` : code;
-}
 
 // Empty state เฉพาะตอนเพื่อน=0 — มีเพื่อนแล้วห้ามโชว์อันนี้ (ดูขัดกับความจริง) ใช้ placeholder
 // สั้นๆ แทน ปุ่มคัดลอก Friend Code ใช้ navigator.clipboard เหมือนที่ S06 ทำไว้แล้ว

@@ -76,8 +76,9 @@ async function getProfileTabData(
     { data: earnedRows },
     { data: pinnedRows },
     blockedAccounts,
+    { data: publicProfileRow },
   ] = await Promise.all([
-    supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
+    supabase.from("profiles").select("username, friend_code").eq("id", userId).maybeSingle(),
     supabase
       .from("pets")
       .select(
@@ -98,7 +99,12 @@ async function getProfileTabData(
       .eq("user_id", userId)
       .order("pin_order", { ascending: true }),
     getMyBlockedAccounts(supabase),
+    // profile_likes ไม่มี RLS policy เลย (ตั้งใจ อ่าน/เขียนผ่าน RPC เท่านั้น) — query ตรงจะโดน RLS
+    // กรองจนได้ 0 เสมอ ต้องอ้อมผ่าน get_public_profile (มีอยู่แล้ว ไม่ต้องสร้าง RPC ใหม่) แทน ซึ่ง
+    // คืน like_count ให้ทุกกรณีรวมถึงตอน target=ตัวเอง (relationship_status='self')
+    supabase.rpc("get_public_profile", { p_target_user_id: userId }).single(),
   ]);
+  const likeCount = (publicProfileRow as { like_count: number | null } | null)?.like_count ?? 0;
 
   const prideCandidates = (petRows ?? [])
     .map((row) => toPetSummary(row as PetRow))
@@ -157,6 +163,8 @@ async function getProfileTabData(
     journeyStats,
     equippedGearByPetId,
     blockedCount: blockedAccounts.length,
+    likeCount,
+    friendCode: profileRow?.friend_code ?? "",
   };
 }
 

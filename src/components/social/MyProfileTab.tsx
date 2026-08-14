@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil, ShieldOff } from "lucide-react";
+import { Pencil, ShieldOff, Heart, Copy, Check } from "lucide-react";
 import { type AchievementCardData } from "@/components/AchievementCard";
 import StatRadar from "@/components/StatRadar";
 import BottomSheet from "@/components/social/BottomSheet";
@@ -13,6 +13,7 @@ import SelectMedalsSheet from "@/components/social/SelectMedalsSheet";
 import SelectFavoriteQmonSheet from "@/components/social/SelectFavoriteQmonSheet";
 import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
 import { resolvePetDisplay, type PetSummary } from "@/components/social/petSummary";
+import { formatFriendCode } from "@/lib/friendCode";
 import type { ProfileJourneyStats } from "@/lib/profileJourneyStats";
 
 export type EquippedGearSummary = { slot: "head" | "body" | "feet"; quality: string };
@@ -37,6 +38,8 @@ export type ProfileTabData = {
   journeyStats: ProfileJourneyStats;
   equippedGearByPetId: Record<string, EquippedGearSummary[]>;
   blockedCount: number;
+  likeCount: number;
+  friendCode: string;
 };
 
 // การ์ด Qmon ที่ภูมิใจ — แถวเดียว (ภาพวงกลม+ชื่อ 2 บรรทัด | radar) ตัดบอก Stage/สาย/บุคลิก/อุปกรณ์
@@ -74,6 +77,17 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
   const [pinnedAchievementIds, setPinnedAchievementIds] = useState<string[]>(data.pinnedAchievementIdsSetting);
   const [openSheet, setOpenSheet] = useState<"pride" | "medals" | "favorites" | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [friendCodeCopied, setFriendCodeCopied] = useState(false);
+
+  async function handleCopyFriendCode() {
+    try {
+      await navigator.clipboard.writeText(data.friendCode);
+      setFriendCodeCopied(true);
+      setTimeout(() => setFriendCodeCopied(false), 2000);
+    } catch {
+      setToastMessage("คัดลอกไม่สำเร็จ ลองกดค้างแล้วคัดลอกเองนะ");
+    }
+  }
 
   const stage4Pets = useMemo(() => data.prideCandidates.filter((p) => p.stage === 4), [data.prideCandidates]);
   const pridePet = useMemo(
@@ -141,7 +155,16 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         )}
       </section>
 
-      {/* 3. เหรียญแห่งความภูมิใจ */}
+      {/* 3. ยอดถูกใจ — read-only ล้วนๆ กดถูกใจตัวเองไม่ได้ตามกฎเดิม รูปแบบเดียวกับ LikeButton.tsx
+          ตอนคนอื่นดูเรา (เฟส 5) แค่ไม่มี state ถูกใจแล้ว/ยังไม่ถูกใจเพราะเจ้าของไม่มีสถานะนั้น */}
+      <div className="flex justify-center">
+        <div className="flex min-h-11 items-center gap-2 rounded-xl border border-gold-dim px-4 text-sm font-bold text-text3">
+          <Heart className="h-4 w-4" />
+          ถูกใจ · {data.likeCount}
+        </div>
+      </div>
+
+      {/* 4. เหรียญแห่งความภูมิใจ */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gold-hi">เหรียญแห่งความภูมิใจ</h2>
@@ -185,13 +208,13 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         </Link>
       </section>
 
-      {/* 4. เส้นทางของฉัน */}
+      {/* 5. เส้นทางของฉัน */}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-gold-hi">เส้นทางของฉัน</h2>
         <JourneyStatsGrid stats={data.journeyStats} />
       </section>
 
-      {/* 5. Qmon ตัวโปรด — กดไม่ได้ (§4.6) */}
+      {/* 6. Qmon ตัวโปรด — กดไม่ได้ (§4.6) */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gold-hi">Qmon ตัวโปรด</h2>
@@ -225,7 +248,21 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         )}
       </section>
 
-      {/* ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
+      {/* 7. Friend Code — reuse format/copy pattern เดียวกับ S06 (AddFriendView.tsx) */}
+      <section className="flex flex-col items-center gap-2 rounded-2xl border border-gold-dim bg-card p-4 text-center">
+        <p className="text-xs text-text3">Friend Code ของฉัน</p>
+        <p className="text-xl font-bold tracking-widest text-gold-hi">{formatFriendCode(data.friendCode)}</p>
+        <button
+          type="button"
+          onClick={handleCopyFriendCode}
+          className="mt-1 inline-flex h-11 items-center gap-2 rounded-xl border border-gold-dim px-4 text-sm font-bold text-text3 transition active:scale-95"
+        >
+          {friendCodeCopied ? <Check className="h-4 w-4 text-amber" /> : <Copy className="h-4 w-4" />}
+          {friendCodeCopied ? "คัดลอกแล้ว" : "คัดลอก"}
+        </button>
+      </section>
+
+      {/* 8. ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
           รายการเดียวตอนนี้ (เอกสารเดิมเขียนเป็น สังคม→โปรไฟล์→แก้ไข→บัญชีที่บล็อก แต่ลัดตรงมาแทน) */}
       <Link
         href="/social/blocked"
