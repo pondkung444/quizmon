@@ -4,6 +4,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { normalizeFriendCode } from "@/lib/friendCode";
 import type { PetPreview } from "@/components/social/petSummary";
 import type { EncouragementMessageKey } from "@/lib/encouragementMessages";
+import { getRanking, type RankingCategory, type RankingData, type RankingScope } from "@/lib/ranking";
 
 export type RelationshipStatus =
   | "self"
@@ -271,4 +272,14 @@ export async function sendEncouragement(
 
   const row = data as { encouragement_id: string; sent_date: string };
   return { encouragementId: row.encouragement_id, sentDate: row.sent_date };
+}
+
+// เรียกตอนสลับหมวด/ขอบเขตในแท็บ "อันดับ" — pattern เดียวกับ loadMoreHallOfFame
+// (src/app/hall-of-fame/actions.ts): thin wrapper สร้าง client ของตัวเอง เรียก lib function เดิม
+export async function loadRanking(category: RankingCategory, scope: RankingScope): Promise<RankingData> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  return getRanking(supabase, category, scope);
 }

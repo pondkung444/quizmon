@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Crown } from "lucide-react";
 import { loadMoreHallOfFame } from "@/app/hall-of-fame/actions";
-import type { CurrentWeekLeader, CurrentWeekLeaders, HallOfFameWeek, HallOfFameWinner } from "@/lib/hallOfFame";
+import type { HallOfFameWeek, HallOfFameWinner } from "@/lib/hallOfFame";
 
 function formatWeekLabel(weekStartDate: string): string {
   const start = new Date(weekStartDate + "T00:00:00+07:00");
@@ -15,29 +15,19 @@ function formatWeekLabel(weekStartDate: string): string {
   return `${fmt.format(start)} - ${fmt.format(end)}`;
 }
 
-// weekEnd มาจาก get_current_week_leaders() (current_week_bounds_bkk ภายใน RPC) เสมอ — ห้ามคำนวณ
-// ขอบสัปดาห์เอง ฟังก์ชันนี้แค่ diff เวลาปัจจุบันของเครื่องผู้เล่นกับ deadline ที่ RPC บอกมา
-function formatRemaining(weekEndIso: string): string {
-  const diffMs = new Date(weekEndIso).getTime() - Date.now();
-  if (diffMs <= 0) return "กำลังจะปิดสัปดาห์";
-  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  return days <= 1 ? "เหลือไม่ถึง 1 วัน" : `เหลืออีก ${days} วัน`;
-}
-
-// แถวเดียวใช้ร่วมกันทั้งสัปดาห์ที่จบแล้วและสัปดาห์ที่กำลังแข่ง — ต่างกันแค่สีมงกุฎ (crownDimmed
-// บอกว่ายังไม่ตัดสิน) ขอบด้านเดียว (border-l) ตั้งใจไม่ใส่ rounded corner คู่กับมันเพราะขอบด้านเดียว
+// แถวประวัติแชมป์ — ขอบด้านเดียว (border-l) ตั้งใจไม่ใส่ rounded corner คู่กับมันเพราะขอบด้านเดียว
 // โค้งมนแล้วดูเพี้ยน — ไม่มี placeholder เทาๆ ตอนไม่มีรูป pet (ดู getPetImagePath/hallOfFame.ts —
 // resolvePet คืน null เงียบๆ ถ้าไม่เคยมี pet stage 4)
+// เฟส 8: ตัด currentWeek/crownDimmed ออก (ย้ายไปอยู่หมวด "การฝึกประจำสัปดาห์" ในแท็บ "อันดับ" แทน
+// ตามที่ตกลงไว้ตั้งแต่เฟส 1) เหลือแค่ประวัติแชมป์ที่จบแล้วเท่านั้น
 function WinnerRow({
   winner,
   bandLabel,
   isCurrentUser,
-  crownDimmed,
 }: {
-  winner: HallOfFameWinner | CurrentWeekLeader;
+  winner: HallOfFameWinner;
   bandLabel: string;
   isCurrentUser: boolean;
-  crownDimmed?: boolean;
 }) {
   const pet = winner.pet;
   return (
@@ -65,7 +55,7 @@ function WinnerRow({
         </div>
       </Link>
       <div className="ml-auto flex shrink-0 flex-col items-center gap-1">
-        <Crown size={20} className={crownDimmed ? "text-gold-dim" : "text-amber"} />
+        <Crown size={20} className="text-amber" />
         {isCurrentUser && (
           <span className="whitespace-nowrap rounded-full bg-gold-dim/30 px-1.5 py-0.5 text-[9px] font-medium text-gold-hi">
             นี่คือคุณ
@@ -74,10 +64,6 @@ function WinnerRow({
       </div>
     </div>
   );
-}
-
-function EmptyBandLine({ label }: { label: string }) {
-  return <p className="px-3 text-xs text-text3">{label}: ยังไม่มีใครทำคะแนนสัปดาห์นี้</p>;
 }
 
 function WeekDivider({ label }: { label: string }) {
@@ -92,12 +78,10 @@ function WeekDivider({ label }: { label: string }) {
 // เสมออันดับ 1 หลายคน → โชว์ทุกคนเท่ากันในแถวแยกกัน ไม่มี tie-breaker/จัดลำดับซ้อน
 export default function HallOfFameList({
   currentUserId,
-  currentWeek,
   initialWeeks,
   initialHasMore,
 }: {
   currentUserId: string;
-  currentWeek: CurrentWeekLeaders;
   initialWeeks: HallOfFameWeek[];
   initialHasMore: boolean;
 }) {
@@ -110,10 +94,8 @@ export default function HallOfFameList({
   // โหลดเพิ่ม) ไม่ใช่ประวัติทั้งหมดตลอดกาล — เพียงพอในทางปฏิบัติเพราะสัปดาห์ตัดที่ 2026-07-27
   // ยังมีจำนวนน้อยมาก (โตสัปดาห์ละ 1 แถวเท่านั้น ดู handoff หมวด 1 ข้อ 5)
   const everAppeared = useMemo(() => {
-    const inCurrent = [...currentWeek.junior, ...currentWeek.senior].some((w) => w.userId === currentUserId);
-    if (inCurrent) return true;
     return weeks.some((week) => [...week.junior, ...week.senior].some((w) => w.userId === currentUserId));
-  }, [weeks, currentWeek, currentUserId]);
+  }, [weeks, currentUserId]);
 
   function handleLoadMore() {
     setError(null);
@@ -132,27 +114,6 @@ export default function HallOfFameList({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex flex-col gap-2">
-        <WeekDivider label="สัปดาห์นี้ · กำลังแข่ง" />
-        {currentWeek.weekEnd && <p className="px-3 text-xs text-text3">{formatRemaining(currentWeek.weekEnd)}</p>}
-        <div className="flex flex-col gap-2">
-          {currentWeek.junior.length === 0 ? (
-            <EmptyBandLine label="ม.ต้น" />
-          ) : (
-            currentWeek.junior.map((w) => (
-              <WinnerRow key={w.userId} winner={w} bandLabel="ม.ต้น" isCurrentUser={w.userId === currentUserId} crownDimmed />
-            ))
-          )}
-          {currentWeek.senior.length === 0 ? (
-            <EmptyBandLine label="ม.ปลาย" />
-          ) : (
-            currentWeek.senior.map((w) => (
-              <WinnerRow key={w.userId} winner={w} bandLabel="ม.ปลาย" isCurrentUser={w.userId === currentUserId} crownDimmed />
-            ))
-          )}
-        </div>
-      </section>
-
       <div className="flex flex-col gap-4">
         {weeks.length === 0 && !hasMore ? (
           <p className="text-center text-sm text-text3">ยังไม่มีสัปดาห์ที่จบแล้ว — กลับมาดูใหม่หลังสัปดาห์นี้จบ</p>

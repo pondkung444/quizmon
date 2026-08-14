@@ -3,6 +3,7 @@ import { getProfileJourneyStats } from "@/lib/profileJourneyStats";
 import { getFriendRequestLists } from "@/lib/friendRequests";
 import { getMyFriends, getMyBlockedAccounts } from "@/lib/friends";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
+import { getRanking } from "@/lib/ranking";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
@@ -199,12 +200,18 @@ export default async function SocialPage({
   }
 
   const supabase = await createClient();
-  const [profileData, friendsHeaderData] = await Promise.all([
+  const [profileData, friendsHeaderData, initialRankingData] = await Promise.all([
     getProfileTabData(supabase, user.id),
     getFriendsHeaderData(supabase, user.id),
+    getRanking(supabase, "weekly_training", "all"),
   ]);
 
   return (
-    <SocialTabsView initialTab={initialTab} profileData={profileData} friendsHeaderData={friendsHeaderData} />
+    <SocialTabsView
+      initialTab={initialTab}
+      profileData={profileData}
+      friendsHeaderData={friendsHeaderData}
+      initialRankingData={initialRankingData}
+    />
   );
 }
