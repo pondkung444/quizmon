@@ -1,6 +1,26 @@
 "use server";
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { normalizeFriendCode } from "@/lib/friendCode";
+import type { PetPreview } from "@/components/social/petSummary";
+
+export type RelationshipStatus =
+  | "self"
+  | "friends"
+  | "pending_sent"
+  | "pending_received"
+  | "friend_list_full"
+  | "available";
+
+export type SearchFriendCodeResult =
+  | { found: false }
+  | {
+      found: true;
+      relationshipStatus: RelationshipStatus;
+      targetUserId: string;
+      username: string;
+      pet: PetPreview;
+    };
 
 export async function setPrideQmon(petId: string): Promise<{ pridePetId: string; favoritePetIds: string[] }> {
   const user = await getUser();
@@ -110,4 +130,89 @@ export async function setPinnedMedals(achievementIds: string[]): Promise<{ pinne
   }
 
   return { pinnedAchievementIds: achievementIds };
+}
+
+export async function searchFriendCode(code: string): Promise<SearchFriendCodeResult> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("search_friend_code", { p_code: normalizeFriendCode(code) })
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "ค้นหา Friend Code ไม่สำเร็จ");
+
+  const row = data as {
+    found: boolean;
+    relationship_status: RelationshipStatus | null;
+    target_user_id: string | null;
+    username: string | null;
+    pet_nickname: string | null;
+    pet_stage: number | null;
+    pet_subline: string | null;
+    pet_personality: string | null;
+    egg_sprite_prefix: string | null;
+    egg_name_th: string | null;
+  };
+
+  if (!row.found) return { found: false };
+
+  return {
+    found: true,
+    relationshipStatus: row.relationship_status as RelationshipStatus,
+    targetUserId: row.target_user_id as string,
+    username: row.username as string,
+    pet:
+      row.egg_sprite_prefix && row.egg_name_th && row.pet_stage != null
+        ? {
+            nickname: row.pet_nickname,
+            stage: row.pet_stage,
+            subline: row.pet_subline,
+            personality: row.pet_personality,
+            eggSpritePrefix: row.egg_sprite_prefix,
+            eggNameTh: row.egg_name_th,
+          }
+        : null,
+  };
+}
+
+export async function sendFriendRequest(
+  targetUserId: string
+): Promise<{ requestId: string; autoAccepted: boolean }> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("send_friend_request", { p_target_user_id: targetUserId })
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "ส่งคำขอเป็นเพื่อนไม่สำเร็จ");
+
+  const row = data as { request_id: string; auto_accepted: boolean };
+  return { requestId: row.request_id, autoAccepted: row.auto_accepted };
+}
+
+export async function respondFriendRequest(
+  requestId: string,
+  action: "accept" | "reject"
+): Promise<{ status: string }> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("respond_friend_request", { p_request_id: requestId, p_action: action })
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "ตอบคำขอเป็นเพื่อนไม่สำเร็จ");
+
+  return data as { status: string };
+}
+
+export async function cancelFriendRequest(requestId: string): Promise<void> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_friend_request", { p_request_id: requestId });
+  if (error) throw new Error(error.message ?? "ยกเลิกคำขอไม่สำเร็จ");
 }

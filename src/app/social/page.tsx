@@ -1,8 +1,10 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getProfileJourneyStats } from "@/lib/profileJourneyStats";
+import { getFriendRequestLists, getFriendCount } from "@/lib/friendRequests";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
+import type { FriendsHeaderData } from "@/components/social/FriendsTabHeader";
 import SocialTabsView from "@/components/SocialTabsView";
 import SignOutLink from "@/components/SignOutLink";
 
@@ -147,6 +149,22 @@ async function getProfileTabData(
   };
 }
 
+async function getFriendsHeaderData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<FriendsHeaderData> {
+  const [friendCount, { received }, { data: profileRow }] = await Promise.all([
+    getFriendCount(supabase, userId),
+    getFriendRequestLists(supabase),
+    supabase.from("profiles").select("friend_code").eq("id", userId).maybeSingle(),
+  ]);
+  return {
+    friendCount,
+    receivedRequestCount: received.length,
+    myFriendCode: profileRow?.friend_code ?? "",
+  };
+}
+
 export default async function SocialPage({
   searchParams,
 }: {
@@ -168,7 +186,12 @@ export default async function SocialPage({
   }
 
   const supabase = await createClient();
-  const profileData = await getProfileTabData(supabase, user.id);
+  const [profileData, friendsHeaderData] = await Promise.all([
+    getProfileTabData(supabase, user.id),
+    getFriendsHeaderData(supabase, user.id),
+  ]);
 
-  return <SocialTabsView initialTab={initialTab} profileData={profileData} />;
+  return (
+    <SocialTabsView initialTab={initialTab} profileData={profileData} friendsHeaderData={friendsHeaderData} />
+  );
 }

@@ -24,7 +24,18 @@ export type PetSummary = {
   eggNameTh: string;
 };
 
-export function resolvePetDisplay(pet: PetSummary): { imagePath: string | null; speciesName: string } {
+// รับแค่ field ที่จำเป็นจริงๆ (ไม่ใช่ PetSummary เต็ม) เผื่อใช้กับข้อมูล Qmon ที่ภูมิใจของคนอื่น
+// (เช่น ผลค้นหา Friend Code เฟส 3) ที่ RPC คืนมาแค่บางฟิลด์ ไม่ครบเท่า PetSummary ของตัวเอง
+export type PetDisplayInput = Pick<
+  PetSummary,
+  "eggSpritePrefix" | "stage" | "subline" | "personality" | "eggNameTh"
+>;
+
+// รูปแบบ "Qmon ที่ภูมิใจของคนอื่น" ที่ RPC ฝั่งเพื่อน (search_friend_code/list_my_friend_requests,
+// เฟส 3) คืนมา — null ได้ถ้าบัญชีนั้นไม่มี pet เลย (edge case แทบไม่เกิดเพราะสมัครใหม่ได้ไข่เริ่มต้นเสมอ)
+export type PetPreview = (PetDisplayInput & { nickname: string | null }) | null;
+
+export function resolvePetDisplay(pet: PetDisplayInput): { imagePath: string | null; speciesName: string } {
   try {
     return {
       imagePath: getPetImagePath(
