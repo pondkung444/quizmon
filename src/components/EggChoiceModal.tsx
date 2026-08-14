@@ -36,7 +36,7 @@ export default function EggChoiceModal({
       <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
         <div className="text-center">
           <h2 className="text-lg font-bold text-gold-hi">เก็บสำเร็จ! เลือกไข่ใบต่อไป</h2>
-          <p className="text-sm text-text3">เลือกไข่ที่อยากฟักตัวถัดไป (เลือกชนิดเดิมซ้ำได้)</p>
+          <p className="text-sm text-text3">เลือกไข่ที่อยากได้เก็บเข้าคลัง (เลือกชนิดเดิมซ้ำได้)</p>
         </div>
 
         <div className="flex flex-col gap-3">
