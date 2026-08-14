@@ -126,10 +126,17 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. ข้อมูลผู้เล่น */}
-      <div>
-        <p className="text-xs text-text3">ชื่อในเกม</p>
-        <h1 className="text-xl font-bold text-gold-hi">{data.username}</h1>
+      {/* 1. ข้อมูลผู้เล่น + ยอดถูกใจ (ย้ายมาอยู่ข้างชื่อตามที่ปอนด์ขอ — เดิมอยู่แยกใต้ Qmon ที่ภูมิใจ)
+          ยอดถูกใจ read-only ล้วนๆ กดถูกใจตัวเองไม่ได้ตามกฎเดิม */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-text3">ชื่อในเกม</p>
+          <h1 className="truncate text-xl font-bold text-gold-hi">{data.username}</h1>
+        </div>
+        <div className="flex flex-none items-center gap-1.5 rounded-full border border-red/30 bg-red/10 px-3 py-1.5 text-sm font-bold text-red">
+          <Heart className="h-4 w-4 fill-red" />
+          {data.likeCount}
+        </div>
       </div>
 
       {/* 2. Qmon ที่ภูมิใจ */}
@@ -155,16 +162,7 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         )}
       </section>
 
-      {/* 3. ยอดถูกใจ — read-only ล้วนๆ กดถูกใจตัวเองไม่ได้ตามกฎเดิม รูปแบบเดียวกับ LikeButton.tsx
-          ตอนคนอื่นดูเรา (เฟส 5) แค่ไม่มี state ถูกใจแล้ว/ยังไม่ถูกใจเพราะเจ้าของไม่มีสถานะนั้น */}
-      <div className="flex justify-center">
-        <div className="flex min-h-11 items-center gap-2 rounded-xl border border-gold-dim px-4 text-sm font-bold text-text3">
-          <Heart className="h-4 w-4" />
-          ถูกใจ · {data.likeCount}
-        </div>
-      </div>
-
-      {/* 4. เหรียญแห่งความภูมิใจ */}
+      {/* 3. เหรียญแห่งความภูมิใจ */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gold-hi">เหรียญแห่งความภูมิใจ</h2>
@@ -208,13 +206,13 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         </Link>
       </section>
 
-      {/* 5. เส้นทางของฉัน */}
+      {/* 4. เส้นทางของฉัน */}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-gold-hi">เส้นทางของฉัน</h2>
         <JourneyStatsGrid stats={data.journeyStats} />
       </section>
 
-      {/* 6. Qmon ตัวโปรด — กดไม่ได้ (§4.6) */}
+      {/* 5. Qmon ตัวโปรด — กดไม่ได้ (§4.6) */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-gold-hi">Qmon ตัวโปรด</h2>
@@ -248,7 +246,7 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         )}
       </section>
 
-      {/* 7. Friend Code — reuse format/copy pattern เดียวกับ S06 (AddFriendView.tsx) */}
+      {/* 6. Friend Code — reuse format/copy pattern เดียวกับ S06 (AddFriendView.tsx) */}
       <section className="flex flex-col items-center gap-2 rounded-2xl border border-gold-dim bg-card p-4 text-center">
         <p className="text-xs text-text3">Friend Code ของฉัน</p>
         <p className="text-xl font-bold tracking-widest text-gold-hi">{formatFriendCode(data.friendCode)}</p>
@@ -262,7 +260,7 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         </button>
       </section>
 
-      {/* 8. ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
+      {/* 7. ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
           รายการเดียวตอนนี้ (เอกสารเดิมเขียนเป็น สังคม→โปรไฟล์→แก้ไข→บัญชีที่บล็อก แต่ลัดตรงมาแทน) */}
       <Link
         href="/social/blocked"
