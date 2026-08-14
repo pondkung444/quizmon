@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
+import { checkSignupFields } from "./actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,6 +38,17 @@ export default function LoginPage() {
       }
       router.push("/pet");
     } else {
+      const fieldCheck = await checkSignupFields(username, school);
+      if (fieldCheck.blocked) {
+        setLoading(false);
+        setError(
+          fieldCheck.field === "school"
+            ? "ชื่อโรงเรียนนี้ใช้ไม่ได้ ลองพิมพ์ใหม่อีกครั้งนะ"
+            : "ลองตั้งชื่อใหม่ดูนะ ชื่อนี้ใช้ไม่ได้"
+        );
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,

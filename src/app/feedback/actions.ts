@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getTodayInBangkok } from "@/lib/exp";
+import { checkProfanity } from "@/lib/moderation";
 
 const MIN_DISTINCT_PLAY_DAYS = 3;
 
@@ -62,6 +63,9 @@ export async function submitFeedback(input: FeedbackInput): Promise<void> {
   if (input.free_text !== null && input.free_text.length > 60) throw new Error("free_text ยาวเกินไป");
   if (!Array.isArray(input.flagged_question_ids) || !input.flagged_question_ids.every((id) => Number.isInteger(id))) {
     throw new Error("flagged_question_ids ไม่ถูกต้อง");
+  }
+  if (input.free_text && (await checkProfanity(input.free_text, { useAI: true })).blocked) {
+    throw new Error("ขอให้ลองเขียนใหม่อีกครั้งนะ");
   }
 
   const petId = await getActivePetId(supabase, user.id);
