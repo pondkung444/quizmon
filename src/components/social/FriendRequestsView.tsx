@@ -105,9 +105,15 @@ export default function FriendRequestsView({
       {errorMessage && <p className="text-center text-sm text-red">{errorMessage}</p>}
 
       {list.length === 0 ? (
-        <p className="rounded-2xl border border-gold-dim bg-card p-6 text-center text-sm text-text3">
-          {activeTab === "received" ? "ยังไม่มีคำขอที่ได้รับ" : "ยังไม่มีคำขอที่ส่งไป"}
-        </p>
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-8 text-center">
+          <p className="text-sm text-text3">ยังไม่มีคำขอใหม่</p>
+          <Link
+            href="/social?tab=friends"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+          >
+            กลับไปรายชื่อเพื่อน
+          </Link>
+        </div>
       ) : (
         <div className="flex flex-col gap-2">
           {list.map((item) => (

@@ -8,11 +8,16 @@ import { resolvePetDisplay } from "@/components/social/petSummary";
 import { loadRanking } from "@/app/social/actions";
 import type { RankingCategory, RankingData, RankingRow, RankingScope } from "@/lib/ranking";
 
-const CATEGORY_CONFIG: Record<RankingCategory, { label: string; suffix: string; icon: typeof Flame }> = {
-  weekly_training: { label: "การฝึกประจำสัปดาห์", suffix: "คะแนน", icon: Flame },
-  consistency: { label: "ความสม่ำเสมอ", suffix: "วัน", icon: CalendarCheck },
-  achievement: { label: "Achievement", suffix: "แต้ม", icon: Trophy },
-  collector: { label: "นักสะสม Qmon", suffix: "แบบ", icon: Egg },
+// "ดูวิธีเริ่มต้น" ปลายทางไม่ได้ระบุในเอกสาร §12.1 — เลือกทางที่สมเหตุสมผลต่อหมวด (ฝึกประจำสัปดาห์/
+// ความสม่ำเสมอ มาจากการตอบคำถาม → /quiz, Achievement → /achievements, นักสะสม → /eggs ฟักไข่ใหม่)
+const CATEGORY_CONFIG: Record<
+  RankingCategory,
+  { label: string; suffix: string; icon: typeof Flame; getStartedHref: string }
+> = {
+  weekly_training: { label: "การฝึกประจำสัปดาห์", suffix: "คะแนน", icon: Flame, getStartedHref: "/quiz" },
+  consistency: { label: "ความสม่ำเสมอ", suffix: "วัน", icon: CalendarCheck, getStartedHref: "/quiz" },
+  achievement: { label: "Achievement", suffix: "แต้ม", icon: Trophy, getStartedHref: "/achievements" },
+  collector: { label: "นักสะสม Qmon", suffix: "แบบ", icon: Egg, getStartedHref: "/eggs" },
 };
 const CATEGORY_ORDER: RankingCategory[] = ["weekly_training", "consistency", "achievement", "collector"];
 
@@ -139,7 +144,7 @@ export default function RankingTabView({
 
       {showFriendsEmptyState ? (
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-8 text-center">
-          <p className="text-sm text-text3">เพิ่มเพื่อนเพื่อดูอันดับด้วยกัน</p>
+          <p className="text-sm text-text3">ยังไม่มีเพื่อนในอันดับนี้</p>
           <Link
             href="/social/add-friend"
             className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
@@ -173,7 +178,15 @@ export default function RankingTabView({
                 </p>
               </>
             ) : (
-              <p className="flex-1 text-center text-sm text-text3">ยังไม่ติดอันดับ — ลองฝึกฝนเพิ่มดูนะ</p>
+              <>
+                <p className="flex-1 text-sm font-bold text-text">คุณยังไม่ติดอันดับ</p>
+                <Link
+                  href={CATEGORY_CONFIG[category].getStartedHref}
+                  className="flex-none rounded-xl border border-gold bg-amber px-3 py-2 text-xs font-bold text-track transition active:scale-95"
+                >
+                  ดูวิธีเริ่มต้น
+                </Link>
+              </>
             )}
           </div>
         </div>

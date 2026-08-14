@@ -176,9 +176,16 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
           </button>
         </div>
         {pinnedMedals.length === 0 ? (
-          <p className="rounded-2xl border border-gold-dim bg-card p-6 text-center text-sm text-text3">
-            ยังไม่ได้ปักหมุดเหรียญ
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+            <p className="text-sm text-text3">เลือกเหรียญที่คุณภูมิใจ</p>
+            <button
+              type="button"
+              onClick={() => setOpenSheet("medals")}
+              className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+            >
+              เลือกเหรียญ
+            </button>
+          </div>
         ) : (
           <div className="flex justify-center gap-4">
             {pinnedMedals.map((medal) => (
@@ -226,9 +233,16 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
           </button>
         </div>
         {favoritePets.length === 0 ? (
-          <p className="rounded-2xl border border-gold-dim bg-card p-6 text-center text-sm text-text3">
-            ยังไม่ได้เลือก Qmon ตัวโปรด
-          </p>
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+            <p className="text-sm text-text3">เลือก Qmon ตัวโปรดของคุณ</p>
+            <button
+              type="button"
+              onClick={() => setOpenSheet("favorites")}
+              className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+            >
+              เลือก Qmon
+            </button>
+          </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
             {favoritePets.map((pet) => {

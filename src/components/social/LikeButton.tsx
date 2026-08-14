@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Heart } from "lucide-react";
 import { toggleLike } from "@/app/social/actions";
 
@@ -19,8 +19,14 @@ export default function LikeButton({
   const [count, setCount] = useState(initialCount);
   const [, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // กันดับเบิลคลิกยิง request ซ้อนสองครั้ง (§12.2) — ใช้ ref ไม่ใช่ disabled บนปุ่ม เพราะ disabled
+  // จะทำให้ optimistic toggle ดูหน่วง (ต้องรอ response ก่อนกดซ้ำได้) ทั้งที่ตั้งใจให้กดสลับได้ลื่นๆ
+  const isSubmittingRef = useRef(false);
 
   function handleClick() {
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+
     // optimistic ทันทีที่กด ไม่รอ response ก่อนเปลี่ยน UI (§7.3) — revert กลับถ้า RPC พัง
     const nextLiked = !liked;
     const prevLiked = liked;
@@ -37,6 +43,8 @@ export default function LikeButton({
         setLiked(prevLiked);
         setCount(prevCount);
         setErrorMessage(err instanceof Error ? err.message : "ถูกใจไม่สำเร็จ");
+      } finally {
+        isSubmittingRef.current = false;
       }
     });
   }

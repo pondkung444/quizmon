@@ -96,7 +96,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         <Inbox className="h-5 w-5 flex-none text-amber" />
         <span className="flex-1 text-sm font-bold text-text">คำขอเป็นเพื่อน</span>
         {data.receivedRequestCount > 0 && (
-          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-red px-1.5 text-xs font-bold text-text">
+          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-track">
             {data.receivedRequestCount}
           </span>
         )}
@@ -109,7 +109,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         <HeartHandshake className="h-5 w-5 flex-none text-amber" />
         <span className="flex-1 text-sm font-bold text-text">กำลังใจถึงฉัน</span>
         {data.unreadEncouragementCount > 0 && (
-          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-red px-1.5 text-xs font-bold text-text">
+          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-track">
             {data.unreadEncouragementCount}
           </span>
         )}
