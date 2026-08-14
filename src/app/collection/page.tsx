@@ -5,6 +5,7 @@ import { type Subline, type Personality } from "@/lib/evolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
+import FarmEggsTabs from "@/components/FarmEggsTabs";
 
 type EggTypeJoin = { sprite_prefix: string; name_th: string };
 
@@ -63,6 +64,7 @@ export default async function CollectionFarmPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+      <FarmEggsTabs active="farm" />
       <SignOutLink />
       <div className="flex items-start justify-between gap-4">
         <div>

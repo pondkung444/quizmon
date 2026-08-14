@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, Warehouse } from "lucide-react";
+import { Crown, Users, Warehouse } from "lucide-react";
 
 const TABS = [
   {
@@ -16,13 +16,9 @@ const TABS = [
     ),
   },
   {
-    href: "/eggs",
-    label: "คลังไข่",
-    icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5}>
-        <path d="M12 3c3.5 4 5.5 8.2 5.5 11.2A5.5 5.5 0 0 1 12 20a5.5 5.5 0 0 1-5.5-5.8C6.5 11.2 8.5 7 12 3Z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    href: "/social",
+    label: "สังคม",
+    icon: (active: boolean) => <Users strokeWidth={active ? 2 : 1.5} />,
   },
   {
     href: "/collection",
