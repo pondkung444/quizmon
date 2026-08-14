@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { Crown } from "lucide-react";
 import { loadMoreHallOfFame } from "@/app/hall-of-fame/actions";
@@ -45,22 +46,24 @@ function WinnerRow({
         isCurrentUser ? "border-l-gold bg-gold-dim/15" : "border-l-gold-dim bg-track"
       }`}
     >
-      {pet && (
-        <Image
-          src={pet.imagePath}
-          alt={pet.speciesName}
-          width={64}
-          height={64}
-          className="h-14 w-14 shrink-0 rounded-full object-contain sm:h-16 sm:w-16"
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-medium text-text3">{bandLabel}</p>
-        <p className="truncate text-lg font-bold text-text sm:text-xl">{winner.username}</p>
-        <p className="truncate text-[11px] text-text3 sm:text-xs">
-          {winner.totalPoints} คะแนน{pet ? ` · ${pet.speciesName}` : ""}
-        </p>
-      </div>
+      <Link href={`/social/profile/${winner.userId}`} className="flex min-w-0 flex-1 items-center gap-3">
+        {pet && (
+          <Image
+            src={pet.imagePath}
+            alt={pet.speciesName}
+            width={64}
+            height={64}
+            className="h-14 w-14 shrink-0 rounded-full object-contain sm:h-16 sm:w-16"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-medium text-text3">{bandLabel}</p>
+          <p className="truncate text-lg font-bold text-text sm:text-xl">{winner.username}</p>
+          <p className="truncate text-[11px] text-text3 sm:text-xs">
+            {winner.totalPoints} คะแนน{pet ? ` · ${pet.speciesName}` : ""}
+          </p>
+        </div>
+      </Link>
       <div className="ml-auto flex shrink-0 flex-col items-center gap-1">
         <Crown size={20} className={crownDimmed ? "text-gold-dim" : "text-amber"} />
         {isCurrentUser && (

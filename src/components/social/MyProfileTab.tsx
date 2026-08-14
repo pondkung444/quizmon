@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil, Calendar, HelpCircle, Egg, Search, Flag, Trophy, ShieldOff } from "lucide-react";
+import { Pencil, ShieldOff } from "lucide-react";
 import { type AchievementCardData } from "@/components/AchievementCard";
 import StatRadar from "@/components/StatRadar";
 import BottomSheet from "@/components/social/BottomSheet";
@@ -11,6 +11,7 @@ import Toast from "@/components/social/Toast";
 import SelectPrideQmonSheet from "@/components/social/SelectPrideQmonSheet";
 import SelectMedalsSheet from "@/components/social/SelectMedalsSheet";
 import SelectFavoriteQmonSheet from "@/components/social/SelectFavoriteQmonSheet";
+import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
 import { resolvePetDisplay, type PetSummary } from "@/components/social/petSummary";
 import type { ProfileJourneyStats } from "@/lib/profileJourneyStats";
 
@@ -187,14 +188,7 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
       {/* 4. เส้นทางของฉัน */}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-bold text-gold-hi">เส้นทางของฉัน</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <JourneyStat icon={Calendar} label="วันฝึกสะสม" value={`${data.journeyStats.trainingDays} วัน`} />
-          <JourneyStat icon={HelpCircle} label="คำถามที่ตอบ" value={`${data.journeyStats.questionsAnswered} ข้อ`} />
-          <JourneyStat icon={Egg} label="Qmon โตเต็มที่" value={`${data.journeyStats.stage4PetCount} ตัว`} />
-          <JourneyStat icon={Search} label="รูปแบบที่ค้นพบ" value={`${data.journeyStats.uniqueEvolutionPatterns} แบบ`} />
-          <JourneyStat icon={Flag} label="Challenge สูงสุด" value={data.journeyStats.topChallengeCleared ?? "ยังไม่พิชิต"} />
-          <JourneyStat icon={Trophy} label="แชมป์ Leaderboard" value={`${data.journeyStats.weeklyChampionCount} ครั้ง`} />
-        </div>
+        <JourneyStatsGrid stats={data.journeyStats} />
       </section>
 
       {/* 5. Qmon ตัวโปรด — กดไม่ได้ (§4.6) */}
@@ -283,26 +277,6 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
       )}
 
       {toastMessage && <Toast message={toastMessage} onDone={() => setToastMessage(null)} />}
-    </div>
-  );
-}
-
-function JourneyStat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof Calendar;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-gold-dim bg-card p-3">
-      <Icon className="h-5 w-5 shrink-0 text-amber" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold text-gold-hi">{value}</p>
-        <p className="truncate text-[11px] text-text3">{label}</p>
-      </div>
     </div>
   );
 }
