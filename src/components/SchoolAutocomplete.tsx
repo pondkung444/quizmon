@@ -6,11 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 type SchoolAutocompleteProps = {
   value: string;
   onChange: (name: string) => void;
+  required?: boolean;
 };
 
 type SchoolRow = { name: string };
 
-export default function SchoolAutocomplete({ value, onChange }: SchoolAutocompleteProps) {
+export default function SchoolAutocomplete({ value, onChange, required }: SchoolAutocompleteProps) {
   const supabase = createClient();
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<SchoolRow[]>([]);
@@ -95,9 +96,10 @@ export default function SchoolAutocomplete({ value, onChange }: SchoolAutocomple
 
   return (
     <div ref={containerRef} className="relative flex flex-col gap-1">
-      <label className="text-sm font-medium text-text2">โรงเรียน (ไม่บังคับ)</label>
+      <label className="text-sm font-medium text-text2">โรงเรียน</label>
       <input
         type="text"
+        required={required}
         value={query}
         onChange={(e) => {
           const next = e.target.value;

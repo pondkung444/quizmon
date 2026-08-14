@@ -135,6 +135,10 @@ export default function LoginPage() {
           )}
 
           {mode === "signup" && (
+            <SchoolAutocomplete value={school} onChange={setSchool} required />
+          )}
+
+          {mode === "signup" && (
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-text2">เบอร์โทรศัพท์ (ไม่บังคับ)</label>
               <input
@@ -148,8 +152,6 @@ export default function LoginPage() {
               />
             </div>
           )}
-
-          {mode === "signup" && <SchoolAutocomplete value={school} onChange={setSchool} />}
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-text2">อีเมล</label>
