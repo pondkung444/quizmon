@@ -243,3 +243,14 @@ export async function unblockUser(targetUserId: string): Promise<void> {
   const { error } = await supabase.rpc("unblock_user", { p_target_id: targetUserId });
   if (error) throw new Error(error.message ?? "เลิกบล็อกไม่สำเร็จ");
 }
+
+export async function toggleLike(targetUserId: string): Promise<{ liked: boolean; count: number }> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("toggle_like", { p_target_user_id: targetUserId }).single();
+  if (error || !data) throw new Error(error?.message ?? "ถูกใจไม่สำเร็จ");
+
+  return data as { liked: boolean; count: number };
+}

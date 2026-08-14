@@ -115,8 +115,13 @@ export default function FriendRequestsView({
               key={item.requestId}
               className="flex items-center gap-3 rounded-2xl border border-gold-dim bg-card p-3"
             >
-              <PetPreviewImage pet={item.pet} />
-              <p className="min-w-0 flex-1 truncate text-sm font-bold text-text">{item.username}</p>
+              <Link
+                href={`/social/profile/${item.otherUserId}`}
+                className="flex min-w-0 flex-1 items-center gap-3"
+              >
+                <PetPreviewImage pet={item.pet} />
+                <p className="min-w-0 flex-1 truncate text-sm font-bold text-text">{item.username}</p>
+              </Link>
               {activeTab === "received" ? (
                 <div className="flex flex-none gap-2">
                   <button
