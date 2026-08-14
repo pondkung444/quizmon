@@ -216,3 +216,30 @@ export async function cancelFriendRequest(requestId: string): Promise<void> {
   const { error } = await supabase.rpc("cancel_friend_request", { p_request_id: requestId });
   if (error) throw new Error(error.message ?? "ยกเลิกคำขอไม่สำเร็จ");
 }
+
+export async function removeFriend(friendUserId: string): Promise<void> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_friend", { p_friend_id: friendUserId });
+  if (error) throw new Error(error.message ?? "ลบเพื่อนไม่สำเร็จ");
+}
+
+export async function blockUser(targetUserId: string): Promise<void> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("block_user", { p_target_id: targetUserId });
+  if (error) throw new Error(error.message ?? "บล็อกผู้เล่นไม่สำเร็จ");
+}
+
+export async function unblockUser(targetUserId: string): Promise<void> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unblock_user", { p_target_id: targetUserId });
+  if (error) throw new Error(error.message ?? "เลิกบล็อกไม่สำเร็จ");
+}

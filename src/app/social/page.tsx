@@ -1,6 +1,7 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getProfileJourneyStats } from "@/lib/profileJourneyStats";
-import { getFriendRequestLists, getFriendCount } from "@/lib/friendRequests";
+import { getFriendRequestLists } from "@/lib/friendRequests";
+import { getMyFriends, getMyBlockedAccounts } from "@/lib/friends";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
@@ -66,29 +67,36 @@ async function getProfileTabData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ): Promise<ProfileTabData> {
-  const [{ data: profileRow }, { data: petRows }, { data: settingsRow }, { data: earnedRows }, { data: pinnedRows }] =
-    await Promise.all([
-      supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
-      supabase
-        .from("pets")
-        .select(
-          "id, nickname, stage, subline, personality, is_active, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, evolved_at, growth_questions_answered, growth_questions_correct, growth_subject_breakdown, egg_types(sprite_prefix, name_th)"
-        )
-        .eq("user_id", userId)
-        .or("is_active.eq.true,stage.eq.4"),
-      supabase.from("profile_settings").select("pride_pet_id, favorite_pet_ids").eq("user_id", userId).maybeSingle(),
-      supabase
-        .from("user_achievements")
-        .select(
-          "achievement_id, earned_at, achievement_definitions(id, name, condition_text, tier, image_file)"
-        )
-        .eq("user_id", userId),
-      supabase
-        .from("user_pinned_achievements")
-        .select("achievement_id, pin_order")
-        .eq("user_id", userId)
-        .order("pin_order", { ascending: true }),
-    ]);
+  const [
+    { data: profileRow },
+    { data: petRows },
+    { data: settingsRow },
+    { data: earnedRows },
+    { data: pinnedRows },
+    blockedAccounts,
+  ] = await Promise.all([
+    supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
+    supabase
+      .from("pets")
+      .select(
+        "id, nickname, stage, subline, personality, is_active, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, evolved_at, growth_questions_answered, growth_questions_correct, growth_subject_breakdown, egg_types(sprite_prefix, name_th)"
+      )
+      .eq("user_id", userId)
+      .or("is_active.eq.true,stage.eq.4"),
+    supabase.from("profile_settings").select("pride_pet_id, favorite_pet_ids").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("user_achievements")
+      .select(
+        "achievement_id, earned_at, achievement_definitions(id, name, condition_text, tier, image_file)"
+      )
+      .eq("user_id", userId),
+    supabase
+      .from("user_pinned_achievements")
+      .select("achievement_id, pin_order")
+      .eq("user_id", userId)
+      .order("pin_order", { ascending: true }),
+    getMyBlockedAccounts(supabase),
+  ]);
 
   const prideCandidates = (petRows ?? [])
     .map((row) => toPetSummary(row as PetRow))
@@ -146,6 +154,7 @@ async function getProfileTabData(
     earnedAchievements,
     journeyStats,
     equippedGearByPetId,
+    blockedCount: blockedAccounts.length,
   };
 }
 
@@ -153,15 +162,16 @@ async function getFriendsHeaderData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ): Promise<FriendsHeaderData> {
-  const [friendCount, { received }, { data: profileRow }] = await Promise.all([
-    getFriendCount(supabase, userId),
+  const [friends, { received }, { data: profileRow }] = await Promise.all([
+    getMyFriends(supabase),
     getFriendRequestLists(supabase),
     supabase.from("profiles").select("friend_code").eq("id", userId).maybeSingle(),
   ]);
   return {
-    friendCount,
+    friendCount: friends.length,
     receivedRequestCount: received.length,
     myFriendCode: profileRow?.friend_code ?? "",
+    friends,
   };
 }
 

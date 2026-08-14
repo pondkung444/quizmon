@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { UserPlus, Inbox, Users, UsersRound, Copy, Check } from "lucide-react";
+import FriendListSection from "@/components/social/FriendListSection";
+import type { FriendListItem } from "@/lib/friends";
 
 export type FriendsHeaderData = {
   friendCount: number;
   receivedRequestCount: number;
   myFriendCode: string;
+  friends: FriendListItem[];
 };
 
 function formatFriendCode(code: string): string {
@@ -104,9 +107,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
       {data.friendCount === 0 ? (
         <EmptyFriendsState myFriendCode={data.myFriendCode} />
       ) : (
-        <p className="rounded-2xl border border-gold-dim bg-card p-6 text-center text-sm text-text3">
-          รายชื่อเพื่อนจะแสดงที่นี่เร็วๆ นี้
-        </p>
+        <FriendListSection friends={data.friends} />
       )}
     </div>
   );

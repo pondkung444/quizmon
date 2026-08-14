@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil, Calendar, HelpCircle, Egg, Search, Flag, Trophy } from "lucide-react";
+import { Pencil, Calendar, HelpCircle, Egg, Search, Flag, Trophy, ShieldOff } from "lucide-react";
 import { type AchievementCardData } from "@/components/AchievementCard";
 import StatRadar from "@/components/StatRadar";
 import BottomSheet from "@/components/social/BottomSheet";
@@ -35,6 +35,7 @@ export type ProfileTabData = {
   earnedAchievements: AchievementCardData[];
   journeyStats: ProfileJourneyStats;
   equippedGearByPetId: Record<string, EquippedGearSummary[]>;
+  blockedCount: number;
 };
 
 // การ์ด Qmon ที่ภูมิใจ — แถวเดียว (ภาพวงกลม+ชื่อ 2 บรรทัด | radar) ตัดบอก Stage/สาย/บุคลิก/อุปกรณ์
@@ -229,6 +230,16 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
           </div>
         )}
       </section>
+
+      {/* ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
+          รายการเดียวตอนนี้ (เอกสารเดิมเขียนเป็น สังคม→โปรไฟล์→แก้ไข→บัญชีที่บล็อก แต่ลัดตรงมาแทน) */}
+      <Link
+        href="/social/blocked"
+        className="flex items-center gap-2 self-start text-xs text-text3 underline underline-offset-2 hover:text-gold-hi"
+      >
+        <ShieldOff className="h-3.5 w-3.5" />
+        บัญชีที่บล็อก{data.blockedCount > 0 ? ` (${data.blockedCount})` : ""}
+      </Link>
 
       {openSheet === "pride" && (
         <SelectPrideQmonSheet
