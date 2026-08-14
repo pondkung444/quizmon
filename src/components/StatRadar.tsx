@@ -16,8 +16,10 @@ function radarPoint(index: number, ratio: number, radius: number, cx: number, cy
 
 export default function StatRadar({
   stats,
+  showValues = false,
 }: {
   stats: { hp: number; atk: number; def: number; spd: number; foc: number } | null;
+  showValues?: boolean;
 }) {
   const cx = 100;
   const cy = 100;
@@ -54,17 +56,21 @@ export default function StatRadar({
       )}
       {RADAR_AXES.map((axis, i) => {
         const [x, y] = radarPoint(i, 1.18, radius, cx, cy).split(",").map(Number);
+        // showValues=false (ค่าเริ่มต้น, 3 จุดเดิมที่ใช้อยู่): "HP" สั้นพอ ไม่ล้น viewBox ที่ anchor
+        // middle เดิมอยู่แล้ว — showValues=true ข้อความยาวขึ้น ("FOC 95") ล้นขอบซ้าย/ขวาได้ ต้องเปลี่ยน
+        // anchor ตามฝั่งของจุด (ซ้าย=start ยื่นเข้าหาศูนย์กลาง, ขวา=end ยื่นเข้าหาศูนย์กลาง) เฉพาะโหมดนี้
+        const textAnchor = !showValues ? "middle" : x < cx - 1 ? "start" : x > cx + 1 ? "end" : "middle";
         return (
           <text
             key={axis.key}
             x={x}
             y={y}
-            textAnchor="middle"
+            textAnchor={textAnchor}
             dominantBaseline="middle"
             fontSize={11}
             fill="var(--color-text2)"
           >
-            {axis.label}
+            {showValues && stats ? `${axis.label} ${stats[axis.key]}` : axis.label}
           </text>
         );
       })}
