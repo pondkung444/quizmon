@@ -2,6 +2,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
+import FarmEggsTabs from "@/components/FarmEggsTabs";
 
 export default async function EggsPage() {
   const supabase = await createClient();
@@ -41,6 +42,7 @@ export default async function EggsPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+      <FarmEggsTabs active="eggs" />
       <SignOutLink />
       <div>
         <h1 className="text-2xl font-bold text-gold-hi">คลังไข่</h1>

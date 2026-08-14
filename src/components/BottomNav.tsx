@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, Warehouse } from "lucide-react";
+import { Crown, Users, Warehouse } from "lucide-react";
 
 const TABS = [
   {
@@ -16,13 +16,9 @@ const TABS = [
     ),
   },
   {
-    href: "/eggs",
-    label: "คลังไข่",
-    icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.5}>
-        <path d="M12 3c3.5 4 5.5 8.2 5.5 11.2A5.5 5.5 0 0 1 12 20a5.5 5.5 0 0 1-5.5-5.8C6.5 11.2 8.5 7 12 3Z" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
+    href: "/social",
+    label: "สังคม",
+    icon: (active: boolean) => <Users strokeWidth={active ? 2 : 1.5} />,
   },
   {
     href: "/collection",
@@ -36,7 +32,7 @@ const TABS = [
   },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ hasUnreadEncouragements = false }: { hasUnreadEncouragements?: boolean }) {
   const pathname = usePathname();
 
   if (pathname?.startsWith("/quiz") || pathname === "/login" || pathname === "/") return null;
@@ -54,7 +50,13 @@ export default function BottomNav() {
                 active ? "text-amber" : "text-text3"
               }`}
             >
-              <span className="h-6 w-6">{tab.icon(!!active)}</span>
+              <span className="relative h-6 w-6">
+                {tab.icon(!!active)}
+                {/* จุดสีส้ม (§8.1) — มีข้อความกำลังใจใหม่ที่ยังไม่อ่าน หายไปหลังเปิด S08 (read_at ถูกเซ็ต) */}
+                {tab.href === "/social" && hasUnreadEncouragements && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber" />
+                )}
+              </span>
               {tab.label}
             </Link>
           );
