@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { UserPlus, Inbox, Users, UsersRound, Copy, Check } from "lucide-react";
+import { UserPlus, Inbox, Users, UsersRound, Copy, Check, HeartHandshake } from "lucide-react";
 import FriendListSection from "@/components/social/FriendListSection";
 import type { FriendListItem } from "@/lib/friends";
 
@@ -11,6 +11,7 @@ export type FriendsHeaderData = {
   receivedRequestCount: number;
   myFriendCode: string;
   friends: FriendListItem[];
+  unreadEncouragementCount: number;
 };
 
 function formatFriendCode(code: string): string {
@@ -100,6 +101,19 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         {data.receivedRequestCount > 0 && (
           <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-red px-1.5 text-xs font-bold text-text">
             {data.receivedRequestCount}
+          </span>
+        )}
+      </Link>
+
+      <Link
+        href="/social/encouragements"
+        className="flex min-h-11 items-center gap-3 rounded-2xl border border-gold-dim bg-card p-4 transition active:scale-95"
+      >
+        <HeartHandshake className="h-5 w-5 flex-none text-amber" />
+        <span className="flex-1 text-sm font-bold text-text">กำลังใจถึงฉัน</span>
+        {data.unreadEncouragementCount > 0 && (
+          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-red px-1.5 text-xs font-bold text-text">
+            {data.unreadEncouragementCount}
           </span>
         )}
       </Link>

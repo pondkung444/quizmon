@@ -3,6 +3,7 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { normalizeFriendCode } from "@/lib/friendCode";
 import type { PetPreview } from "@/components/social/petSummary";
+import type { EncouragementMessageKey } from "@/lib/encouragementMessages";
 
 export type RelationshipStatus =
   | "self"
@@ -253,4 +254,21 @@ export async function toggleLike(targetUserId: string): Promise<{ liked: boolean
   if (error || !data) throw new Error(error?.message ?? "ถูกใจไม่สำเร็จ");
 
   return data as { liked: boolean; count: number };
+}
+
+export async function sendEncouragement(
+  recipientId: string,
+  messageKey: EncouragementMessageKey
+): Promise<{ encouragementId: string; sentDate: string }> {
+  const user = await getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .rpc("send_encouragement", { p_recipient_id: recipientId, p_message_key: messageKey })
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "ส่งกำลังใจไม่สำเร็จ");
+
+  const row = data as { encouragement_id: string; sent_date: string };
+  return { encouragementId: row.encouragement_id, sentDate: row.sent_date };
 }

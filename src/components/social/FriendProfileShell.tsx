@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MoreVertical } from "lucide-react";
+import { ArrowLeft, MoreVertical, HeartHandshake } from "lucide-react";
 import { resolvePetDisplay } from "@/components/social/petSummary";
 import ConfirmActionModal from "@/components/social/ConfirmActionModal";
 import LikeButton from "@/components/social/LikeButton";
 import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
+import SendEncouragementSheet from "@/components/social/SendEncouragementSheet";
+import Toast from "@/components/social/Toast";
 import StatRadar from "@/components/StatRadar";
 import RaidGearIcon from "@/components/raid/RaidGearIcon";
 import { RAID_GEAR_SLOT_ANATOMY_TH, RAID_GEAR_QUALITY_COLOR } from "@/lib/raid/labels";
@@ -32,14 +34,19 @@ const EMPTY_ICON_COLOR = "#3a3d47"; // --color-border
 // ห้ามลดทอนแบบที่ทำกับ S03 ตอนเฟส 2 — read-only ทั้งหน้ายกเว้นปุ่มถูกใจกับเมนู ⋯ (ลบเพื่อน/บล็อก)
 export default function FriendProfileShell({
   profile,
+  initialAlreadySentEncouragementToday,
 }: {
   profile: Extract<FriendProfileResult, { found: true }>;
+  initialAlreadySentEncouragementToday: boolean;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"remove" | "block" | null>(null);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [alreadySentToday, setAlreadySentToday] = useState(initialAlreadySentEncouragementToday);
+  const [encouragementSheetOpen, setEncouragementSheetOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const { imagePath, speciesName } = profile.pet
     ? resolvePetDisplay(profile.pet)
@@ -155,9 +162,18 @@ export default function FriendProfileShell({
         )}
       </section>
 
-      {/* 3. ปุ่มปฏิสัมพันธ์ — ถูกใจเท่านั้นในเฟสนี้ (ส่งกำลังใจมาเฟส 7) */}
-      <div className="flex justify-center">
+      {/* 3. ปุ่มปฏิสัมพันธ์ — ถูกใจ + ส่งกำลังใจ (§11.4) */}
+      <div className="flex justify-center gap-3">
         <LikeButton targetUserId={profile.friendUserId} initialLiked={profile.likedByMe} initialCount={profile.likeCount} />
+        <button
+          type="button"
+          disabled={alreadySentToday}
+          onClick={() => setEncouragementSheetOpen(true)}
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-gold-dim px-4 text-sm font-bold text-text3 transition active:scale-95 disabled:opacity-50"
+        >
+          <HeartHandshake className="h-4 w-4" />
+          {alreadySentToday ? "ส่งแล้ววันนี้" : "ส่งกำลังใจ"}
+        </button>
       </div>
 
       {/* 4. เหรียญแห่งความภูมิใจ */}
@@ -242,6 +258,20 @@ export default function FriendProfileShell({
           }}
         />
       )}
+
+      {encouragementSheetOpen && (
+        <SendEncouragementSheet
+          recipientId={profile.friendUserId}
+          onSent={() => {
+            setEncouragementSheetOpen(false);
+            setAlreadySentToday(true);
+            setToastMessage("ส่งกำลังใจแล้ว!");
+          }}
+          onClose={() => setEncouragementSheetOpen(false)}
+        />
+      )}
+
+      {toastMessage && <Toast message={toastMessage} onDone={() => setToastMessage(null)} />}
     </div>
   );
 }

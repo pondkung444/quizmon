@@ -2,6 +2,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { getProfileJourneyStats } from "@/lib/profileJourneyStats";
 import { getFriendRequestLists } from "@/lib/friendRequests";
 import { getMyFriends, getMyBlockedAccounts } from "@/lib/friends";
+import { getUnreadEncouragementCount } from "@/lib/encouragements";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
@@ -162,16 +163,18 @@ async function getFriendsHeaderData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ): Promise<FriendsHeaderData> {
-  const [friends, { received }, { data: profileRow }] = await Promise.all([
+  const [friends, { received }, { data: profileRow }, unreadEncouragementCount] = await Promise.all([
     getMyFriends(supabase),
     getFriendRequestLists(supabase),
     supabase.from("profiles").select("friend_code").eq("id", userId).maybeSingle(),
+    getUnreadEncouragementCount(supabase),
   ]);
   return {
     friendCount: friends.length,
     receivedRequestCount: received.length,
     myFriendCode: profileRow?.friend_code ?? "",
     friends,
+    unreadEncouragementCount,
   };
 }
 

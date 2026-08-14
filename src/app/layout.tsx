@@ -4,6 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import { createClient, getUser } from "@/lib/supabase/server";
+import { getUnreadEncouragementCount } from "@/lib/encouragements";
 
 const kanit = Kanit({
   variable: "--font-kanit",
@@ -34,15 +35,15 @@ export default async function RootLayout({
 
   let activePetStage: number | null = null;
   let activePetSubline: string | null = null;
+  let hasUnreadEncouragements = false;
   if (user) {
-    const { data: pet } = await supabase
-      .from("pets")
-      .select("stage, subline")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
+    const [{ data: pet }, unreadCount] = await Promise.all([
+      supabase.from("pets").select("stage, subline").eq("user_id", user.id).eq("is_active", true).maybeSingle(),
+      getUnreadEncouragementCount(supabase),
+    ]);
     activePetStage = pet?.stage ?? null;
     activePetSubline = pet?.subline ?? null;
+    hasUnreadEncouragements = unreadCount > 0;
   }
 
   return (
@@ -50,7 +51,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-bg text-text">
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}
-        <BottomNav />
+        <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} />
       </body>
     </html>
   );

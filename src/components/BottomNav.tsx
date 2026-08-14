@@ -32,7 +32,7 @@ const TABS = [
   },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ hasUnreadEncouragements = false }: { hasUnreadEncouragements?: boolean }) {
   const pathname = usePathname();
 
   if (pathname?.startsWith("/quiz") || pathname === "/login" || pathname === "/") return null;
@@ -50,7 +50,13 @@ export default function BottomNav() {
                 active ? "text-amber" : "text-text3"
               }`}
             >
-              <span className="h-6 w-6">{tab.icon(!!active)}</span>
+              <span className="relative h-6 w-6">
+                {tab.icon(!!active)}
+                {/* จุดสีส้ม (§8.1) — มีข้อความกำลังใจใหม่ที่ยังไม่อ่าน หายไปหลังเปิด S08 (read_at ถูกเซ็ต) */}
+                {tab.href === "/social" && hasUnreadEncouragements && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber" />
+                )}
+              </span>
               {tab.label}
             </Link>
           );
