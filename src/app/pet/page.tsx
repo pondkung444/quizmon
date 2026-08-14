@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient, getUser } from "@/lib/supabase/server";
 import {
   STAGE_EXP_THRESHOLD,
@@ -251,6 +252,10 @@ export default async function PetPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
       <SignOutLink />
+      {/* entry point ชั่วคราวสำหรับทดสอบเฟส E เท่านั้น — เอาออกเมื่อหน้าโปรไฟล์ (ปักหมุด achievement) พร้อมใช้งาน */}
+      <Link href="/achievements" className="self-end text-xs text-text3 underline underline-offset-2 hover:text-gold-hi">
+        🏆 สมุด Achievement (ทดสอบ)
+      </Link>
       {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
