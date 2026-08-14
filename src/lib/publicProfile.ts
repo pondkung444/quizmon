@@ -14,6 +14,7 @@ export type PublicProfileResult =
       targetUserId: string;
       username: string;
       pet: PetPreview;
+      stats: { hp: number; atk: number; def: number; spd: number; foc: number } | null;
       medals: PublicMedal[];
       likeCount: number;
       likedByMe: boolean;
@@ -39,12 +40,20 @@ export async function getPublicProfile(
     pet_personality: string | null;
     egg_sprite_prefix: string | null;
     egg_name_th: string | null;
+    stat_hp: number | null;
+    stat_atk: number | null;
+    stat_def: number | null;
+    stat_spd: number | null;
+    stat_foc: number | null;
     medals: PublicMedal[] | null;
     like_count: number | null;
     liked_by_me: boolean | null;
   };
 
   if (!row.found) return { found: false };
+
+  const hasFullStats =
+    row.stat_hp != null && row.stat_atk != null && row.stat_def != null && row.stat_spd != null && row.stat_foc != null;
 
   return {
     found: true,
@@ -62,6 +71,15 @@ export async function getPublicProfile(
             eggNameTh: row.egg_name_th,
           }
         : null,
+    stats: hasFullStats
+      ? {
+          hp: row.stat_hp as number,
+          atk: row.stat_atk as number,
+          def: row.stat_def as number,
+          spd: row.stat_spd as number,
+          foc: row.stat_foc as number,
+        }
+      : null,
     medals: row.medals ?? [],
     likeCount: row.like_count ?? 0,
     likedByMe: row.liked_by_me ?? false,

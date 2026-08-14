@@ -8,6 +8,7 @@ import { resolvePetDisplay } from "@/components/social/petSummary";
 import { sendFriendRequest, type RelationshipStatus } from "@/app/social/actions";
 import { FRIEND_STATUS_MESSAGE, FRIEND_ACTIONABLE_STATUSES } from "@/components/social/friendActionStatus";
 import LikeButton from "@/components/social/LikeButton";
+import StatRadar from "@/components/StatRadar";
 import Toast from "@/components/social/Toast";
 import type { PublicProfileResult } from "@/lib/publicProfile";
 
@@ -58,15 +59,24 @@ export default function PublicProfileView({
         <ArrowLeft className="h-4 w-4" /> กลับ
       </Link>
 
-      <div className="flex flex-col items-center gap-3 pt-4 text-center">
-        <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track">
-          {imagePath && (
-            <Image src={imagePath} alt={speciesName} width={110} height={110} className="h-28 w-28 object-contain" />
-          )}
+      <div>
+        <h1 className="text-xl font-bold text-gold-hi">{profile.username}</h1>
+      </div>
+
+      {/* Qmon ที่ภูมิใจ + radar แถวเดียวกัน — pattern เดียวกับ S03/S05 เป๊ะ (revision หลังเฟส 6:
+          เปิดสเตตัสให้คนทั่วไปเห็นด้วย ตัดสินใจใหม่ พลิก §5.3 เดิม เฉพาะสเตตัส ไม่รวมอุปกรณ์) */}
+      <div className="flex items-center gap-4 rounded-2xl border border-gold-dim bg-card p-4">
+        <div className="flex w-24 flex-none flex-col items-center gap-1 text-center">
+          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track">
+            {imagePath && (
+              <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+            )}
+          </div>
+          <p className="w-full truncate text-sm font-bold text-text">{profile.pet?.nickname ?? speciesName}</p>
+          <p className="line-clamp-2 w-full text-center text-xs leading-tight text-text3">{speciesName}</p>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-gold-hi">{profile.username}</h1>
-          <p className="line-clamp-2 text-center text-xs leading-tight text-text3">{speciesName}</p>
+        <div className="min-w-0 flex-1">
+          <StatRadar stats={profile.stats} showValues />
         </div>
       </div>
 
