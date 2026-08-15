@@ -16,6 +16,7 @@ import RaidGearIcon from "@/components/raid/RaidGearIcon";
 import RaidGearDrawer from "@/components/raid/RaidGearDrawer";
 import RaidStatRadar from "@/components/raid/RaidStatRadar";
 import RaidReadinessGauge from "@/components/raid/RaidReadinessGauge";
+import Toast from "@/components/social/Toast";
 
 const STAT_LABEL_TH: Record<RaidStatKey, string> = { hp: "HP", atk: "ATK", def: "DEF", spd: "SPD", foc: "FOC" };
 const SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
@@ -44,6 +45,7 @@ export default function RaidGearLoadout({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
   const [openSlot, setOpenSlot] = useState<"head" | "body" | "feet" | null>(null);
 
   const equippedBySlot = useMemo(() => {
@@ -125,11 +127,13 @@ export default function RaidGearLoadout({
     if (busyId) return;
     setBusyId(item.id);
     setErrorMessage(null);
+    setInfoMessage(null);
     try {
       // ของเดิมที่ชนช่องเดียวกันหรือชนแกน (mainStat) เดียวกันบนตัวนี้ — ถอดให้อัตโนมัติก่อนใส่ของใหม่
       const conflicts = items.filter(
         (i) => i.equippedPetId === petId && i.id !== item.id && (i.slot === item.slot || i.mainStat === item.mainStat)
       );
+      const unequippedNotes: string[] = [];
       for (const conflict of conflicts) {
         const unequipResult = await unequipRaidGear(conflict.id);
         if (!unequipResult.ok) {
@@ -137,6 +141,8 @@ export default function RaidGearLoadout({
           return;
         }
         setItems((prev) => prev.map((i) => (i.id === conflict.id ? { ...i, equippedPetId: null } : i)));
+        const reason = conflict.slot === item.slot ? "slot ซ้ำกัน" : `แกน ${STAT_LABEL_TH[conflict.mainStat]} ซ้ำกัน`;
+        unequippedNotes.push(`${conflict.qualityLabel ?? conflict.quality} (${reason})`);
       }
 
       const result = await equipRaidGear(item.id, petId);
@@ -146,6 +152,9 @@ export default function RaidGearLoadout({
       }
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, equippedPetId: petId } : i)));
       setOpenSlot(null);
+      if (unequippedNotes.length > 0) {
+        setInfoMessage(`ถอด ${unequippedNotes.join(", ")} ออกอัตโนมัติ`);
+      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ใส่อุปกรณ์ไม่สำเร็จ");
     } finally {
@@ -192,6 +201,8 @@ export default function RaidGearLoadout({
       )}
 
       {errorMessage && <p className="mt-2 text-xs text-red">{errorMessage}</p>}
+
+      {infoMessage && <Toast message={infoMessage} onDone={() => setInfoMessage(null)} />}
 
       {openSlot && (
         <RaidGearDrawer
