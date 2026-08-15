@@ -209,8 +209,8 @@ export function computeRawStats(input: RawStatInputs) {
   return {
     hp: input.scienceCorrect,
     atk: input.mathCorrect,
-    foc: input.accuracyPct,
-    spd: input.comboMilestones,
+    foc: input.accuracyPct * 0.7,
+    spd: input.comboMilestones * 2,
     def: Math.min(input.mathCorrect, input.scienceCorrect) * 2,
   };
 }
