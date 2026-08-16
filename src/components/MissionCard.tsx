@@ -56,8 +56,11 @@ export default function MissionCard({
   const started = answeredCount > 0;
 
   function goToMission() {
-    // router.push() เดี่ยวเท่านั้น ห้ามคู่กับ router.refresh() (บั๊ก Next.js canary build นี้)
-    router.push(`/quiz?mission=${m.id}`);
+    // hard navigation แทน router.push() — router.push() เคย serve หน้า /quiz แบบ client cache เก่า
+    // (ไม่มี ?mission=) ทำให้เด้งไปหน้าเลือกวิชาแทนที่จะเข้าคำถามทันทีตาม design intent
+    // (ดู handoff-mission-start-stale-select-2026-08-16.md) — จุดนี้เป็น context switch เต็มหน้าอยู่แล้ว
+    // เสีย client transition ไปนิดหน่อยไม่กระทบ UX มาก
+    window.location.assign(`/quiz?mission=${m.id}`);
   }
 
   function goToPractice() {
