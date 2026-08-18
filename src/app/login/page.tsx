@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "./actions";
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,18 +24,55 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+    };
+  }, []);
+
+  async function handleResendConfirmation() {
+    if (resendLoading || resendCooldown > 0) return;
+    setResendLoading(true);
+    await supabase.auth.resend({ type: "signup", email });
+    setResendLoading(false);
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    resendIntervalRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
+    setShowResend(false);
 
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) {
-        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        if (error.code === "invalid_credentials") {
+          setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        } else if (error.code === "email_not_confirmed") {
+          setError("กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
+          setShowResend(true);
+        } else if (error.code === "over_request_rate_limit" || error.status === 429) {
+          setError("ลองเข้าสู่ระบบถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+        } else {
+          setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        }
         return;
       }
       router.push("/pet");
@@ -56,7 +95,13 @@ export default function LoginPage() {
       });
       setLoading(false);
       if (error) {
-        setError(error.message);
+        if (error.code === "user_already_exists") {
+          setError("อีเมลนี้ถูกใช้สมัครแล้ว ลองเข้าสู่ระบบแทนไหม");
+        } else if (error.code === "weak_password") {
+          setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+        } else {
+          setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        }
         return;
       }
       setMessage("สมัครสำเร็จ! ตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วกลับมาเข้าสู่ระบบ");
@@ -233,7 +278,25 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red">{error}</p>}
+          {error && (
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-sm text-red">{error}</p>
+              {showResend && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendLoading || resendCooldown > 0}
+                  className="rounded-md border border-border px-3 py-1 text-xs font-medium text-text2 transition hover:bg-track disabled:opacity-50"
+                >
+                  {resendCooldown > 0
+                    ? `ส่งอีเมลยืนยันอีกครั้ง (${resendCooldown}s)`
+                    : resendLoading
+                      ? "กำลังส่ง..."
+                      : "ส่งอีเมลยืนยันอีกครั้ง"}
+                </button>
+              )}
+            </div>
+          )}
           {message && <p className="text-sm text-gold-hi">{message}</p>}
 
           <button
