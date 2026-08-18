@@ -10,14 +10,6 @@ import { checkSignupFields } from "./actions";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
-const HERO_BABY_SPRITES = [
-  "/pets/egg1_stage2_baby.png",
-  "/pets/egg2_stage2_baby.png",
-  "/pets/egg3_stage2_baby.png",
-  "/pets/egg4_stage2_baby.png",
-  "/pets/egg5_stage2_baby.png",
-];
-
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -37,16 +29,11 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [heroBaby, setHeroBaby] = useState(HERO_BABY_SPRITES[0]);
 
   useEffect(() => {
     return () => {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    setHeroBaby(HERO_BABY_SPRITES[Math.floor(Math.random() * HERO_BABY_SPRITES.length)]);
   }, []);
 
   useEffect(() => {
@@ -56,6 +43,33 @@ export default function LoginPage() {
       router.replace("/login");
     }
   }, [router]);
+
+  // จุดเดียวที่ตัดสินใจ redirect หลัง sign-in สำเร็จ ครอบทั้ง email/password (signInWithPassword
+  // ใน handleSubmit ด้านล่างไม่ push เองแล้ว) และ OAuth (Google กลับมาที่ /login แล้ว fire
+  // event นี้อัตโนมัติ) เพื่อไม่ให้ทั้งสอง flow แข่งกัน push คนละที่
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event !== "SIGNED_IN" || !session?.user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, grade_level")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile?.username || !profile?.grade_level) {
+        router.push("/login/complete-profile");
+      } else {
+        router.push("/");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
 
   async function handleResendConfirmation() {
     if (resendLoading || resendCooldown > 0) return;
@@ -104,7 +118,8 @@ export default function LoginPage() {
         }
         return;
       }
-      router.push("/pet");
+      // ไม่ push เอง — onAuthStateChange ด้านบนจะเป็นคน redirect ให้หลังเช็ค profile
+      // (กัน race ที่ทั้งสองที่ push คนละปลายทางพร้อมกัน ตามที่ระบุไว้ใน spec)
     } else {
       const fieldCheck = await checkSignupFields(username, school);
       if (fieldCheck.blocked) {
@@ -140,19 +155,15 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 bg-bg p-6">
-      <div className="flex flex-col items-center gap-1 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <Image
-            src={heroBaby}
-            alt="QuizMon"
-            width={60}
-            height={60}
-            className="animate-pet-bob"
-            priority
-          />
-          <span className="text-2xl font-bold text-amber">QuizMon</span>
-        </div>
-        <p className="text-xs text-text3">ทุกคำตอบ พาเราเติบโต</p>
+      <div className="flex flex-col items-center text-center">
+        <Image
+          src="/brand/quizmon-logo-full.png"
+          alt="QuizMon"
+          width={220}
+          height={65}
+          priority
+        />
+        <p className="mt-1 text-sm text-text3">ทุกคำตอบ พาเราเติบโต</p>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
