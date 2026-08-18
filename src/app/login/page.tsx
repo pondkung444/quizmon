@@ -41,12 +41,16 @@ export default function LoginPage() {
     if (params.get("reset") === "success") {
       setMessage("ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบ");
       router.replace("/login");
+    } else if (params.get("error") === "oauth_failed") {
+      setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+      router.replace("/login");
     }
   }, [router]);
 
-  // จุดเดียวที่ตัดสินใจ redirect หลัง sign-in สำเร็จ ครอบทั้ง email/password (signInWithPassword
-  // ใน handleSubmit ด้านล่างไม่ push เองแล้ว) และ OAuth (Google กลับมาที่ /login แล้ว fire
-  // event นี้อัตโนมัติ) เพื่อไม่ให้ทั้งสอง flow แข่งกัน push คนละที่
+  // จุดเดียวที่ตัดสินใจ redirect หลัง email/password login สำเร็จ (signInWithPassword ใน
+  // handleSubmit ด้านล่างไม่ push เองแล้ว กัน race ที่ทั้งสองที่ push คนละปลายทางพร้อมกัน)
+  // ส่วน Google OAuth ไม่ผ่าน listener นี้แล้ว — redirectTo ชี้ไป /login/callback (route handler)
+  // ที่ exchange code + เช็ค profile + redirect ให้เสร็จฝั่ง server ก่อนกลับมาที่ client เลย
   useEffect(() => {
     const {
       data: { subscription },
@@ -91,7 +95,7 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/login` },
+      options: { redirectTo: `${window.location.origin}/login/callback` },
     });
   }
 
@@ -135,7 +139,10 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username, phone, school, grade_level: gradeLevel } },
+        options: {
+          data: { username, phone, school, grade_level: gradeLevel },
+          emailRedirectTo: `${window.location.origin}/login/callback`,
+        },
       });
       setLoading(false);
       if (error) {
