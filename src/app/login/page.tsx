@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "./actions";
+
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,21 +25,101 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      setMessage("ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบ");
+      router.replace("/login");
+    }
+  }, [router]);
+
+  // จุดเดียวที่ตัดสินใจ redirect หลัง sign-in สำเร็จ ครอบทั้ง email/password (signInWithPassword
+  // ใน handleSubmit ด้านล่างไม่ push เองแล้ว) และ OAuth (Google กลับมาที่ /login แล้ว fire
+  // event นี้อัตโนมัติ) เพื่อไม่ให้ทั้งสอง flow แข่งกัน push คนละที่
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event !== "SIGNED_IN" || !session?.user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, grade_level")
+        .eq("id", session.user.id)
+        .single();
+
+      if (!profile?.username || !profile?.grade_level) {
+        router.push("/login/complete-profile");
+      } else {
+        router.push("/");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
+
+  async function handleResendConfirmation() {
+    if (resendLoading || resendCooldown > 0) return;
+    setResendLoading(true);
+    await supabase.auth.resend({ type: "signup", email });
+    setResendLoading(false);
+    setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    resendIntervalRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  async function handleGoogleLogin() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/login` },
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
+    setShowResend(false);
 
     if (mode === "login") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (error) {
-        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        if (error.code === "invalid_credentials") {
+          setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        } else if (error.code === "email_not_confirmed") {
+          setError("กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ");
+          setShowResend(true);
+        } else if (error.code === "over_request_rate_limit" || error.status === 429) {
+          setError("ลองเข้าสู่ระบบถี่เกินไป กรุณารอสักครู่แล้วลองใหม่");
+        } else {
+          setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        }
         return;
       }
-      router.push("/pet");
+      // ไม่ push เอง — onAuthStateChange ด้านบนจะเป็นคน redirect ให้หลังเช็ค profile
+      // (กัน race ที่ทั้งสองที่ push คนละปลายทางพร้อมกัน ตามที่ระบุไว้ใน spec)
     } else {
       const fieldCheck = await checkSignupFields(username, school);
       if (fieldCheck.blocked) {
@@ -56,7 +139,13 @@ export default function LoginPage() {
       });
       setLoading(false);
       if (error) {
-        setError(error.message);
+        if (error.code === "user_already_exists") {
+          setError("อีเมลนี้ถูกใช้สมัครแล้ว ลองเข้าสู่ระบบแทนไหม");
+        } else if (error.code === "weak_password") {
+          setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+        } else {
+          setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+        }
         return;
       }
       setMessage("สมัครสำเร็จ! ตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วกลับมาเข้าสู่ระบบ");
@@ -233,8 +322,37 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && <p className="text-sm text-red">{error}</p>}
-          {message && <p className="text-sm text-gold-hi">{message}</p>}
+          {mode === "login" && (
+            <div className="flex justify-end">
+              <Link
+                href="/login/forgot-password"
+                className="text-xs font-medium text-text3 hover:text-text2"
+              >
+                ลืมรหัสผ่าน?
+              </Link>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex flex-col items-start gap-2 animate-speech-pop">
+              <p className="text-sm text-red">{error}</p>
+              {showResend && (
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendLoading || resendCooldown > 0}
+                  className="rounded-md border border-border px-3 py-1 text-xs font-medium text-text2 transition hover:bg-track disabled:opacity-50"
+                >
+                  {resendCooldown > 0
+                    ? `ส่งอีเมลยืนยันอีกครั้ง (${resendCooldown}s)`
+                    : resendLoading
+                      ? "กำลังส่ง..."
+                      : "ส่งอีเมลยืนยันอีกครั้ง"}
+                </button>
+              )}
+            </div>
+          )}
+          {message && <p className="text-sm text-gold-hi animate-speech-pop">{message}</p>}
 
           <button
             type="submit"
@@ -248,6 +366,39 @@ export default function LoginPage() {
                 : "สมัครสมาชิก"}
           </button>
         </form>
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-indigo-dim" />
+          <span className="text-xs font-medium text-indigo-hi">หรือ</span>
+          <div className="h-px flex-1 bg-indigo-dim" />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            disabled
+            className="flex items-center justify-center gap-2 rounded-full border border-border bg-track py-2 text-sm font-medium text-text3 opacity-60"
+          >
+            เข้าสู่ระบบด้วย LINE
+            <span className="text-xs text-text3">(เร็วๆ นี้)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="relative mx-auto h-10 transition hover:opacity-90"
+            style={{ aspectRatio: "4.5 / 1" }}
+          >
+            <Image
+              src="/brand/google-sign-in.png"
+              alt="เข้าสู่ระบบด้วย Google"
+              fill
+              className="object-contain"
+              sizes="180px"
+              priority
+            />
+          </button>
+        </div>
       </div>
     </main>
   );
