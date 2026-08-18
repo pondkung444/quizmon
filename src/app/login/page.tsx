@@ -139,7 +139,10 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { username, phone, school, grade_level: gradeLevel } },
+        options: {
+          data: { username, phone, school, grade_level: gradeLevel },
+          emailRedirectTo: `${window.location.origin}/login/callback`,
+        },
       });
       setLoading(false);
       if (error) {
