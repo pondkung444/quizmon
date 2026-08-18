@@ -10,6 +10,14 @@ import { checkSignupFields } from "./actions";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+const HERO_BABY_SPRITES = [
+  "/pets/egg1_stage2_baby.png",
+  "/pets/egg2_stage2_baby.png",
+  "/pets/egg3_stage2_baby.png",
+  "/pets/egg4_stage2_baby.png",
+  "/pets/egg5_stage2_baby.png",
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -29,11 +37,16 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [heroBaby, setHeroBaby] = useState(HERO_BABY_SPRITES[0]);
 
   useEffect(() => {
     return () => {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    setHeroBaby(HERO_BABY_SPRITES[Math.floor(Math.random() * HERO_BABY_SPRITES.length)]);
   }, []);
 
   useEffect(() => {
@@ -59,6 +72,13 @@ export default function LoginPage() {
         return prev - 1;
       });
     }, 1000);
+  }
+
+  async function handleGoogleLogin() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/login` },
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -120,15 +140,19 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 bg-bg p-6">
-      <div className="flex flex-col items-center text-center">
-        <Image
-          src="/brand/quizmon-logo-full.png"
-          alt="QuizMon"
-          width={220}
-          height={65}
-          priority
-        />
-        <p className="mt-1 text-sm text-text3">ทุกคำตอบ พาเราเติบโต</p>
+      <div className="flex flex-col items-center gap-1 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <Image
+            src={heroBaby}
+            alt="QuizMon"
+            width={60}
+            height={60}
+            className="animate-pet-bob"
+            priority
+          />
+          <span className="text-2xl font-bold text-amber">QuizMon</span>
+        </div>
+        <p className="text-xs text-text3">ทุกคำตอบ พาเราเติบโต</p>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6">
@@ -299,7 +323,7 @@ export default function LoginPage() {
           )}
 
           {error && (
-            <div className="flex flex-col items-start gap-2">
+            <div className="flex flex-col items-start gap-2 animate-speech-pop">
               <p className="text-sm text-red">{error}</p>
               {showResend && (
                 <button
@@ -317,7 +341,7 @@ export default function LoginPage() {
               )}
             </div>
           )}
-          {message && <p className="text-sm text-gold-hi">{message}</p>}
+          {message && <p className="text-sm text-gold-hi animate-speech-pop">{message}</p>}
 
           <button
             type="submit"
@@ -331,6 +355,39 @@ export default function LoginPage() {
                 : "สมัครสมาชิก"}
           </button>
         </form>
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-indigo-dim" />
+          <span className="text-xs font-medium text-indigo-hi">หรือ</span>
+          <div className="h-px flex-1 bg-indigo-dim" />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            disabled
+            className="flex items-center justify-center gap-2 rounded-full border border-border bg-track py-2 text-sm font-medium text-text3 opacity-60"
+          >
+            เข้าสู่ระบบด้วย LINE
+            <span className="text-xs text-text3">(เร็วๆ นี้)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="relative mx-auto h-10 transition hover:opacity-90"
+            style={{ aspectRatio: "4.5 / 1" }}
+          >
+            <Image
+              src="/brand/google-sign-in.png"
+              alt="เข้าสู่ระบบด้วย Google"
+              fill
+              className="object-contain"
+              sizes="180px"
+              priority
+            />
+          </button>
+        </div>
       </div>
     </main>
   );
