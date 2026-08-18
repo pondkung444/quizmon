@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "./actions";
@@ -34,6 +35,14 @@ export default function LoginPage() {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "success") {
+      setMessage("ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบ");
+      router.replace("/login");
+    }
+  }, [router]);
 
   async function handleResendConfirmation() {
     if (resendLoading || resendCooldown > 0) return;
@@ -277,6 +286,17 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {mode === "login" && (
+            <div className="flex justify-end">
+              <Link
+                href="/login/forgot-password"
+                className="text-xs font-medium text-text3 hover:text-text2"
+              >
+                ลืมรหัสผ่าน?
+              </Link>
+            </div>
+          )}
 
           {error && (
             <div className="flex flex-col items-start gap-2">
