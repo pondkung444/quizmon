@@ -165,7 +165,10 @@ export default function RankingTabView({
       )}
 
       {data.myRank && (
-        <div className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-6">
+        <div
+          className="fixed inset-x-0 z-40 flex justify-center px-6"
+          style={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+        >
           <div className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-gold bg-card p-3 shadow-lg">
             {data.myRank.found ? (
               <>

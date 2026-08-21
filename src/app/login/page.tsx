@@ -4,9 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
+import { App, type URLOpenListenerEvent } from "@capacitor/app";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "./actions";
+
+const NATIVE_OAUTH_CALLBACK_URL = "com.quizmon.app://login-callback";
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
@@ -75,6 +80,35 @@ export default function LoginPage() {
     };
   }, [router, supabase]);
 
+  // native เท่านั้น: รับ deep link callback ที่ system browser ส่งกลับเข้าแอปหลัง Google
+  // consent สำเร็จ (com.quizmon.app://login-callback?code=...) แล้ว exchange code ฝั่ง client
+  // — exchangeCodeForSession จะ trigger SIGNED_IN ที่ listener ด้านบนจัดการ redirect ต่อเอง
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = App.addListener("appUrlOpen", async (event: URLOpenListenerEvent) => {
+      if (!event.url.startsWith(NATIVE_OAUTH_CALLBACK_URL)) return;
+
+      await Browser.close().catch(() => {});
+
+      const url = new URL(event.url.replace("com.quizmon.app://", "https://placeholder/"));
+      const code = url.searchParams.get("code");
+      if (!code) {
+        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+      }
+    });
+
+    return () => {
+      listenerPromise.then((listener) => listener.remove());
+    };
+  }, [supabase]);
+
   async function handleResendConfirmation() {
     if (resendLoading || resendCooldown > 0) return;
     setResendLoading(true);
@@ -92,7 +126,27 @@ export default function LoginPage() {
     }, 1000);
   }
 
+  // เว็บปกติ: signInWithOAuth redirect ทั้งหน้าไปหน้า Google consent ได้ตามปกติ
+  // native (iOS/Android): Google บล็อก OAuth ที่มาจาก embedded WebView (403: disallowed_useragent)
+  // เลยต้องเปิด consent screen ผ่าน system browser (@capacitor/browser) แล้วรับ callback
+  // กลับเข้าแอปผ่าน custom URL scheme deep link แทน (ดู listener ใน useEffect ด้านบน)
   async function handleGoogleLogin() {
+    if (Capacitor.isNativePlatform()) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: NATIVE_OAUTH_CALLBACK_URL,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error || !data?.url) {
+        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+        return;
+      }
+      await Browser.open({ url: data.url });
+      return;
+    }
+
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/login/callback` },

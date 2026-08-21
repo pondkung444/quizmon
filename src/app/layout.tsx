@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Kanit, Sarabun } from "next/font/google";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import NativeAppSetup from "@/components/NativeAppSetup";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
 
@@ -23,6 +24,14 @@ const sarabun = Sarabun({
 export const metadata: Metadata = {
   title: "Quizmon",
   description: "ตอบถูกทุกข้อ มอนของคุณโตทุกครั้ง",
+};
+
+// viewport-fit=cover เปิดใช้งาน env(safe-area-inset-*) สำหรับ fixed-position elements
+// ที่ชิดขอบจอ (จำเป็นสำหรับ Capacitor WebView ที่ไม่มี browser chrome เผื่อ notch/home indicator)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -59,6 +68,7 @@ export default async function RootLayout({
   return (
     <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-text">
+        <NativeAppSetup />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}
         <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} />

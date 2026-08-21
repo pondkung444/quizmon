@@ -38,7 +38,10 @@ export default function BottomNav({ hasUnreadEncouragements = false }: { hasUnre
   if (pathname?.startsWith("/quiz") || pathname === "/login" || pathname === "/") return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-auto flex max-w-xl items-stretch justify-around">
         {TABS.map((tab) => {
           const active = pathname === tab.href || pathname?.startsWith(tab.href + "/");
