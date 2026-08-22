@@ -44,3 +44,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .capgo
+
+# signing keys / build credentials — never commit
+*.jks
+*.keystore
+*.p12
+.capgo-credentials.json
