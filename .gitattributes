@@ -1,0 +1,5 @@
+# Force LF for Unix shell scripts regardless of local core.autocrlf — Capgo's
+# cloud build runner is Linux and fails with "bad interpreter: No such file
+# or directory" if gradlew's shebang line has a trailing \r (CRLF).
+android/gradlew text eol=lf
+*.sh text eol=lf
