@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [school, setSchool] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -190,11 +191,17 @@ export default function LoginPage() {
         return;
       }
 
+      if (!privacyAccepted) {
+        setLoading(false);
+        setError("กรุณากดยอมรับนโยบายความเป็นส่วนตัวก่อนสมัครสมาชิก");
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { username, phone, school, grade_level: gradeLevel },
+          data: { username, phone, school, grade_level: gradeLevel, privacy_accepted_at: new Date().toISOString() },
           emailRedirectTo: `${window.location.origin}/login/callback`,
         },
       });
@@ -301,6 +308,24 @@ export default function LoginPage() {
                 placeholder="เช่น 0812345678"
               />
             </div>
+          )}
+
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 text-xs text-text2">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-amber"
+              />
+              <span>
+                รับทราบ{" "}
+                <Link href="/privacy" target="_blank" className="text-amber underline underline-offset-2">
+                  นโยบายความเป็นส่วนตัว
+                </Link>{" "}
+                ของ QuizMon
+              </span>
+            </label>
           )}
 
           <div className="flex flex-col gap-1">
