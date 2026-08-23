@@ -320,9 +320,15 @@ export default function LoginPage() {
               />
               <span>
                 รับทราบ{" "}
-                <Link href="/privacy" target="_blank" className="text-amber underline underline-offset-2">
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-amber underline underline-offset-2"
+                >
                   นโยบายความเป็นส่วนตัว
-                </Link>{" "}
+                </a>{" "}
                 ของ QuizMon
               </span>
             </label>

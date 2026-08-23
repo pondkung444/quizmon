@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "@/app/login/actions";
@@ -170,9 +169,15 @@ export default function CompleteProfilePage() {
             />
             <span>
               รับทราบ{" "}
-              <Link href="/privacy" target="_blank" className="text-amber underline underline-offset-2">
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-amber underline underline-offset-2"
+              >
                 นโยบายความเป็นส่วนตัว
-              </Link>{" "}
+              </a>{" "}
               ของ QuizMon
             </span>
           </label>
