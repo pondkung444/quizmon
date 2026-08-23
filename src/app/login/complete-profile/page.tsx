@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { checkSignupFields } from "@/app/login/actions";
@@ -26,6 +27,7 @@ export default function CompleteProfilePage() {
   const [username, setUsername] = useState("");
   const [school, setSchool] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,7 +90,7 @@ export default function CompleteProfilePage() {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ username, school, grade_level: gradeLevel })
+      .update({ username, school, grade_level: gradeLevel, privacy_accepted_at: new Date().toISOString() })
       .eq("id", userId);
     setLoading(false);
 
@@ -159,11 +161,27 @@ export default function CompleteProfilePage() {
 
           <SchoolAutocomplete value={school} onChange={setSchool} required />
 
+          <label className="flex items-start gap-2 text-xs text-text2">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-amber"
+            />
+            <span>
+              รับทราบ{" "}
+              <Link href="/privacy" target="_blank" className="text-amber underline underline-offset-2">
+                นโยบายความเป็นส่วนตัว
+              </Link>{" "}
+              ของ QuizMon
+            </span>
+          </label>
+
           {error && <p className="text-sm text-red animate-speech-pop">{error}</p>}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !privacyAccepted}
             className="rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "กำลังดำเนินการ..." : "เริ่มการผจญภัย"}

@@ -63,13 +63,16 @@ export default async function SettingsPage() {
         <h2 className="mb-1 text-sm font-bold text-gold-hi">อื่นๆ</h2>
         <FeedbackRow petId={activePet?.id ?? null} />
         <div className="my-1 border-t border-border" />
-        <div className="flex w-full items-center justify-between py-3 text-sm text-text3">
+        <Link
+          href="/privacy"
+          className="flex w-full items-center justify-between py-3 text-sm text-text active:opacity-70"
+        >
           <span className="flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5" />
+            <Lock className="h-3.5 w-3.5 text-text3" />
             นโยบายความเป็นส่วนตัว
           </span>
-          <span className="text-xs">เร็วๆ นี้</span>
-        </div>
+          <ChevronRight className="h-4 w-4 text-text3" />
+        </Link>
       </section>
 
       <p className="mt-2 text-center text-xs text-text3">เวอร์ชัน {packageJson.version}</p>
