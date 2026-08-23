@@ -6,6 +6,7 @@ import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
 import { track } from "@/lib/analytics";
 import HatchNamingModal from "@/components/HatchNamingModal";
+import { requestPushPermissionWithContext } from "@/lib/push/pushClient";
 
 const TIER_LABEL: Record<string, string> = {
   common: "ธรรมดา",
@@ -53,6 +54,9 @@ export default function EggsClient({
         await hatchEgg(eggId, nickname);
         const egg = eggs.find((e) => e.id === eggId);
         if (egg) track("egg_selected", { egg_type_id: egg.eggTypeId });
+        // ขอ push permission แบบมี context (หลัง hatch สำเร็จ ไม่ใช่ทันทีตอนเปิดแอป)
+        // no-op ถ้าเคย grant/denied ไปแล้ว จะไม่โผล่ prompt ซ้ำ — ไม่ block การ navigate
+        requestPushPermissionWithContext();
         router.push("/pet");
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : "ฟักไข่ไม่สำเร็จ ลองใหม่อีกครั้งนะ");
