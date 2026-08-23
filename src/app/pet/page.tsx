@@ -17,7 +17,8 @@ import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
 import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
 import { getRaidTicketCount } from "@/lib/raid";
-import SignOutLink from "@/components/SignOutLink";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
@@ -250,7 +251,15 @@ export default async function PetPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
-      <SignOutLink />
+      <div className="flex justify-end">
+        <Link
+          href="/settings"
+          aria-label="ตั้งค่า"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text3 transition active:scale-95"
+        >
+          <Settings className="h-5 w-5" />
+        </Link>
+      </div>
       {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
