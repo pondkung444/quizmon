@@ -18,7 +18,6 @@ import { getPersonalityKey } from "@/lib/personality";
 import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
 import { getRaidTicketCount } from "@/lib/raid";
 import Link from "next/link";
-import { Settings } from "lucide-react";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
@@ -251,15 +250,6 @@ export default async function PetPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
-      <div className="flex justify-end">
-        <Link
-          href="/settings"
-          aria-label="ตั้งค่า"
-          className="flex h-8 w-8 items-center justify-center rounded-full text-text3 transition active:scale-95"
-        >
-          <Settings className="h-5 w-5" />
-        </Link>
-      </div>
       {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
@@ -308,6 +298,9 @@ export default async function PetPage({
           <div className="rounded-2xl border border-gold-dim bg-card p-4 text-center">
             <p className="text-sm font-bold text-gold-hi">ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่</p>
             <p className="mt-1 text-xs text-text3">เลือกไข่ที่จะฟักได้เลย</p>
+            <Link href="/settings" className="mt-2 inline-block text-xs text-text3 underline underline-offset-2">
+              ตั้งค่า
+            </Link>
           </div>
           <EggsClient eggs={unhatchedEggs} hasActivePet={false} />
         </div>
