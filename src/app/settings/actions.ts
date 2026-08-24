@@ -7,10 +7,10 @@ export type PushPreferencesUpdate = Partial<{
   push_enabled: boolean;
   daily_quest_enabled: boolean;
   daily_exp_enabled: boolean;
+  adventure_enabled: boolean;
+  social_enabled: boolean;
 }>;
 
-// อัปเดตเฉพาะ field ที่ส่งมา (ไม่แตะ adventure_enabled/social_enabled — ยังไม่มี UI
-// ให้ผู้เล่นควบคุมหมวดนั้น เพราะ event-driven push ยังไม่ live ตาม roadmap)
 export async function updatePushPreferences(update: PushPreferencesUpdate) {
   const supabase = await createClient();
   const {

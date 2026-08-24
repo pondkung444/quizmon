@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   // แต่กัน edge case ไว้ด้วยค่า default ปลอดภัยถ้าหาไม่เจอจริงๆ
   const { data: prefs } = await supabase
     .from("push_preferences")
-    .select("push_enabled, daily_quest_enabled, daily_exp_enabled")
+    .select("push_enabled, daily_quest_enabled, daily_exp_enabled, adventure_enabled, social_enabled")
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
 
@@ -39,6 +39,8 @@ export default async function SettingsPage() {
           push_enabled: prefs?.push_enabled ?? true,
           daily_quest_enabled: prefs?.daily_quest_enabled ?? true,
           daily_exp_enabled: prefs?.daily_exp_enabled ?? true,
+          adventure_enabled: prefs?.adventure_enabled ?? true,
+          social_enabled: prefs?.social_enabled ?? true,
         }}
       />
 
