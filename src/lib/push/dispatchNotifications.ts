@@ -5,7 +5,7 @@ import type { EligibleRecipient } from "@/lib/push/eligibility";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
-export type BuiltMessage = { title: string; body: string; deepLink?: string };
+export type BuiltMessage = { title: string; body: string; deepLink?: string; imageUrl?: string };
 
 const SEND_CONCURRENCY = 10;
 
@@ -67,6 +67,7 @@ export async function dispatchNotifications(
         title: r.message.title,
         body: r.message.body,
         deep_link: r.message.deepLink ?? null,
+        image_url: r.message.imageUrl ?? null,
         idempotency_key: r.idempotencyKey,
         status: "pending",
       })),
@@ -97,6 +98,7 @@ export async function dispatchNotifications(
               title: jobRows.find((r) => r.idempotencyKey === idempotencyKey)!.message.title,
               body: jobRows.find((r) => r.idempotencyKey === idempotencyKey)!.message.body,
               deepLink: jobRows.find((r) => r.idempotencyKey === idempotencyKey)!.message.deepLink,
+              imageUrl: jobRows.find((r) => r.idempotencyKey === idempotencyKey)!.message.imageUrl,
             });
 
             if (result.ok) {

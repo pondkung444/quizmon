@@ -5,6 +5,10 @@ export type PushMessageInput = {
   title: string;
   body: string;
   deepLink?: string;
+  /** URL รูปสาธารณะ (เช่น https://quizmon.xyz/pets/xxx.png) — Android แสดงเป็น Big Picture
+   * อัตโนมัติผ่าน notification.image โดยไม่ต้องเขียนโค้ด native เพิ่ม
+   * iOS ต้องมี Notification Service Extension ก่อนถึงจะแสดงภาพได้ (ยังไม่ทำ รอ Apple Dev Program) */
+  imageUrl?: string;
 };
 
 export type PushSendResult =
@@ -25,7 +29,11 @@ export async function sendPushToDevice(input: PushMessageInput): Promise<PushSen
     body: JSON.stringify({
       message: {
         token: input.token,
-        notification: { title: input.title, body: input.body },
+        notification: {
+          title: input.title,
+          body: input.body,
+          ...(input.imageUrl ? { image: input.imageUrl } : {}),
+        },
         data: input.deepLink ? { deep_link: input.deepLink } : undefined,
         android: { priority: "high" },
         apns: {
