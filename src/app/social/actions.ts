@@ -5,6 +5,7 @@ import { normalizeFriendCode } from "@/lib/friendCode";
 import type { PetPreview } from "@/components/social/petSummary";
 import type { EncouragementMessageKey } from "@/lib/encouragementMessages";
 import { getRanking, type RankingCategory, type RankingData, type RankingScope } from "@/lib/ranking";
+import { sendSocialEventPush } from "@/lib/push/socialEventPush";
 
 export type RelationshipStatus =
   | "self"
@@ -191,6 +192,34 @@ export async function sendFriendRequest(
   if (error || !data) throw new Error(error?.message ?? "ส่งคำขอเป็นเพื่อนไม่สำเร็จ");
 
   const row = data as { request_id: string; auto_accepted: boolean };
+
+  // await ตรงๆ (ไม่ fire-and-forget) เพราะ Vercel serverless function อาจถูก kill ทันทีหลัง
+  // ส่ง response กลับไป ทำให้ async work ที่ไม่ await ค้างไม่จบกลางทาง — sendSocialEventPush
+  // ดักจับ error ข้างในเองแล้ว ไม่ throw ออกมา จึงไม่กระทบผลลัพธ์หลักของฟังก์ชันนี้
+  const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+  const actorUsername = profile?.username ?? "เพื่อนคนหนึ่ง";
+  if (row.auto_accepted) {
+    // targetUserId เคยส่งคำขอมาหาเราก่อนแล้ว — การกดของเราตอนนี้คือการ auto-accept
+    // คำขอเดิมของเขา จึงแจ้งแบบ "ตอบรับเป็นเพื่อนแล้ว" ไม่ใช่ "ได้รับคำขอ"
+    await sendSocialEventPush({
+      recipientUserId: targetUserId,
+      actorUserId: user.id,
+      actorUsername,
+      eventType: "friend_request_accepted",
+      deepLink: `/social/friend/${user.id}`,
+      idempotencyKey: `${targetUserId}:friend_request_accepted:${row.request_id}`,
+    });
+  } else {
+    await sendSocialEventPush({
+      recipientUserId: targetUserId,
+      actorUserId: user.id,
+      actorUsername,
+      eventType: "friend_request_received",
+      deepLink: "/social/requests",
+      idempotencyKey: `${targetUserId}:friend_request_received:${row.request_id}`,
+    });
+  }
+
   return { requestId: row.request_id, autoAccepted: row.auto_accepted };
 }
 
@@ -202,10 +231,36 @@ export async function respondFriendRequest(
   if (!user) throw new Error("ไม่พบผู้ใช้");
 
   const supabase = await createClient();
+
+  // ดึง requester_id ไว้ก่อนเรียก RPC — เผื่อ RPC ลบ/แก้ row จนดึงย้อนหลังไม่ได้ (ไม่ผูกกับ
+  // requester_id แค่ตอน action==="accept" เพื่อไม่เพิ่ม query ที่ไม่จำเป็นตอนปฏิเสธ)
+  let requesterId: string | null = null;
+  if (action === "accept") {
+    const { data: reqRow } = await supabase
+      .from("friend_requests")
+      .select("requester_id")
+      .eq("id", requestId)
+      .maybeSingle();
+    requesterId = reqRow?.requester_id ?? null;
+  }
+
   const { data, error } = await supabase
     .rpc("respond_friend_request", { p_request_id: requestId, p_action: action })
     .single();
   if (error || !data) throw new Error(error?.message ?? "ตอบคำขอเป็นเพื่อนไม่สำเร็จ");
+
+  if (action === "accept" && requesterId) {
+    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    const actorUsername = profile?.username ?? "เพื่อนคนหนึ่ง";
+    await sendSocialEventPush({
+      recipientUserId: requesterId,
+      actorUserId: user.id,
+      actorUsername,
+      eventType: "friend_request_accepted",
+      deepLink: `/social/friend/${user.id}`,
+      idempotencyKey: `${requesterId}:friend_request_accepted:${requestId}`,
+    });
+  }
 
   return data as { status: string };
 }
@@ -271,6 +326,18 @@ export async function sendEncouragement(
   if (error || !data) throw new Error(error?.message ?? "ส่งกำลังใจไม่สำเร็จ");
 
   const row = data as { encouragement_id: string; sent_date: string };
+
+  const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+  const actorUsername = profile?.username ?? "เพื่อนคนหนึ่ง";
+  await sendSocialEventPush({
+    recipientUserId: recipientId,
+    actorUserId: user.id,
+    actorUsername,
+    eventType: "encouragement_received",
+    deepLink: "/social/encouragements",
+    idempotencyKey: `${recipientId}:encouragement_received:${row.encouragement_id}`,
+  });
+
   return { encouragementId: row.encouragement_id, sentDate: row.sent_date };
 }
 

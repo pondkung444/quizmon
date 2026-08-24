@@ -8,6 +8,8 @@ type Preferences = {
   push_enabled: boolean;
   daily_quest_enabled: boolean;
   daily_exp_enabled: boolean;
+  adventure_enabled: boolean;
+  social_enabled: boolean;
 };
 
 export default function NotificationSettings({ initial }: { initial: Preferences }) {
@@ -61,6 +63,26 @@ export default function NotificationSettings({ initial }: { initial: Preferences
           onChange={(next) => update({ daily_exp_enabled: next })}
           disabled={!prefs.push_enabled}
           label="EXP ประจำวัน"
+        />
+      </div>
+
+      <div className="flex items-center justify-between py-2">
+        <span className={`text-sm ${prefs.push_enabled ? "text-text2" : "text-text3"}`}>การผจญภัย</span>
+        <Toggle
+          checked={prefs.adventure_enabled}
+          onChange={(next) => update({ adventure_enabled: next })}
+          disabled={!prefs.push_enabled}
+          label="การผจญภัย"
+        />
+      </div>
+
+      <div className="flex items-center justify-between py-2">
+        <span className={`text-sm ${prefs.push_enabled ? "text-text2" : "text-text3"}`}>เพื่อนและกำลังใจ</span>
+        <Toggle
+          checked={prefs.social_enabled}
+          onChange={(next) => update({ social_enabled: next })}
+          disabled={!prefs.push_enabled}
+          label="เพื่อนและกำลังใจ"
         />
       </div>
 
