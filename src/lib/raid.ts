@@ -197,6 +197,8 @@ export type RaidZoneWithLevels = {
   levels: RaidLevelSummary[];
 };
 
+export const RAID_EPIC_PITY_CAP = 10; // ต้องตรงกับ v_pity_cap ใน RPC claim_raid_reward() เสมอ — แก้ 2 ที่คู่กัน
+
 export type RaidLevelSummary = {
   id: string;
   slug: string;
@@ -207,6 +209,7 @@ export type RaidLevelSummary = {
   sortOrder: number;
   cleared: boolean;
   unlocked: boolean;
+  pityMeter: number | null; // null = ไม่เกี่ยว (ไม่ใช่ ridge_storm หรือยังไม่เคย clear)
 };
 
 // ทุกโซนที่ active พร้อมด่านในโซนนั้น แต่ละด่านมี cleared/unlocked ต่อ user — unlock gate เป็นระดับ
@@ -216,7 +219,7 @@ export async function getRaidZonesWithLevels(
   supabase: SupabaseServerClient,
   userId: string
 ): Promise<RaidZoneWithLevels[]> {
-  const [{ data: zones }, { data: types }, { data: wins }] = await Promise.all([
+  const [{ data: zones }, { data: types }, { data: wins }, { data: pity }] = await Promise.all([
     supabase.from("zones").select("id, slug, name_th, sort_order").eq("is_active", true).order("sort_order"),
     supabase
       .from("raid_types")
@@ -224,9 +227,11 @@ export async function getRaidZonesWithLevels(
       .eq("is_active", true)
       .order("sort_order"),
     supabase.from("raid_runs").select("raid_type_id").eq("user_id", userId).eq("outcome", "win"),
+    supabase.from("raid_pity").select("meter").eq("user_id", userId).eq("reward_tier", "epic").maybeSingle(),
   ]);
 
   const clearedIds = new Set((wins ?? []).map((w) => w.raid_type_id));
+  const pityMeterValue = pity?.meter ?? 0;
 
   return (zones ?? []).map((zone) => {
     const levelsInZone = (types ?? [])
@@ -248,6 +253,7 @@ export async function getRaidZonesWithLevels(
         sortOrder: t.sort_order,
         cleared,
         unlocked,
+        pityMeter: t.slug === "ridge_storm" && cleared ? pityMeterValue : null,
       };
     });
 

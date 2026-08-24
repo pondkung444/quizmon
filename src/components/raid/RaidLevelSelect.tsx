@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Lock } from "lucide-react";
-import type { RaidZoneWithLevels } from "@/lib/raid";
+import { RAID_EPIC_PITY_CAP, type RaidZoneWithLevels } from "@/lib/raid";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import { RAID_MOUNTAIN_NAME_TH } from "@/lib/raid/labels";
 
@@ -33,9 +33,32 @@ export default function RaidLevelSelect({
                   className={`object-cover object-center ${!level.unlocked ? "opacity-50 grayscale" : ""}`}
                 />
               )}
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/10 to-transparent p-4">
-                <span className="text-lg font-bold text-gold-hi">{level.nameTh}</span>
-                {level.bossNameTh && <span className="text-xs text-white/80">บอส: {level.bossNameTh}</span>}
+              <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/75 via-black/10 to-transparent p-4">
+                <div>
+                  <span className="block text-lg font-bold text-gold-hi">{level.nameTh}</span>
+                  {level.bossNameTh && <span className="text-xs text-white/80">บอส: {level.bossNameTh}</span>}
+                </div>
+
+                {level.pityMeter !== null && (
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-[11px] text-white/65">สะสมการันตี ไข่ศักดิ์นภา</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex gap-[3px]">
+                        {Array.from({ length: RAID_EPIC_PITY_CAP }).map((_, i) => (
+                          <span
+                            key={i}
+                            className={`h-2 w-2 rounded-full ${
+                              i < level.pityMeter! ? "bg-amber" : "border border-amber/50"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-medium text-gold-hi">
+                        {level.pityMeter} / {RAID_EPIC_PITY_CAP}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {level.cleared && level.unlocked && (
