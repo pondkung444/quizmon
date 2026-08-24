@@ -6,6 +6,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import NativeAppSetup from "@/components/NativeAppSetup";
+import OfflineScreen from "@/components/OfflineScreen";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
 
@@ -69,6 +70,7 @@ export default async function RootLayout({
     <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-text">
         <NativeAppSetup />
+        <OfflineScreen />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}
         <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} />

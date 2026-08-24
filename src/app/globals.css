@@ -367,3 +367,18 @@ body {
     animation: none;
   }
 }
+
+/* signal-searching rings, ใช้กับ OfflineScreen.tsx */
+@keyframes offline-ring {
+  0% {
+    width: 100px;
+    height: 100px;
+    opacity: 0.5;
+  }
+  70%,
+  100% {
+    width: 220px;
+    height: 220px;
+    opacity: 0;
+  }
+}
