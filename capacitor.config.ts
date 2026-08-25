@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   server: {
     url: "https://quizmon.xyz",
     cleartext: false,
+    errorPath: "offline.html",
   },
 };
 
