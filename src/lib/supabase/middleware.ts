@@ -52,9 +52,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /admin/* กันด้วย whitelist email ผ่าน env var (ยังไม่มี role ใน profiles) — ถึงตรงนี้ user
-  // ล็อกอินแล้วแน่ๆ (เช็ค !user ด้านบนดักไปแล้ว) เหลือแค่เช็คว่า email อยู่ใน allowlist ไหม
-  if (request.nextUrl.pathname.startsWith("/admin")) {
+  // /admin/analytics/thepmitr มี allowlist แยกต่างหาก (ANALYTICS_ADMIN_EMAILS) ไม่ใช้ ADMIN_EMAILS
+  // เดิม — หน้านี้ล็อกข้อมูลเฉพาะโรงเรียนเทพมิตรศึกษาให้คนที่ไม่ใช่แอดมินระบบทั่วไปดูได้
+  // เช็คก่อน (else if) กันไม่ให้ตกไปโดน gate ของ /admin/* ด้านล่างที่ใช้ ADMIN_EMAILS ซ้ำอีกชั้น
+  if (request.nextUrl.pathname.startsWith("/admin/analytics/thepmitr")) {
+    const analyticsAdminEmails = (process.env.ANALYTICS_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    const userEmail = user?.email?.toLowerCase();
+
+    if (!userEmail || !analyticsAdminEmails.includes(userEmail)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+  } else if (request.nextUrl.pathname.startsWith("/admin")) {
+    // /admin/* กันด้วย whitelist email ผ่าน env var (ยังไม่มี role ใน profiles) — ถึงตรงนี้ user
+    // ล็อกอินแล้วแน่ๆ (เช็ค !user ด้านบนดักไปแล้ว) เหลือแค่เช็คว่า email อยู่ใน allowlist ไหม
     const adminEmails = (process.env.ADMIN_EMAILS ?? "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
