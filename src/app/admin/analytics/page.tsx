@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getWeeklyLeaderboardTopN, type LeaderboardEntry } from "@/lib/weeklyLeaderboard";
 import StatTile from "@/components/admin/StatTile";
 import QuestionsPerDayChart, { type QuestionsPerDayDatum } from "@/components/admin/QuestionsPerDayChart";
-import SchoolFilterSelect, { type SchoolOption } from "@/components/admin/SchoolFilterSelect";
+import GradeLevelFilterSelect, { type GradeLevelOption } from "@/components/admin/GradeLevelFilterSelect";
 import HardestLessonsCard, { type HardestLessonRow } from "@/components/admin/HardestLessonsCard";
 
 const SUMMARY_WINDOW_DAYS = 7;
@@ -14,6 +14,9 @@ const MIN_ATTEMPTS_FOR_ACCURACY = 20;
 // กันตีความเกินจากข้อมูลน้อยในตาราง struggle segmentation (นักเรียนตอบน้อยเกินจะสรุปพฤติกรรมไม่ได้)
 const MIN_ATTEMPTS_FOR_STRUGGLE = 10;
 const AT_RISK_ROWS_PER_BAND = 15;
+
+const SCHOOL_NAME = "เทพมิตรศึกษา";
+const GRADE_LEVELS = ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"] as const;
 
 type Band = "junior" | "senior";
 
@@ -137,13 +140,18 @@ export default async function AdminAnalyticsPage({
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
+  const analyticsAdminEmails = (process.env.ANALYTICS_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   const userEmail = user?.email?.toLowerCase();
-  if (!userEmail || !adminEmails.includes(userEmail)) {
+  if (!userEmail || !analyticsAdminEmails.includes(userEmail)) {
     redirect("/");
   }
 
-  const { school } = await searchParams;
-  const schoolParam = typeof school === "string" && school !== "" ? school : undefined;
+  const { grade } = await searchParams;
+  const gradeParam =
+    typeof grade === "string" && (GRADE_LEVELS as readonly string[]).includes(grade) ? grade : undefined;
 
   const admin = createAdminClient();
 
@@ -155,7 +163,7 @@ export default async function AdminAnalyticsPage({
     fetchAllEventsSince(admin, isoDaysAgo(DETAIL_WINDOW_DAYS)),
     // active-today + at-risk list: มาจาก quiz_attempts ตรงๆ (server-side insert ทุกครั้ง แม่นกว่า analytics_events)
     fetchAllAttempts(admin),
-    admin.from("profiles").select("id, username, grade_band, school"),
+    admin.from("profiles").select("id, username, grade_band, grade_level, school"),
     // ใช้สร้าง category -> grade_band map (question_answer event props มีแค่ category/subject
     // ไม่มี grade_band ตรงๆ — survey แล้วพบว่า category ไม่ซ้ำข้ามกลุ่มเลย จึง join ทาง category ได้)
     fetchAllQuestionCategoryBands(admin),
@@ -189,39 +197,27 @@ export default async function AdminAnalyticsPage({
   }
 
   // ============================================================
-  // School filter (หน้า 4 ของสเปค) — profiles.school เป็น free text ไม่ใช่ FK ห้าม hardcode
-  // list ตัวเลือกซ้ำกับ dropdown สมัคร ต้องดึงจากข้อมูลจริงเสมอ
-  // "__null__" = กลุ่มไม่ระบุโรงเรียน (36 คนจาก survey 1 ส.ค. 2026 — มากกว่าครึ่ง ต้องมีตัวเลือกแยก
-  // ไม่งั้นข้อมูลกลุ่มใหญ่สุดหายไปเงียบๆ)
+  // Grade level filter — หน้านี้ล็อกให้เห็นแค่ข้อมูลของ SCHOOL_NAME เท่านั้น
+  // (schoolProfiles กรองจาก school ก่อน แล้วนับจำนวนต่อ grade_level มาทำ dropdown)
   // ============================================================
-  const schoolCounts = new Map<string, number>();
-  let noSchoolCount = 0;
-  for (const p of profsRes.data ?? []) {
-    const s = (p.school as string | null) ?? null;
-    if (!s) {
-      noSchoolCount++;
-      continue;
-    }
-    schoolCounts.set(s, (schoolCounts.get(s) ?? 0) + 1);
+  const schoolProfiles = (profsRes.data ?? []).filter((p) => p.school === SCHOOL_NAME);
+  const gradeLevelCounts = new Map<string, number>();
+  for (const p of schoolProfiles) {
+    const g = p.grade_level as string | null;
+    if (!g) continue;
+    gradeLevelCounts.set(g, (gradeLevelCounts.get(g) ?? 0) + 1);
   }
-  const schoolOptions: SchoolOption[] = [
-    { value: "", label: "ทุกโรงเรียน" },
-    ...Array.from(schoolCounts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([s, count]) => ({ value: s, label: `${s} (${count})` })),
-    { value: "__null__", label: `ไม่ระบุโรงเรียน (${noSchoolCount})` },
+  const gradeLevelOptions: GradeLevelOption[] = [
+    { value: "", label: `ทุกระดับชั้น (${schoolProfiles.length})` },
+    ...GRADE_LEVELS.map((g) => ({ value: g, label: `${g} (${gradeLevelCounts.get(g) ?? 0})` })),
   ];
 
-  const schoolFilteredUserIds =
-    schoolParam === undefined
-      ? null
-      : new Set(
-          (profsRes.data ?? [])
-            .filter((p) => (schoolParam === "__null__" ? !p.school : p.school === schoolParam))
-            .map((p) => p.id as string)
-        );
+  const schoolFilteredUserIds = new Set(
+    schoolProfiles
+      .filter((p) => gradeParam === undefined || p.grade_level === gradeParam)
+      .map((p) => p.id as string)
+  );
   function passesSchoolFilter(userId: string | null): boolean {
-    if (!schoolFilteredUserIds) return true;
     if (!userId) return false;
     return schoolFilteredUserIds.has(userId);
   }
@@ -526,9 +522,9 @@ export default async function AdminAnalyticsPage({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gold-hi">Analytics</h1>
-          <p className="text-sm text-text3">ข้อมูลการเล่นของนักเรียน — สำหรับผู้พัฒนาเท่านั้น</p>
+          <p className="text-sm text-text3">ข้อมูลการเล่นของนักเรียนโรงเรียน{SCHOOL_NAME}</p>
         </div>
-        <SchoolFilterSelect options={schoolOptions} />
+        <GradeLevelFilterSelect options={gradeLevelOptions} />
       </div>
 
       {/* บล็อก 1: แถบสรุป */}
