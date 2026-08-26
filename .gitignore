@@ -50,3 +50,4 @@ next-env.d.ts
 *.keystore
 *.p12
 .capgo-credentials.json
+keystore.properties
