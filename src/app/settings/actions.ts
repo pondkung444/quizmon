@@ -23,3 +23,19 @@ export async function updatePushPreferences(update: PushPreferencesUpdate) {
 
   revalidatePath("/settings");
 }
+
+// ลบบัญชี+ข้อมูลทั้งหมดถาวร (ตาม Google Play account deletion requirement) — RPC ฝั่ง DB
+// (delete_own_account, security definer) ใช้ auth.uid() เป็นตัวกำหนดเสมอ ไม่รับ user id จาก client
+// จึงลบได้แค่บัญชีตัวเองเท่านั้น ไม่มี grace period ลบแล้วกู้คืนไม่ได้
+export async function deleteOwnAccount() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("ไม่พบผู้ใช้");
+
+  const { error } = await supabase.rpc("delete_own_account");
+  if (error) throw new Error("ลบบัญชีไม่สำเร็จ: " + error.message);
+
+  await supabase.auth.signOut();
+}
