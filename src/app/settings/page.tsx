@@ -59,6 +59,10 @@ export default async function SettingsPage() {
             ออกจากระบบ
           </button>
         </form>
+        <div className="my-1 border-t border-border" />
+        <Link href="/settings/delete-account" className="block w-full py-3 text-left text-sm font-medium text-red active:opacity-70">
+          ลบบัญชี
+        </Link>
       </section>
 
       <section className="rounded-2xl border border-gold-dim bg-card p-4">
