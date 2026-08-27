@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getTodayInBangkok } from "@/lib/exp";
 import { checkProfanity } from "@/lib/moderation";
 
@@ -128,8 +129,9 @@ export async function shouldShowFeedbackPrompt(): Promise<boolean> {
 export type WrongQuestionOption = { id: number; questionText: string; category: string };
 
 // ดึง 3 ข้อล่าสุดที่ผู้ใช้ตอบผิด (unique question_id) ให้เลือกเป็น flagged_question_ids ตอน
-// content_difficulty = too_hard — join quiz_attempts (RLS select own) กับ questions (RLS read
-// เฉพาะ authenticated) ผ่าน client ปกติ ไม่ต้องใช้ admin
+// content_difficulty = too_hard — อ่าน attempt ผ่าน RLS ก่อน แล้วค่อยใช้ admin อ่าน metadata ของ
+// question IDs ชุดที่พิสูจน์แล้วว่าเป็นประวัติของ user คนนี้ รองรับโจทย์ที่ภายหลังถูก inactive โดย
+// ไม่ต้องเปิด non-active questions ให้ authenticated client อ่านตรง
 export async function getRecentWrongQuestions(): Promise<WrongQuestionOption[]> {
   const supabase = await createClient();
   const {
@@ -150,7 +152,8 @@ export async function getRecentWrongQuestions(): Promise<WrongQuestionOption[]> 
   const uniqueIds = [...new Set((attempts ?? []).map((a) => a.question_id as number))].slice(0, 3);
   if (uniqueIds.length === 0) return [];
 
-  const { data: questions } = await supabase.from("questions").select("id, question_text, category").in("id", uniqueIds);
+  const admin = createAdminClient();
+  const { data: questions } = await admin.from("questions").select("id, question_text, category").in("id", uniqueIds);
 
   const byId = new Map((questions ?? []).map((q) => [q.id as number, q]));
   return uniqueIds
