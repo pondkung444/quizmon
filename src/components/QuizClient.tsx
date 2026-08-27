@@ -44,6 +44,25 @@ const QUIZ_EVENT_PRIORITY: Partial<Record<PersonalityEventKey, number>> = {
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
+// รูปประกอบโจทย์ — วางไว้ระหว่างตัวคำถามกับตัวเลือก รับได้ทั้ง data URI (ค่าปัจจุบัน) และ external
+// URL (เช่น Supabase Storage ในอนาคต) เลยใช้ <img> ธรรมดา ไม่ผ่าน next/image (ไม่ต้องตั้ง
+// remotePatterns / ไม่ optimize data URI อยู่แล้ว) ถ้าโหลดรูปไม่ขึ้นให้ซ่อนไปเงียบๆ ไม่ให้หน้าพัง
+function QuestionImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt="รูปประกอบโจทย์"
+        onError={() => setFailed(true)}
+        className="mx-auto max-h-[45vh] w-full object-contain"
+      />
+    </div>
+  );
+}
+
 const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
   { id: "science", label: "วิทยาศาสตร์", emoji: "🔬" },
@@ -604,6 +623,8 @@ export default function QuizClient({
         </div>
 
         <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
+
+        {current.image_url && <QuestionImage key={current.id} src={current.image_url} />}
 
         <div className="flex flex-col gap-3">
           {current.choices.map((choiceText, choiceIndex) => {
