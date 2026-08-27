@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:questions": "node scripts/import-questions.mjs"
+    "import:questions": "node scripts/import-questions.mjs",
+    "upload:question-image": "node scripts/upload-question-image.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
