@@ -16,6 +16,9 @@ export type PublicQuestion = {
   difficulty: number;
   question_text: string;
   choices: string[];
+  // รูปประกอบโจทย์ — null ถ้าไม่มี ค่าที่มีตอนนี้เป็น data URI (data:image/...;base64,...) แต่
+  // รองรับ external URL (เช่น Supabase Storage ในอนาคต) ได้เลยโดยไม่ต้องแก้โค้ด
+  image_url: string | null;
 };
 
 // ใช้ตอนเล่นจริง: มีเฉลย+คำอธิบายติดมาด้วย เพื่อให้ client เช็คถูก/ผิดเองได้ทันที

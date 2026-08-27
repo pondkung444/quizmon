@@ -228,7 +228,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
 
   const { data: rows, error } = await admin
     .from("questions")
-    .select("id, subject, category, difficulty, question_text, choices, correct_index, explanation")
+    .select("id, subject, category, difficulty, question_text, choices, correct_index, explanation, image_url")
     .in("id", pickedIds);
   if (error) throw new Error(error.message);
 
@@ -242,6 +242,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
         difficulty: r.difficulty,
         question_text: r.question_text,
         choices: r.choices,
+        image_url: r.image_url ?? null,
         correctIndex: r.correct_index,
         explanation: r.explanation,
       } satisfies QuizRoundQuestion,
