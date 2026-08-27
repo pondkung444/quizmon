@@ -24,9 +24,9 @@
 |---|---|---|
 | 4.2 | [phase-4.2-product-mapping-contract.md](phase-4.2-product-mapping-contract.md) | Production surveyed read-only |
 | 4.3 | [phase-4.3-rls-storage-permission-plan.md](phase-4.3-rls-storage-permission-plan.md) | Security contract |
-| 4.4 | [phase-4.4-migration-sql-review.md](phase-4.4-migration-sql-review.md) | Migration review |
+| 4.4/4.5 | [phase-4.4-migration-sql-review.md](phase-4.4-migration-sql-review.md) | 001/002/003 applied and verified |
 | 4.4a | [phase-4.4a-client-storage-audit.md](phase-4.4a-client-storage-audit.md) | Compatibility evidence |
-| 4.4b | [phase-4.4b-002-003-completion.md](phase-4.4b-002-003-completion.md) | 002/003 implementation complete; deployment pending |
+| 4.4b | [phase-4.4b-002-003-completion.md](phase-4.4b-002-003-completion.md) | 002/003 applied and verified |
 
 ## Review SQL
 
@@ -35,5 +35,4 @@
 - [003_question_images_remove_anon_writes.review.sql](migrations/003_question_images_remove_anon_writes.review.sql)
 - [verify_question_factory_phase_4.review.sql](migrations/verify_question_factory_phase_4.review.sql)
 
-The `.review.sql` files are review artifacts and must not be treated as applied production migrations. Executable repository migrations for 002 and 003 live under `supabase/migrations/` and must follow the deployment order documented in Phase 4.4b.
-
+The `.review.sql` files are retained as review artifacts. Executable repository migrations for 001, its composite-FK index hardening, 002, and 003 live under `supabase/migrations/` and match production migration history.

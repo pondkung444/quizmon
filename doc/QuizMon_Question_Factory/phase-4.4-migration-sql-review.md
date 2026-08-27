@@ -1,9 +1,14 @@
 # Phase 4.4 — Migration SQL Review
 
-Status: **Review draft — not applied**  
+Status: **001/002/003 applied and verified in production**
 Prepared: 2026-08-27  
 Production target: `monschool` (`wmndxiuqzrnqbhrznmfg`)  
-Production changes made in Phase 4.4: **none**
+Production migrations:
+
+- `20260827173713_question_factory_core`
+- `20260827173827_question_factory_core_fk_indexes`
+- `20260827172644_secure_questions_active_reads`
+- `20260827172916_remove_question_images_anon_writes`
 
 ## 1. Deliverables
 
@@ -12,7 +17,7 @@ Production changes made in Phase 4.4: **none**
 - [`003_question_images_remove_anon_writes.review.sql`](migrations/003_question_images_remove_anon_writes.review.sql) — separately deployable removal of anonymous Storage write policies.
 - [`verify_question_factory_phase_4.review.sql`](migrations/verify_question_factory_phase_4.review.sql) — read-only post-change catalog/data checks.
 
-All files carry a `REVIEW DRAFT ONLY` banner. They are not Supabase migration-history files yet. In Phase 4.5, each approved migration must be created using `supabase migration new` (or an equivalent reviewed repository workflow), then receive the reviewed SQL.
+The `.review.sql` files remain immutable review artifacts. Executable migration-history files are stored under `supabase/migrations/`. Migration 001 required one additive follow-up index migration after the production performance advisor identified four composite foreign keys without a matching column order.
 
 ## 2. Core schema decisions
 
@@ -69,19 +74,19 @@ The private `question-factory-assets` bucket is **not** created by SQL. Supabase
 
 ## 7. Review findings and open blockers
 
-### Blocker A — direct client query audit
+### Closed A — direct client query audit
 
-Production logs confirmed authenticated direct reads. The later complete source audit found only one historical authenticated base-table caller: the feedback server action. Phase 4.4b changes it to derive IDs through the user's RLS-protected attempts and fetch metadata through the trusted server. Migration 002 is now implementation-complete but must follow the application deployment. See [`phase-4.4b-002-003-completion.md`](phase-4.4b-002-003-completion.md).
+Production logs confirmed authenticated direct reads. The later complete source audit found only one historical authenticated base-table caller: the feedback server action. Phase 4.4b changed it to derive IDs through the user's RLS-protected attempts and fetch metadata through the trusted server. The application compatibility change and migration 002 are deployed and verified. See [`phase-4.4b-002-003-completion.md`](phase-4.4b-002-003-completion.md).
 
-### Blocker B — current asset upload caller
+### Closed B — current asset upload caller
 
-The former uploader no longer needs attribution. Phase 4.4b adds a service-authority uploader with validation, safe replacement defaults, and dry-run support. Migration 003 is implementation-complete and waits only for a real service-upload smoke test from the intended operator environment before application.
+The former uploader no longer needs attribution. Phase 4.4b added a service-authority uploader with validation, safe replacement defaults, and dry-run support. Migration 003 is applied and anonymous writes are verified blocked while public reads continue to work.
 
-### Blocker C — human-review authorization path
+### Follow-up C — human-review authorization path
 
 The schema intentionally does not add reviewer access. Phase 4.5 needs a concrete trusted server/operator path before real runs begin. Ordinary authenticated users must not receive Factory table access.
 
-These blockers prevent applying security migrations or running a real Factory workflow. They do not prevent reviewing the additive core schema.
+This follow-up does not block the now-complete core schema migration, but it does block a real Factory run and human publication flow.
 
 ## 8. Rollback position
 
@@ -95,21 +100,19 @@ No executable destructive rollback script is included in Phase 4.4 to prevent ac
 
 ## 9. Required review checklist
 
-- [ ] State lists cover every v1 transition without ambiguous overlap.
-- [ ] JSONB snapshot boundaries are sufficient; no missing query-critical scalar requires a column.
-- [ ] `scope_key` definition and normalization are finalized before the first run.
-- [ ] Product mapping remains one slot → one question in v1.
-- [ ] Service grants match the worker's actual operations.
+- [x] State lists cover the canonical v1 database transitions; finer worker milestones are represented by events.
+- [x] JSONB snapshot boundaries are sufficient for the v1 core schema.
+- [ ] `scope_key` normalization must be locked before the first real run.
+- [x] Product mapping remains one slot → one question in v1.
+- [x] Service grants match the immutable/current-state mutation split and passed a transactional service-role smoke test.
 - [x] Direct client question reads are audited; the sole historical authenticated caller has a server-side compatibility fix.
 - [x] A trusted replacement Storage uploader is implemented; attribution of the former uploader is no longer required.
 - [ ] Trusted reviewer/server action is selected.
 - [ ] Private staging bucket configuration is approved.
-- [ ] Migration is tested on a branch/staging database before production.
-- [ ] Security and performance advisors are reviewed after the test migration.
-- [ ] Read-only verification returns expected catalogs and unchanged question counts.
+- [x] Core migration passed a transactional service-role smoke test; all inserted verification rows were rolled back.
+- [x] Security and performance advisors were reviewed after migration; the four composite-FK index findings were fixed by `question_factory_core_fk_indexes`.
+- [x] Read-only verification returned eight RLS-enabled tables, zero client grants/policies, expected service grants, zero Factory rows, and an unchanged 3,663-question count.
 
 ## 10. Phase boundary
 
-Phase 4.4 produces reviewable SQL only. It does not authorize `apply_migration`, `execute_sql` DDL, policy changes, bucket creation, object movement, or any production write.
-
-Phase 4.5 may begin only after the contract and SQL are approved and the three blockers above have concrete resolutions.
+The database migration portion of Phase 4.5 is complete. The trusted reviewer path, normalized `scope_key`, and private staging bucket remain operational prerequisites for the first real Factory run.

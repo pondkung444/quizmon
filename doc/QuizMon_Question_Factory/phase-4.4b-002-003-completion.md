@@ -1,12 +1,12 @@
 # Phase 4.4b — Questions Read and Storage Write Hardening
 
-Status: **Implementation complete; not deployed or applied to production**  
+Status: **Deployed, applied, and verified in production**
 Prepared: 2026-08-28  
 Production target: `monschool` (`wmndxiuqzrnqbhrznmfg`)
 
 ## Outcome
 
-The compatibility work required before migrations 002 and 003 is now implemented in a local QuizMon source checkout.
+The compatibility work required before migrations 002 and 003 was deployed, and both migrations were applied and verified in production.
 
 ### 002 — active-only learner reads
 
@@ -68,9 +68,11 @@ The migration files were created with `supabase migration new`, not invented man
 - Whole-project TypeScript `--noEmit`: passed.
 - Uploader dry-run against a local SVG: passed; resolved bucket, `q3555.svg`, MIME, byte size, replacement flag, and dry-run state correctly.
 - Production policies and grants were re-read before finalizing migration preconditions.
-- No production database, Storage policy, object, or deployed application was changed.
+- Production migration history records `20260827172644_secure_questions_active_reads` and `20260827172916_remove_question_images_anon_writes`.
+- Authenticated reads return active questions only; ordinary client writes remain unavailable.
+- Anonymous Storage upload/update fails, public image download remains available, and the trusted service uploader path remains available.
 
-## Required deployment order
+## Deployment order completed
 
 1. Review and deploy the `getRecentWrongQuestions()` application change.
 2. Smoke-test feedback selection for recent wrong questions.
@@ -82,9 +84,8 @@ The migration files were created with `supabase migration new`, not invented man
 8. Verify anonymous upload and update fail while public download and service upload still succeed.
 9. Run Supabase security/performance advisors.
 
-Do not reverse steps 1–4. Do not apply 003 until the trusted uploader has completed a real Storage API smoke test from its intended execution environment.
+All steps above were completed in order. Keep this sequence as the rollback/audit reference.
 
 ## Remaining boundary
 
-002 and 003 are no longer design blockers. They are deployment-gated changes. Applying them to production still requires an explicit production-change approval after the source change is placed in the real QuizMon repository/deployment path.
-
+002 and 003 are closed. The remaining operational boundary is the private Factory staging bucket and trusted human-review/publish path required before the first real Factory run.
