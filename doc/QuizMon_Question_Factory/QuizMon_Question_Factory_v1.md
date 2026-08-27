@@ -1,0 +1,784 @@
+# QuizMon Question Factory v1
+
+**Status:** Locked direction for QuizMon question production  
+**Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
+
+---
+
+## 1. Long-term Design Principle
+
+Question Factory ต้องแยก 3 ส่วนออกจากกันอย่างชัดเจน
+
+1. **Factory Core** — ลูปการผลิตข้อสอบที่ไม่ขึ้นกับระดับชั้นหรือวิชา
+2. **Skills** — กติกาการทำงานของ Author / QC / Asset
+3. **Curriculum & Content Profiles** — สิ่งที่เปลี่ยนตามหลักสูตร ระดับชั้น วิชา chapter และ learning objective
+
+หลักสำคัญ:
+
+> Factory Core ต้องไม่รู้โดยตรงว่า “ม.ต้น”, “ม.ปลาย”, “ประถม”, “ฟิสิกส์” หรือ “ชีววิทยา” คืออะไร  
+> มันควรทำงานจาก Profile / Blueprint ที่ได้รับ
+
+ห้าม hardcode ระบบให้ติดกับ:
+- junior
+- ม.1–3
+- 4 choices
+- target 80 ข้อ
+- difficulty 1–3
+- SVG only
+- Thailand only
+- single-choice only
+
+สิ่งเหล่านี้ควรเป็น **Profile / Configuration**
+
+---
+
+## 2. Factory Core Workflow
+
+```text
+Curriculum Target
+      ↓
+Existing Bank Audit
+      ↓
+Learning Objectives
+      ↓
+Coverage Blueprint
+      ↓
+Question Author
+      ↓
+Question QC + Subject Rules
+      ↓
+Representation Router
+  ↙       ↓       ↘
+none     SVG      WebP
+          ↓
+       Asset QC
+          ↓
+    pending_review
+          ↓
+     Human Review
+      ↙       ↘
+   reject     approve
+     ↓           ↓
+  revision      active
+                 ↓
+          Coverage Recount
+                 ↓
+          next batch / done
+```
+
+สถานะหลักของข้อ:
+
+```text
+draft
+→ qc_failed / image_pending
+→ pending_review
+→ active
+```
+
+สถานะเสริมที่รองรับในอนาคต:
+- rejected
+- archived
+
+**v1 ห้าม auto-active**  
+ทุกข้อจะต้องผ่าน `pending_review → human approval → active`
+
+---
+
+## 3. Core Roles / Agents
+
+### 3.1 Factory Manager / Orchestrator
+
+หน้าที่:
+- รับเป้าหมายการผลิต
+- query คลังข้อเดิม
+- คำนวณ coverage gap
+- เลือก batch size
+- สั่ง Question Author
+- ส่ง Question QC
+- route ไป Image Builder เมื่อจำเป็น
+- ส่ง Image QC
+- จัดการ reject / revise loop
+- เปลี่ยนสถานะไป `pending_review`
+- รอ Human Approval
+- activate หลังอนุมัติ
+- recount จนถึง target
+- ไป chapter / learning objective ถัดไป
+
+ตัวอย่าง Input:
+
+```yaml
+education_system: thai
+education_stage: lower_secondary
+grade: 3
+subject: math
+chapter: ความคล้าย
+target_active: 80
+batch_size: 10
+review_mode: human_required
+```
+
+---
+
+## 4. Skills in Question Factory v1
+
+### Skill 1 — `question-factory-orchestrator`
+
+กติกาของ Factory Manager
+
+ครอบคลุม:
+- run lifecycle
+- coverage calculation
+- batch scheduling
+- rejection handling
+- state transitions
+- human approval gate
+- completion criteria
+
+---
+
+### Skill 2 — `question-authoring`
+
+สร้างคำถามจาก Blueprint แบบ structured
+
+Output อย่างน้อย:
+
+```json
+{
+  "question_text": "...",
+  "choices": ["...", "...", "...", "..."],
+  "correct_index": 2,
+  "explanation": "...",
+  "difficulty": 2,
+  "cognitive_demand": "apply",
+  "question_archetype": "calculation",
+  "representation_type": "svg_geometry",
+  "needs_image": true,
+  "image_prompt": "..."
+}
+```
+
+กฎกลาง:
+- มีคำตอบถูกชัดเจน
+- distractor สมเหตุผล
+- ห้ามสร้าง near-duplicate โดยเปลี่ยนแค่ตัวเลข
+- balance ความยาวของ choices
+- ไม่ออกเกิน curriculum scope
+- explanation ต้องสอดคล้องกับ correct answer
+- ถ้าต้องมีรูปให้ระบุ representation และ image_prompt ก่อน
+
+---
+
+### Skill 3 — `question-qc`
+
+Reviewer ต้องตรวจโดยไม่เชื่อ output จาก Author
+
+ตรวจ:
+- answer correctness
+- correct_index
+- ambiguity
+- multiple valid answers
+- explanation correctness
+- curriculum fit
+- learning objective fit
+- difficulty fit
+- cognitive demand fit
+- distractor quality
+- answer-length bias
+- duplicate / near duplicate
+- numerical consistency
+- wording / reading level
+
+Output:
+
+```json
+{
+  "result": "reject",
+  "severity": "major",
+  "issues": [
+    {
+      "type": "math_error",
+      "message": "..."
+    }
+  ]
+}
+```
+
+หรือ
+
+```json
+{
+  "result": "pass",
+  "issues": []
+}
+```
+
+---
+
+### Skill 4 — `question-image-builder`
+
+รองรับ representation หลายชนิด ไม่ผูกกับ geometry
+
+Representation ที่ควรรองรับ:
+
+```text
+none
+svg_geometry
+svg_graph
+svg_scientific_diagram
+svg_circuit
+svg_structure
+table
+equation
+webp_real_image
+```
+
+มาตรฐานรูปอ้างอิง:
+`quizmon-question-image-standard.md`
+
+สำหรับ diagram / geometry / graph:
+- SVG
+- ~980×520
+- white background
+- #111
+- stroke-width ~6
+- Arial Bold
+- label อ่านชัดบนมือถือ
+- label ห้ามทับเส้น
+- upload Supabase Storage
+- filename `q{question_id}.svg`
+- DB เก็บ URL เท่านั้น
+- ต้องมี `image_prompt`
+
+สำหรับภาพจริง:
+- WebP
+- ≤ ~50 KB
+
+---
+
+### Skill 5 — `question-image-qc`
+
+ตรวจ Asset แยกจาก Image Builder
+
+#### Semantic QC
+- ตัวเลขตรงโจทย์
+- labels ตรง
+- geometry / circuit / structure ตรง
+- correspondence ถูก
+- ไม่มีข้อมูลเฉลยหลุด
+- ไม่มีข้อมูลเกินโจทย์
+- representation ตรงประเภท
+
+#### Visual QC
+- file format
+- dimensions
+- font
+- contrast
+- label overlap
+- mobile readability
+- filename
+- Storage URL
+- file size
+- image_prompt
+
+---
+
+## 5. Curriculum / Content Profile
+
+Factory ไม่ควร target แค่ `chapter + จำนวนข้อ`
+
+ควรใช้:
+
+```text
+Curriculum
+→ Education Stage
+→ Grade
+→ Subject
+→ Chapter
+→ Learning Objective
+→ Cognitive Demand
+→ Question Archetype
+→ Representation Type
+```
+
+ตัวอย่าง:
+
+```yaml
+curriculum:
+  system: thai_basic_education_2551_rev2560
+
+education_stage: upper_secondary
+grade: 11
+subject: physics
+
+chapter:
+  id: electric_current
+  title: กระแสไฟฟ้า
+
+learning_objectives:
+  - id: phy_xxx
+    source: ipst
+    statement: ...
+
+coverage:
+  target: 80
+
+cognitive_demand:
+  recall: 5
+  understand: 15
+  apply: 35
+  analyze: 35
+  evaluate: 10
+
+question_archetypes:
+  conceptual: 15
+  calculation: 25
+  graph_interpretation: 10
+  circuit_analysis: 15
+  experimental_data: 10
+  application: 5
+
+representations:
+  none: 30
+  svg_circuit: 25
+  svg_graph: 15
+  table: 10
+```
+
+---
+
+## 6. Five Dimensions Required for Long-term Coverage
+
+หลังตรวจหลักสูตรไทย ม.ปลายของฟิสิกส์ เคมี ชีววิทยา Question Factory ต้องมี 5 มิติหลักต่อไปนี้
+
+### 6.1 Learning Objective
+
+ใช้ผลการเรียนรู้ / ตัวชี้วัดเป็นหน่วย coverage
+
+ห้ามนับเพียงจำนวนข้อใน chapter
+
+---
+
+### 6.2 Cognitive Demand
+
+แยกจาก difficulty
+
+```text
+recall
+understand
+apply
+analyze
+evaluate
+```
+
+`difficulty` = ความยากต่อผู้เรียน  
+`cognitive_demand` = ระดับกระบวนการคิดที่ข้อกำลังวัด
+
+---
+
+### 6.3 Question Archetype
+
+taxonomy กลาง:
+
+```text
+conceptual
+calculation
+data_interpretation
+graph_interpretation
+diagram_interpretation
+experimental_design
+application
+multi_step
+comparison
+cause_effect
+```
+
+Subject profile สามารถเพิ่ม archetype เฉพาะ เช่น:
+- Physics: vector_analysis, circuit_analysis
+- Chemistry: reaction_prediction
+- Biology: pedigree_analysis
+
+---
+
+### 6.4 Representation Type
+
+```text
+none
+svg_geometry
+svg_graph
+svg_scientific_diagram
+svg_circuit
+svg_structure
+table
+equation
+webp_real_image
+```
+
+---
+
+### 6.5 Subject QC Profile
+
+Core Reviewer เหมือนกัน แต่มี specialist rules
+
+#### Physics QC
+- units
+- significant figures
+- vector direction
+- sign convention
+- physical feasibility
+- graph correctness
+
+#### Chemistry QC
+- chemical formula
+- balanced equation
+- charge
+- oxidation number
+- mole ratio
+- nomenclature
+- structural representation
+
+#### Biology QC
+- terminology
+- biological mechanism
+- taxonomic correctness
+- diagram labeling
+- oversimplification
+- experimental interpretation
+
+---
+
+## 7. Flexibility by Education Stage
+
+### Primary Example
+
+```yaml
+stage: primary
+grade: 5
+subject: science
+
+choice_count: 4
+
+cognitive_mix:
+  recall: 25
+  understand: 40
+  apply: 30
+  analyze: 5
+```
+
+### Lower Secondary Example
+
+```yaml
+stage: lower_secondary
+grade: 3
+subject: math
+
+question_archetypes:
+  conceptual: 10
+  calculation: 45
+  diagram_interpretation: 30
+  application: 15
+```
+
+### Upper Secondary Example
+
+```yaml
+stage: upper_secondary
+grade: 11
+subject: physics
+
+question_archetypes:
+  conceptual: 20
+  calculation: 30
+  graph_interpretation: 15
+  experimental_data: 15
+  multi_step: 20
+```
+
+---
+
+## 8. Answer Format Flexibility
+
+Factory Core ห้าม assume ว่ามี 4 choices เสมอ
+
+Profile ต้องกำหนดได้:
+
+```text
+choice_count: 3 / 4 / 5
+```
+
+และเผื่ออนาคต:
+
+```text
+answer_type:
+- single_choice
+- multiple_choice
+- numeric
+- short_answer
+```
+
+QuizMon ปัจจุบันยังใช้ single-choice เป็นหลัก แต่ Factory ต้องไม่ถูกผูกกับข้อจำกัด UI ปัจจุบัน
+
+---
+
+# Implementation Plan
+
+## Phase 1 — Lock Factory Contract
+
+### เป้าหมาย
+กำหนด contract กลางของระบบก่อนทำ automation
+
+### งาน
+- ล็อก input/output schema
+- ล็อก state lifecycle
+- กำหนด ownership ของแต่ละ agent
+- กำหนด reject/revise flow
+- กำหนด human approval gate
+- กำหนด run completion criteria
+- กำหนด error/retry rules
+- กำหนดว่า product DB และ factory workflow data แยกกันอย่างไร
+
+### Deliverable
+`question-factory-contract-v1.md`
+
+### Decision Gate
+ต้องตอบได้ชัด:
+- ใครสร้าง
+- ใครตรวจ
+- ใครแก้
+- ใคร publish
+- state ใดเปลี่ยนเป็น state ใดได้
+
+---
+
+## Phase 2 — Build Skill Specifications
+
+### เป้าหมาย
+สร้าง Skill ที่ใช้ซ้ำได้
+
+### งาน
+สร้าง:
+1. `question-factory-orchestrator.md`
+2. `question-authoring-skill.md`
+3. `question-qc-skill.md`
+4. `question-image-builder-skill.md`
+5. `question-image-qc-skill.md`
+
+Dependency:
+- `quizmon-question-image-standard.md`
+
+### Deliverable
+Skill specs ครบ 5 ตัว
+
+### Decision Gate
+ทุก skill ต้องมี:
+- Purpose
+- Input
+- Output
+- Rules
+- Failure conditions
+- Examples
+
+---
+
+## Phase 3 — Curriculum / Profile Schema
+
+### เป้าหมาย
+ทำให้ Factory รองรับหลายระดับและหลายวิชาโดยไม่ hardcode
+
+### งาน
+ออกแบบ schema สำหรับ:
+- education_system
+- education_stage
+- grade
+- subject
+- domain
+- chapter
+- topic
+- learning_objective
+- cognitive_demand
+- question_archetype
+- representation_type
+- difficulty
+- choice_count
+- answer_type
+- coverage target
+- subject QC profile
+
+### Deliverable
+`question-factory-profile-schema-v1.md`
+
+พร้อมตัวอย่าง:
+- Primary Science
+- Junior Math
+- Senior Physics
+- Senior Chemistry
+- Senior Biology
+
+### Decision Gate
+Profile ต้องสามารถ represent ทุกตัวอย่างโดยไม่แก้ Factory Core
+
+---
+
+## Phase 4 — Factory State & DB Integration
+
+### เป้าหมาย
+แยก workflow metadata จาก product question data
+
+### เสนอ Table
+`question_factory_runs`
+
+ตัวอย่างข้อมูล:
+- run_id
+- profile_id
+- target_count
+- initial_active
+- generated_count
+- qc_passed
+- qc_failed
+- pending_review
+- activated
+- status
+
+`question_factory_items`
+
+ตัวอย่าง:
+- run_id
+- question_id
+- author_status
+- qc_status
+- asset_status
+- review_status
+- failure_reason
+- revision_count
+
+### หลักการ
+`questions` = Product Data  
+Factory tables = Production Workflow
+
+### Deliverable
+DB design + migration proposal
+
+### Decision Gate
+Factory สามารถลบทิ้ง/เปลี่ยน implementation ได้โดยไม่ทำให้ QuizMon gameplay พัง
+
+---
+
+## Phase 5 — Pilot Run
+
+### Pilot Candidate
+`ม.1 → ทศนิยมและเศษส่วน`
+
+เหตุผล:
+- มีข้อเดิมน้อย
+- ต้องเติมจำนวนมาก
+- มีหลาย archetype แต่ asset complexity ไม่สูงเท่า geometry
+- เหมาะตรวจลูป Author/QC ก่อน
+
+### Flow
+1. audit คลังเดิม
+2. map learning objectives
+3. build coverage blueprint
+4. generate batch
+5. Question QC
+6. Asset flow ถ้าจำเป็น
+7. pending_review
+8. Human Review
+9. active
+10. recount
+11. repeat
+
+### Metrics
+- QC rejection rate
+- Human rejection rate
+- duplicate rate
+- correction rate
+- time per 10 questions
+- percentage needing manual intervention
+
+### Deliverable
+Pilot report
+
+### Decision Gate
+ต้องลด manual flow จากเดิมได้จริง โดยไม่ลดคุณภาพ
+
+---
+
+## Phase 6 — Semi-Automatic Question Factory
+
+### เป้าหมาย
+ให้ Factory เดินเองจนถึง `pending_review`
+
+ตัวอย่าง summary ที่ Human ได้:
+
+```text
+Run: Math M1 — Decimal & Fractions
+Generated: 20
+Question QC passed: 17
+Question QC rejected: 3
+Assets required: 4
+Asset QC passed: 4
+Pending human review: 17
+```
+
+Human ทำหน้าที่:
+- approve
+- reject
+- direction correction
+
+Factory ทำ:
+- generate
+- QC
+- revise
+- asset generation
+- asset QC
+- upload
+- queue
+
+### v1 Boundary
+ยังไม่ auto-active
+
+### Future Option
+เมื่อมีข้อมูล validation มากพอ อาจเปิด auto-active เฉพาะ:
+- low-risk question types
+- no-image questions
+- profile ที่มี historical QC precision สูง
+
+---
+
+# 9. Coverage Blueprint Principle
+
+เป้าหมายเช่น “80 ข้อต่อบท” เป็นแค่ minimum quantity
+
+Factory ต้องตรวจ coverage matrix ด้วย
+
+ตัวอย่าง `ความคล้าย`:
+
+| Subtopic / Archetype | Target |
+|---|---:|
+| แนวคิดรูปคล้าย | 5 |
+| มุมคู่สมนัย / AA | 10 |
+| ด้านคู่สมนัย / SSS | 12 |
+| Scale factor | 12 |
+| เส้นขนานในสามเหลี่ยม | 18 |
+| Perimeter / Area | 10 |
+| Application | 8 |
+| Mixed / multi-step | 5 |
+| **รวม** | **80** |
+
+ดังนั้น `target_count` ไม่เท่ากับ `coverage_complete`
+
+บทจะเสร็จเมื่อ:
+- quantity target ผ่าน
+- learning objective coverage ผ่าน
+- cognitive mix ผ่าน
+- archetype mix ผ่าน
+- representation mix ผ่าน
+- QC ผ่าน
+
+---
+
+# 10. Core Principle for QuizMon Going Forward
+
+> QuizMon Question Factory ไม่ใช่ระบบ “ให้ AI แต่งข้อสอบจำนวนมาก”  
+> แต่เป็น Question Production Line ที่มี Curriculum → Blueprint → Author → Independent QC → Asset → Asset QC → Human Approval → Publish
+
+Question Factory v1 จะเป็นแนวทางกลางสำหรับการสร้างคลังข้อสอบ QuizMon ต่อจากนี้
