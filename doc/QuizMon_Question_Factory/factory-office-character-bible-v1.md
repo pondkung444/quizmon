@@ -14,6 +14,7 @@ Approved: 2026-08-28
 - [Image Builder approved action sheet](assets/factory-office/image-builder-actions-approved-v1.png)
 - [Image QC approved action sheet](assets/factory-office/image-qc-actions-approved-v1.png)
 - [Publisher approved action sheet](assets/factory-office/publisher-actions-approved-v1.png)
+- [Office overview environment concept](assets/factory-office/office-overview-environment-approved-v1.png)
 
 These images define the visual identity for future Factory Office character and action work. Generated variants must preserve the approved proportions, outline weight, eye rendering, cel shading and warm presentation.
 
@@ -64,7 +65,7 @@ Temporary expressions, poses and secondary props may change. Slot numbers, check
 5. Image QC action sheet — approved
 6. Publisher action sheet — approved
 7. shared office props and work-folder states
-8. office workstation/environment concept
+8. office workstation/environment concept — approved
 
 Each action sheet remains a concept reference until explicitly approved. Production sprites will later be separated, normalized to a common canvas and checked at mobile display size.
 

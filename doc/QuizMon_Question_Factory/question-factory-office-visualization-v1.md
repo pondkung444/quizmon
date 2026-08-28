@@ -165,6 +165,16 @@ Two views are planned:
 
 The office overview must remain useful without animation and under reduced-motion accessibility settings.
 
+## 8.1 Approved Office Overview direction
+
+The approved environment reference is [Office overview environment concept v1](assets/factory-office/office-overview-environment-approved-v1.png).
+
+The Office Overview uses a warm three-quarter management-game view with a U-shaped production flow. Factory Manager oversees the room from the back-center coordination station. The remaining role stations follow the production path from Question Author and Question QC through Image Builder, Image QC, the unoccupied Human Review waiting area and Publisher.
+
+The shared transfer surface is office furniture rather than industrial machinery. Its main folder progression is white queued, blue authoring, purple asset work, yellow pending human review and green approved. Red revision work returns toward the authoring side; grey technical failures leave the main path for an explicit holding state.
+
+The environment, workers, folders, state indicators and transfer-path overlays must remain separable implementation layers. The approved image is a composition and visual-language reference, not a single baked production background.
+
 ## 9. First visual prototype
 
 The first character prototype will be Question Author because it exercises the most reusable actions:
