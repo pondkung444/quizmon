@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.0 worker skeleton complete; Phase 5.1 audit and blueprint is next
+**Status:** Phase 5.1 audit and deterministic blueprint complete; Phase 5.2 text loop is next
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -19,16 +19,17 @@ This section is the current execution source of truth. The original Phase 1–6 
 - Phase 4.6: Factory Office visual foundation completed: six workers, 47 semantic actions, production environment, deterministic state/event projection, server-only production reader and admin preview.
 - Phase 4.7: `public.curriculum_chapters` adopted as the canonical registry. All 95 rows have a deterministic `chapter_key`; null-safe natural uniqueness, route constraints, least-privilege grants, repository migration and server-only resolver are implemented and verified in production.
 - Phase 5.0: atomic Run/snapshot/slot/event initialization plus optimistic `created → running` transition deployed and smoke-verified with idempotent replay, stale-version rejection and rollback cleanup.
+- Phase 5.1: exact read-only bank audit and deterministic gap Blueprint implemented; production evidence covers all 95 registry chapters and no real Run was created.
 
 Production currently contains the eight Factory tables, but `question_factory_runs`, `question_factory_slots` and `question_factory_events` contain no real run yet. No pilot question production has started.
 
 ### Current phase
 
-> **Phase 5.1 — Audit and Blueprint**
+> **Phase 5.2 — Text Question Loop**
 
 The curriculum gate is closed. The worker can now resolve a `chapter_key` server-side, verify its stage/grade/product route, and pin an immutable resolved snapshot before creating a Run. The 151 grandfathered questions with null curriculum metadata remain legacy-only and are not valid templates for new Factory output.
 
-Phase 5.0 passed its exit gate. The next work is a read-only existing-bank audit scoped through the pinned curriculum identity, followed by a deterministic resolved Blueprint whose slots can be passed to the deployed initialization primitive. See the completed evidence in [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md).
+Phase 5.1 passed its exit gate. The next work consumes one immutable Blueprint Slot through Author → Question QC → revise/reject/pass without assets or product writes. See [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md).
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 
@@ -38,7 +39,7 @@ Phase 4.7 production evidence: migration history `20260828105201_curriculum_chap
 |---|---|---|---|
 | 4.7 — Curriculum registry bridge (complete) | Adopt `curriculum_chapters` as the canonical chapter lookup; lock identity, uniqueness, snapshot and legacy rules | Manager/run selection can display the canonical chapter label | Passed in production on 2026-08-28 |
 | 5.0 — Worker skeleton (complete) | Run, snapshot, slot and append-only event lifecycle with retry/idempotency | Existing Office reader starts projecting persisted run/slot/event state | Passed in production on 2026-08-28 |
-| 5.1 — Audit and blueprint | Existing-bank audit, coverage gaps and immutable resolved blueprint | Manager monitoring, queued folders and run progress | Same inputs produce a deterministic locked blueprint |
+| 5.1 — Audit and blueprint (complete) | Existing-bank audit, coverage gaps and immutable resolved blueprint | Manager monitoring, queued folders and run progress | Passed on 2026-08-28; no real Run created |
 | 5.2 — Text question loop | Author → Question QC → revision/reject/pass, without assets or product writes | Author and Question QC actions become live | Contract fixtures pass; revision limits and terminal failures are enforced |
 | 5.3 — Asset loop | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Semantic, visual and technical asset QC pass; no anonymous/product-bucket write |
 | 5.4 — Review and publish | Trusted human review, Product Mapping Adapter and idempotent publish/promotion | Yellow review wait, human decision and Publisher actions become live | No client/service-key exposure; approve/revise/reject/publish are auditable |

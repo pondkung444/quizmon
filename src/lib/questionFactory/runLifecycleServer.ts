@@ -69,7 +69,9 @@ function validateInput(input: CreateFactoryRunInput): void {
   if (!isQuestionFactoryScopeKey(input.scopeKey)) throw new Error("Invalid Question Factory scope key");
   if (!input.createdBy.trim()) throw new Error("createdBy is required");
   positiveInteger(input.targetActive, "targetActive");
-  if (input.slots.length !== input.targetActive) throw new Error("Slot count must equal targetActive");
+  const maxGeneratedItems = input.maxGeneratedItems ?? Math.max(120, input.targetActive);
+  if (input.slots.length === 0) throw new Error("A run requires at least one coverage-gap slot");
+  if (input.slots.length > maxGeneratedItems) throw new Error("Slot count exceeds maxGeneratedItems");
 
   const keys = new Set<string>();
   const ordinals = new Set<number>();

@@ -70,3 +70,5 @@ Observed evidence:
 Phase 5.0 passed. Initialization is atomic and restart-safe, and the first transition proves the required optimistic current-state-plus-event pattern. Its smoke evidence was `created → running`, `state_version 0 → 1`, exactly one `RUN_STARTED`, exact replay without duplication, stale-version rejection, client EXECUTE denial, and 0/0/0 Runs/Slots/Events after rollback.
 
 Phase 5.1 may now implement the existing-bank audit and deterministic locked Blueprint using these persistence primitives.
+
+Post-completion correction: Phase 5.1 integration proved that `target_active` is the whole-bank target while Slots are only the audited gap. Migration `20260828130000_fix_question_factory_create_run_slot_gap.sql` removed the incorrect equality rule, records `planned_gap_slots`, and passed a target-20/gap-10 rollback regression. This correction does not change the Phase 5.0 transaction/idempotency guarantees.
