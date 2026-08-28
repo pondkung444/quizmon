@@ -1,6 +1,10 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveProductCategoryMapping } from "@/lib/questionFactory/categoryMappingServer";
+import { resolveCurriculumChapter } from "@/lib/questionFactory/curriculumChapterServer";
+import { buildProductMappingCandidate, type ProductMappingCandidate } from "@/lib/questionFactory/productMapping";
+import { parseQuestionFactoryScopeKey } from "@/lib/questionFactory/scopeKey";
 import type { FactoryQuestionCandidate, FactoryTextSlotSpec } from "@/lib/questionFactory/textCandidate";
 
 const STAGING_BUCKET = "question-factory-assets";
@@ -27,6 +31,7 @@ type AssetRow = {
   staging_path: string;
   mime_type: string;
   checksum: string;
+  build_spec: Record<string, unknown>;
   width: number | null;
   height: number | null;
 };
@@ -51,6 +56,8 @@ export type FactoryReviewQueueItem = {
     height: number | null;
     signedPreviewUrl: string;
   };
+  mappingCandidate: ProductMappingCandidate | null;
+  mappingError: string | null;
 };
 
 function isQuestionCandidate(value: unknown): value is FactoryQuestionCandidate {
@@ -88,7 +95,7 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
       .order("created_at", { ascending: false })
       .order("id", { ascending: false }),
     admin.from("question_factory_assets")
-      .select("id, slot_id, asset_revision, state, staging_path, mime_type, checksum, width, height")
+      .select("id, slot_id, asset_revision, state, staging_path, mime_type, checksum, width, height, build_spec")
       .in("slot_id", slotIds)
       .order("asset_revision", { ascending: false })
       .order("id", { ascending: false }),
@@ -131,11 +138,35 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
         signedPreviewUrl: signed.data.signedUrl,
       };
     }
+    let mappingCandidate: ProductMappingCandidate | null = null;
+    let mappingError: string | null = null;
+    try {
+      const scope = parseQuestionFactoryScopeKey(run.scope_key);
+      const [chapter, categoryMapping] = await Promise.all([
+        resolveCurriculumChapter({
+          chapterKey: scope.unit, stage: scope.stage, grade: scope.grade, subject: scope.subject,
+        }),
+        resolveProductCategoryMapping({
+          chapterKey: scope.unit, topicId: slot.slot_spec.topic,
+          stage: scope.stage, subject: scope.subject,
+        }),
+      ]);
+      mappingCandidate = buildProductMappingCandidate({
+        stage: scope.stage, grade: scope.grade, subject: scope.subject,
+        slotSpec: slot.slot_spec, question: candidate, chapter, categoryMapping,
+        approvedAsset: preview && asset ? {
+          assetRevision: asset.asset_revision, checksum: asset.checksum,
+          mimeType: asset.mime_type as "image/svg+xml" | "image/webp", buildSpec: asset.build_spec,
+        } : null,
+      });
+    } catch (error) {
+      mappingError = error instanceof Error ? error.message : "Unable to resolve Product Mapping Candidate";
+    }
     return {
       slotId: slot.id, slotKey: slot.slot_key, ordinal: slot.ordinal,
       stateVersion: slot.state_version, runKey: run.run_key, scopeKey: run.scope_key,
       runStatus: run.status, queuedAt: slot.updated_at, slotSpec: slot.slot_spec,
-      question: candidate, asset: preview,
+      question: candidate, asset: preview, mappingCandidate, mappingError,
     };
   }));
 }

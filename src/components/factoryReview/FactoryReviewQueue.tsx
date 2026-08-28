@@ -1,10 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
+import { submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
+
+const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
 
 function pickDifferentIndex(length: number, current: number): number {
   if (length <= 1) return 0;
@@ -12,8 +16,21 @@ function pickDifferentIndex(length: number, current: number): number {
   return (current + offset) % length;
 }
 
+function DecisionButtons({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  const locked = disabled || pending;
+  return (
+    <div className="flex flex-wrap gap-3">
+      <button name="decision" value="APPROVE" disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-emerald-800 px-4 py-3 text-sm font-bold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"><CheckCircle2 size={18} /> อนุมัติ</button>
+      <button name="decision" value="REQUEST_REVISION" disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-amber-dim px-4 py-3 text-sm font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={18} /> ส่งกลับแก้ไข</button>
+      <button name="decision" value="REJECT" disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-red/70 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"><XCircle size={18} /> ปฏิเสธ</button>
+    </div>
+  );
+}
+
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
+  const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
   const item = items[selectedIndex];
   const queuedLabel = item ? new Intl.DateTimeFormat("th-TH", {
@@ -142,12 +159,40 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
         </div>
 
         <div className="rounded-3xl border border-border bg-card p-5">
-          <div className="flex flex-wrap gap-3">
-            <button disabled className="inline-flex items-center gap-2 rounded-xl bg-emerald-800 px-4 py-3 text-sm font-bold text-emerald-100 opacity-50"><CheckCircle2 size={18} /> อนุมัติ</button>
-            <button disabled className="inline-flex items-center gap-2 rounded-xl bg-amber-dim px-4 py-3 text-sm font-bold text-amber-100 opacity-50"><RotateCcw size={18} /> ส่งกลับแก้ไข</button>
-            <button disabled className="inline-flex items-center gap-2 rounded-xl bg-red/70 px-4 py-3 text-sm font-bold text-white opacity-50"><XCircle size={18} /> ปฏิเสธ</button>
-          </div>
-          <p className="mt-3 text-xs text-text3">ปุ่มตัดสินใจจะเปิดหลัง Human Review RPC ผ่าน replay, stale-version และ rollback smoke test</p>
+          {item.mappingCandidate ? (
+            <div className="mb-4 rounded-2xl border border-emerald-700/60 bg-emerald-950/25 p-3 text-xs text-emerald-200">
+              <p className="font-semibold">Product Mapping พร้อมตรวจ</p>
+              <p className="mt-1">{item.mappingCandidate.productRow.category}</p>
+              <p className="mt-1 break-all text-[10px] text-emerald-300/80">{item.mappingCandidate.checksum}</p>
+            </div>
+          ) : (
+            <div className="mb-4 rounded-2xl border border-amber-700/60 bg-amber-950/25 p-3 text-xs text-amber-200">
+              <p className="font-semibold">ยังตัดสินใจไม่ได้</p>
+              <p className="mt-1">{item.mappingError ?? "ไม่พบ Product Mapping Candidate"}</p>
+            </div>
+          )}
+          <form key={item.slotId} action={formAction} className="space-y-4">
+            <input type="hidden" name="slotId" value={item.slotId} />
+            <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+              <label className="text-xs text-text2">
+                เป้าหมายเมื่อส่งกลับ
+                <select name="revisionTarget" defaultValue="text" className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text">
+                  <option value="text">แก้ข้อความ/คำตอบ</option>
+                  <option value="asset" disabled={!item.asset}>แก้ภาพ</option>
+                </select>
+              </label>
+              <label className="text-xs text-text2">
+                เหตุผล (จำเป็นเมื่อส่งกลับหรือปฏิเสธ)
+                <textarea name="feedback" rows={2} maxLength={1000} className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" />
+              </label>
+            </div>
+            <DecisionButtons disabled={!item.mappingCandidate} />
+          </form>
+          {actionState.message && (
+            <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">
+              {actionState.message}
+            </p>
+          )}
         </div>
       </section>
     </div>

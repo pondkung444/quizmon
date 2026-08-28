@@ -18,6 +18,7 @@ export const PRODUCT_MAPPING_VERSION = "question-product-mapping/v1" as const;
 export type ProductCategoryMappingEntry = {
   id: string;
   mappingVersion: typeof PRODUCT_MAPPING_VERSION;
+  chapterKey: string;
   stage: QuestionFactoryEducationStage;
   subject: QuestionFactorySubject;
   topicId: string;
@@ -135,6 +136,7 @@ export function buildProductMappingCandidate(
   }
   if (
     mapping.mappingVersion !== PRODUCT_MAPPING_VERSION ||
+    mapping.chapterKey !== chapter.curriculumChapterKey ||
     mapping.stage !== input.stage ||
     mapping.subject !== input.subject ||
     mapping.topicId !== input.slotSpec.topic ||

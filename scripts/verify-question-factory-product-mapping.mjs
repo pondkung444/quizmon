@@ -23,6 +23,7 @@ const chapter = {
 };
 const categoryMapping = {
   id: "physics-electric-current-v1", mappingVersion: "question-product-mapping/v1",
+  chapterKey: chapter.curriculumChapterKey,
   stage: "upper_secondary", subject: "physics", topicId: "electric_current",
   gradeBand: "senior", productSubject: "math", branch: "physics",
   category: "ฟิสิกส์ ม.6 — ไฟฟ้ากระแส",

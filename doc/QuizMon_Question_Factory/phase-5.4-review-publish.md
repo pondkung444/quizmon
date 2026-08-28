@@ -1,6 +1,6 @@
 # Phase 5.4 — Human Review, Product Mapping and Publish
 
-**Status:** In progress — deterministic Product Mapping Candidate, read-only review queue and service-only Human Review RPC implemented; no product write enabled
+**Status:** In progress — authoritative category registry, deterministic Product Mapping Candidate and guarded Human Review decisions implemented; no product write enabled
 
 ## Safety boundary
 
@@ -40,12 +40,16 @@ The admin-only review route `/admin/question-factory/review` now loads `pending_
 
 The service-only `question_factory_record_human_review` RPC is now applied in production. It binds a decision to the exact question revision, Product Mapping Candidate checksum and—when required—the latest QC-passed asset revision/checksum. It updates current Slot state and appends one Human Review row plus one factual event atomically. Production rollback smoke passed for approve, exact replay, text revision, reject, stale-version conflict and the text-only/asset-target guard. The smoke transaction left zero fixture runs; `anon` and `authenticated` cannot execute the RPC, while `service_role` can.
 
-Decision buttons remain deliberately disabled until the review loader resolves each row to a complete Product Mapping Candidate from the authoritative category mapping source. This prevents a reviewer from approving raw candidate content without the Phase 4.2 mapping contract.
+Production now has the service-only immutable `question_factory_category_registry`. Its initial 85 approved `chapter_key + topic_id → exact product category` mappings are derived only from the 3,512 legacy questions that exactly match `curriculum_chapters`; 13 chapters with no exact legacy evidence remain unmapped and fail closed. Three chapters legitimately expose two category/topic mappings, proving that category cannot be stored as one field on the chapter row.
+
+The review loader now resolves the current scope chapter and registry topic server-side and builds the complete checksum-bearing Product Mapping Candidate. Decision buttons are enabled only for a successfully resolved item. The Server Action re-authenticates the configured admin, reloads the queue item instead of trusting browser payload, records approve/revise/reject through the service-only RPC and revalidates the queue. Unmapped items show the mapping error and remain non-actionable.
+
+A corrective migration also locks Human Review to `candidate.revision = slot.author_revision + 1`. Production rollback smoke proves revision zero is rejected for an initial candidate, revision one is accepted, and no fixture remains.
 
 ## Remaining exit gates
 
-- lock the versioned category registry source used by real Profiles;
-- resolve the authoritative category mapping entry in the review loader and enable the decision UI through a server action;
+- add an admin taxonomy workflow for the 13 intentionally unmapped curriculum chapters before Profiles may target them;
+- require Profile/Blueprint builders to select the registry `topic_id` rather than accept arbitrary topic strings;
 - run the positive visual-asset Human Review branch through the trusted Storage smoke path;
 - atomic/idempotent draft + mapping insertion;
 - verified asset promotion and compensation behavior;
