@@ -95,6 +95,8 @@ Role-specific actions may extend this vocabulary, but the worker must emit seman
 
 ## 5. Visual work item
 
+The approved visual reference is [Shared props and folder states v1](assets/factory-office/shared-props-and-folder-states-approved-v1.png).
+
 A question slot is represented by a numbered work folder. Its color communicates the current production stage:
 
 | Folder state | Meaning |
@@ -108,6 +110,8 @@ A question slot is represented by a numbered work folder. Its color communicates
 | grey with warning | technical failure |
 
 The visible folder ID maps to a real slot ID. Selecting it opens factual run/slot/revision/QC information.
+
+Base folders must not bake in status symbols or slot identifiers. Checks, revision loops, warnings, waiting clocks, working indicators, completion effects and transfer arrows are separate overlay assets so the same folder sprite can project current persisted state without destructive image variants.
 
 ## 6. Architecture boundary
 
