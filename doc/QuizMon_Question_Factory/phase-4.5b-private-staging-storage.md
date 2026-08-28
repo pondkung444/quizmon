@@ -28,11 +28,13 @@ The existing public product bucket `question-images` remains separate and unchan
 
 ## Service-runtime smoke test
 
-Run this only in a trusted worker or local environment that already supplies both `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`:
+Run this only in a trusted worker or local environment that already supplies `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`:
 
 ```bash
 npm run verify:question-factory-storage
 ```
+
+The repository also provides a manually dispatched GitHub Actions workflow at `.github/workflows/question-factory-storage-smoke.yml`. It is bound to the `production-smoke-test` environment, uses read-only repository permissions, prevents concurrent production smoke runs, times out after 10 minutes, and retains only the structured evidence output for 30 days.
 
 The verifier refuses to run against an unexpected project ref, uploads a unique SVG through service authority, confirms the unsigned public endpoint is blocked, and fetches the exact object through a 60-second signed URL with a SHA-256 comparison. It also verifies anonymous upload/overwrite/download/sign/delete denial, rejects `image/png`, rejects an upload one byte above the 5 MiB bucket limit, removes every run-specific path in a `finally` block, and emits one structured JSON evidence record.
 
