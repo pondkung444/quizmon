@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "import:questions": "node scripts/import-questions.mjs",
-    "upload:question-image": "node scripts/upload-question-image.mjs"
+    "upload:question-image": "node scripts/upload-question-image.mjs",
+    "verify:question-factory-storage": "node scripts/verify-question-factory-storage.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
