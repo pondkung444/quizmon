@@ -38,6 +38,8 @@ The repository also provides a manually dispatched GitHub Actions workflow at `.
 
 The verifier refuses to run against an unexpected project ref, uploads a unique SVG through service authority, confirms the unsigned public endpoint is blocked, and fetches the exact object through a 60-second signed URL with a SHA-256 comparison. It also verifies anonymous upload/overwrite/download/sign/delete denial, rejects `image/png`, rejects an upload one byte above the 5 MiB bucket limit, removes every run-specific path in a `finally` block, and emits one structured JSON evidence record.
 
+Denial is verified by effect, not HTTP shape alone. In particular, a Storage delete can report no client error when RLS affected zero rows; the verifier downloads the protected object with service authority afterward and requires its SHA-256 to remain unchanged.
+
 If a controlled non-production learner token is supplied as `QUESTION_FACTORY_TEST_USER_ACCESS_TOKEN`, the same write/read/sign/delete denial matrix is run for an ordinary authenticated user. Without that optional token, the evidence explicitly marks this one check as skipped. Never use a real learner account or retain the token in logs.
 
 Do not place `SUPABASE_SERVICE_ROLE_KEY` in a browser-visible variable, committed file, chat message, model prompt, or CI log.
