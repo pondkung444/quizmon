@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "master": {
+    "format": "png",
+    "width": 1024,
+    "height": 1024,
+    "baselineY": 944
+  },
+  "runtime": {
+    "format": "webp",
+    "width": 512,
+    "height": 512
+  },
+  "pathPattern": "/factory-office/v1/characters/{role}/{action}.{format}",
+  "roles": {
+    "factory-manager": [
+      "idle",
+      "receive_work",
+      "working",
+      "send_work",
+      "monitoring",
+      "error",
+      "success"
+    ],
+    "question-author": [
+      "idle",
+      "receive_work",
+      "working",
+      "thinking",
+      "error",
+      "revision",
+      "send_work",
+      "success"
+    ],
+    "question-qc": [
+      "idle",
+      "receive_work",
+      "working",
+      "thinking",
+      "compare",
+      "success",
+      "revision",
+      "error"
+    ],
+    "image-builder": [
+      "idle",
+      "receive_work",
+      "working",
+      "thinking",
+      "asset_ready",
+      "revision",
+      "send_work",
+      "success"
+    ],
+    "image-qc": [
+      "idle",
+      "receive_work",
+      "compare",
+      "working",
+      "mobile_preview",
+      "success",
+      "revision",
+      "error"
+    ],
+    "publisher": [
+      "idle",
+      "receive_work",
+      "final_check",
+      "working",
+      "send_work",
+      "success",
+      "waiting",
+      "error"
+    ]
+  }
+}
