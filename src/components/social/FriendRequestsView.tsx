@@ -123,6 +123,7 @@ export default function FriendRequestsView({
             >
               <Link
                 href={`/social/profile/${item.otherUserId}`}
+                prefetch={false}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
                 <PetPreviewImage pet={item.pet} />

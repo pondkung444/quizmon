@@ -72,6 +72,7 @@ export default function FriendListSection({ friends }: { friends: FriendListItem
               <Link
                 key={friend.friendUserId}
                 href={`/social/friend/${friend.friendUserId}`}
+                prefetch={false}
                 className="flex items-center gap-3 rounded-2xl border border-gold-dim bg-card p-3 transition active:scale-95"
               >
                 <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track">

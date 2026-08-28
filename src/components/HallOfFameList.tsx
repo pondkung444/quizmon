@@ -36,7 +36,13 @@ function WinnerRow({
         isCurrentUser ? "border-l-gold bg-gold-dim/15" : "border-l-gold-dim bg-track"
       }`}
     >
-      <Link href={`/social/profile/${winner.userId}`} className="flex min-w-0 flex-1 items-center gap-3">
+      {/* prefetch={false}: แถวอันดับมีได้หลายสิบแถว ไม่ควร prefetch โปรไฟล์ทุกคนบนจอตอนเปิดหน้า
+          (Next 16.2 ยิง prefetch ซ้ำต่อ Link ด้วย — ดู vercel/next.js#85489) นำทางตอนแตะยังเร็วปกติ */}
+      <Link
+        href={`/social/profile/${winner.userId}`}
+        prefetch={false}
+        className="flex min-w-0 flex-1 items-center gap-3"
+      >
         {pet && (
           <Image
             src={pet.imagePath}
