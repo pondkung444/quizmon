@@ -18,6 +18,7 @@
 | 4.0 | [question-factory-production-contract-v1.md](question-factory-production-contract-v1.md) |
 | 4.1 | [question-factory-data-model-v1.md](question-factory-data-model-v1.md) |
 | 4.5a | [question-factory-scope-key-v1.md](question-factory-scope-key-v1.md) |
+| Between 4 and 5 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
 
 ## Production mapping and hardening
 
