@@ -8,6 +8,8 @@ Approved concept sheets remain under `doc/QuizMon_Question_Factory/assets/factor
 
 Characters, role props, work folders, status tokens, transfer paths and environment layers remain separate assets. A character sprite must not bake in a slot ID, status label, workflow arrow or animation duration.
 
+The first clean production environment master is `public/factory-office/v1/environment/office-background-v1.png` (1628 x 966), with `office-background-v1.webp` as its optimized runtime export. It deliberately contains no characters, workflow arrows, status folders, labels or runtime state. The approved overview remains the composition reference; it is not used as the runtime background because its workers and states are baked into the image.
+
 ## Character sprite master
 
 - source format: transparent PNG;

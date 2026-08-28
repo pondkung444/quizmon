@@ -11,6 +11,14 @@
     "width": 512,
     "height": 512
   },
+  "environment": {
+    "master": "/factory-office/v1/environment/office-background-v1.png",
+    "background": "/factory-office/v1/environment/office-background-v1.webp",
+    "runtimeFormat": "webp",
+    "width": 1628,
+    "height": 966,
+    "characterLayer": "separate"
+  },
   "pathPattern": "/factory-office/v1/characters/{role}/{action}.{format}",
   "roles": {
     "factory-manager": [
