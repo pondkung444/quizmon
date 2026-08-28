@@ -629,14 +629,15 @@ export default function QuizClient({
           ))}
         </div>
 
-        {/* ลิงก์รอง — ตัวเล็ก ไม่แข่งสายตากับปุ่มวิชาหลัก */}
+        {/* ลิงก์รอง — เพิ่มขนาด/ทำเป็น pill ให้เห็นชัดขึ้น แต่ยังเบากว่าปุ่มวิชาหลัก (ไม่ fill สี ไม่ใช้ gold-dim border) */}
         <div className="text-center">
           <button
             type="button"
             disabled={isPending}
             onClick={openTopicSelect}
-            className="text-sm text-text3 underline underline-offset-4 transition hover:text-text2 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-base text-text2 transition hover:border-gold-dim hover:text-text disabled:opacity-50"
           >
+            <span aria-hidden="true">📖</span>
             {isPending ? "กำลังโหลด..." : "อยากฝึกเฉพาะบท?"}
           </button>
         </div>
