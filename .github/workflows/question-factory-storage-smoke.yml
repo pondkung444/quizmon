@@ -1,0 +1,67 @@
+name: Question Factory Storage Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Type yes to run the production Storage smoke test
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: question-factory-storage-smoke-production
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Verify production private staging storage
+    if: github.ref == 'refs/heads/main' && inputs.confirm_production == 'yes'
+    runs-on: ubuntu-latest
+    environment: production-smoke-test
+    timeout-minutes: 10
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Check required secrets
+        shell: bash
+        run: |
+          test -n "$NEXT_PUBLIC_SUPABASE_URL"
+          test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          test -n "$SUPABASE_SERVICE_ROLE_KEY"
+
+      - name: Check out the exact revision
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run storage trust-boundary smoke test
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/verify-question-factory-storage.mjs | tee question-factory-storage-evidence.jsonl
+
+      - name: Retain non-secret evidence
+        if: always() && hashFiles('question-factory-storage-evidence.jsonl') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: question-factory-storage-evidence-${{ github.run_id }}
+          path: question-factory-storage-evidence.jsonl
+          if-no-files-found: error
+          retention-days: 30
