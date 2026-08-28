@@ -3,7 +3,7 @@ import {
   type QuestionFactoryEducationStage,
   type QuestionFactoryScope,
   type QuestionFactorySubject,
-} from "@/lib/questionFactory/scopeKey";
+} from "./scopeKey.ts";
 
 export const CURRICULUM_CHAPTER_KEY_PATTERN = /^cc_[0-9a-f]{24}$/;
 

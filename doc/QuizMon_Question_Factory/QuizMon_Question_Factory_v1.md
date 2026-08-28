@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.3 asset loop complete; Phase 5.4 review and publish is next
+**Status:** Phase 5.4 review and publish active; deterministic mapping candidate implemented, product writes remain disabled
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -33,7 +33,7 @@ The curriculum gate is closed. The worker can now resolve a `chapter_key` server
 
 Phase 5.2 and Phase 5.3 passed their exit gates. The worker can now carry an `asset_build` Slot through immutable private staging revisions and exact-revision Image QC without anonymous or product-bucket writes.
 
-Phase 5.3 production evidence is recorded in [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md). The next work is the trusted human-review boundary, Product Mapping Adapter and idempotent promotion/publish path. Product tables and product Storage remain untouched until that gate is explicitly satisfied.
+Phase 5.3 production evidence is recorded in [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md). Phase 5.4a now produces a deterministic checksum-bearing Product Mapping Candidate and preserves the verified legacy product route. Human Review, draft insertion, asset promotion and activation remain separate gates; product tables and product Storage remain untouched. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 

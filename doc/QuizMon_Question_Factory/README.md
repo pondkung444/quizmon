@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-28):** Phase 5.3 is complete. Byte-level SVG/WebP validation, immutable private revisions, DB existence/metadata guards, exact-revision Image QC transitions, compensating cleanup and the trusted production Storage smoke have passed. Phase 5.4 — trusted human review, Product Mapping Adapter and idempotent publish/promotion — is next. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
+**Current checkpoint (2026-08-28):** Phase 5.4 is active. The deterministic checksum-bearing Product Mapping Candidate is implemented without enabling product writes; Human Review and publish/promotion remain gated. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
 
 ## Core design
 
@@ -26,6 +26,7 @@
 | 5.1 | [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md) |
 | 5.2 | [phase-5.2-text-loop.md](phase-5.2-text-loop.md) |
 | 5.3 | [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md) |
+| 5.4 | [phase-5.4-review-publish.md](phase-5.4-review-publish.md) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
 | Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
