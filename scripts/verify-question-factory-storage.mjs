@@ -57,6 +57,44 @@ const validatedUpload = validateFactoryAssetBytes({
 });
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+function isTransientStorageError(error) {
+  const status = Number(error?.statusCode ?? error?.status);
+  return status === 429 || status === 544 || status >= 500;
+}
+
+async function uploadServiceObject(path, bytes, contentType) {
+  const expectedChecksum = sha256(bytes);
+  let lastError;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const { error } = await service.storage.from(BUCKET).upload(path, bytes, {
+      contentType,
+      cacheControl: "60",
+      upsert: false,
+    });
+    if (!error) return;
+    lastError = error;
+    if (!isTransientStorageError(error)) throw error;
+
+    // A timed-out response is ambiguous: verify whether Storage committed the
+    // immutable object before retrying the same canonical path.
+    const { data: existing, error: downloadError } = await service.storage.from(BUCKET).download(path);
+    if (!downloadError && existing) {
+      const existingBytes = new Uint8Array(await existing.arrayBuffer());
+      if (sha256(existingBytes) !== expectedChecksum) {
+        throw new Error(`Transient upload left different bytes at ${path}`);
+      }
+      return;
+    }
+
+    if (attempt < 3) await delay(500 * attempt);
+  }
+
+  throw lastError;
+}
+
 const evidence = {
   schemaVersion: 1,
   projectRef,
@@ -121,12 +159,7 @@ async function verifyRestrictedActor(client, actor) {
 
 let primaryError;
 try {
-  const { error: uploadError } = await service.storage.from(BUCKET).upload(objectPath, svg, {
-    contentType: "image/svg+xml",
-    cacheControl: "60",
-    upsert: false,
-  });
-  if (uploadError) throw uploadError;
+  await uploadServiceObject(objectPath, svg, "image/svg+xml");
   evidence.results.serviceUpload = "passed";
 
   const objectName = objectPath.split("/").at(-1);
@@ -192,14 +225,7 @@ try {
     mimeType: "image/svg+xml",
     fileName: registrationFailurePath,
   });
-  const { error: registrationUploadError } = await service.storage
-    .from(BUCKET)
-    .upload(registrationFailurePath, registrationBytes, {
-      contentType: registrationAsset.mimeType,
-      cacheControl: "60",
-      upsert: false,
-    });
-  if (registrationUploadError) throw registrationUploadError;
+  await uploadServiceObject(registrationFailurePath, registrationBytes, registrationAsset.mimeType);
   const { data: registrationDownload, error: registrationDownloadError } = await service.storage
     .from(BUCKET)
     .download(registrationFailurePath);
