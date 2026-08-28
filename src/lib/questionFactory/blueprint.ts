@@ -14,6 +14,9 @@ export type BuildFactoryBlueprintInput = {
   maxGeneratedItems: number;
   difficultyMix: Array<WeightedTarget<1 | 2 | 3>>;
   objectiveMix: Array<WeightedTarget<string>>;
+  topicByObjective: Record<string, string>;
+  cognitiveDemandMix: Array<WeightedTarget<"recall" | "understand" | "apply" | "analyze" | "evaluate">>;
+  archetypeMix: Array<WeightedTarget<string>>;
   representationMix: Array<WeightedTarget<"none" | "svg_geometry" | "svg_graph" | "svg_scientific_diagram">>;
 };
 
@@ -22,7 +25,10 @@ export type FactoryBlueprintSlot = {
   ordinal: number;
   slotSpec: {
     learningObjective: string;
+    topic: string;
     difficulty: 1 | 2 | 3;
+    cognitiveDemand: "recall" | "understand" | "apply" | "analyze" | "evaluate";
+    questionArchetype: string;
     representationType: "none" | "svg_geometry" | "svg_graph" | "svg_scientific_diagram";
     answerType: "single_choice";
   };
@@ -93,12 +99,26 @@ export function buildFactoryBlueprint(input: BuildFactoryBlueprintInput): Resolv
   if (!Number.isSafeInteger(input.maxGeneratedItems) || input.maxGeneratedItems <= 0) throw new Error("maxGeneratedItems must be positive");
   assertTargets(input.difficultyMix, "difficultyMix");
   assertTargets(input.objectiveMix, "objectiveMix");
+  assertTargets(input.cognitiveDemandMix, "cognitiveDemandMix");
+  assertTargets(input.archetypeMix, "archetypeMix");
   assertTargets(input.representationMix, "representationMix");
   if (input.difficultyMix.some(({ value }) => value !== 1 && value !== 2 && value !== 3)) {
     throw new Error("difficultyMix supports only Product Adapter v1 difficulties 1-3");
   }
   if (input.objectiveMix.some(({ value }) => !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/.test(value))) {
     throw new Error("objectiveMix requires stable 1-64 character machine identifiers");
+  }
+  for (const { value } of input.objectiveMix) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$/.test(input.topicByObjective[value] ?? "")) {
+      throw new Error(`Objective ${value} requires a stable topic identifier`);
+    }
+  }
+  const cognitiveDemands = new Set(["recall", "understand", "apply", "analyze", "evaluate"]);
+  if (input.cognitiveDemandMix.some(({ value }) => !cognitiveDemands.has(value))) {
+    throw new Error("cognitiveDemandMix contains an unsupported value");
+  }
+  if (input.archetypeMix.some(({ value }) => !/^[a-z][a-z0-9_]{0,63}$/.test(value))) {
+    throw new Error("archetypeMix requires stable lowercase machine identifiers");
   }
   const representations = new Set(["none", "svg_geometry", "svg_graph", "svg_scientific_diagram"]);
   if (input.representationMix.some(({ value }) => !representations.has(value))) {
@@ -109,12 +129,16 @@ export function buildFactoryBlueprint(input: BuildFactoryBlueprintInput): Resolv
   if (requiredNewActive > input.maxGeneratedItems) throw new Error("Coverage gap exceeds maxGeneratedItems");
   const difficulties = allocate(requiredNewActive, input.difficultyMix);
   const objectives = allocate(requiredNewActive, input.objectiveMix);
+  const cognitiveDemandsPlan = allocate(requiredNewActive, input.cognitiveDemandMix);
+  const archetypePlan = allocate(requiredNewActive, input.archetypeMix);
   const representationPlan = allocate(requiredNewActive, input.representationMix);
   const slots = Array.from({ length: requiredNewActive }, (_, index): FactoryBlueprintSlot => ({
     slotKey: `slot_${String(index + 1).padStart(4, "0")}`,
     ordinal: index + 1,
     slotSpec: {
-      learningObjective: objectives[index], difficulty: difficulties[index],
+      learningObjective: objectives[index], topic: input.topicByObjective[objectives[index]],
+      difficulty: difficulties[index], cognitiveDemand: cognitiveDemandsPlan[index],
+      questionArchetype: archetypePlan[index],
       representationType: representationPlan[index], answerType: "single_choice",
     },
   }));

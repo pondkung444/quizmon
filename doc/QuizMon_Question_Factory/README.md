@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-28):** Phase 5.1 is complete: exact read-only bank audit and deterministic gap Blueprint are implemented; integration also corrected the Run target-vs-gap-slot rule. **Phase 5.2 — Text Question Loop** is next. See [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md).
+**Current checkpoint (2026-08-28):** Phase 5.2 is complete: the optimistic Author → Question QC → revise/reject/pass loop is deployed and rollback-smoke-verified without product writes. **Phase 5.3 — Asset Loop** is next. See [phase-5.2-text-loop.md](phase-5.2-text-loop.md).
 
 ## Core design
 
@@ -24,6 +24,7 @@
 | 4.7 | Curriculum registry bridge (implemented across migration, resolver, Profile, Scope Key and Product Mapping contracts) |
 | 5.0 | [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md) |
 | 5.1 | [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md) |
+| 5.2 | [phase-5.2-text-loop.md](phase-5.2-text-loop.md) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
 | Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
