@@ -1,6 +1,6 @@
 # Phase 5.3 — Private Asset Builder → Image QC Loop
 
-**Status:** In progress — validation, revision/QC RPCs and Storage existence guard deployed; trusted real-object smoke rerun pending
+**Status:** Complete — production asset revision/QC path and trusted real-object Storage smoke passed on 2026-08-28
 
 ## Silent-failure policy
 
@@ -34,15 +34,15 @@ A valid 120×80 SVG passed with dimensions, byte size and checksum. The followin
 
 The trusted production Storage workflow now runs this matrix before network access, validates the upload bytes before sending, validates downloaded signed-preview bytes again, and compares the two SHA-256 values. Cleanup remains mandatory in `finally` and denial remains verified by effect.
 
-## Remaining exit gates
+## Completed exit gates
 
 - canonical revision path and `upsert=false` upload;
 - exact post-upload download/hash verification before DB registration;
-- cleanup when upload succeeds but DB registration fails;
+- compensating cleanup when upload succeeds but DB registration fails;
 - atomic asset row + Slot state + Event registration;
-- Image QC tied to exact asset revision/checksum;
-- regeneration/pass/reject, stale revision, replay and revision-race tests;
-- malicious SVG/WebP and orphan-object cleanup production smoke;
+- Image QC tied to the exact latest asset revision/checksum;
+- regeneration/pass/reject, stale revision, replay and revision-race coverage;
+- malicious SVG/WebP rejection plus disallowed-MIME, oversize and orphan-object cleanup smoke;
 - confirmation that no product-bucket write occurs before Phase 5.4 approval/publish.
 
 ## Persistence increment
@@ -54,6 +54,15 @@ Migration evidence:
 - repository `20260828121258_question_factory_asset_loop.sql`; production `20260828121544_question_factory_asset_loop`;
 - repository `20260828121610_question_factory_asset_storage_guard.sql`; production `20260828121643_question_factory_asset_storage_guard`.
 
-A DB trigger additionally rejects phantom asset rows unless `storage.objects` contains the exact private bucket/path with matching size and MIME metadata. SQL smoke proved a nonexistent object cannot create an asset row/event or advance the Slot. The trusted Storage workflow now covers the complementary failure window: upload and byte verification succeed, DB registration intentionally fails for an unknown Run, then compensating Storage deletion is verified by effect.
+A DB trigger additionally rejects phantom asset rows unless `storage.objects` contains the exact private bucket/path with matching size and MIME metadata. SQL smoke proved a nonexistent object cannot create an asset row/event or advance the Slot. The trusted Storage workflow covers the complementary failure window: upload and byte verification succeed, DB registration intentionally fails for an unknown Run, then compensating Storage deletion is verified by effect.
 
-Phase 5.3 must remain open until every gate above passes. No real Factory image should be produced before then.
+## Production verification evidence
+
+- GitHub Actions [Question Factory Storage Smoke #4, attempt #2](https://github.com/pondkung444/quizmon/actions/runs/33186104762) passed against commit `55d2bb5` on 2026-08-28; the production job itself completed in 41 seconds.
+- Evidence artifact digest: `sha256:68783b24281eae866e6940b9deb60a0cf8de403fabb49b6b3301816008e88494`.
+- The workflow passed byte-validation negatives, service upload, private/public boundary, signed preview byte/checksum validation, anonymous and authenticated denial checks, MIME/size rejection, intentional unknown-Run registration failure and verified compensating cleanup.
+- Attempt #1 exposed a Supabase Storage internal-pool incident (`544` database timeout followed by `429` cleanup). Commit `55d2bb5` now handles an ambiguous upload timeout by checking the immutable object's checksum before a bounded retry; it never switches to overwrite/upsert behavior.
+- A final read-only production query after the successful run found zero `trust-boundary` objects, zero total objects in `question-factory-assets`, zero Factory asset rows and zero Factory runs.
+- No product bucket or `questions` row was written.
+
+Phase 5.3 is closed. The next implementation boundary is Phase 5.4: trusted human review, Product Mapping Adapter and idempotent publish/promotion.

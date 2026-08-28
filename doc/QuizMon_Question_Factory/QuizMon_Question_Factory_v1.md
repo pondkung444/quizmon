@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.3 asset loop in progress; byte-level validation complete, persistence/QC gates pending
+**Status:** Phase 5.3 asset loop complete; Phase 5.4 review and publish is next
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -21,18 +21,19 @@ This section is the current execution source of truth. The original Phase 1–6 
 - Phase 5.0: atomic Run/snapshot/slot/event initialization plus optimistic `created → running` transition deployed and smoke-verified with idempotent replay, stale-version rejection and rollback cleanup.
 - Phase 5.1: exact read-only bank audit and deterministic gap Blueprint implemented; production evidence covers all 95 registry chapters and no real Run was created.
 - Phase 5.2: optimistic Author → Question QC → revise/reject/pass state machine deployed with candidate validation, append-only evidence, idempotency and DB revision ceiling; no product question was created.
+- Phase 5.3: private immutable asset revisions, byte-level SVG/WebP validation, Storage existence/metadata guard, exact-revision Image QC transitions and compensating cleanup deployed and production smoke-verified; no real Run or product write was created.
 
 Production currently contains the eight Factory tables, but `question_factory_runs`, `question_factory_slots` and `question_factory_events` contain no real run yet. No pilot question production has started.
 
 ### Current phase
 
-> **Phase 5.3 — Asset Loop**
+> **Phase 5.4 — Review and Publish**
 
 The curriculum gate is closed. The worker can now resolve a `chapter_key` server-side, verify its stage/grade/product route, and pin an immutable resolved snapshot before creating a Run. The 151 grandfathered questions with null curriculum metadata remain legacy-only and are not valid templates for new Factory output.
 
-Phase 5.2 passed its exit gate. The next work consumes `asset_build` Slots through private staging revisions and Image QC without anonymous/product-bucket writes. See [phase-5.2-text-loop.md](phase-5.2-text-loop.md).
+Phase 5.2 and Phase 5.3 passed their exit gates. The worker can now carry an `asset_build` Slot through immutable private staging revisions and exact-revision Image QC without anonymous or product-bucket writes.
 
-Phase 5.3 has started with byte-level SVG/WebP validation and a hardened trusted Storage smoke harness. The phase remains open until revision persistence, exact post-upload verification, cleanup-on-DB-failure and Image QC concurrency/replay tests pass. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
+Phase 5.3 production evidence is recorded in [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md). The next work is the trusted human-review boundary, Product Mapping Adapter and idempotent promotion/publish path. Product tables and product Storage remain untouched until that gate is explicitly satisfied.
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 
@@ -44,7 +45,7 @@ Phase 4.7 production evidence: migration history `20260828105201_curriculum_chap
 | 5.0 — Worker skeleton (complete) | Run, snapshot, slot and append-only event lifecycle with retry/idempotency | Existing Office reader starts projecting persisted run/slot/event state | Passed in production on 2026-08-28 |
 | 5.1 — Audit and blueprint (complete) | Existing-bank audit, coverage gaps and immutable resolved blueprint | Manager monitoring, queued folders and run progress | Passed on 2026-08-28; no real Run created |
 | 5.2 — Text question loop (complete) | Author → Question QC → revision/reject/pass, without assets or product writes | Author and Question QC actions become live | Passed in production rollback smoke on 2026-08-28 |
-| 5.3 — Asset loop | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Semantic, visual and technical asset QC pass; no anonymous/product-bucket write |
+| 5.3 — Asset loop (complete) | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Passed in production on 2026-08-28; no anonymous/product-bucket write |
 | 5.4 — Review and publish | Trusted human review, Product Mapping Adapter and idempotent publish/promotion | Yellow review wait, human decision and Publisher actions become live | No client/service-key exposure; approve/revise/reject/publish are auditable |
 | 5.5 — End-to-end dry run | Full flow using fixtures or disposable non-product output | Whole Office flow reconstructs correctly after refresh/reconnect | No production question activation; failure and recovery matrix passes |
 | 5.6 — Controlled pilot | Small approved curriculum batch through human review | Office observes the first real run | Human sign-off, mapping verification and rollback/stop controls pass |

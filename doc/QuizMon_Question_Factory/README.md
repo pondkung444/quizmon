@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-28):** Phase 5.3 is active. Byte-level SVG/WebP validation and the trusted Storage smoke harness are hardened against silent MIME/content/checksum failures; DB asset revision and Image QC transitions remain pending. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
+**Current checkpoint (2026-08-28):** Phase 5.3 is complete. Byte-level SVG/WebP validation, immutable private revisions, DB existence/metadata guards, exact-revision Image QC transitions, compensating cleanup and the trusted production Storage smoke have passed. Phase 5.4 — trusted human review, Product Mapping Adapter and idempotent publish/promotion — is next. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
 
 ## Core design
 
