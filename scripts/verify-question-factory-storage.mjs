@@ -1,84 +1,190 @@
+import { createHash, randomUUID } from "node:crypto";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
 
+const EXPECTED_PROJECT_REF = "wmndxiuqzrnqbhrznmfg";
 const BUCKET = "question-factory-assets";
-const objectPath = `trust-boundary/smoke-${Date.now()}.svg`;
+const PREFIX = "trust-boundary";
+const BUCKET_LIMIT_BYTES = 5 * 1024 * 1024;
+const SIGNED_URL_TTL_SECONDS = 60;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const testUserAccessToken = process.env.QUESTION_FACTORY_TEST_USER_ACCESS_TOKEN;
 
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+if (!supabaseUrl || !serviceRoleKey || !publicKey) {
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, or NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  );
 }
 
-const supabase = createClient(supabaseUrl, serviceRoleKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+if (projectRef !== EXPECTED_PROJECT_REF) {
+  throw new Error(`Refusing to run against unexpected Supabase project: ${projectRef}`);
+}
+
+const clientOptions = { auth: { persistSession: false, autoRefreshToken: false } };
+const service = createClient(supabaseUrl, serviceRoleKey, clientOptions);
+const anonymous = createClient(supabaseUrl, publicKey, clientOptions);
+const authenticated = testUserAccessToken
+  ? createClient(supabaseUrl, publicKey, {
+      ...clientOptions,
+      global: { headers: { Authorization: `Bearer ${testUserAccessToken}` } },
+    })
+  : null;
+
+if (authenticated) {
+  const { data, error } = await authenticated.auth.getUser(testUserAccessToken);
+  if (error || !data.user || data.user.is_anonymous) {
+    throw new Error("QUESTION_FACTORY_TEST_USER_ACCESS_TOKEN is not a valid ordinary user token");
+  }
+}
+
+const runId = `${Date.now()}-${randomUUID()}`;
+const objectPath = `${PREFIX}/smoke-${runId}.svg`;
+const mimePath = `${PREFIX}/mime-must-fail-${runId}.png`;
+const oversizePath = `${PREFIX}/oversize-must-fail-${runId}.svg`;
+const cleanupPaths = new Set([objectPath, mimePath, oversizePath]);
 const svg = new TextEncoder().encode(
   '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1"/></svg>'
 );
-let uploaded = false;
 
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const evidence = {
+  schemaVersion: 1,
+  projectRef,
+  bucket: BUCKET,
+  runId,
+  startedAt: new Date().toISOString(),
+  results: {},
+};
+
+function requireBlocked(error, label) {
+  if (!error) throw new Error(`${label} unexpectedly succeeded`);
+  return `blocked:${error.statusCode ?? error.status ?? "error"}`;
+}
+
+async function assertNotPresent(path) {
+  const fileName = path.split("/").at(-1);
+  const { data, error } = await service.storage.from(BUCKET).list(PREFIX, {
+    search: fileName,
+    limit: 10,
+  });
+  if (error) throw error;
+  if (data?.some((item) => item.name === fileName)) {
+    throw new Error(`Unexpected smoke-test object remains: ${path}`);
+  }
+}
+
+async function verifyRestrictedActor(client, actor) {
+  const actorPath = `${PREFIX}/${actor}-upload-must-fail-${runId}.svg`;
+  cleanupPaths.add(actorPath);
+  const replacement = new TextEncoder().encode("must-not-replace");
+  const { error: uploadError } = await client.storage.from(BUCKET).upload(actorPath, svg, {
+    contentType: "image/svg+xml",
+    upsert: false,
+  });
+  const { error: overwriteError } = await client.storage
+    .from(BUCKET)
+    .upload(objectPath, replacement, { contentType: "image/svg+xml", upsert: true });
+  const { error: downloadError } = await client.storage.from(BUCKET).download(objectPath);
+  const { error: signError } = await client.storage
+    .from(BUCKET)
+    .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
+  const { error: deleteError } = await client.storage.from(BUCKET).remove([objectPath]);
+
+  return {
+    upload: requireBlocked(uploadError, `${actor} upload`),
+    overwrite: requireBlocked(overwriteError, `${actor} overwrite`),
+    privateDownload: requireBlocked(downloadError, `${actor} private download`),
+    signedUrl: requireBlocked(signError, `${actor} signed URL`),
+    delete: requireBlocked(deleteError, `${actor} delete`),
+  };
+}
+
+let primaryError;
 try {
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(objectPath, svg, {
+  const { error: uploadError } = await service.storage.from(BUCKET).upload(objectPath, svg, {
     contentType: "image/svg+xml",
     cacheControl: "60",
     upsert: false,
   });
   if (uploadError) throw uploadError;
-  uploaded = true;
+  evidence.results.serviceUpload = "passed";
+
+  const objectName = objectPath.split("/").at(-1);
+  const { data: listed, error: listError } = await service.storage.from(BUCKET).list(PREFIX, {
+    search: objectName,
+    limit: 10,
+  });
+  if (listError) throw listError;
+  const uploadedObject = listed?.find((item) => item.name === objectName);
+  if (
+    !uploadedObject ||
+    uploadedObject.metadata?.size !== svg.byteLength ||
+    uploadedObject.metadata?.mimetype !== "image/svg+xml"
+  ) {
+    throw new Error("Uploaded object metadata does not match the expected size and MIME type");
+  }
+  evidence.results.objectMetadata = "passed:size-and-mime";
 
   const publicObjectUrl = `${supabaseUrl}/storage/v1/object/public/${BUCKET}/${objectPath}`;
   const publicResponse = await fetch(publicObjectUrl, { redirect: "manual" });
   if (publicResponse.ok) {
-    throw new Error("Private staging object was unexpectedly readable through the public endpoint");
+    throw new Error("Private staging object was readable through the public endpoint");
   }
+  evidence.results.unsignedPublicRead = `blocked:${publicResponse.status}`;
 
-  const { data: signedData, error: signedError } = await supabase.storage
+  const { data: signedData, error: signedError } = await service.storage
     .from(BUCKET)
-    .createSignedUrl(objectPath, 60);
+    .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
   if (signedError || !signedData?.signedUrl) {
     throw signedError ?? new Error("Signed URL was not created");
   }
-
-  const signedResponse = await fetch(signedData.signedUrl);
+  const signedResponse = await fetch(signedData.signedUrl, { redirect: "error" });
   const signedBody = new Uint8Array(await signedResponse.arrayBuffer());
-  if (!signedResponse.ok || signedBody.byteLength !== svg.byteLength) {
-    throw new Error("Signed preview did not return the uploaded object exactly");
+  if (!signedResponse.ok || sha256(signedBody) !== sha256(svg)) {
+    throw new Error("Signed preview did not return the exact uploaded object");
   }
+  evidence.results.signedPreview = "passed:sha256";
 
-  const { error: disallowedMimeError } = await supabase.storage
+  evidence.results.anonymous = await verifyRestrictedActor(anonymous, "anonymous");
+  evidence.results.authenticated = authenticated
+    ? await verifyRestrictedActor(authenticated, "authenticated")
+    : "skipped:no-test-user-token";
+
+  const { error: disallowedMimeError } = await service.storage
     .from(BUCKET)
-    .upload(`trust-boundary/mime-must-fail-${Date.now()}.png`, new Uint8Array([0]), {
-      contentType: "image/png",
-      upsert: false,
-    });
-  if (!disallowedMimeError) {
-    throw new Error("Bucket unexpectedly accepted image/png");
-  }
+    .upload(mimePath, new Uint8Array([0]), { contentType: "image/png", upsert: false });
+  evidence.results.disallowedMime = requireBlocked(disallowedMimeError, "image/png upload");
 
-  console.log(
-    JSON.stringify({
-      bucket: BUCKET,
-      serviceUpload: "passed",
-      unsignedPublicRead: `blocked:${publicResponse.status}`,
-      signedPreview: "passed",
-      disallowedMime: "blocked",
-      cleanup: "pending",
-    })
-  );
+  const oversize = new Uint8Array(BUCKET_LIMIT_BYTES + 1);
+  const { error: oversizeError } = await service.storage
+    .from(BUCKET)
+    .upload(oversizePath, oversize, { contentType: "image/svg+xml", upsert: false });
+  evidence.results.oversizeUpload = requireBlocked(oversizeError, "oversize upload");
+} catch (error) {
+  primaryError = error;
+  evidence.results.failure = error instanceof Error ? error.message : String(error);
 } finally {
-  if (uploaded) {
-    const { error: removeError } = await supabase.storage.from(BUCKET).remove([objectPath]);
-    if (removeError) throw removeError;
+  const { error: cleanupError } = await service.storage.from(BUCKET).remove([...cleanupPaths]);
+  if (cleanupError) {
+    evidence.results.cleanup = `failed:${cleanupError.message}`;
+    primaryError ??= cleanupError;
+  } else {
+    try {
+      for (const path of cleanupPaths) await assertNotPresent(path);
+      evidence.results.cleanup = "passed";
+    } catch (error) {
+      evidence.results.cleanup = `failed:${error instanceof Error ? error.message : String(error)}`;
+      primaryError ??= error;
+    }
   }
 }
 
-const { data: remaining, error: listError } = await supabase.storage
-  .from(BUCKET)
-  .list("trust-boundary", { search: objectPath.split("/").at(-1), limit: 10 });
-if (listError) throw listError;
-if (remaining && remaining.length > 0) {
-  throw new Error("Smoke-test object still exists after cleanup");
-}
+evidence.finishedAt = new Date().toISOString();
+evidence.status = primaryError ? "failed" : "passed";
+console.log(JSON.stringify(evidence));
 
-console.log(JSON.stringify({ bucket: BUCKET, cleanup: "passed" }));
+if (primaryError) throw primaryError;
