@@ -102,7 +102,7 @@ No executable destructive rollback script is included in Phase 4.4 to prevent ac
 
 - [x] State lists cover the canonical v1 database transitions; finer worker milestones are represented by events.
 - [x] JSONB snapshot boundaries are sufficient for the v1 core schema.
-- [ ] `scope_key` normalization must be locked before the first real run.
+- [x] `scope_key` v1 format, normalization, semantic combinations, and one-unit lock granularity are locked and database-enforced.
 - [x] Product mapping remains one slot → one question in v1.
 - [x] Service grants match the immutable/current-state mutation split and passed a transactional service-role smoke test.
 - [x] Direct client question reads are audited; the sole historical authenticated caller has a server-side compatibility fix.
@@ -115,4 +115,4 @@ No executable destructive rollback script is included in Phase 4.4 to prevent ac
 
 ## 10. Phase boundary
 
-The database migration portion of Phase 4.5 is complete. The trusted reviewer path, normalized `scope_key`, and private staging bucket remain operational prerequisites for the first real Factory run.
+The database migration and canonical `scope_key` portions of Phase 4.5 are complete. The trusted reviewer path and private staging bucket remain operational prerequisites for the first real Factory run.
