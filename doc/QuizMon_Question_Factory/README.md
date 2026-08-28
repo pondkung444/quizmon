@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-28):** Phase 4.7 is complete in production: the `curriculum_chapters` registry now has stable keys, hardened uniqueness/permissions and a server-only resolver. **5.0 — Minimal Factory Worker Skeleton** is next. See the current execution section in [QuizMon_Question_Factory_v1.md](QuizMon_Question_Factory_v1.md).
+**Current checkpoint (2026-08-28):** Phase 5.0 is complete: atomic initialization and optimistic `created → running` are deployed and smoke-verified without leaving test rows. **Phase 5.1 — Audit and Blueprint** is next. See [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md).
 
 ## Core design
 
@@ -22,6 +22,7 @@
 | 4.5a | [question-factory-scope-key-v1.md](question-factory-scope-key-v1.md) |
 | 4.6 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
 | 4.7 | Curriculum registry bridge (implemented across migration, resolver, Profile, Scope Key and Product Mapping contracts) |
+| 5.0 | [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
 | Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
