@@ -1,6 +1,7 @@
 # Phase 4.5b — Private Staging Storage
 
-Status: **Bucket provisioned; public/anonymous boundary verified; service smoke test ready**  
+Status: **Production verified — private staging Storage gate complete**
+
 Production project: `monschool` (`wmndxiuqzrnqbhrznmfg`)  
 Verified: 2026-08-28
 
@@ -26,6 +27,25 @@ The existing public product bucket `question-images` remains separate and unchan
 - No temporary smoke-test object was uploaded through the Dashboard, so no production cleanup was required.
 - No service-role credential was copied from the Dashboard, browser state, logs, or prompts.
 
+### Production service smoke evidence
+
+The trusted GitHub Actions run [33133142437](https://github.com/pondkung444/quizmon/actions/runs/33133142437) executed against `main` commit `b45b169` on 2026-08-28 and completed with `status=passed`:
+
+| Check | Result |
+|---|---|
+| Service upload | passed |
+| Stored size and MIME metadata | passed |
+| Unsigned public read | blocked (`400`) |
+| Signed preview exact bytes | passed (SHA-256) |
+| Anonymous upload / overwrite | blocked (`403`) |
+| Anonymous private download / signed URL | blocked (`404`) |
+| Anonymous delete | blocked by effect; object remained unchanged |
+| Disallowed `image/png` | blocked (`415`) |
+| One byte above 5 MiB | blocked (`413`) |
+| Run-specific object cleanup | passed |
+
+No signed URL, token or service credential appears in the retained evidence.
+
 ## Service-runtime smoke test
 
 Run this only in a trusted worker or local environment that already supplies `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`:
@@ -34,7 +54,7 @@ Run this only in a trusted worker or local environment that already supplies `NE
 npm run verify:question-factory-storage
 ```
 
-The repository also provides a manually dispatched GitHub Actions workflow at `.github/workflows/question-factory-storage-smoke.yml`. It is bound to the `production-smoke-test` environment, uses read-only repository permissions, prevents concurrent production smoke runs, times out after 10 minutes, and retains only the structured evidence output for 30 days.
+The repository also provides a manually dispatched GitHub Actions workflow at `.github/workflows/question-factory-storage-smoke.yml`. It is bound to the `production-smoke-test` environment, requires approval from `pondkung444`, uses read-only repository permissions, prevents concurrent production smoke runs, times out after 10 minutes, and retains only the structured evidence output for 30 days.
 
 The verifier refuses to run against an unexpected project ref, uploads a unique SVG through service authority, confirms the unsigned public endpoint is blocked, and fetches the exact object through a 60-second signed URL with a SHA-256 comparison. It also verifies anonymous upload/overwrite/download/sign/delete denial, rejects `image/png`, rejects an upload one byte above the 5 MiB bucket limit, removes every run-specific path in a `finally` block, and emits one structured JSON evidence record.
 
@@ -44,7 +64,9 @@ If a controlled non-production learner token is supplied as `QUESTION_FACTORY_TE
 
 Do not place `SUPABASE_SERVICE_ROLE_KEY` in a browser-visible variable, committed file, chat message, model prompt, or CI log.
 
-## Remaining gate
+## Deferred authenticated-user coverage
 
-Before the Factory worker is declared production-ready, run the service smoke test from the actual trusted runtime and retain its successful output as deployment evidence. The bucket configuration and untrusted-client boundary are complete; only the trusted-runtime execution remains.
+The optional ordinary-authenticated-user denial matrix was not run because no controlled short-lived test-user token was provided. It remains a future defense-in-depth check when the reviewer authentication harness exists. This is not a blocker for the current service-only architecture: the production service path, unsigned public path, anonymous path, bucket restrictions and cleanup all passed.
+
+The private staging Storage gate is complete. Re-run the workflow after any bucket configuration, Storage policy, credential-boundary or Factory worker upload change.
 
