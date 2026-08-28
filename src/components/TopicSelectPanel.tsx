@@ -76,7 +76,7 @@ export default function TopicSelectPanel({
         </button>
         <div>
           <h1 className="text-xl font-bold text-gold-hi">เลือกบทที่จะฝึก</h1>
-          <p className="text-xs text-text3">โหมดนี้ไม่นับคะแนนลีดเดอร์บอร์ด แต่ Qmon ยังโตปกติ</p>
+          <p className="text-xs text-text3">โหมดนี้ไม่นับรวมในอันดับประจำสัปดาห์ แต่ Qmon ยังโตปกติ</p>
         </div>
       </div>
 
