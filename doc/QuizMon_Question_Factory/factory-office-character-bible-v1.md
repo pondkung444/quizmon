@@ -8,6 +8,8 @@ Approved: 2026-08-28
 
 - [Question Author style and action reference](assets/factory-office/question-author-style-approved-v1.png)
 - [Factory Office cast lineup](assets/factory-office/factory-office-cast-lineup-approved-v1.png)
+- [Factory Manager approved action sheet](assets/factory-office/factory-manager-actions-approved-v1.png)
+- [Question Author approved action sheet](assets/factory-office/question-author-actions-approved-v1.png)
 
 These images define the visual identity for future Factory Office character and action work. Generated variants must preserve the approved proportions, outline weight, eye rendering, cel shading and warm presentation.
 
@@ -51,9 +53,9 @@ Temporary expressions, poses and secondary props may change. Slot numbers, check
 
 ## Approved production order
 
-1. Factory Manager action sheet
-2. Question Author production action sheet
-3. Question QC action sheet
+1. Factory Manager action sheet — approved
+2. Question Author production action sheet — approved
+3. Question QC action sheet — in review
 4. Image Builder action sheet
 5. Image QC action sheet
 6. Publisher action sheet
