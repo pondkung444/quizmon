@@ -1,6 +1,6 @@
 # Phase 5.4 — Human Review, Product Mapping and Publish
 
-**Status:** In progress — deterministic Product Mapping Candidate implemented; no product write enabled
+**Status:** In progress — deterministic Product Mapping Candidate and read-only Human Review queue implemented; no product write enabled
 
 ## Safety boundary
 
@@ -35,6 +35,8 @@ The existing baseline intentionally makes `question_factory_product_mappings.que
 ## Current verification
 
 The deterministic harness covers the verified Senior Physics legacy route and rejects product subject leakage, wrong branch, wrong topic, wrong grade, blank category and a missing approved asset. Production tables and Storage are not written by this increment.
+
+The admin-only review route `/admin/question-factory/review` now loads `pending_human_review` Slots server-side, reconstructs the latest immutable candidate evidence, signs only the exact QC-passed private asset for a short preview window, and supports selecting each item or randomly choosing a different queued item. Decision buttons remain deliberately disabled until the Human Review mutation RPC passes its database smoke matrix.
 
 ## Remaining exit gates
 
