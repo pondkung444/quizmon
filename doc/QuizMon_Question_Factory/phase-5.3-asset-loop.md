@@ -1,6 +1,6 @@
 # Phase 5.3 — Private Asset Builder → Image QC Loop
 
-**Status:** In progress — byte-level validation and production smoke harness hardened; DB asset revision/QC transitions pending
+**Status:** In progress — validation, revision/QC RPCs and Storage existence guard deployed; trusted real-object smoke rerun pending
 
 ## Silent-failure policy
 
@@ -44,5 +44,16 @@ The trusted production Storage workflow now runs this matrix before network acce
 - regeneration/pass/reject, stale revision, replay and revision-race tests;
 - malicious SVG/WebP and orphan-object cleanup production smoke;
 - confirmation that no product-bucket write occurs before Phase 5.4 approval/publish.
+
+## Persistence increment
+
+Production now has service-only `question_factory_register_asset` and `question_factory_record_asset_qc` RPCs. Registration requires canonical revision order/path, immutable Slot representation, verified metadata and optimistic Slot state. Image QC can PASS to human review, REGENERATE to asset build, or REJECT terminally, and must reference the exact latest built revision and checksum. Asset row, Slot state and Event change atomically.
+
+Migration evidence:
+
+- repository `20260828121258_question_factory_asset_loop.sql`; production `20260828121544_question_factory_asset_loop`;
+- repository `20260828121610_question_factory_asset_storage_guard.sql`; production `20260828121643_question_factory_asset_storage_guard`.
+
+A DB trigger additionally rejects phantom asset rows unless `storage.objects` contains the exact private bucket/path with matching size and MIME metadata. SQL smoke proved a nonexistent object cannot create an asset row/event or advance the Slot. The trusted Storage workflow now covers the complementary failure window: upload and byte verification succeed, DB registration intentionally fails for an unknown Run, then compensating Storage deletion is verified by effect.
 
 Phase 5.3 must remain open until every gate above passes. No real Factory image should be produced before then.

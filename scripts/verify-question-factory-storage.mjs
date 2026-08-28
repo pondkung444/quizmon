@@ -46,7 +46,9 @@ const runId = `${Date.now()}-${randomUUID()}`;
 const objectPath = `${PREFIX}/smoke-${runId}.svg`;
 const mimePath = `${PREFIX}/mime-must-fail-${runId}.png`;
 const oversizePath = `${PREFIX}/oversize-must-fail-${runId}.svg`;
-const cleanupPaths = new Set([objectPath, mimePath, oversizePath]);
+const orphanRunKey = randomUUID();
+const registrationFailurePath = `runs/${orphanRunKey}/slots/slot_0001/rev-1.svg`;
+const cleanupPaths = new Set([objectPath, mimePath, oversizePath, registrationFailurePath]);
 const svg = new TextEncoder().encode(
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>'
 );
@@ -181,6 +183,62 @@ try {
     .from(BUCKET)
     .upload(oversizePath, oversize, { contentType: "image/svg+xml", upsert: false });
   evidence.results.oversizeUpload = requireBlocked(oversizeError, "oversize upload");
+
+  const registrationBytes = new TextEncoder().encode(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect width="120" height="80"/></svg>'
+  );
+  const registrationAsset = validateFactoryAssetBytes({
+    bytes: registrationBytes,
+    mimeType: "image/svg+xml",
+    fileName: registrationFailurePath,
+  });
+  const { error: registrationUploadError } = await service.storage
+    .from(BUCKET)
+    .upload(registrationFailurePath, registrationBytes, {
+      contentType: registrationAsset.mimeType,
+      cacheControl: "60",
+      upsert: false,
+    });
+  if (registrationUploadError) throw registrationUploadError;
+  const { data: registrationDownload, error: registrationDownloadError } = await service.storage
+    .from(BUCKET)
+    .download(registrationFailurePath);
+  if (registrationDownloadError || !registrationDownload) {
+    throw registrationDownloadError ?? new Error("Registration-failure object could not be verified");
+  }
+  const registrationDownloadedBytes = new Uint8Array(await registrationDownload.arrayBuffer());
+  const registrationDownloaded = validateFactoryAssetBytes({
+    bytes: registrationDownloadedBytes,
+    mimeType: registrationAsset.mimeType,
+    fileName: registrationFailurePath,
+  });
+  if (registrationDownloaded.checksum !== registrationAsset.checksum) {
+    throw new Error("Registration-failure object changed after upload");
+  }
+  const { error: expectedRegistrationError } = await service.rpc("question_factory_register_asset", {
+    p_run_key: orphanRunKey,
+    p_slot_key: "slot_0001",
+    p_expected_state_version: 0,
+    p_asset_revision: 1,
+    p_representation_type: "svg_graph",
+    p_staging_path: registrationFailurePath,
+    p_mime_type: registrationAsset.mimeType,
+    p_byte_size: registrationAsset.byteSize,
+    p_checksum: registrationAsset.checksum,
+    p_width: registrationAsset.width,
+    p_height: registrationAsset.height,
+    p_build_spec: { smoke: true },
+    p_idempotency_key: `qf:storage-smoke:${runId}:registration-must-fail`,
+    p_actor_id: "storage-smoke",
+  });
+  if (!expectedRegistrationError) throw new Error("Unknown-run asset registration unexpectedly succeeded");
+  const { error: compensationError } = await service.storage
+    .from(BUCKET)
+    .remove([registrationFailurePath]);
+  if (compensationError) throw compensationError;
+  await assertNotPresent(registrationFailurePath);
+  cleanupPaths.delete(registrationFailurePath);
+  evidence.results.registrationFailureCleanup = "passed:upload-verified-db-failed-object-removed";
 } catch (error) {
   primaryError = error;
   evidence.results.failure = error instanceof Error ? error.message : String(error);
