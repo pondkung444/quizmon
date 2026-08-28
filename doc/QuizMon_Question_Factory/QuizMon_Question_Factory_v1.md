@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.2 text loop complete; Phase 5.3 asset loop is next
+**Status:** Phase 5.3 asset loop in progress; byte-level validation complete, persistence/QC gates pending
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -31,6 +31,8 @@ Production currently contains the eight Factory tables, but `question_factory_ru
 The curriculum gate is closed. The worker can now resolve a `chapter_key` server-side, verify its stage/grade/product route, and pin an immutable resolved snapshot before creating a Run. The 151 grandfathered questions with null curriculum metadata remain legacy-only and are not valid templates for new Factory output.
 
 Phase 5.2 passed its exit gate. The next work consumes `asset_build` Slots through private staging revisions and Image QC without anonymous/product-bucket writes. See [phase-5.2-text-loop.md](phase-5.2-text-loop.md).
+
+Phase 5.3 has started with byte-level SVG/WebP validation and a hardened trusted Storage smoke harness. The phase remains open until revision persistence, exact post-upload verification, cleanup-on-DB-failure and Image QC concurrency/replay tests pass. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 

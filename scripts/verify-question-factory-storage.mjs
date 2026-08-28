@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import process from "node:process";
 import { createClient } from "@supabase/supabase-js";
+import { validateFactoryAssetBytes } from "../src/lib/questionFactory/assetValidation.ts";
 
 const EXPECTED_PROJECT_REF = "wmndxiuqzrnqbhrznmfg";
 const BUCKET = "question-factory-assets";
@@ -47,8 +48,11 @@ const mimePath = `${PREFIX}/mime-must-fail-${runId}.png`;
 const oversizePath = `${PREFIX}/oversize-must-fail-${runId}.svg`;
 const cleanupPaths = new Set([objectPath, mimePath, oversizePath]);
 const svg = new TextEncoder().encode(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1"/></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><rect width="1" height="1"/></svg>'
 );
+const validatedUpload = validateFactoryAssetBytes({
+  bytes: svg, mimeType: "image/svg+xml", fileName: objectPath,
+});
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const evidence = {
@@ -132,7 +136,7 @@ try {
   const uploadedObject = listed?.find((item) => item.name === objectName);
   if (
     !uploadedObject ||
-    uploadedObject.metadata?.size !== svg.byteLength ||
+    uploadedObject.metadata?.size !== validatedUpload.byteSize ||
     uploadedObject.metadata?.mimetype !== "image/svg+xml"
   ) {
     throw new Error("Uploaded object metadata does not match the expected size and MIME type");
@@ -154,10 +158,13 @@ try {
   }
   const signedResponse = await fetch(signedData.signedUrl, { redirect: "error" });
   const signedBody = new Uint8Array(await signedResponse.arrayBuffer());
-  if (!signedResponse.ok || sha256(signedBody) !== sha256(svg)) {
+  const validatedDownload = validateFactoryAssetBytes({
+    bytes: signedBody, mimeType: "image/svg+xml", fileName: objectPath,
+  });
+  if (!signedResponse.ok || validatedDownload.checksum !== validatedUpload.checksum) {
     throw new Error("Signed preview did not return the exact uploaded object");
   }
-  evidence.results.signedPreview = "passed:sha256";
+  evidence.results.signedPreview = "passed:content-validation-and-sha256";
 
   evidence.results.anonymous = await verifyRestrictedActor(anonymous, "anonymous");
   evidence.results.authenticated = authenticated

@@ -55,7 +55,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          node scripts/verify-question-factory-storage.mjs | tee question-factory-storage-evidence.jsonl
+          node --experimental-strip-types scripts/verify-question-factory-asset-validation.mjs
+          node --experimental-strip-types scripts/verify-question-factory-storage.mjs | tee question-factory-storage-evidence.jsonl
 
       - name: Retain non-secret evidence
         if: always() && hashFiles('question-factory-storage-evidence.jsonl') != ''

@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-28):** Phase 5.2 is complete: the optimistic Author → Question QC → revise/reject/pass loop is deployed and rollback-smoke-verified without product writes. **Phase 5.3 — Asset Loop** is next. See [phase-5.2-text-loop.md](phase-5.2-text-loop.md).
+**Current checkpoint (2026-08-28):** Phase 5.3 is active. Byte-level SVG/WebP validation and the trusted Storage smoke harness are hardened against silent MIME/content/checksum failures; DB asset revision and Image QC transitions remain pending. See [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md).
 
 ## Core design
 
@@ -25,6 +25,7 @@
 | 5.0 | [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md) |
 | 5.1 | [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md) |
 | 5.2 | [phase-5.2-text-loop.md](phase-5.2-text-loop.md) |
+| 5.3 | [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
 | Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
