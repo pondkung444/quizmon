@@ -28,7 +28,7 @@
 | 4.4/4.5 | [phase-4.4-migration-sql-review.md](phase-4.4-migration-sql-review.md) | 001/002/003 applied and verified |
 | 4.4a | [phase-4.4a-client-storage-audit.md](phase-4.4a-client-storage-audit.md) | Compatibility evidence |
 | 4.4b | [phase-4.4b-002-003-completion.md](phase-4.4b-002-003-completion.md) | 002/003 applied and verified |
-| 4.5b | [phase-4.5b-private-staging-storage.md](phase-4.5b-private-staging-storage.md) | Private bucket and untrusted boundary verified; service-runtime smoke pending |
+| 4.5b | [phase-4.5b-private-staging-storage.md](phase-4.5b-private-staging-storage.md) | Production service/private-boundary smoke verified |
 
 ## Review SQL
 
