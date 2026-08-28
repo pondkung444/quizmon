@@ -93,13 +93,23 @@ async function verifyRestrictedActor(client, actor) {
     .from(BUCKET)
     .createSignedUrl(objectPath, SIGNED_URL_TTL_SECONDS);
   const { error: deleteError } = await client.storage.from(BUCKET).remove([objectPath]);
+  const { data: preservedObject, error: preservedObjectError } = await service.storage
+    .from(BUCKET)
+    .download(objectPath);
+  if (preservedObjectError || !preservedObject) {
+    throw preservedObjectError ?? new Error(`${actor} delete removed the protected object`);
+  }
+  const preservedBytes = new Uint8Array(await preservedObject.arrayBuffer());
+  if (sha256(preservedBytes) !== sha256(svg)) {
+    throw new Error(`${actor} operation changed the protected object`);
+  }
 
   return {
     upload: requireBlocked(uploadError, `${actor} upload`),
     overwrite: requireBlocked(overwriteError, `${actor} overwrite`),
     privateDownload: requireBlocked(downloadError, `${actor} private download`),
     signedUrl: requireBlocked(signError, `${actor} signed URL`),
-    delete: requireBlocked(deleteError, `${actor} delete`),
+    delete: deleteError ? `blocked:${deleteError.statusCode ?? deleteError.status ?? "error"}` : "blocked:no-effect",
   };
 }
 
