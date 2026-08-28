@@ -18,6 +18,17 @@ export default async function QuizPage({
   const user = await getUser();
   const gradeBand = user ? await getGradeBand(user.id) : "junior";
 
+  // ระดับชั้นจริงของ user — ใช้เปิด tab เริ่มต้นในหน้าเลือกบทฝึกฝนให้ตรงชั้นตัวเอง
+  let gradeLevel: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("grade_level")
+      .eq("id", user.id)
+      .maybeSingle();
+    gradeLevel = profile?.grade_level ?? null;
+  }
+
   let pet: {
     stage: number;
     subline: string | null;
@@ -72,6 +83,7 @@ export default async function QuizPage({
         petDailyCapped={petDailyCapped}
         initialMissionId={initialMissionId}
         gradeBand={gradeBand}
+        gradeLevel={gradeLevel}
       />
     </main>
   );
