@@ -1,6 +1,6 @@
 # Factory Office Production Assets v1
 
-Status: **Production sprite prototype**
+Status: **Production sprite set prepared**
 
 ## Asset boundary
 
@@ -42,3 +42,18 @@ The Question Author `idle` prototype must pass all of the following before the r
 
 The deterministic preparation tool is `scripts/prepare-factory-office-sprite.py`.
 It requires Python 3 and Pillow. Generated-image input is treated as source material; the tool writes normalized project assets and never modifies the source file.
+
+## Prepared v1 inventory
+
+The runtime inventory is declared in `public/factory-office/v1/manifest.json`. It contains 47 semantic character actions across all six roles, exported as 47 PNG masters and 47 WebP runtime assets.
+
+| Role | Actions |
+|---|---|
+| Factory Manager | idle, receive_work, working, send_work, monitoring, error, success |
+| Question Author | idle, receive_work, working, thinking, error, revision, send_work, success |
+| Question QC | idle, receive_work, working, thinking, compare, success, revision, error |
+| Image Builder | idle, receive_work, working, thinking, asset_ready, revision, send_work, success |
+| Image QC | idle, receive_work, compare, working, mobile_preview, success, revision, error |
+| Publisher | idle, receive_work, final_check, working, send_work, success, waiting, error |
+
+Batch preparation crops the approved action-sheet grid, removes the connected pale backdrop and floor shadow, retains the primary character/held-prop component, discards detached status tokens and neighboring-cell debris, then normalizes every output to the shared canvas and baseline. Question Author `idle` retains the separately approved high-resolution prototype.
