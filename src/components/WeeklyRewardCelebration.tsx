@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { claimWeeklyLeaderboardReward } from "@/app/pet/actions";
 import { getPetImagePath } from "@/lib/petImage";
@@ -12,12 +12,17 @@ type Reveal = { eggNameTh: string; imagePath: string };
 // app/pet/actions.ts — idempotent เรียกซ้ำได้ปลอดภัย)
 export default function WeeklyRewardCelebration() {
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  // กัน useEffect ยิง server action ซ้ำ — เจอจริงบน production /pet ว่า POST /pet ยิง 2 ครั้งต่อการ
+  // เปิดหน้าหนึ่งครั้ง (effect ถูก invoke ซ้ำ) claimWeeklyLeaderboardReward() idempotent อยู่แล้ว
+  // แต่ไม่ควรเปลือง round-trip + RPC ทุกครั้ง (pattern เดียวกับ missionStartedRef ใน QuizClient.tsx)
+  const claimedRef = useRef(false);
 
   useEffect(() => {
-    let cancelled = false;
+    if (claimedRef.current) return;
+    claimedRef.current = true;
     claimWeeklyLeaderboardReward()
       .then((result) => {
-        if (cancelled || !result.awarded) return;
+        if (!result.awarded) return;
         setReveal({
           eggNameTh: result.eggNameTh,
           imagePath: getPetImagePath(result.spritePrefix, 1, null, null),
@@ -27,9 +32,6 @@ export default function WeeklyRewardCelebration() {
         // เช็ครางวัลพังไม่ควรทำทั้งหน้า /pet ล่ม (เหมือนการ์ดภารกิจ/leaderboard อื่นๆ ในหน้านี้)
         console.error("claimWeeklyLeaderboardReward failed:", err);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   if (!reveal) return null;

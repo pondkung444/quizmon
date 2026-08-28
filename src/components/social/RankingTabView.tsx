@@ -32,6 +32,7 @@ function RankingRowItem({ row, scope, suffix }: { row: RankingRow; scope: Rankin
   return (
     <Link
       href={rowHref(row, scope)}
+      prefetch={false}
       className={`flex items-center gap-3 rounded-2xl border p-3 transition active:scale-95 ${
         row.isMe ? "border-gold bg-gold-dim/15" : "border-gold-dim bg-card"
       }`}

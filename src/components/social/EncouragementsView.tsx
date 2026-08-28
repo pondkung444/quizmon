@@ -73,6 +73,7 @@ export default function EncouragementsView({ received }: { received: ReceivedEnc
                   >
                     <Link
                       href={`/social/friend/${item.senderId}`}
+                      prefetch={false}
                       className="flex min-w-0 flex-1 items-center gap-3"
                     >
                       <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track">

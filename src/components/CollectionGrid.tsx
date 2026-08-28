@@ -105,7 +105,12 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
 
               if (slot.unlocked && slot.petId) {
                 return (
-                  <Link key={slot.key} href={`/collection/${slot.petId}`} onClick={() => trackSlotClick(slot)}>
+                  <Link
+                    key={slot.key}
+                    href={`/collection/${slot.petId}`}
+                    prefetch={false}
+                    onClick={() => trackSlotClick(slot)}
+                  >
                     {card}
                   </Link>
                 );
