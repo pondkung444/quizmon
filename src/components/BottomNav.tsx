@@ -32,10 +32,19 @@ const TABS = [
   },
 ];
 
-export default function BottomNav({ hasUnreadEncouragements = false }: { hasUnreadEncouragements?: boolean }) {
+export default function BottomNav({
+  hasUnreadEncouragements = false,
+  forceShow = false,
+}: {
+  hasUnreadEncouragements?: boolean;
+  // forceShow: ข้ามการซ่อนบน /quiz — ใช้ตอน QuizClient เรนเดอร์เมนูล่างเองในหน้าเลือกวิชา/เลือกบท
+  // (ก่อนเริ่มรอบ ต้องมีทางกลับหน้าอื่นตามกฎ UX) ส่วนระหว่างตอบโจทย์ยังซ่อนตามเดิม
+  forceShow?: boolean;
+}) {
   const pathname = usePathname();
 
-  if (pathname?.startsWith("/quiz") || pathname === "/login" || pathname === "/") return null;
+  if (!forceShow && pathname?.startsWith("/quiz")) return null;
+  if (pathname === "/login" || pathname === "/") return null;
 
   return (
     <nav
