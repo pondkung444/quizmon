@@ -44,6 +44,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .capgo
+/supabase/.temp/
 
 # signing keys / build credentials — never commit
 *.jks

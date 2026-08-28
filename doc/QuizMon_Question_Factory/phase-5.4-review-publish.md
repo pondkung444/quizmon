@@ -1,6 +1,6 @@
 # Phase 5.4 — Human Review, Product Mapping and Publish
 
-**Status:** In progress — deterministic Product Mapping Candidate and read-only Human Review queue implemented; no product write enabled
+**Status:** In progress — deterministic Product Mapping Candidate, read-only review queue and service-only Human Review RPC implemented; no product write enabled
 
 ## Safety boundary
 
@@ -36,12 +36,17 @@ The existing baseline intentionally makes `question_factory_product_mappings.que
 
 The deterministic harness covers the verified Senior Physics legacy route and rejects product subject leakage, wrong branch, wrong topic, wrong grade, blank category and a missing approved asset. Production tables and Storage are not written by this increment.
 
-The admin-only review route `/admin/question-factory/review` now loads `pending_human_review` Slots server-side, reconstructs the latest immutable candidate evidence, signs only the exact QC-passed private asset for a short preview window, and supports selecting each item or randomly choosing a different queued item. Decision buttons remain deliberately disabled until the Human Review mutation RPC passes its database smoke matrix.
+The admin-only review route `/admin/question-factory/review` now loads `pending_human_review` Slots server-side, reconstructs the latest immutable candidate evidence, signs only the exact QC-passed private asset for a short preview window, and supports selecting each item or randomly choosing a different queued item.
+
+The service-only `question_factory_record_human_review` RPC is now applied in production. It binds a decision to the exact question revision, Product Mapping Candidate checksum and—when required—the latest QC-passed asset revision/checksum. It updates current Slot state and appends one Human Review row plus one factual event atomically. Production rollback smoke passed for approve, exact replay, text revision, reject, stale-version conflict and the text-only/asset-target guard. The smoke transaction left zero fixture runs; `anon` and `authenticated` cannot execute the RPC, while `service_role` can.
+
+Decision buttons remain deliberately disabled until the review loader resolves each row to a complete Product Mapping Candidate from the authoritative category mapping source. This prevents a reviewer from approving raw candidate content without the Phase 4.2 mapping contract.
 
 ## Remaining exit gates
 
 - lock the versioned category registry source used by real Profiles;
-- service-only Human Review RPC with replay, stale-version and targeted-revision tests;
+- resolve the authoritative category mapping entry in the review loader and enable the decision UI through a server action;
+- run the positive visual-asset Human Review branch through the trusted Storage smoke path;
 - atomic/idempotent draft + mapping insertion;
 - verified asset promotion and compensation behavior;
 - separate activation RPC and rollback smoke proving no product residue;
