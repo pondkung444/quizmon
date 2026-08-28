@@ -1,6 +1,6 @@
 # Phase 4.3 — RLS / Storage / Permission Plan
 
-Status: **Proposed security contract — review required before migration SQL**  
+Status: **Implemented security baseline — migrations and private staging gate verified in production**
 Production snapshot: `monschool` (`wmndxiuqzrnqbhrznmfg`), surveyed read-only on 2026-08-27  
 Database or Storage changes made during this phase: **none**
 
@@ -58,6 +58,19 @@ Current `storage.objects` policies:
 This means an unauthenticated client has an upload/overwrite authorization path for the product asset bucket. A public bucket only needs to provide public downloads; it does not need anonymous writes.
 
 The current UPDATE path also lacks a corresponding object SELECT policy required by documented Storage upsert behavior, so it is both over-authorized in intent and incomplete as a dependable controlled upload path.
+
+### 2.3 `public.curriculum_chapters` — Phase 4.7 update
+
+The curriculum registry has RLS enabled and a `SELECT` policy with `using (true)` for `anon` and `authenticated`. Phase 4.7 revoked INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER table grants and all registry-sequence privileges from both roles, leaving SELECT only. An actual `SET LOCAL ROLE anon` SELECT returned all 95 rows and an anonymous INSERT failed with permission denied. `service_role` remains the trusted maintenance authority.
+
+This read-public/write-service boundary is acceptable for non-sensitive curriculum labels, provided that:
+
+- no future client write policy is added without a separate authorization review;
+- Factory resolves registry rows server-side before creating immutable snapshots;
+- client-supplied numeric IDs or labels are treated only as lookup input, never as trusted mapping output;
+- Data API exposure remains intentional rather than relying on changing project defaults;
+- schema hardening is represented by `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql` and production history `20260828105201_curriculum_chapters_registry_bridge`;
+- the post-migration security advisor reports no `curriculum_chapters` finding.
 
 ## 3. Threats to prevent
 

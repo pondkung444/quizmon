@@ -1,6 +1,6 @@
 # Question Factory Office Visualization v1
 
-Status: **Design checkpoint — active before Factory worker implementation**
+Status: **Visual foundation implemented — ready for Phase 5.0 worker data**
 
 Recorded: 2026-08-28
 
@@ -14,11 +14,24 @@ QuizMon Question Factory has completed the design and production-hardening work 
 - Phase 4.0–4.5a: production contract, data model, product mapping, RLS/Storage plan, migrations and scope key
 - Phase 4.5b: private staging Storage production smoke test and trust-boundary verification
 
-Phase 5 pilot production has **not started**.
+Phase 4.6 Office foundation is now complete. Phase 5 pilot production has **not started**.
 
-The active work is a design checkpoint between Phase 4 and Phase 5:
+The completed checkpoint between Phase 4 and Phase 5 produced:
 
-> Design the Factory worker and its observable event contract together with the Factory Office experience before implementing the worker skeleton.
+> A production-ready visual projection contract and asset foundation that can observe the worker without controlling it.
+
+Implemented evidence:
+
+- six visually distinct chibi roles;
+- 47 approved semantic actions exported as PNG masters and WebP runtime files;
+- clean production environment with characters and workflow state kept as separate layers;
+- fixed bottom-center canvas anchor and baseline `944/1024`;
+- deterministic canonical state/event-to-action adapter;
+- server-only reader for the latest production run, slot and event;
+- admin-only `/admin/factory-office-preview` with calibration fallback;
+- production read-only verification that Factory tables exist and currently contain no run.
+
+Implementation checkpoint commit: `b4c09ab` (`feat(factory): add live office visualization`).
 
 This checkpoint exists so the worker records enough truthful state and events for a visual office without making animation state part of the production source of truth.
 
@@ -179,9 +192,9 @@ The shared transfer surface is office furniture rather than industrial machinery
 
 The environment, workers, folders, state indicators and transfer-path overlays must remain separable implementation layers. The approved image is a composition and visual-language reference, not a single baked production background.
 
-## 9. First visual prototype
+## 9. Visual implementation result
 
-The first character prototype will be Question Author because it exercises the most reusable actions:
+Question Author was used as the first style prototype because it exercises the most reusable actions:
 
 ~~~text
 idle
@@ -193,25 +206,26 @@ send_work
 success
 ~~~
 
-Prototype sequence:
+The sequence was completed and then expanded to all six roles:
 
-1. lock the shared chibi style sheet;
-2. design the Question Author silhouette, palette, props and turnaround;
-3. create the initial action set;
-4. place the character in one office workstation mockup;
-5. test readability at mobile size and with reduced motion;
-6. approve the visual system before expanding to the remaining cast.
+1. shared chibi style and distinct role identities locked;
+2. role action sheets approved and extracted deterministically;
+3. 47 PNG/WebP action assets passed image QC;
+4. clean environment background and layer calibration implemented;
+5. desktop/mobile composition, wide props, baseline and Manager desk occlusion checked;
+6. canonical Factory states/events connected through a fail-closed projection adapter.
 
 ## 10. Resume point
 
 When work resumes, continue in this order:
 
-1. design and approve the chibi character/style system;
-2. define the Office UI state-to-action adapter;
-3. reconcile Office event needs with the canonical Factory event contract;
-4. implement the minimal Factory worker skeleton for run/slot/snapshot/event lifecycle only;
-5. build the Office overview against real persisted worker state;
-6. start Phase 5 pilot only after the worker and observability projection pass their acceptance tests.
+1. implement Phase 5.0 minimal Factory worker skeleton for run/snapshot/slot/event lifecycle;
+2. exercise it with fixtures so the existing Office projection receives real persisted state;
+3. implement audit/blueprint, text Author/QC, asset, human-review and publish boundaries in Phases 5.1–5.4;
+4. complete an end-to-end non-product dry run in Phase 5.5;
+5. begin a controlled Phase 5.6 pilot only after all preflight gates pass.
 
-No pilot questions should be generated or published during this design checkpoint.
+Deferred visual polish such as polling/Realtime, transition animation, workflow folders, transfer paths and multi-run views is not a blocker for Phase 5.0. Add it only when the corresponding persisted worker facts exist.
+
+No pilot questions should be generated or published before the explicit Phase 5.6 preflight and approval gate.
 

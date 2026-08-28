@@ -46,6 +46,25 @@ question_factory_blueprint_snapshots
 question_factory_product_mappings
 ```
 
+### External curriculum registry dependency — Phase 4.7 update
+
+`public.curriculum_chapters` is a product/curriculum reference registry used to resolve the chapter selected by a Factory Profile and Blueprint. It is not a ninth Factory workflow table and does not share Run/Slot/Event lifecycle semantics.
+
+Factory must snapshot the resolved registry identity and fields into immutable profile/blueprint and product-mapping history. A Run must not depend on a later live edit of a curriculum row to reinterpret what it was asked to produce.
+
+The registry-to-Factory boundary is:
+
+```text
+curriculum_chapters approved row
+  → stable chapter/unit key + resolved curriculum fields
+  → immutable profile/blueprint snapshot
+  → slots
+  → immutable product-mapping snapshot
+  → questions-compatible fields
+```
+
+The production registry's initial audit and required identity/uniqueness hardening are recorded in `phase-4.2-product-mapping-contract.md` and `question-factory-scope-key-v1.md`.
+
 Optional future tables:
 
 ```text

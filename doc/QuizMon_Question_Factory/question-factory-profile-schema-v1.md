@@ -1,7 +1,7 @@
 # QuizMon Question Factory v1
 ## Phase 3 — Curriculum / Profile Schema v1
 
-**Status:** Draft for review  
+**Status:** Locked design with Phase 4.7 curriculum registry bridge implemented
 **Depends on:**  
 - `QuizMon_Question_Factory_v1.md`  
 - `question-factory-contract-v1.md`  
@@ -86,6 +86,30 @@ Subject QC Rules
 Not every curriculum needs every level.
 
 Fields must support optionality without breaking the schema.
+
+## 3.1 Production curriculum registry binding
+
+`public.curriculum_chapters` is the canonical production lookup for a selectable QuizMon chapter. A resolved Profile/Blueprint must bind its chapter/unit to one approved registry row before a Run is created.
+
+The live registry row is not itself an immutable Run snapshot. The snapshot must preserve at least:
+
+```yaml
+curriculum_chapter_id: 42          # environment-local traceability
+curriculum_chapter_key: cc_db47955683b03fb2ccea3c33  # stable cross-environment identity
+grade_band: senior
+grade_level: ม.4
+grade_order: 7
+factory_subject: physics
+product_subject: math
+product_branch: physics
+subject_label: ฟิสิกส์
+chapter: แรงและกฎการเคลื่อนที่
+chapter_order: 2
+```
+
+The worker must resolve this record server-side and reject an unknown, ambiguous or stage/grade/subject-incompatible chapter. It must not accept a free-form chapter label from a client as curriculum authority.
+
+The registry selects the chapter; the versioned Profile still supplies learning objectives, coverage targets, assessment policy, representations and QC rules. The registry therefore does not replace the Profile schema.
 
 ---
 

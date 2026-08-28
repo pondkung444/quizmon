@@ -1,6 +1,6 @@
 # Question Factory Scope Key Contract v1
 
-Status: **Locked for Factory v1**
+Status: **Format and curriculum registry binding locked for Factory v1; Phase 4.7 complete**
 
 ## Purpose
 
@@ -17,14 +17,16 @@ qf:v1|stage={stage}|grade={grade}|subject={subject}|unit={unit_id}
 Pilot example:
 
 ```text
-qf:v1|stage=lower_secondary|grade=7|subject=math|unit=decimals_and_fractions
+qf:v1|stage=lower_secondary|grade=7|subject=math|unit=cc_a20910939a299b40d99910af
 ```
 
 Senior example:
 
 ```text
-qf:v1|stage=upper_secondary|grade=11|subject=physics|unit=kinematics
+qf:v1|stage=upper_secondary|grade=11|subject=physics|unit=cc_0123456789abcdef01234567
 ```
+
+The Senior value above illustrates the key shape only; a real Run must use a `chapter_key` resolved from the production registry.
 
 ## Allowed combinations
 
@@ -37,7 +39,7 @@ The subject is always the Factory semantic. For example, Physics uses `subject=p
 
 ## Unit identifier
 
-`unit_id` is a stable English machine identifier:
+`unit_id` is a stable ASCII machine identifier. For QuizMon production v1 it is the registry `chapter_key` (`cc_` followed by 24 lowercase SHA-256 hex characters):
 
 - lowercase ASCII letters and digits;
 - single underscores between segments;
@@ -45,6 +47,14 @@ The subject is always the Factory semantic. For example, Physics uses `subject=p
 - no Thai display label, whitespace, hyphen, version, date, or batch number.
 
 The shared application builder trims the input, lowercases it, converts whitespace/hyphens to underscores, collapses repeated underscores, and then validates it. Persisted keys must already be canonical; the database never silently rewrites them.
+
+### Binding to `curriculum_chapters`
+
+The scope `unit_id` must resolve to exactly one approved `public.curriculum_chapters` row for the stage, grade and Factory-semantic subject after product-subject mapping.
+
+Production now has a unique, non-null `chapter_key` on every one of its 95 rows. The server resolver in `src/lib/questionFactory/curriculumChapterServer.ts` binds that key to exactly one compatible stage/grade/subject route before a Run. Do not use the numeric `curriculum_chapters.id` as `unit_id`, derive identity from row order, or transliterate the Thai chapter label at runtime.
+
+For traceability, snapshots may store the environment-local row `id` alongside the stable `unit_id` and resolved chapter fields. The stable key owns cross-environment identity; the numeric ID only proves which local row was resolved.
 
 ## Lock granularity
 

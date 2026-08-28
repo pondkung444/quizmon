@@ -1,7 +1,85 @@
 # QuizMon Question Factory v1
 
-**Status:** Locked direction for QuizMon question production  
+**Status:** Phase 4.7 curriculum registry integration complete; Phase 5.0 worker implementation is next
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
+
+---
+
+## Current implementation checkpoint — 2026-08-28
+
+This section is the current execution source of truth. The original Phase 1–6 design narrative later in this document remains useful background, but this checkpoint supersedes its implementation status and sequencing.
+
+### Completed
+
+- Phase 1: Factory contract locked.
+- Phase 2: Orchestrator, Author, Question QC, Image Builder and Image QC skill contracts locked.
+- Phase 3: Curriculum/Profile schema locked.
+- Phase 4.0–4.2: production contract, data model and Product Mapping Adapter contract completed from production evidence.
+- Phase 4.3–4.5b: RLS/Storage plan, migrations 001/002/003, canonical scope key and private staging Storage gate applied and verified in production.
+- Phase 4.6: Factory Office visual foundation completed: six workers, 47 semantic actions, production environment, deterministic state/event projection, server-only production reader and admin preview.
+- Phase 4.7: `public.curriculum_chapters` adopted as the canonical registry. All 95 rows have a deterministic `chapter_key`; null-safe natural uniqueness, route constraints, least-privilege grants, repository migration and server-only resolver are implemented and verified in production.
+
+Production currently contains the eight Factory tables, but `question_factory_runs`, `question_factory_slots` and `question_factory_events` contain no real run yet. No pilot question production has started.
+
+### Current phase
+
+> **Phase 5.0 — Minimal Factory Worker Skeleton**
+
+The curriculum gate is closed. The worker can now resolve a `chapter_key` server-side, verify its stage/grade/product route, and pin an immutable resolved snapshot before creating a Run. The 151 grandfathered questions with null curriculum metadata remain legacy-only and are not valid templates for new Factory output.
+
+Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
+
+### Revised implementation phases
+
+| Phase | Outcome | Office/graphics connection | Exit gate |
+|---|---|---|---|
+| 4.7 — Curriculum registry bridge (complete) | Adopt `curriculum_chapters` as the canonical chapter lookup; lock identity, uniqueness, snapshot and legacy rules | Manager/run selection can display the canonical chapter label | Passed in production on 2026-08-28 |
+| 5.0 — Worker skeleton | Run, snapshot, slot and append-only event lifecycle with retry/idempotency | Existing Office reader starts projecting persisted run/slot/event state | Restart-safe lifecycle tests pass; no invented UI state |
+| 5.1 — Audit and blueprint | Existing-bank audit, coverage gaps and immutable resolved blueprint | Manager monitoring, queued folders and run progress | Same inputs produce a deterministic locked blueprint |
+| 5.2 — Text question loop | Author → Question QC → revision/reject/pass, without assets or product writes | Author and Question QC actions become live | Contract fixtures pass; revision limits and terminal failures are enforced |
+| 5.3 — Asset loop | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Semantic, visual and technical asset QC pass; no anonymous/product-bucket write |
+| 5.4 — Review and publish | Trusted human review, Product Mapping Adapter and idempotent publish/promotion | Yellow review wait, human decision and Publisher actions become live | No client/service-key exposure; approve/revise/reject/publish are auditable |
+| 5.5 — End-to-end dry run | Full flow using fixtures or disposable non-product output | Whole Office flow reconstructs correctly after refresh/reconnect | No production question activation; failure and recovery matrix passes |
+| 5.6 — Controlled pilot | Small approved curriculum batch through human review | Office observes the first real run | Human sign-off, mapping verification and rollback/stop controls pass |
+| 6 — Operational hardening | Scheduling, concurrency, observability, cost limits and runbooks | Optional polling/Realtime, transitions and bottleneck views | Load, security, recovery and cost acceptance gates pass |
+| 7 — Scale-out | Additional profiles, subjects and larger semi-automatic batches | Slot detail and multi-run views as operational need proves them | Per-profile quality metrics remain within approved thresholds |
+
+### Complete production flow
+
+```text
+Canonical curriculum chapter selection
+  → Profile request
+  → canonical scope key + run lock
+  → immutable profile/blueprint snapshots
+  → existing-bank audit + coverage blueprint
+  → slots planned and assigned
+  → Question Author
+  → independent Question QC
+      ↳ revise/reject with bounded loop
+  → representation router
+      ↳ no asset, or Image Builder → private staging → Image QC
+  → pending human review
+      ↳ revise / reject / approve
+  → Product Mapping Adapter validation
+  → idempotent question insert/update + approved asset promotion
+  → activate only after explicit approval
+  → coverage recount
+  → next batch or run complete
+```
+
+Every arrow above must update current state and append a factual event in one controlled server-side operation. The Office is a read-only projection of those facts; it never advances the workflow.
+
+### Cross-cutting acceptance rules
+
+1. Factory tables and Storage staging remain server/service only; no service key reaches a client.
+2. `questions` remains product data and keeps its legacy QuizMon meanings.
+3. `curriculum_chapters` is the canonical curriculum lookup, but each Run must snapshot its resolved identity and labels rather than depend on a mutable live row.
+4. Product Mapping Adapter is the only path from Factory semantics and the chapter registry to product columns.
+5. Human approval is mandatory in v1; no automatic activation.
+6. Every mutation is idempotent and restart-safe.
+7. Unknown state/event values fail closed and remain visible as operational errors.
+8. A refresh must reconstruct the same Office scene from persisted facts.
+9. Pilot execution requires an explicit preflight and separate user approval.
 
 ---
 

@@ -2,6 +2,8 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
+**Current checkpoint (2026-08-28):** Phase 4.7 is complete in production: the `curriculum_chapters` registry now has stable keys, hardened uniqueness/permissions and a server-only resolver. **5.0 — Minimal Factory Worker Skeleton** is next. See the current execution section in [QuizMon_Question_Factory_v1.md](QuizMon_Question_Factory_v1.md).
+
 ## Core design
 
 | Phase | Document |
@@ -18,15 +20,17 @@
 | 4.0 | [question-factory-production-contract-v1.md](question-factory-production-contract-v1.md) |
 | 4.1 | [question-factory-data-model-v1.md](question-factory-data-model-v1.md) |
 | 4.5a | [question-factory-scope-key-v1.md](question-factory-scope-key-v1.md) |
-| Between 4 and 5 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
+| 4.6 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
+| 4.7 | Curriculum registry bridge (implemented across migration, resolver, Profile, Scope Key and Product Mapping contracts) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
+| Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
 ## Production mapping and hardening
 
 | Phase | Document | Status |
 |---|---|---|
-| 4.2 | [phase-4.2-product-mapping-contract.md](phase-4.2-product-mapping-contract.md) | Production surveyed read-only |
-| 4.3 | [phase-4.3-rls-storage-permission-plan.md](phase-4.3-rls-storage-permission-plan.md) | Security contract |
+| 4.2 | [phase-4.2-product-mapping-contract.md](phase-4.2-product-mapping-contract.md) | Locked; implementation boundary scheduled for 5.4 |
+| 4.3 | [phase-4.3-rls-storage-permission-plan.md](phase-4.3-rls-storage-permission-plan.md) | Implemented production security baseline |
 | 4.4/4.5 | [phase-4.4-migration-sql-review.md](phase-4.4-migration-sql-review.md) | 001/002/003 applied and verified |
 | 4.4a | [phase-4.4a-client-storage-audit.md](phase-4.4a-client-storage-audit.md) | Compatibility evidence |
 | 4.4b | [phase-4.4b-002-003-completion.md](phase-4.4b-002-003-completion.md) | 002/003 applied and verified |

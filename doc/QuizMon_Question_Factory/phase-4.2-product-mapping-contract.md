@@ -1,6 +1,6 @@
 # Phase 4.2 — Product Mapping Adapter Contract (Question Factory v1)
 
-Status: **Proposed contract — review required before implementation**  
+Status: **Locked contract — production schema verified; implementation boundary carried into Phase 5.4**
 Production snapshot: `monschool` (`wmndxiuqzrnqbhrznmfg`), surveyed read-only on 2026-08-27  
 Scope: mapping a validated Factory slot into the existing `public.questions` product schema  
 Database changes made during this phase: **none**
@@ -79,6 +79,38 @@ These indexes reinforce that `grade_band`, product `subject`, `branch`, `categor
 
 Factory retirement must therefore map to `status='inactive'`. Deleting a published question is not a normal Factory workflow.
 
+### 2.4 Curriculum chapter registry update — 2026-08-28
+
+Production now contains `public.curriculum_chapters`, intended to be the shared bridge between curriculum selection and product persistence. This update supersedes the earlier null-chapter assumptions in sections 4.1, 6, 8 and 12 wherever they conflict.
+
+Initial read-only production evidence before hardening:
+
+- 95 registry rows; RLS enabled;
+- columns: `id`, `grade_band`, `grade_level`, `grade_order`, `subject`, `branch`, `subject_label`, `chapter`, `chapter_order`, `created_at`;
+- primary key on `id`;
+- lookup index on `(grade_band, subject, branch)`;
+- unique constraint on `(grade_band, subject, branch, chapter)`;
+- public read policy for `anon` and `authenticated`; no write policy for either role, so writes remain blocked by RLS and trusted service access is the intended maintenance path;
+- no duplicate natural keys currently exist;
+- exact one-row matches for 3,512 of 3,663 existing questions (95.88%);
+- the 151 unmatched legacy questions are 150 Junior Science rows plus one Senior Biology row with both `grade_level` and `chapter` null;
+- no question matches multiple registry rows.
+
+The registry uses product semantics: Senior Physics is `subject=math, branch=physics`; Chemistry/Biology are `subject=science` with their branch. Factory semantic subjects must still pass through the section 1 mapping before lookup.
+
+The registry is accepted as the canonical chapter lookup. The Phase 4.7 hardening gate was completed in production on 2026-08-28:
+
+1. all 95 rows received a unique, non-null `chapter_key` in the form `cc_` plus 24 lowercase SHA-256 hex characters, deterministically derived from the normalized curriculum tuple;
+2. natural uniqueness is now `UNIQUE NULLS NOT DISTINCT (grade_band, grade_level, subject, branch, chapter)`;
+3. domain/route/order/non-empty constraints and a browse index were added;
+4. anonymous and authenticated roles retain SELECT only; their table writes and sequence privileges were revoked and an actual anonymous INSERT was denied;
+5. `src/lib/questionFactory/curriculumChapterServer.ts` resolves exactly one compatible row and returns an immutable checksum-bearing snapshot;
+6. the 151 null-metadata questions remain grandfathered legacy rows, not templates for new Factory output.
+
+Migration evidence: local reviewed file `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; production migration history `20260828105201_curriculum_chapters_registry_bridge`. The migration did not update any `questions` row, and the exact-match count remains 3,512 of 3,663.
+
+`curriculum_chapters.id` alone must not become the cross-environment Factory identity. It is an environment-local identity value and may differ after seeding or restoration.
+
 ## 3. Adapter input contract
 
 The adapter receives resolved, validated values; it must not infer missing curriculum semantics from question prose.
@@ -87,6 +119,8 @@ Minimum semantic input:
 
 ```yaml
 mapping_version: question-product-mapping/v1
+curriculum_chapter_id: environment_local_registry_id
+curriculum_chapter_key: stable_ascii_unit_id
 education_stage: lower_secondary | upper_secondary
 grade: 7 | 8 | 9 | 10 | 11 | 12 | null
 subject: math | science | physics | chemistry | biology
@@ -103,6 +137,8 @@ asset: null | approved_asset
 
 `product_category_id` must resolve through a versioned mapping registry. The adapter must reject an unknown registry entry instead of manufacturing a new `category` string.
 
+The adapter must load the approved `curriculum_chapters` row server-side, verify that its product tuple matches the Factory stage/grade/subject mapping, and snapshot the resolved registry fields. Client-supplied chapter labels or numeric IDs are not trusted mapping authority.
+
 ## 4. Deterministic field mapping
 
 ### 4.1 Curriculum and routing fields
@@ -113,8 +149,8 @@ asset: null | approved_asset
 | `subject` | Use the table in section 1 | Unsupported stage/subject pair |
 | `branch` | Junior subjects → `null`; Physics/Chemistry/Biology → same branch value | Junior with non-null branch; Senior science specialization without branch |
 | `category` | Exact `product_category` from approved registry entry | Missing/unknown mapping; blank value |
-| `grade_level` | Lower secondary grade 7/8/9 → `ม.1`/`ม.2`/`ม.3`; upper secondary v1 → `null` | Junior grade absent or outside 7–9 |
-| `chapter` | Junior Math: exact approved Thai chapter label; Junior Science v1: `null`; all Senior v1: `null` | Unregistered Junior Math chapter |
+| `grade_level` | Exact `grade_level` from the approved curriculum registry row after Factory grade verification | Missing registry row; grade mismatch; grandfathered null row used for new output |
+| `chapter` | Exact `chapter` from the approved curriculum registry row | Missing/ambiguous registry row; blank chapter |
 
 The Senior `category` label remains the current product taxonomy and includes its legacy level prefix:
 
