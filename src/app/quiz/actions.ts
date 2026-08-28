@@ -113,7 +113,20 @@ export type MissionRoundInfo = {
 // "practice" = โหมดฝึกปกติเดิม (เลือกวิชาเอง) / "mission" = ภารกิจประจำวัน (ดู src/lib/missions.ts)
 // รวมเป็น union เดียวแทนการรับ mode เฉยๆ เพราะโหมด mission ต้องโหลด subject/category/เกณฑ์จบ
 // จาก daily_missions เอง ไม่ใช่ให้ client กำหนด mode/จำนวนข้อเอง (server เป็น source of truth)
-export type StartQuizRoundInput = { type: "practice"; mode: QuizMode } | { type: "mission"; missionId: string };
+// โหมด "เลือกบทฝึกฝน" — filter คำถามตรงจากบทที่เลือก แยกจาก categoryFilter เดิม (ผูก missions)
+// ต้อง filter ครบทั้ง 4 field พร้อมกันเสมอ: ฟิสิกส์กับคณิต ม.ต้น ใช้ subject='math' ร่วมกัน
+// filter ไม่ครบมีโอกาสดึงข้อผิดวิชาปนมา
+export type TopicFilter = {
+  gradeBand: string; // 'junior' | 'senior'
+  subject: string; // 'math' | 'science'
+  branch: string | null;
+  chapter: string;
+};
+
+export type StartQuizRoundInput =
+  | { type: "practice"; mode: QuizMode }
+  | { type: "mission"; missionId: string }
+  | { type: "topic"; topicFilter: TopicFilter };
 
 export type StartQuizRoundResult = {
   questions: QuizRoundQuestion[];
@@ -129,6 +142,60 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   } = await supabase.auth.getUser();
   const admin = createAdminClient();
   const band = user ? await getGradeBand(user.id) : "junior";
+
+  // โหมดเลือกบทฝึกฝน: cross-grade เต็มรูปแบบ ไม่ filter ตาม band/subject ของ user — query ตรงจาก
+  // บทที่เลือก โดย filter ครบทั้ง 4 field เสมอ (ดู TopicFilter) ไม่ยุ่งกับ category/difficulty
+  if (input.type === "topic") {
+    const tf = input.topicFilter;
+    const [currentCombo, lastAttemptBeforeRound, idRows] = await Promise.all([
+      (async () => {
+        if (!user) return 0;
+        const activePetId = await getActivePetId(supabase, user.id);
+        return activePetId ? getCurrentComboStreak(supabase, activePetId) : 0;
+      })(),
+      user ? getLastAttemptBeforeRound(supabase, user.id) : Promise.resolve(null),
+      fetchAllRows<{ id: number }>((from, to) => {
+        let q = admin
+          .from("questions")
+          .select("id")
+          .eq("status", "active")
+          .eq("subject", tf.subject)
+          .eq("grade_band", tf.gradeBand)
+          .eq("chapter", tf.chapter);
+        q = tf.branch === null ? q.is("branch", null) : q.eq("branch", tf.branch);
+        return q.range(from, to);
+      }),
+    ]);
+
+    const candidateIds = idRows.map((r) => r.id);
+    if (candidateIds.length === 0) {
+      return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo: null };
+    }
+    const pickedIds = shuffle(candidateIds).slice(0, ROUND_SIZE);
+    const { data: rows, error } = await admin
+      .from("questions")
+      .select("id, subject, category, difficulty, question_text, choices, correct_index, explanation, image_url")
+      .in("id", pickedIds);
+    if (error) throw new Error(error.message);
+    const byId = new Map(
+      (rows ?? []).map((r) => [
+        r.id,
+        {
+          id: r.id,
+          subject: r.subject as Subject,
+          category: r.category,
+          difficulty: r.difficulty,
+          question_text: r.question_text,
+          choices: r.choices,
+          image_url: r.image_url ?? null,
+          correctIndex: r.correct_index,
+          explanation: r.explanation,
+        } satisfies QuizRoundQuestion,
+      ])
+    );
+    const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
+    return { questions, currentCombo, lastAttemptBeforeRound, missionInfo: null };
+  }
 
   let mode: QuizMode;
   let categoryFilter: string | null = null;
@@ -266,6 +333,8 @@ export async function submitAnswer(input: {
   comboBefore: number;
   mode: QuizMode;
   missionId?: string | null;
+  // 'topic_select' = โหมดเลือกบทฝึกฝน (ไม่นับ leaderboard, EXP ปกติ) — null = ฝึก/ภารกิจปกติ
+  source?: "topic_select" | null;
 }): Promise<SubmitAnswerResult> {
   const supabase = await createClient();
   const {
@@ -325,6 +394,7 @@ export async function submitAnswer(input: {
       is_correct: isCorrect,
       pet_id: activePet.id,
       mission_id: input.missionId ?? null,
+      source: input.source ?? null,
     }),
     supabase.rpc("apply_quiz_answer_pet_update", {
       p_pet_id: activePet.id,
@@ -496,6 +566,48 @@ export async function finishQuizRound(
 // server action บางๆ ห่อ claimMissionBonusIfComplete (src/lib/missions.ts) ไว้ให้ QuizClient
 // ("use client") เรียกตอนจบรอบภารกิจ — missions.ts เองไม่ใช่ "use server" (เหตุผลดู comment บน
 // getOrCreateTodayMission) เลยต้องมี wrapper แบบนี้ในไฟล์ที่ "use server" อยู่แล้ว
+// 1 บทตามหลักสูตรจริง (curriculum_chapter_availability) พร้อมจำนวนข้อ active จริงจาก view —
+// gradeBand ใช้ประกอบ TopicFilter ตอนเริ่มรอบ (ไม่ได้อยู่ใน spec ChapterOption เดิมแต่ frontend ต้องใช้)
+export type ChapterOption = {
+  gradeBand: string;
+  gradeLevel: string | null;
+  gradeOrder: number;
+  subject: string;
+  branch: string | null;
+  subjectLabel: string;
+  chapter: string;
+  chapterOrder: number;
+  questionCount: number;
+  isAvailable: boolean;
+};
+
+// ดึงบททั้งหมดสำหรับหน้าเลือกบท — ไม่ filter ตาม band/subject ของ user (เปิดให้ทุกคนเห็นหมด
+// ตามดีไซน์ cross-grade) เรียงตาม grade_order, subject_label, chapter_order
+export async function getTopicChapters(): Promise<ChapterOption[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("curriculum_chapter_availability")
+    .select(
+      "grade_band, grade_level, grade_order, subject, branch, subject_label, chapter, chapter_order, question_count, is_available"
+    )
+    .order("grade_order", { ascending: true })
+    .order("subject_label", { ascending: true })
+    .order("chapter_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    gradeBand: r.grade_band,
+    gradeLevel: r.grade_level,
+    gradeOrder: r.grade_order,
+    subject: r.subject,
+    branch: r.branch,
+    subjectLabel: r.subject_label,
+    chapter: r.chapter,
+    chapterOrder: r.chapter_order,
+    questionCount: r.question_count,
+    isAvailable: r.is_available,
+  }));
+}
+
 export async function claimMissionBonus(
   missionId: string,
   foodType: "A" | "B"

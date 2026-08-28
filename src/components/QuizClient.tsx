@@ -10,9 +10,13 @@ import {
   submitAnswer,
   finishQuizRound,
   claimMissionBonus,
+  getTopicChapters,
   type RoundFinishResult,
   type MissionRoundInfo,
+  type ChapterOption,
+  type TopicFilter,
 } from "@/app/quiz/actions";
+import TopicSelectPanel from "@/components/TopicSelectPanel";
 // import ตรงจากต้นทาง ไม่ผ่าน re-export ของ quiz/actions.ts (ไฟล์ "use server") — เจอบั๊กจริงตอน
 // Phase 6 ว่า `export type {...}` ใน "use server" ไฟล์ทำให้ SWC server-actions codegen ของ
 // Next 16 canary นี้ throw ตอน module evaluation (ดูคอมเมนต์เต็มใน quiz/actions.ts)
@@ -74,7 +78,7 @@ const SENIOR_MODES: { id: SeniorBranch; label: string; emoji: string }[] = [
   { id: "biology", label: "ชีวะ", emoji: "🧬" },
 ];
 
-type Phase = "select" | "loading" | "playing" | "chooseFood" | "summary";
+type Phase = "select" | "topicSelect" | "loading" | "playing" | "chooseFood" | "summary";
 
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
@@ -99,6 +103,7 @@ async function submitAnswerWithRetry(input: {
   comboBefore: number;
   mode: QuizMode;
   missionId?: string | null;
+  source?: "topic_select" | null;
 }): Promise<BackgroundSubmission> {
   try {
     const res = await submitAnswer(input);
@@ -120,6 +125,7 @@ export default function QuizClient({
   petDailyCapped = false,
   initialMissionId = null,
   gradeBand = "junior",
+  gradeLevel = null,
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
@@ -127,10 +133,15 @@ export default function QuizClient({
   petDailyCapped?: boolean;
   initialMissionId?: string | null;
   gradeBand?: GradeBand;
+  gradeLevel?: string | null;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<QuizMode | null>(null);
+  // โหมดเลือกบทฝึกฝน — topicFilter ไม่ null ตลอดที่อยู่ในรอบที่เริ่มจากการเลือกบท (ใช้ทั้งแนบ
+  // source='topic_select' ตอน submit และเล่นบทเดิมซ้ำตอนกด "เล่นอีกรอบ")
+  const [topicChapters, setTopicChapters] = useState<ChapterOption[] | null>(null);
+  const [topicFilter, setTopicFilter] = useState<TopicFilter | null>(null);
   const [questions, setQuestions] = useState<QuizRoundQuestion[]>([]);
   const [index, setIndex] = useState(0);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -214,6 +225,7 @@ export default function QuizClient({
     setErrorMessage(null);
     setSaveWarning(null);
     setMissionInfo(null);
+    setTopicFilter(null);
     setMissionClaim(null);
     setMissionClaimFailed(false);
     setShowFeedbackModal(false);
@@ -343,6 +355,58 @@ export default function QuizClient({
     });
   }
 
+  function openTopicSelect() {
+    setErrorMessage(null);
+    if (topicChapters) {
+      setPhase("topicSelect");
+      return;
+    }
+    startTransition(async () => {
+      try {
+        const chapters = await getTopicChapters();
+        setTopicChapters(chapters);
+        setPhase("topicSelect");
+      } catch {
+        setErrorMessage("โหลดรายชื่อบทไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+      }
+    });
+  }
+
+  function handleSelectTopic(filter: TopicFilter) {
+    resetRoundState();
+    setTopicFilter(filter);
+    setMode((filter.branch ?? filter.subject) as QuizMode);
+    setPhase("loading");
+    startTransition(async () => {
+      try {
+        const { questions: round, currentCombo, lastAttemptBeforeRound } = await startQuizRound({
+          type: "topic",
+          topicFilter: filter,
+        });
+        if (round.length === 0) {
+          setErrorMessage("บทนี้ยังไม่มีคำถามพอให้ฝึก ลองบทอื่นนะ");
+          setPhase("topicSelect");
+          return;
+        }
+        setQuestions(round);
+        setCombo(currentCombo);
+        lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        setPhase("playing");
+
+        const firstQuestion = round[0];
+        questionShownAtRef.current = Date.now();
+        track("question_start", {
+          question_id: firstQuestion.id,
+          subject: firstQuestion.subject,
+          category: firstQuestion.category,
+        });
+      } catch {
+        setErrorMessage("โหลดคำถามไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+        setPhase("topicSelect");
+      }
+    });
+  }
+
   function handleStartMission(missionId: string) {
     resetRoundState();
     setPhase("loading");
@@ -448,6 +512,7 @@ export default function QuizClient({
         comboBefore: combo,
         mode: mode!,
         missionId: missionInfo?.missionId ?? null,
+        source: topicFilter ? "topic_select" : null,
       })
     );
     submissionQueueRef.current = submissionPromise;
@@ -516,11 +581,23 @@ export default function QuizClient({
   }
 
   function handlePlayAgain() {
-    if (mode) handleSelectMode(mode);
+    if (topicFilter) handleSelectTopic(topicFilter);
+    else if (mode) handleSelectMode(mode);
   }
 
   function handleBackToSubjects() {
     router.push(summary?.evolved ? "/pet?evolved=1" : "/pet");
+  }
+
+  if (phase === "topicSelect" && topicChapters) {
+    return (
+      <TopicSelectPanel
+        chapters={topicChapters}
+        defaultGradeLevel={gradeLevel}
+        onBack={() => setPhase("select")}
+        onSelect={handleSelectTopic}
+      />
+    );
   }
 
   if (phase === "select" || phase === "loading") {
@@ -550,6 +627,18 @@ export default function QuizClient({
               {phase === "loading" && mode === m.id ? "กำลังสุ่มคำถาม..." : m.label}
             </button>
           ))}
+        </div>
+
+        {/* ลิงก์รอง — ตัวเล็ก ไม่แข่งสายตากับปุ่มวิชาหลัก */}
+        <div className="text-center">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={openTopicSelect}
+            className="text-sm text-text3 underline underline-offset-4 transition hover:text-text2 disabled:opacity-50"
+          >
+            {isPending ? "กำลังโหลด..." : "อยากฝึกเฉพาะบท?"}
+          </button>
         </div>
       </div>
     );
