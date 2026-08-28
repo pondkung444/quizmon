@@ -17,6 +17,7 @@ import {
   type TopicFilter,
 } from "@/app/quiz/actions";
 import TopicSelectPanel from "@/components/TopicSelectPanel";
+import BottomNav from "@/components/BottomNav";
 // import ตรงจากต้นทาง ไม่ผ่าน re-export ของ quiz/actions.ts (ไฟล์ "use server") — เจอบั๊กจริงตอน
 // Phase 6 ว่า `export type {...}` ใน "use server" ไฟล์ทำให้ SWC server-actions codegen ของ
 // Next 16 canary นี้ throw ตอน module evaluation (ดูคอมเมนต์เต็มใน quiz/actions.ts)
@@ -591,18 +592,22 @@ export default function QuizClient({
 
   if (phase === "topicSelect" && topicChapters) {
     return (
-      <TopicSelectPanel
-        chapters={topicChapters}
-        defaultGradeLevel={gradeLevel}
-        onBack={() => setPhase("select")}
-        onSelect={handleSelectTopic}
-      />
+      <div className="pb-24">
+        <TopicSelectPanel
+          chapters={topicChapters}
+          defaultGradeLevel={gradeLevel}
+          onBack={() => setPhase("select")}
+          onSelect={handleSelectTopic}
+        />
+        {/* หน้าเลือกบท = ก่อนเริ่มรอบ ต้องมีเมนูล่างให้กลับหน้าอื่นได้ (in-app webview ไม่มีปุ่ม back) */}
+        <BottomNav forceShow />
+      </div>
     );
   }
 
   if (phase === "select" || phase === "loading") {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 pb-24">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gold-hi">เลือกวิชาที่จะฝึกวันนี้</h1>
           <p className="mt-1 text-sm text-text3">ตอบให้ถูกเยอะๆ แล้วไปเลี้ยงเพื่อนตัวน้อยกัน!</p>
@@ -641,6 +646,10 @@ export default function QuizClient({
             {isPending ? "กำลังโหลด..." : "อยากฝึกเฉพาะบท?"}
           </button>
         </div>
+
+        {/* หน้าเลือกวิชา = ก่อนเริ่มรอบ ต้องมีเมนูล่างให้กลับหน้าอื่นได้ (in-app webview ไม่มีปุ่ม back)
+            ระหว่าง phase "playing" ยังซ่อน nav ตามเดิม (มีปุ่ม ✕ ออกให้แทน) */}
+        <BottomNav forceShow />
       </div>
     );
   }
