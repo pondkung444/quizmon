@@ -1,7 +1,8 @@
 # Phase 5.6 — Controlled Pilot
 
-**Status:** In progress — first real batch is waiting for Human Review
+**Status:** Complete — first real batch passed Human Review, Draft publication and explicit Activation
 **Started:** 2026-08-29
+**Completed:** 2026-08-29
 
 ## Approved scope
 
@@ -46,11 +47,33 @@ The first attempt used a human-readable `unit=parabola`. The Review Queue correc
 
 ## Human-review handoff
 
-- [Factory Office](https://quizmon-8zxk5p005-pon-d.vercel.app/admin/factory-office-preview)
-- [Question Review Queue](https://quizmon-8zxk5p005-pon-d.vercel.app/admin/question-factory/review)
+- [Factory Office](https://quizmon.xyz/admin/factory-office-preview)
+- [Question Review Queue](https://quizmon.xyz/admin/question-factory/review)
 
-The reviewer may select each item or use random selection. Approval or revision acts on one exact candidate revision and mapping checksum. Draft publication and learner-visible activation remain separate explicit actions after review.
+The reviewer approved all 10 exact candidate revisions. The Review Queue gained guarded multi-select approval in commit `887d4ec`; each selected Slot still executes the original service-only Human Review RPC with its own state-version, mapping-checksum and idempotency guards. No approval was inferred from opening the page.
+
+## Publication and activation evidence
+
+The user separately authorized Product Draft publication and learner-visible Activation. Each batch operation ran in one outer transaction while preserving the per-Slot service-only RPC guards; any Slot failure would have rolled back the whole batch.
+
+| Check | Result |
+|---|---:|
+| Human approvals / `HUMAN_APPROVED` events | 10 / 10 |
+| Product Draft questions | `3672`–`3681` |
+| Product mappings | `9`–`18` |
+| `PRODUCT_DRAFT_CREATED` events | 10 |
+| Active Slots at state version 6 | 10 |
+| Active product questions | 10 |
+| `QUESTION_ACTIVATED` events | 10 |
+| Exact mapping checksum matches | 10 |
+| Exact mapping-output/product-row matches | 10 |
+| Canonical chapter/category route matches | 10 |
+| Unexpected external exact duplicates | 0 |
+| Factory assets / matching Storage objects | 0 / 0 |
+| Run 26 residue across Factory tables | 0 |
+
+Activation event IDs `185`–`194` show monotonic counters from `active_count=1, pipeline_ready_count=9` through `active_count=10, pipeline_ready_count=0`. Run `27` has no error and retains `status=running`, `state_version=1`: the current v1 contract recalculates counters during Activation but does not yet provide a guarded terminal Run transition. Phase 6 Operational Hardening owns that lifecycle closure; production was not updated ad hoc.
 
 ## Exit gate
 
-Phase 5.6 is not complete until the user reviews the batch, requested revisions are resolved, approved candidates are deliberately published/activated, and final mapping/product/rollback evidence is recorded. No approval should be inferred from opening the review page.
+Passed on 2026-08-29. The user reviewed and approved all candidates, separately authorized Draft publication and Activation, and the final mapping/product/event/residue audit passed. Phase 6 Operational Hardening is next.

@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.6 Controlled Pilot is in progress. Production Run `27` contains 10 text-only Mathematics M.3 parabola candidates; all 10 passed Question QC and exact curriculum/category mapping and are waiting for Human Review. No product question or asset was created. See [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md).
+**Current checkpoint (2026-08-29):** Phase 5.6 Controlled Pilot is complete. Production Run `27` carried 10 text-only Mathematics M.3 parabola candidates through Question QC, exact Human approval, Product Draft publication and explicit Activation. Product questions `3672`–`3681` are active with mappings `9`–`18`; no asset or Storage object was required. Phase 6 Operational Hardening is next. See [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md).
 
 ## Core design
 
