@@ -1,11 +1,11 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.5 complete; Phase 5.6 Controlled Pilot awaits separate scope/batch approval
+**Status:** Phase 5.6 Controlled Pilot in progress; Run 27 awaits Human Review
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
 
-## Current implementation checkpoint — 2026-08-28
+## Current implementation checkpoint — 2026-08-29
 
 This section is the current execution source of truth. The original Phase 1–6 design narrative later in this document remains useful background, but this checkpoint supersedes its implementation status and sequencing.
 
@@ -23,17 +23,17 @@ This section is the current execution source of truth. The original Phase 1–6 
 - Phase 5.2: optimistic Author → Question QC → revise/reject/pass state machine deployed with candidate validation, append-only evidence, idempotency and DB revision ceiling; no product question was created.
 - Phase 5.3: private immutable asset revisions, byte-level SVG/WebP validation, Storage existence/metadata guard, exact-revision Image QC transitions and compensating cleanup deployed and production smoke-verified; no real Run or product write was created.
 
-Production currently contains the eight Factory tables, but `question_factory_runs`, `question_factory_slots` and `question_factory_events` contain no real run yet. No pilot question production has started.
+Production now contains Controlled Pilot Run `27` for Mathematics M.3, curriculum chapter `กราฟของฟังก์ชันกำลังสอง`, with 10 text-only Slots at `pending_human_review`. All chapter/category/candidate checks passed, no exact legacy text duplicate was found, and no Slot is linked to a product question.
 
 ### Current phase
 
-> **Phase 5.4 — Review and Publish**
+> **Phase 5.6 — Controlled Pilot Human Review**
 
 The curriculum gate is closed. The worker can now resolve a `chapter_key` server-side, verify its stage/grade/product route, and pin an immutable resolved snapshot before creating a Run. The 151 grandfathered questions with null curriculum metadata remain legacy-only and are not valid templates for new Factory output.
 
 Phase 5.2 and Phase 5.3 passed their exit gates. The worker can now carry an `asset_build` Slot through immutable private staging revisions and exact-revision Image QC without anonymous or product-bucket writes.
 
-Phase 5.3 production evidence is recorded in [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md). Phase 5.4 now completes the deterministic Product Mapping Candidate, Human Review, draft insertion, byte-verified asset promotion and explicit evidence-checked activation gates. Phase 5.5 will exercise the whole flow with disposable output and recovery scenarios. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
+Phase 5.4 and Phase 5.5 passed their production exit gates. Phase 5.6 is now exercising the first user-approved real batch. Run `27` has 10 review-ready candidates and deliberately stops before draft publication or activation. See [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md).
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 
@@ -48,7 +48,7 @@ Phase 4.7 production evidence: migration history `20260828105201_curriculum_chap
 | 5.3 — Asset loop (complete) | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Passed in production on 2026-08-28; no anonymous/product-bucket write |
 | 5.4 — Review and publish (complete) | Trusted human review, Product Mapping Adapter and idempotent publish/promotion/activation | Yellow review wait, human decision and Publisher actions are live | Passed in production rollback smoke on 2026-08-29 |
 | 5.5 — End-to-end dry run (complete) | Full flow using transaction-rollback fixtures plus protected Storage smoke | Whole Office flow reconstructs correctly after refresh/reconnect | Passed on 2026-08-29; protected run 33225027228; zero production residue |
-| 5.6 — Controlled pilot | Small approved curriculum batch through human review | Office observes the first real run | Human sign-off, mapping verification and rollback/stop controls pass |
+| 5.6 — Controlled pilot (in progress) | 10 approved-scope M.3 parabola candidates through human review | Office observes Run 27; Review Queue exposes exact/random inspection | Mapping/candidate gates passed; awaiting human sign-off and explicit publish/activation |
 | 6 — Operational hardening | Scheduling, concurrency, observability, cost limits and runbooks | Optional polling/Realtime, transitions and bottleneck views | Load, security, recovery and cost acceptance gates pass |
 | 7 — Scale-out | Additional profiles, subjects and larger semi-automatic batches | Slot detail and multi-run views as operational need proves them | Per-profile quality metrics remain within approved thresholds |
 

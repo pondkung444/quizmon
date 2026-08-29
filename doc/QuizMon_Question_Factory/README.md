@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.5 is complete; Phase 5.6 Controlled Pilot is next and requires a separate user-approved real curriculum scope and small batch. The complete RPC chain, recovery paths, deterministic Office reconstruction and protected Storage workflow passed with zero production residue. See [phase-5.5-end-to-end-dry-run.md](phase-5.5-end-to-end-dry-run.md).
+**Current checkpoint (2026-08-29):** Phase 5.6 Controlled Pilot is in progress. Production Run `27` contains 10 text-only Mathematics M.3 parabola candidates; all 10 passed Question QC and exact curriculum/category mapping and are waiting for Human Review. No product question or asset was created. See [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md).
 
 ## Core design
 
@@ -21,6 +21,7 @@
 | 4.1 | [question-factory-data-model-v1.md](question-factory-data-model-v1.md) |
 | 4.5a | [question-factory-scope-key-v1.md](question-factory-scope-key-v1.md) |
 | 4.6 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
+| 5.6 | [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md) |
 | 4.7 | Curriculum registry bridge (implemented across migration, resolver, Profile, Scope Key and Product Mapping contracts) |
 | 5.0 | [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md) |
 | 5.1 | [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md) |
