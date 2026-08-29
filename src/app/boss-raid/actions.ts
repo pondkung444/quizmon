@@ -82,3 +82,11 @@ export async function joinBossRaidSession(joinCode: string): Promise<JoinBossRai
     participantId: row.participant_id,
   };
 }
+
+// Phase 0.2 — ครูกดเริ่มเกม: aggregate stat + คำนวณ HP scaling ผ่าน RPC security definer
+// (lobby -> in_progress; client เห็นผ่าน realtime UPDATE ของ boss_raid_sessions)
+export async function startBossRaidGame(sessionId: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("start_boss_raid_game", { p_session_id: sessionId });
+  if (error) throw new Error(error.message);
+}

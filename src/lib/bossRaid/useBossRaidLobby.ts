@@ -18,6 +18,10 @@ export type LobbySession = {
   join_code: string;
   config: { chapter_ids?: number[]; difficulty?: string; timer_seconds?: number };
   teacher_id: string;
+  boss_hp?: number | null;
+  boss_hp_max?: number | null;
+  crystal_hp?: number | null;
+  crystal_hp_max?: number | null;
 };
 
 export type LobbyParticipant = {

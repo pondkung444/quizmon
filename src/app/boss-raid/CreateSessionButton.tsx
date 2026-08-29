@@ -25,11 +25,11 @@ export default function CreateSessionButton() {
             }
           })
         }
-        className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังสร้าง…" : "สร้างห้อง"}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red">{error}</p>}
     </div>
   );
 }

@@ -26,7 +26,7 @@ export default async function BossRaidHomePage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Boss Raid ห้องเรียน</h1>
+        <h1 className="text-2xl font-bold text-gold-hi">Boss Raid ห้องเรียน</h1>
         <CreateSessionButton />
       </div>
 
@@ -35,15 +35,15 @@ export default async function BossRaidHomePage() {
           <li key={s.id}>
             <Link
               href={`/boss-raid/${s.id}`}
-              className="flex items-center justify-between rounded-lg border border-black/10 px-4 py-3 hover:bg-black/5"
+              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition hover:border-gold-dim"
             >
-              <span className="font-mono text-lg tracking-widest">{s.join_code}</span>
-              <span className="text-sm text-black/60">{STATUS_TH[s.status] ?? s.status}</span>
+              <span className="font-mono text-lg tracking-widest text-gold-hi">{s.join_code}</span>
+              <span className="text-sm text-text2">{STATUS_TH[s.status] ?? s.status}</span>
             </Link>
           </li>
         ))}
         {(sessions ?? []).length === 0 && (
-          <li className="rounded-lg border border-dashed border-black/15 px-4 py-6 text-center text-sm text-black/50">
+          <li className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-text3">
             ยังไม่มีห้อง — กด &ldquo;สร้างห้อง&rdquo; เพื่อเริ่ม
           </li>
         )}

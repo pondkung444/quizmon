@@ -18,8 +18,8 @@ export default async function BossRaidJoinPage({
 
   return (
     <main className="mx-auto max-w-sm px-4 py-12">
-      <h1 className="text-2xl font-bold">เข้าห้อง Boss Raid</h1>
-      <p className="mt-1 text-sm text-black/50">กรอกรหัสห้อง 6 หลักจากครู</p>
+      <h1 className="text-2xl font-bold text-gold-hi">เข้าห้อง Boss Raid</h1>
+      <p className="mt-1 text-sm text-text3">กรอกรหัสห้อง 6 หลักจากครู</p>
       <JoinForm initialCode={code ?? ""} />
     </main>
   );

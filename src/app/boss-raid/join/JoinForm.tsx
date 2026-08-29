@@ -43,16 +43,16 @@ export default function JoinForm({ initialCode }: { initialCode: string }) {
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
         placeholder="ABC123"
-        className="w-full rounded-lg border border-black/15 px-4 py-3 text-center font-mono text-2xl tracking-[0.4em]"
+        className="w-full rounded-lg border border-border bg-track px-4 py-3 text-center font-mono text-2xl tracking-[0.4em] text-gold-hi placeholder:text-text3"
       />
       <button
         type="submit"
         disabled={pending || code.length !== 6}
-        className="w-full rounded-lg bg-black px-4 py-3 font-medium text-white disabled:opacity-50"
+        className="w-full rounded-2xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังเข้าห้อง…" : "เข้าห้อง"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red">{error}</p>}
     </form>
   );
 }
