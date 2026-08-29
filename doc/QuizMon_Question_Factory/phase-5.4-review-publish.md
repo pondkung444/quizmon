@@ -54,11 +54,15 @@ Phase 5.4d asset promotion is complete. The server downloads the QC-passed priva
 
 The review page now keeps approved mapped drafts visible and labels the complete sequence: waiting for Draft, waiting for image promotion, and ready for Activation. Production rollback smoke passed initial promotion, exact replay, altered checksum rejection, stale-version rejection, complete image tuple binding and promoted asset state, with zero Factory fixture residue. `anon` and `authenticated` cannot execute the RPC; `service_role` can. No activation occurs in this phase.
 
+Phase 5.4e activation is complete. The explicit admin action requires a confirmation checkbox, re-authenticates the current admin and reloads the queue server-side. The service-only `question_factory_activate_draft` RPC locks the running Run and approved Slot, requires the exact immutable mapping checksum and original Human approval evidence, compares every non-image product field to the immutable mapping output, and then applies a representation-specific final gate. Text-only drafts must retain an all-null image tuple. Visual drafts must reference the latest promoted asset, exact approved revision/checksum, complete matching product image tuple and an existing canonical `question-images` Storage object. Only then does one transaction set `questions.status='active'`, set the Slot to `active`, recalculate Run active/ready counters and append `QUESTION_ACTIVATED`.
+
+Production rollback smoke passed text-only activation, visual activation, exact replay, wrong mapping checksum rejection, incomplete visual tuple rejection, stale-version rejection and counter/state assertions. The function is security-invoker with an empty search path; `anon` and `authenticated` cannot execute it, while `service_role` can. All smoke fixtures and Storage metadata were rolled back. Phase 5.4 is now complete.
+
 ## Remaining exit gates
 
 - add an admin taxonomy workflow for the 13 intentionally unmapped curriculum chapters before Profiles may target them;
 - require Profile/Blueprint builders to select the registry `topic_id` rather than accept arbitrary topic strings;
 - run the positive visual-asset Human Review branch through the trusted Storage smoke path;
 - verified asset promotion and compensation behavior;
-- Phase 5.4e: separate activation RPC and rollback smoke proving activation eligibility, exact replay and no product residue;
+- Phase 5.5: full end-to-end dry run using disposable output, including interruption/retry and Office reconstruction;
 - permission/advisor checks and trusted production workflow evidence.

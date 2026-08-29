@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { recordFactoryHumanReview, type FactoryHumanReviewDecision } from "@/lib/questionFactory/humanReviewServer";
 import { publishFactoryDraft } from "@/lib/questionFactory/draftPublishServer";
 import { promoteFactoryAsset } from "@/lib/questionFactory/assetPromotionServer";
+import { activateFactoryDraft } from "@/lib/questionFactory/activationServer";
 import { loadFactoryReviewQueue } from "@/lib/questionFactory/reviewQueueServer";
 import { getUser } from "@/lib/supabase/server";
 
@@ -134,5 +135,39 @@ export async function submitAssetPromotion(
     return { status: "success", message: result.replayed ? "ยืนยันภาพ Product เดิมแล้ว" : `ผูกภาพกับ Draft #${result.questionId} แล้ว` };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "โปรโมตภาพไม่สำเร็จ" };
+  }
+}
+
+export async function submitDraftActivation(
+  _previous: HumanReviewActionState,
+  formData: FormData
+): Promise<HumanReviewActionState> {
+  try {
+    const user = await getUser();
+    if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์เปิดใช้ข้อสอบ" };
+    if (formData.get("activationConfirmed") !== "activate") {
+      return { status: "error", message: "กรุณายืนยันก่อนเปิดใช้ข้อสอบจริง" };
+    }
+    const slotId = Number(formData.get("slotId"));
+    if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
+    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    const assetReady = !item?.asset || item.asset.state === "promoted";
+    if (!item || item.state !== "approved" || item.questionId === null || !item.mappingCandidate || !assetReady) {
+      return { status: "error", message: "ข้อนี้ยังไม่ผ่านทุก gate สำหรับ Activation" };
+    }
+    const operationHash = createHash("sha256").update(JSON.stringify({
+      slotId, questionId: item.questionId, stateVersion: item.stateVersion,
+      mappingChecksum: item.mappingCandidate.checksum,
+    })).digest("hex");
+    const result = await activateFactoryDraft({
+      runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
+      questionId: item.questionId, mappingChecksum: item.mappingCandidate.checksum,
+      actorId: user.email.toLowerCase(), idempotencyKey: `draft-activation:${operationHash}`,
+    });
+    revalidatePath("/admin/question-factory/review");
+    revalidatePath("/admin/question-factory");
+    return { status: "success", message: result.replayed ? `ยืนยันข้อ Active #${result.questionId} แล้ว` : `เปิดใช้ข้อสอบ #${result.questionId} แล้ว` };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "เปิดใช้ Factory Draft ไม่สำเร็จ" };
   }
 }

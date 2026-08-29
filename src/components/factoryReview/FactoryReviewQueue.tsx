@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
-import { submitAssetPromotion, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
+import { submitAssetPromotion, submitDraftActivation, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
 
 const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
@@ -46,11 +46,21 @@ function PromoteButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+function ActivateButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+      <CheckCircle2 size={18} /> {pending ? "กำลังเปิดใช้…" : "เปิดใช้ข้อสอบจริง"}
+    </button>
+  );
+}
+
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
   const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
   const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
   const [promotionState, promotionFormAction] = useActionState(submitAssetPromotion, INITIAL_ACTION_STATE);
+  const [activationState, activationFormAction] = useActionState(submitDraftActivation, INITIAL_ACTION_STATE);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
   const item = items[selectedIndex];
   const queuedLabel = item ? new Intl.DateTimeFormat("th-TH", {
@@ -241,10 +251,23 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
               )}
             </>
           ) : (
-            <div className="rounded-2xl border border-emerald-700/60 bg-emerald-950/25 p-3 text-xs text-emerald-200">
-              <p className="font-semibold">Product Draft #{item.questionId} พร้อมสำหรับ Activation gate</p>
-              <p className="mt-1">{item.asset ? "ภาพผ่านการโปรโมตและผูกกับข้อสอบแล้ว" : "ข้อนี้ไม่มีภาพ จึงไม่ต้องผ่าน Storage promotion"}</p>
-            </div>
+            <>
+              <div className="rounded-2xl border border-emerald-700/60 bg-emerald-950/25 p-3 text-xs text-emerald-200">
+                <p className="font-semibold">Product Draft #{item.questionId} พร้อมสำหรับ Activation gate</p>
+                <p className="mt-1">{item.asset ? "ภาพผ่านการโปรโมตและผูกกับข้อสอบแล้ว" : "ข้อนี้ไม่มีภาพ จึงไม่ต้องผ่าน Storage promotion"}</p>
+              </div>
+              <form action={activationFormAction} className="mt-4 space-y-3">
+                <input type="hidden" name="slotId" value={item.slotId} />
+                <label className="flex items-start gap-2 text-xs text-text2">
+                  <input type="checkbox" name="activationConfirmed" value="activate" required className="mt-0.5" />
+                  ยืนยันว่าตรวจข้อ เฉลย คำอธิบาย และภาพครบแล้ว และต้องการให้ข้อนี้เข้าคลังข้อสอบที่ผู้เรียนใช้งานได้
+                </label>
+                <ActivateButton />
+              </form>
+              {activationState.message && (
+                <p className={`mt-3 text-xs ${activationState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{activationState.message}</p>
+              )}
+            </>
           )}
         </div>
       </section>
