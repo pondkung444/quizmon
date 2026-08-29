@@ -22,9 +22,6 @@ export default function FactoryCommandCenter({snapshot,commandKey}:{snapshot:Fac
           {snapshot.options.map(o=><option key={o.mappingId} value={o.mappingId}>{o.gradeLevel} · {o.subjectLabel} · {o.chapter} · {o.category}</option>)}
         </select>
       </label>
-      <label className="text-sm text-text2 md:col-span-2">เป้าหมายการเรียนรู้
-        <input name="learningObjective" required disabled={blocked||pending} placeholder="ระบุสิ่งที่ผู้เรียนต้องทำได้" className="mt-1 w-full rounded-xl border border-border bg-track p-3 text-text"/>
-      </label>
       <NumberField name="count" label="จำนวนข้อ" value={10} disabled={blocked||pending}/>
       <NumberField name="costLimitMicrounits" label="Cost budget (µunit)" value={1000000} disabled={blocked||pending}/>
       <NumberField name="easy" label="ง่าย" value={3} disabled={blocked||pending}/>

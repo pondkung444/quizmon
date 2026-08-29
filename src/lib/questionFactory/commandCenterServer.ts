@@ -60,7 +60,7 @@ export async function loadFactoryCommandCenter(): Promise<FactoryCommandCenterSn
 }
 
 export async function commandFactoryRun(input: {
-  commandKey: string; mappingId: string; actorId: string; learningObjective: string;
+  commandKey: string; mappingId: string; actorId: string;
   count: number; easy: number; medium: number; hard: number; costLimitMicrounits: number;
 }) {
   const snapshot=await loadFactoryCommandCenter();
@@ -68,13 +68,14 @@ export async function commandFactoryRun(input: {
   const option=snapshot.options.find((item)=>item.mappingId===input.mappingId);
   if(!option) throw new Error("ไม่พบ curriculum/category mapping ที่อนุมัติแล้ว");
   if(!/^[0-9a-f-]{36}$/i.test(input.commandKey)) throw new Error("Invalid command key");
-  if(!input.actorId.trim()||!input.learningObjective.trim()) throw new Error("กรุณาระบุผู้สั่งและเป้าหมายการเรียนรู้");
+  if(!input.actorId.trim()) throw new Error("กรุณาระบุผู้สั่ง");
   if(!Number.isInteger(input.count)||input.count<1||input.count>20||input.easy+input.medium+input.hard!==input.count
     ||[input.easy,input.medium,input.hard].some((v)=>!Number.isInteger(v)||v<0)) throw new Error("จำนวนและระดับความยากไม่ถูกต้อง");
   if(!Number.isSafeInteger(input.costLimitMicrounits)||input.costLimitMicrounits<0) throw new Error("Cost budget ไม่ถูกต้อง");
+  const learningObjective=`อธิบายและประยุกต์ใช้ความรู้เรื่อง ${option.chapter}`;
   const difficulties=[...Array(input.easy).fill(1),...Array(input.medium).fill(2),...Array(input.hard).fill(3)];
   const slots=difficulties.map((difficulty,index)=>({slot_key:`command-${String(index+1).padStart(3,"0")}`,
-    ordinal:index+1,slot_spec:{learningObjective:input.learningObjective.trim(),topic:option.topicId,difficulty,
+    ordinal:index+1,slot_spec:{learningObjective,topic:option.topicId,difficulty,
       cognitiveDemand:difficulty===1?"understand":difficulty===2?"apply":"analyze",
       questionArchetype:`coverage_slot_${String(index+1).padStart(3,"0")}`,representationType:"none",answerType:"single_choice"}}));
   const scopeKey=buildCurriculumChapterScopeKey({chapterKey:option.chapterKey,stage:option.stage,

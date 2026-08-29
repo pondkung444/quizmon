@@ -15,8 +15,8 @@ export async function createFactoryCommandAction(_state:FactoryCommandState,form
   try{
     const result=await commandFactoryRun({commandKey:String(formData.get("commandKey")??""),
       mappingId:String(formData.get("mappingId")??""),actorId:user.email,
-      learningObjective:String(formData.get("learningObjective")??""),count:Number(formData.get("count")),
-      easy:Number(formData.get("easy")),medium:Number(formData.get("medium")),hard:Number(formData.get("hard")),
+      count:Number(formData.get("count")),easy:Number(formData.get("easy")),
+      medium:Number(formData.get("medium")),hard:Number(formData.get("hard")),
       costLimitMicrounits:Number(formData.get("costLimitMicrounits"))});
     revalidatePath("/admin/factory-office-preview");
     return {ok:true,message:"สร้างและเริ่ม Run แล้ว",runId:Number(result.run_id)};
