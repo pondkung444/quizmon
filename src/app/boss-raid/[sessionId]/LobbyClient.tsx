@@ -157,6 +157,18 @@ export default function LobbyClient({
         </>
       )}
 
+      {s.status === "ended" && (
+        <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-10 text-center">
+          <p
+            className={`text-4xl font-bold ${
+              s.result === "win" ? "text-gold-hi" : "text-red"
+            }`}
+          >
+            {s.result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะ 💀"}
+          </p>
+        </section>
+      )}
+
       {s.status === "in_progress" && myParticipant && (
         <BossRaidGame
           participantId={myParticipant.id}

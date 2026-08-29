@@ -24,6 +24,7 @@ export type LobbySession = {
   crystal_hp_max?: number | null;
   current_tier?: "light" | "medium" | "heavy" | null;
   wrong_count_total?: number | null;
+  result?: "win" | "lose" | null;
 };
 
 export type LobbyParticipant = {
