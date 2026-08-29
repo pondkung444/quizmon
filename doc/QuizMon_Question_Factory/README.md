@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.5 end-to-end dry run is in final verification. The complete RPC chain and deterministic Office reconstruction passed with transaction rollback and zero residue; the protected Storage workflow is the remaining exit check. See [phase-5.5-end-to-end-dry-run.md](phase-5.5-end-to-end-dry-run.md).
+**Current checkpoint (2026-08-29):** Phase 5.5 is complete; Phase 5.6 Controlled Pilot is next and requires a separate user-approved real curriculum scope and small batch. The complete RPC chain, recovery paths, deterministic Office reconstruction and protected Storage workflow passed with zero production residue. See [phase-5.5-end-to-end-dry-run.md](phase-5.5-end-to-end-dry-run.md).
 
 ## Core design
 

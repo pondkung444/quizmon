@@ -55,8 +55,10 @@ The protected workflow validates:
 - exact checksum after download;
 - cleanup through the Storage API and a follow-up absence probe.
 
-The final workflow run URL is recorded after the protected run completes.
+Protected run [33225027228](https://github.com/pondkung444/quizmon/actions/runs/33225027228) passed against commit `9e4852ef2d4045fde87c4f4b31c841ccda738068`. Evidence reported service upload, object metadata, signed content/checksum validation, anonymous upload/overwrite/download/sign/delete denial, MIME/size rejection, compensating cleanup and final cleanup as passed. Authenticated Storage behavior was not exercised with a user token in this workflow; database/function ACL verification separately confirms Factory mutations remain unavailable to `authenticated`.
+
+The final production residue query returned zero Factory Runs, assets, events, reviews and mappings; zero E2E product questions; and zero `trust-boundary/` staging objects.
 
 ## Exit decision
 
-Phase 5.5 passes when the SQL transaction, Office projection and protected Storage workflow all pass and production residue remains zero. The next phase is 5.6 Controlled Pilot, which requires a separately approved real curriculum scope and batch; this dry run does not authorize it.
+Phase 5.5 passed: the SQL transaction, Office projection and protected Storage workflow all succeeded and production residue remained zero. The next phase is 5.6 Controlled Pilot, which requires a separately approved real curriculum scope and batch; this dry run does not authorize it.

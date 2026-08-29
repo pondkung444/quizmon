@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 5.5 end-to-end dry run in final protected-Storage verification
+**Status:** Phase 5.5 complete; Phase 5.6 Controlled Pilot awaits separate scope/batch approval
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -47,7 +47,7 @@ Phase 4.7 production evidence: migration history `20260828105201_curriculum_chap
 | 5.2 — Text question loop (complete) | Author → Question QC → revision/reject/pass, without assets or product writes | Author and Question QC actions become live | Passed in production rollback smoke on 2026-08-28 |
 | 5.3 — Asset loop (complete) | Representation routing, private staging upload, Image Builder and Image QC | Image Builder/Image QC actions and asset states become live | Passed in production on 2026-08-28; no anonymous/product-bucket write |
 | 5.4 — Review and publish (complete) | Trusted human review, Product Mapping Adapter and idempotent publish/promotion/activation | Yellow review wait, human decision and Publisher actions are live | Passed in production rollback smoke on 2026-08-29 |
-| 5.5 — End-to-end dry run (final verification) | Full flow using transaction-rollback fixtures plus protected Storage smoke | Whole Office flow reconstructs correctly after refresh/reconnect | RPC chain and recovery matrix passed; protected Storage rerun pending |
+| 5.5 — End-to-end dry run (complete) | Full flow using transaction-rollback fixtures plus protected Storage smoke | Whole Office flow reconstructs correctly after refresh/reconnect | Passed on 2026-08-29; protected run 33225027228; zero production residue |
 | 5.6 — Controlled pilot | Small approved curriculum batch through human review | Office observes the first real run | Human sign-off, mapping verification and rollback/stop controls pass |
 | 6 — Operational hardening | Scheduling, concurrency, observability, cost limits and runbooks | Optional polling/Realtime, transitions and bottleneck views | Load, security, recovery and cost acceptance gates pass |
 | 7 — Scale-out | Additional profiles, subjects and larger semi-automatic batches | Slot detail and multi-run views as operational need proves them | Per-profile quality metrics remain within approved thresholds |
