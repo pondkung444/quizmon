@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 import {
   factoryOfficeSpritePath,
   projectFactoryOffice,
@@ -32,35 +31,11 @@ const SCENARIOS: Array<{ label: string; input: FactoryOfficeInput }> = [
 ];
 
 export default function FactoryOfficeLayerTest({ snapshot }: { snapshot: FactoryOfficeServerSnapshot }) {
-  const [scenarioIndex, setScenarioIndex] = useState<number | null>(snapshot.source === "live" ? null : 6);
-  const scenario = scenarioIndex === null ? null : SCENARIOS[scenarioIndex];
-  const projection = scenario ? projectFactoryOffice(scenario.input) : snapshot.source === "live" ? snapshot.projection : projectFactoryOffice(SCENARIOS[6].input);
+  const projection = snapshot.source === "live" ? snapshot.projection : projectFactoryOffice(SCENARIOS[6].input);
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-wrap gap-2" aria-label="เลือกสถานการณ์ทดสอบ">
-        {snapshot.source === "live" && (
-          <button
-            type="button"
-            onClick={() => setScenarioIndex(null)}
-            className={`rounded-full border px-3 py-1.5 text-xs transition ${scenarioIndex === null ? "border-emerald-400 bg-emerald-400/15 text-emerald-200" : "border-border bg-card text-text2 hover:border-gold-dim"}`}
-          >
-            ข้อมูล Factory จริง
-          </button>
-        )}
-        {SCENARIOS.map((item, index) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => setScenarioIndex(index)}
-            className={`rounded-full border px-3 py-1.5 text-xs transition ${index === scenarioIndex ? "border-gold bg-gold/15 text-gold-hi" : "border-border bg-card text-text2 hover:border-gold-dim"}`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {snapshot.source === "live" && scenarioIndex === null ? (
+      {snapshot.source === "live" ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Info label="Run" value={`#${snapshot.run.id} · ${snapshot.run.status}`} />
           <Info label="Scope" value={snapshot.run.scopeKey} />
@@ -139,15 +114,11 @@ export default function FactoryOfficeLayerTest({ snapshot }: { snapshot: Factory
           </div>
 
           <div className="absolute left-3 top-3 rounded-lg border border-cyan-200/20 bg-[#08111d]/75 px-3 py-2 text-[10px] text-cyan-50/80">
-            <div className="font-semibold text-cyan-100">Production layer calibration · 1628:966</div>
-            <div>anchor: bottom-center · baseline: 944/1024</div>
+            <div className="font-semibold text-cyan-100">สถานะโรงงานแบบเรียลไทม์</div>
           </div>
         </div>
       </div>
 
-      <p className="text-xs text-text3">
-        เส้นสีฟ้าคือ baseline จริงของแต่ละสถานี ภาพทุก action ใช้ canvas และ anchor เดียวกัน จึงเปลี่ยนท่าได้โดยเท้าไม่เลื่อนตำแหน่ง
-      </p>
     </section>
   );
 }

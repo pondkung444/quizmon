@@ -7,7 +7,9 @@ import { recordFactoryHumanReview, type FactoryHumanReviewDecision } from "@/lib
 import { publishFactoryDraft } from "@/lib/questionFactory/draftPublishServer";
 import { promoteFactoryAsset } from "@/lib/questionFactory/assetPromotionServer";
 import { activateFactoryDraft } from "@/lib/questionFactory/activationServer";
+import { completeFactoryRun } from "@/lib/questionFactory/runCompletionServer";
 import { loadFactoryReviewQueue } from "@/lib/questionFactory/reviewQueueServer";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getUser } from "@/lib/supabase/server";
 
 export type HumanReviewActionState = {
@@ -33,7 +35,7 @@ async function approveQueueItem(
     slotId: item.slotId, stateVersion: item.stateVersion, checksum: item.mappingCandidate.checksum,
     decision: "APPROVE", revisionTarget: null, issues: [], reviewer: reviewerId,
   })).digest("hex");
-  return recordFactoryHumanReview({
+  const review = await recordFactoryHumanReview({
     runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
     subjectRevision: item.mappingCandidate.questionRevision,
     mappingCandidateChecksum: item.mappingCandidate.checksum,
@@ -41,6 +43,45 @@ async function approveQueueItem(
     decision: "APPROVE", revisionTarget: null, issues: [],
     evidence: { product_mapping_candidate: item.mappingCandidate },
     reviewerId, idempotencyKey: `human-review:${operationHash}`,
+  });
+  const published = await publishFactoryDraft({
+    runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: review.stateVersion,
+    mappingCandidate: item.mappingCandidate, actorId: reviewerId,
+    idempotencyKey: `draft-publication:${operationHash}`,
+  });
+  let activationVersion = published.stateVersion;
+  if (item.asset) {
+    const promoted = await promoteFactoryAsset({
+      runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: published.stateVersion,
+      questionId: published.questionId, assetRevision: item.asset.revision,
+      stagingPath: item.asset.stagingPath,
+      mimeType: item.asset.mimeType as "image/svg+xml" | "image/webp",
+      checksum: item.asset.checksum, actorId: reviewerId,
+      idempotencyKey: `asset-promotion:${operationHash}`,
+    });
+    activationVersion = promoted.stateVersion;
+  }
+  return activateFactoryDraft({
+    runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: activationVersion,
+    questionId: published.questionId, mappingChecksum: item.mappingCandidate.checksum,
+    actorId: reviewerId, idempotencyKey: `draft-activation:${operationHash}`,
+  });
+}
+
+async function completeRunIfReady(runKey: string, actorId: string): Promise<void> {
+  const admin = createAdminClient();
+  const runResult = await admin.from("question_factory_runs")
+    .select("id, state_version, status").eq("run_key", runKey).single();
+  if (runResult.error) throw new Error(`Unable to check Factory Run completion: ${runResult.error.message}`);
+  const run = runResult.data as { id: number; state_version: number; status: string };
+  if (run.status === "completed") return;
+  const slotsResult = await admin.from("question_factory_slots").select("state").eq("run_id", run.id);
+  if (slotsResult.error) throw new Error(`Unable to check Factory Slot completion: ${slotsResult.error.message}`);
+  const states = (slotsResult.data ?? []).map((slot) => String(slot.state));
+  if (states.length === 0 || !states.every((state) => ["active", "rejected", "cancelled"].includes(state))) return;
+  await completeFactoryRun({
+    runKey, expectedStateVersion: run.state_version, actorId,
+    idempotencyKey: `run-completion:${runKey}`,
   });
 }
 
@@ -71,15 +112,16 @@ export async function submitBulkHumanApproval(
       : []);
     const processedSlotIds = results.flatMap((result, index) => result.status === "fulfilled" ? [slotIds[index]] : []);
     const approvedCount = processedSlotIds.length;
+    if (approvedCount > 0) await completeRunIfReady(itemsById.get(slotIds[0])!.runKey, reviewerId);
     revalidatePath("/admin/question-factory/review");
     if (failures.length > 0) {
       return {
         status: "error",
-        message: `อนุมัติสำเร็จ ${approvedCount}/${results.length} ข้อ · ${failures.join(" · ")}`,
+        message: `อนุมัติและเปิดใช้สำเร็จ ${approvedCount}/${results.length} ข้อ · ${failures.join(" · ")}`,
         processedSlotIds,
       };
     }
-    return { status: "success", message: `อนุมัติพร้อมกันสำเร็จ ${approvedCount} ข้อ`, processedSlotIds };
+    return { status: "success", message: `อนุมัติและเปิดใช้พร้อมกันสำเร็จ ${approvedCount} ข้อ`, processedSlotIds };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "อนุมัติหลายข้อไม่สำเร็จ" };
   }
@@ -115,28 +157,57 @@ export async function submitHumanReview(
     if (!item.mappingCandidate) {
       return { status: "error", message: item.mappingError ?? "ข้อนี้ยังไม่มี Product Mapping Candidate" };
     }
+    const mappingCandidate = item.mappingCandidate;
     if (revisionTarget === "asset" && !item.asset) {
       return { status: "error", message: "ข้อนี้ไม่มีภาพให้ส่งกลับแก้" };
     }
 
     const issues = decision === "APPROVE" ? [] : [{ code: "human_feedback", message: feedback }];
     const operationHash = createHash("sha256").update(JSON.stringify({
-      slotId, stateVersion: item.stateVersion, checksum: item.mappingCandidate.checksum,
+      slotId, stateVersion: item.stateVersion, checksum: mappingCandidate.checksum,
       decision, revisionTarget, issues, reviewer: user.email.toLowerCase(),
     })).digest("hex");
     const result = await recordFactoryHumanReview({
       runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
-      subjectRevision: item.mappingCandidate.questionRevision,
-      mappingCandidateChecksum: item.mappingCandidate.checksum,
+      subjectRevision: mappingCandidate.questionRevision,
+      mappingCandidateChecksum: mappingCandidate.checksum,
       assetRevision: item.asset?.revision ?? null, assetChecksum: item.asset?.checksum ?? null,
       decision, revisionTarget, issues,
-      evidence: { product_mapping_candidate: item.mappingCandidate },
+      evidence: { product_mapping_candidate: mappingCandidate },
       reviewerId: user.email.toLowerCase(), idempotencyKey: `human-review:${operationHash}`,
     });
+    if (decision === "APPROVE") {
+      const approvedItem = item;
+      const published = await publishFactoryDraft({
+        runKey: approvedItem.runKey, slotKey: approvedItem.slotKey, expectedStateVersion: result.stateVersion,
+        mappingCandidate, actorId: user.email.toLowerCase(),
+        idempotencyKey: `draft-publication:${operationHash}`,
+      });
+      let activationVersion = published.stateVersion;
+      if (approvedItem.asset) {
+        const promoted = await promoteFactoryAsset({
+          runKey: approvedItem.runKey, slotKey: approvedItem.slotKey, expectedStateVersion: published.stateVersion,
+          questionId: published.questionId, assetRevision: approvedItem.asset.revision,
+          stagingPath: approvedItem.asset.stagingPath,
+          mimeType: approvedItem.asset.mimeType as "image/svg+xml" | "image/webp",
+          checksum: approvedItem.asset.checksum, actorId: user.email.toLowerCase(),
+          idempotencyKey: `asset-promotion:${operationHash}`,
+        });
+        activationVersion = promoted.stateVersion;
+      }
+      await activateFactoryDraft({
+        runKey: approvedItem.runKey, slotKey: approvedItem.slotKey, expectedStateVersion: activationVersion,
+        questionId: published.questionId, mappingChecksum: mappingCandidate.checksum,
+        actorId: user.email.toLowerCase(), idempotencyKey: `draft-activation:${operationHash}`,
+      });
+      await completeRunIfReady(approvedItem.runKey, user.email.toLowerCase());
+    }
     revalidatePath("/admin/question-factory/review");
     return {
       status: "success",
-      message: result.replayed ? "ยืนยันคำตัดสินเดิมแล้ว" : "บันทึกคำตัดสินแล้ว",
+      message: decision === "APPROVE"
+        ? "อนุมัติและเปิดใช้ข้อสอบแล้ว"
+        : result.replayed ? "ยืนยันคำตัดสินเดิมแล้ว" : "บันทึกคำตัดสินแล้ว",
       processedSlotIds: [slotId],
     };
   } catch (error) {

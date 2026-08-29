@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
-import { submitAssetPromotion, submitBulkHumanApproval, submitDraftActivation, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
+import { submitBulkHumanApproval, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
 
 const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
@@ -38,33 +38,6 @@ function BulkApproveButton({ count }: { count: number }) {
   );
 }
 
-function DraftButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button disabled={disabled || pending} className="inline-flex items-center gap-2 rounded-xl bg-indigo px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
-      <CheckCircle2 size={18} /> {pending ? "กำลังสร้าง Draft…" : "สร้าง Product Draft"}
-    </button>
-  );
-}
-
-function PromoteButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button disabled={disabled || pending} className="inline-flex items-center gap-2 rounded-xl bg-indigo px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
-      <CheckCircle2 size={18} /> {pending ? "กำลังตรวจและโปรโมตภาพ…" : "โปรโมตภาพเข้า Product Draft"}
-    </button>
-  );
-}
-
-function ActivateButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
-      <CheckCircle2 size={18} /> {pending ? "กำลังเปิดใช้…" : "เปิดใช้ข้อสอบจริง"}
-    </button>
-  );
-}
-
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const router = useRouter();
   const [dismissedIds, setDismissedIds] = useState<number[]>([]);
@@ -87,9 +60,6 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
     }
     return result;
   }, INITIAL_ACTION_STATE);
-  const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
-  const [promotionState, promotionFormAction] = useActionState(submitAssetPromotion, INITIAL_ACTION_STATE);
-  const [activationState, activationFormAction] = useActionState(submitDraftActivation, INITIAL_ACTION_STATE);
   const visibleItems = items.filter((queueItem) => !dismissedIds.includes(queueItem.slotId));
   const selectedIndex = Math.max(0, visibleItems.findIndex((item) => item.slotId === selectedId));
   const item = visibleItems[selectedIndex];
@@ -268,69 +238,25 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
               <p className="mt-1">{item.mappingError ?? "ไม่พบ Product Mapping Candidate"}</p>
             </div>
           )}
-          {item.state === "pending_human_review" ? (
-            <>
-              <form key={item.slotId} action={formAction} className="space-y-4">
-                <input type="hidden" name="slotId" value={item.slotId} />
-                <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-                  <label className="text-xs text-text2">
-                    เป้าหมายเมื่อส่งกลับ
-                    <select name="revisionTarget" defaultValue="text" className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text">
-                      <option value="text">แก้ข้อความ/คำตอบ</option>
-                      <option value="asset" disabled={!item.asset}>แก้ภาพ</option>
-                    </select>
-                  </label>
-                  <label className="text-xs text-text2">
-                    เหตุผล (จำเป็นเมื่อส่งกลับหรือปฏิเสธ)
-                    <textarea name="feedback" rows={2} maxLength={1000} className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" />
-                  </label>
-                </div>
-                <DecisionButtons disabled={!item.mappingCandidate} />
-              </form>
-              {actionState.message && (
-                <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{actionState.message}</p>
-              )}
-            </>
-          ) : item.questionId === null ? (
-            <>
-              <p className="mb-3 text-xs text-text2">Human Review อนุมัติแล้ว ขั้นนี้จะสร้างเฉพาะ <code>questions.status=draft</code> และยังไม่เปิดใช้ในเกม</p>
-              <form action={draftFormAction}>
-                <input type="hidden" name="slotId" value={item.slotId} />
-                <DraftButton disabled={!item.mappingCandidate} />
-              </form>
-              {draftState.message && (
-                <p className={`mt-3 text-xs ${draftState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{draftState.message}</p>
-              )}
-            </>
-          ) : item.asset?.state === "qc_passed" ? (
-            <>
-              <p className="mb-3 text-xs text-text2">Draft #{item.questionId} ถูกสร้างแล้ว ระบบจะตรวจ bytes/checksum อีกครั้งก่อนคัดลอกภาพไปยัง Product Storage และยังไม่เปิดใช้ในเกม</p>
-              <form action={promotionFormAction}>
-                <input type="hidden" name="slotId" value={item.slotId} />
-                <PromoteButton disabled={false} />
-              </form>
-              {promotionState.message && (
-                <p className={`mt-3 text-xs ${promotionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{promotionState.message}</p>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-emerald-700/60 bg-emerald-950/25 p-3 text-xs text-emerald-200">
-                <p className="font-semibold">Product Draft #{item.questionId} พร้อมสำหรับ Activation gate</p>
-                <p className="mt-1">{item.asset ? "ภาพผ่านการโปรโมตและผูกกับข้อสอบแล้ว" : "ข้อนี้ไม่มีภาพ จึงไม่ต้องผ่าน Storage promotion"}</p>
-              </div>
-              <form action={activationFormAction} className="mt-4 space-y-3">
-                <input type="hidden" name="slotId" value={item.slotId} />
-                <label className="flex items-start gap-2 text-xs text-text2">
-                  <input type="checkbox" name="activationConfirmed" value="activate" required className="mt-0.5" />
-                  ยืนยันว่าตรวจข้อ เฉลย คำอธิบาย และภาพครบแล้ว และต้องการให้ข้อนี้เข้าคลังข้อสอบที่ผู้เรียนใช้งานได้
-                </label>
-                <ActivateButton />
-              </form>
-              {activationState.message && (
-                <p className={`mt-3 text-xs ${activationState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{activationState.message}</p>
-              )}
-            </>
+          <form key={item.slotId} action={formAction} className="space-y-4">
+            <input type="hidden" name="slotId" value={item.slotId} />
+            <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+              <label className="text-xs text-text2">
+                เป้าหมายเมื่อส่งกลับ
+                <select name="revisionTarget" defaultValue="text" className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text">
+                  <option value="text">แก้ข้อความ/คำตอบ</option>
+                  <option value="asset" disabled={!item.asset}>แก้ภาพ</option>
+                </select>
+              </label>
+              <label className="text-xs text-text2">
+                เหตุผล (จำเป็นเมื่อส่งกลับหรือปฏิเสธ)
+                <textarea name="feedback" rows={2} maxLength={1000} className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" />
+              </label>
+            </div>
+            <DecisionButtons disabled={!item.mappingCandidate} />
+          </form>
+          {actionState.message && (
+            <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{actionState.message}</p>
           )}
         </div>
       </section>
