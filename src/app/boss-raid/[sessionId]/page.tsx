@@ -19,20 +19,23 @@ export default async function BossRaidSessionPage({
 
   const { data: session } = await supabase
     .from("boss_raid_sessions")
-    .select("id, status, join_code, config, teacher_id, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max")
+    .select(
+      "id, status, join_code, config, teacher_id, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, wrong_count_total"
+    )
     .eq("id", sessionId)
     .maybeSingle();
   if (!session) notFound();
 
   const { data: participants } = await supabase
     .from("boss_raid_participants")
-    .select("id, user_id, pet_id, stat_snapshot, joined_at")
+    .select("id, user_id, pet_id, stat_snapshot, joined_at, current_question_id, question_started_at")
     .eq("session_id", sessionId)
     .order("joined_at", { ascending: true });
 
   return (
     <LobbyClient
       sessionId={sessionId}
+      userId={user.id}
       isTeacher={session.teacher_id === user.id}
       initialSession={session as LobbySession}
       initialParticipants={(participants ?? []) as LobbyParticipant[]}

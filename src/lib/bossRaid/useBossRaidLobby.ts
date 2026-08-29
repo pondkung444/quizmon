@@ -22,6 +22,7 @@ export type LobbySession = {
   boss_hp_max?: number | null;
   crystal_hp?: number | null;
   crystal_hp_max?: number | null;
+  wrong_count_total?: number | null;
 };
 
 export type LobbyParticipant = {
@@ -30,6 +31,8 @@ export type LobbyParticipant = {
   pet_id: string;
   stat_snapshot: Record<string, number>;
   joined_at: string;
+  current_question_id?: number | null;
+  question_started_at?: string | null;
 };
 
 type State = {
