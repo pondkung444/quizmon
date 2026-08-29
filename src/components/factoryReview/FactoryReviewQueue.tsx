@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
 import { submitAssetPromotion, submitBulkHumanApproval, submitDraftActivation, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
@@ -65,16 +66,34 @@ function ActivateButton() {
 }
 
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
+  const router = useRouter();
+  const [dismissedIds, setDismissedIds] = useState<number[]>([]);
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
   const [checkedIds, setCheckedIds] = useState<number[]>([]);
-  const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
-  const [bulkActionState, bulkFormAction] = useActionState(submitBulkHumanApproval, INITIAL_ACTION_STATE);
+  const [actionState, formAction] = useActionState(async (previous: HumanReviewActionState, formData: FormData) => {
+    const result = await submitHumanReview(previous, formData);
+    if (result.processedSlotIds?.length) {
+      setDismissedIds((current) => [...new Set([...current, ...result.processedSlotIds!])]);
+      router.refresh();
+    }
+    return result;
+  }, INITIAL_ACTION_STATE);
+  const [bulkActionState, bulkFormAction] = useActionState(async (previous: HumanReviewActionState, formData: FormData) => {
+    const result = await submitBulkHumanApproval(previous, formData);
+    if (result.processedSlotIds?.length) {
+      setDismissedIds((current) => [...new Set([...current, ...result.processedSlotIds!])]);
+      setCheckedIds((current) => current.filter((slotId) => !result.processedSlotIds!.includes(slotId)));
+      router.refresh();
+    }
+    return result;
+  }, INITIAL_ACTION_STATE);
   const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
   const [promotionState, promotionFormAction] = useActionState(submitAssetPromotion, INITIAL_ACTION_STATE);
   const [activationState, activationFormAction] = useActionState(submitDraftActivation, INITIAL_ACTION_STATE);
-  const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
-  const item = items[selectedIndex];
-  const bulkEligibleItems = items.filter((queueItem) => queueItem.state === "pending_human_review" && queueItem.mappingCandidate);
+  const visibleItems = items.filter((queueItem) => !dismissedIds.includes(queueItem.slotId));
+  const selectedIndex = Math.max(0, visibleItems.findIndex((item) => item.slotId === selectedId));
+  const item = visibleItems[selectedIndex];
+  const bulkEligibleItems = visibleItems.filter((queueItem) => queueItem.state === "pending_human_review" && queueItem.mappingCandidate);
   const eligibleIds = new Set(bulkEligibleItems.map((queueItem) => queueItem.slotId));
   const checkedEligibleIds = checkedIds.filter((id) => eligibleIds.has(id));
   const allEligibleChecked = bulkEligibleItems.length > 0 && checkedEligibleIds.length === bulkEligibleItems.length;
@@ -97,11 +116,11 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
         <div className="flex items-center justify-between px-2 py-2">
           <div>
             <h2 className="font-bold text-text">คิวรอตรวจ</h2>
-            <p className="text-xs text-text3">{items.length} ข้อ</p>
+            <p className="text-xs text-text3">{visibleItems.length} ข้อ</p>
           </div>
           <button
             type="button"
-            onClick={() => setSelectedId(items[pickDifferentIndex(items.length, selectedIndex)].slotId)}
+            onClick={() => setSelectedId(visibleItems[pickDifferentIndex(visibleItems.length, selectedIndex)].slotId)}
             className="inline-flex items-center gap-2 rounded-xl border border-gold-dim bg-track px-3 py-2 text-xs font-semibold text-gold-hi hover:border-gold"
           >
             <Dice5 size={16} /> สุ่มดู
@@ -126,7 +145,7 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
           </form>
         )}
         <div className="mt-2 max-h-[70vh] space-y-2 overflow-y-auto pr-1">
-          {items.map((queueItem) => (
+          {visibleItems.map((queueItem) => (
             <div
               key={queueItem.slotId}
               className={`flex w-full items-start rounded-2xl border text-left transition ${

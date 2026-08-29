@@ -10,7 +10,11 @@ import { activateFactoryDraft } from "@/lib/questionFactory/activationServer";
 import { loadFactoryReviewQueue } from "@/lib/questionFactory/reviewQueueServer";
 import { getUser } from "@/lib/supabase/server";
 
-export type HumanReviewActionState = { status: "idle" | "success" | "error"; message: string };
+export type HumanReviewActionState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  processedSlotIds?: number[];
+};
 
 function isAdminEmail(email: string): boolean {
   return (process.env.ADMIN_EMAILS ?? "").split(",")
@@ -65,12 +69,17 @@ export async function submitBulkHumanApproval(
     const failures = results.flatMap((result, index) => result.status === "rejected"
       ? [`#${itemsById.get(slotIds[index])?.ordinal ?? slotIds[index]}: ${result.reason instanceof Error ? result.reason.message : "อนุมัติไม่สำเร็จ"}`]
       : []);
-    const approvedCount = results.length - failures.length;
+    const processedSlotIds = results.flatMap((result, index) => result.status === "fulfilled" ? [slotIds[index]] : []);
+    const approvedCount = processedSlotIds.length;
     revalidatePath("/admin/question-factory/review");
     if (failures.length > 0) {
-      return { status: "error", message: `อนุมัติสำเร็จ ${approvedCount}/${results.length} ข้อ · ${failures.join(" · ")}` };
+      return {
+        status: "error",
+        message: `อนุมัติสำเร็จ ${approvedCount}/${results.length} ข้อ · ${failures.join(" · ")}`,
+        processedSlotIds,
+      };
     }
-    return { status: "success", message: `อนุมัติพร้อมกันสำเร็จ ${approvedCount} ข้อ` };
+    return { status: "success", message: `อนุมัติพร้อมกันสำเร็จ ${approvedCount} ข้อ`, processedSlotIds };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "อนุมัติหลายข้อไม่สำเร็จ" };
   }
@@ -125,7 +134,11 @@ export async function submitHumanReview(
       reviewerId: user.email.toLowerCase(), idempotencyKey: `human-review:${operationHash}`,
     });
     revalidatePath("/admin/question-factory/review");
-    return { status: "success", message: result.replayed ? "ยืนยันคำตัดสินเดิมแล้ว" : "บันทึกคำตัดสินแล้ว" };
+    return {
+      status: "success",
+      message: result.replayed ? "ยืนยันคำตัดสินเดิมแล้ว" : "บันทึกคำตัดสินแล้ว",
+      processedSlotIds: [slotId],
+    };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "บันทึก Human Review ไม่สำเร็จ" };
   }
@@ -140,7 +153,7 @@ export async function submitDraftPublication(
     if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์สร้าง Draft" };
     const slotId = Number(formData.get("slotId"));
     if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
-    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    const item = (await loadFactoryReviewQueue({ includeApproved: true })).find((candidate) => candidate.slotId === slotId);
     if (!item || item.state !== "approved" || item.questionId !== null) {
       return { status: "error", message: "ข้อนี้ไม่ได้อยู่ในคิวอนุมัติแล้วรอสร้าง Draft" };
     }
@@ -174,7 +187,7 @@ export async function submitAssetPromotion(
     if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์โปรโมตภาพ" };
     const slotId = Number(formData.get("slotId"));
     if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
-    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    const item = (await loadFactoryReviewQueue({ includeApproved: true })).find((candidate) => candidate.slotId === slotId);
     if (!item || item.state !== "approved" || item.questionId === null || !item.asset || item.asset.state !== "qc_passed") {
       return { status: "error", message: "ข้อนี้ไม่ได้อยู่ในคิวโปรโมตภาพ" };
     }
@@ -208,7 +221,7 @@ export async function submitDraftActivation(
     }
     const slotId = Number(formData.get("slotId"));
     if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
-    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    const item = (await loadFactoryReviewQueue({ includeApproved: true })).find((candidate) => candidate.slotId === slotId);
     const assetReady = !item?.asset || item.asset.state === "promoted";
     if (!item || item.state !== "approved" || item.questionId === null || !item.mappingCandidate || !assetReady) {
       return { status: "error", message: "ข้อนี้ยังไม่ผ่านทุก gate สำหรับ Activation" };

@@ -77,15 +77,18 @@ function isQuestionCandidate(value: unknown): value is FactoryQuestionCandidate 
     typeof row.explanation === "string";
 }
 
-export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]> {
+export async function loadFactoryReviewQueue(input: { includeApproved?: boolean } = {}): Promise<FactoryReviewQueueItem[]> {
   const admin = createAdminClient();
-  const slotsResult = await admin
+  let slotsQuery = admin
     .from("question_factory_slots")
     .select("id, run_id, slot_key, ordinal, state, question_id, state_version, author_revision, slot_spec, updated_at")
-    .in("state", ["pending_human_review", "approved"])
     .order("updated_at", { ascending: true })
     .order("id", { ascending: true })
     .limit(200);
+  slotsQuery = input.includeApproved
+    ? slotsQuery.in("state", ["pending_human_review", "approved"])
+    : slotsQuery.eq("state", "pending_human_review");
+  const slotsResult = await slotsQuery;
   if (slotsResult.error) throw new Error(`Unable to load Factory review queue: ${slotsResult.error.message}`);
   const slots = (slotsResult.data ?? []) as SlotRow[];
   if (!slots.length) return [];
