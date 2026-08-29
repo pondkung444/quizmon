@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 6 Operational Hardening is in progress. Phase 6.0 deployed guarded service-only Run completion and closed Controlled Pilot Run `27` as `completed@v2` with `RUN_COMPLETED` event `195`; stale-version, privilege and idempotent-replay checks passed. Phase 6.1 operational observability is next. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
+**Current checkpoint (2026-08-29):** Phase 6 Operational Hardening is in progress. Phase 6.0 deployed guarded Run completion; Phase 6.1 added a deterministic read-only health model and Factory Office panel for completion readiness, stale/bottleneck Slots, counter drift and retry/revision pressure. Production Run `27` evaluates healthy and completed with no bottleneck. Phase 6.2 scheduling/concurrency is next. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
 
 ## Core design
 

@@ -1,6 +1,6 @@
 # Phase 6 — Operational Hardening
 
-**Status:** In progress — guarded Run completion is deployed and verified
+**Status:** In progress — guarded Run completion and operational health are deployed/verified
 **Started:** 2026-08-29
 
 ## Objective
@@ -12,8 +12,8 @@ Turn the verified v1 content pipeline into a restart-safe operating system: expl
 | Slice | Outcome | Status |
 |---|---|---|
 | 6.0 — Terminal Run lifecycle | Service-only optimistic/idempotent Run completion with exact terminal Slot and product-mapping checks | Complete |
-| 6.1 — Operational observability | Run health summary, stale/bottleneck detection, counters and actionable Office/admin views | Next |
-| 6.2 — Scheduling and concurrency | Bounded leases/claims, one open scope, retry ownership and safe restart behavior | Pending |
+| 6.1 — Operational observability | Run health summary, stale/bottleneck detection, counters and actionable Office/admin views | Complete |
+| 6.2 — Scheduling and concurrency | Bounded leases/claims, one open scope, retry ownership and safe restart behavior | Next |
 | 6.3 — Cost and workload limits | Enforced per-Run generation/asset/retry budgets with visible exhaustion reasons | Pending |
 | 6.4 — Recovery and acceptance | Reconciliation/runbooks plus load, security, recovery and cost exit tests | Pending |
 
@@ -56,6 +56,23 @@ Run `27` was the first guarded completion:
 
 Security and performance advisors were run after deployment. The new function has an immutable empty `search_path`, no anonymous/authenticated execute grant and introduced no function-specific advisor finding. Pre-existing project-wide advisor notices remain outside this slice and must be triaged rather than silently attributed to this migration.
 
+## 6.1 — Operational observability
+
+Factory Office now derives a read-only health model from persisted Run, Slot and Event facts. The reader uses the latest event across the whole Run, so run-level facts such as `RUN_COMPLETED` are no longer hidden by a focused Slot event.
+
+The health panel reports:
+
+- completion readiness and terminal/non-terminal counts;
+- persisted counter drift against exact Slot facts;
+- blocked Slots and Run errors as critical signals;
+- retry and revision pressure;
+- the largest/oldest non-terminal bottleneck;
+- state-aware stale thresholds: 30 minutes for active text pipeline work, 60 minutes for planned/asset work, 2 hours for approved publication work, 4 hours for author revision, and 24 hours for Human Review.
+
+The evaluator is a pure deterministic module with verification scenarios for healthy completion, completion readiness, counter drift, stale Human Review and blocked/retry pressure. The Office panel remains observational and cannot advance state.
+
+Production preflight against Run `27` returned `completed@v2`, terminal/active Slots 10/10, zero non-terminal/approved/blocked/retry/revision pressure, counters 10 active and 0 ready, and latest event `RUN_COMPLETED` `195`. Expected health is `healthy`, completion `completed`, and no bottleneck.
+
 ## Next gate
 
-Phase 6.1 should expose a server-derived operational health model: open/stale Runs, Slot bottlenecks, counter drift, retry/revision pressure and completion readiness. The view must remain observational; state transitions continue through guarded service-only RPCs.
+Phase 6.2 should add bounded worker ownership/leases and safe restart semantics without weakening the existing one-open-scope, optimistic state-version or idempotency contracts.

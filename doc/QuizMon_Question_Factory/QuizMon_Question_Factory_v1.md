@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 6 Operational Hardening in progress; guarded Run completion deployed
+**Status:** Phase 6 Operational Hardening in progress; Run completion and operational health complete
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -49,7 +49,7 @@ Phase 4.7 production evidence: migration history `20260828105201_curriculum_chap
 | 5.4 — Review and publish (complete) | Trusted human review, Product Mapping Adapter and idempotent publish/promotion/activation | Yellow review wait, human decision and Publisher actions are live | Passed in production rollback smoke on 2026-08-29 |
 | 5.5 — End-to-end dry run (complete) | Full flow using transaction-rollback fixtures plus protected Storage smoke | Whole Office flow reconstructs correctly after refresh/reconnect | Passed on 2026-08-29; protected run 33225027228; zero production residue |
 | 5.6 — Controlled pilot (complete) | 10 approved-scope M.3 parabola candidates through human review, draft publication and activation | Office observes Run 27; Review Queue supports exact/random inspection and guarded bulk approval | Passed in production on 2026-08-29; questions 3672–3681 active, mappings 9–18 exact, zero asset/Storage residue |
-| 6 — Operational hardening (in progress) | Guarded completion, scheduling, concurrency, observability, cost limits and runbooks | Optional polling/Realtime, transitions and bottleneck views | 6.0 terminal lifecycle passed; load, security, recovery and cost acceptance gates remain |
+| 6 — Operational hardening (in progress) | Guarded completion, scheduling, concurrency, observability, cost limits and runbooks | Health panel exposes readiness, stale work, drift, retry pressure and bottlenecks | 6.0 terminal lifecycle and 6.1 observability passed; scheduling, load, security, recovery and cost gates remain |
 | 7 — Scale-out | Additional profiles, subjects and larger semi-automatic batches | Slot detail and multi-run views as operational need proves them | Per-profile quality metrics remain within approved thresholds |
 
 ### Complete production flow

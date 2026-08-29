@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import FactoryOfficeLayerTest from "@/components/factoryOffice/FactoryOfficeLayerTest";
+import FactoryOperationalHealthPanel from "@/components/factoryOffice/FactoryOperationalHealthPanel";
 import { getUser } from "@/lib/supabase/server";
 import { loadFactoryOfficeSnapshot } from "@/lib/questionFactory/officeServer";
 
@@ -25,6 +26,7 @@ export default async function FactoryOfficePreviewPage() {
           ภาพรวมสถานะการผลิตจาก run, slot และ event ล่าสุด พร้อมโหมด calibration สำหรับตรวจ visual
         </p>
       </header>
+      {snapshot.source === "live" && <FactoryOperationalHealthPanel health={snapshot.health} />}
       <FactoryOfficeLayerTest snapshot={snapshot} />
     </main>
   );

@@ -11,7 +11,8 @@
     "upload:question-image": "node scripts/upload-question-image.mjs",
     "verify:question-factory-storage": "node --experimental-strip-types scripts/verify-question-factory-storage.mjs",
     "verify:question-factory-asset-validation": "node --experimental-strip-types scripts/verify-question-factory-asset-validation.mjs",
-    "verify:question-factory-office-projection": "node --experimental-strip-types scripts/verify-question-factory-office-projection.mjs"
+    "verify:question-factory-office-projection": "node --experimental-strip-types scripts/verify-question-factory-office-projection.mjs",
+    "verify:question-factory-operational-health": "node --experimental-strip-types scripts/verify-question-factory-operational-health.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

@@ -8,6 +8,7 @@ import {
   type QuestionFactoryRunStatus,
   type QuestionFactorySlotState,
 } from "@/lib/questionFactory/officeProjection";
+import { evaluateFactoryOperationalHealth, type FactoryOperationalHealth } from "@/lib/questionFactory/operationalHealth";
 
 const RUN_STATUSES = new Set<QuestionFactoryRunStatus>([
   "created", "running", "paused", "waiting_human_review", "completed", "cancelled", "failed",
@@ -26,10 +27,20 @@ type RunRow = {
   target_active: number;
   active_count: number;
   pipeline_ready_count: number;
+  state_version: number;
+  last_error: Record<string, unknown> | null;
   updated_at: string;
 };
 
-type SlotRow = { id: number; slot_key: string; ordinal: number; state: string; updated_at: string };
+type SlotRow = {
+  id: number;
+  slot_key: string;
+  ordinal: number;
+  state: string;
+  author_revision: number;
+  technical_retry_count: number;
+  updated_at: string;
+};
 type EventRow = { event_type: string; created_at: string };
 
 export type FactoryOfficeLiveSnapshot = {
@@ -42,6 +53,7 @@ export type FactoryOfficeLiveSnapshot = {
     targetActive: number;
     activeCount: number;
     pipelineReadyCount: number;
+    stateVersion: number;
     updatedAt: string;
   };
   focusSlot: {
@@ -54,6 +66,7 @@ export type FactoryOfficeLiveSnapshot = {
   latestEvent: { type: string; createdAt: string } | null;
   stateCounts: Partial<Record<QuestionFactorySlotState, number>>;
   totalSlots: number;
+  health: FactoryOperationalHealth;
   projection: FactoryOfficeProjection[];
 };
 
@@ -73,7 +86,7 @@ function isSlotState(value: string): value is QuestionFactorySlotState {
 }
 
 async function latestRun(admin: ReturnType<typeof createAdminClient>): Promise<RunRow | null> {
-  const columns = "id, run_key, scope_key, status, target_active, active_count, pipeline_ready_count, updated_at";
+  const columns = "id, run_key, scope_key, status, target_active, active_count, pipeline_ready_count, state_version, last_error, updated_at";
   const open = await admin
     .from("question_factory_runs")
     .select(columns)
@@ -104,46 +117,35 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
     if (!run) return { source: "unavailable", reason: "no_runs" };
     if (!isRunStatus(run.status)) throw new Error(`Unsupported Question Factory run status: ${run.status}`);
 
-    const [focusResult, slotsResult] = await Promise.all([
+    const [slotsResult, eventResult] = await Promise.all([
       admin
         .from("question_factory_slots")
-        .select("id, slot_key, ordinal, state, updated_at")
+        .select("id, slot_key, ordinal, state, author_revision, technical_retry_count, updated_at")
         .eq("run_id", run.id)
         .order("updated_at", { ascending: false })
-        .order("id", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+        .order("id", { ascending: false }),
       admin
-        .from("question_factory_slots")
-        .select("state")
-        .eq("run_id", run.id)
-        .order("id", { ascending: true }),
-    ]);
-    if (focusResult.error) throw focusResult.error;
-    if (slotsResult.error) throw slotsResult.error;
-
-    const focus = focusResult.data as SlotRow | null;
-    if (focus && !isSlotState(focus.state)) throw new Error(`Unsupported Question Factory slot state: ${focus.state}`);
-    const focusState = focus ? focus.state as QuestionFactorySlotState : null;
-
-    let latestEvent: EventRow | null = null;
-    if (focus) {
-      const eventResult = await admin
         .from("question_factory_events")
         .select("event_type, created_at")
         .eq("run_id", run.id)
-        .eq("slot_id", focus.id)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(1)
-        .maybeSingle();
-      if (eventResult.error) throw eventResult.error;
-      latestEvent = eventResult.data as EventRow | null;
-    }
+        .maybeSingle(),
+    ]);
+    if (slotsResult.error) throw slotsResult.error;
+    if (eventResult.error) throw eventResult.error;
+
+    const slots = (slotsResult.data ?? []) as SlotRow[];
+    const focus = slots[0] ?? null;
+    if (focus && !isSlotState(focus.state)) throw new Error(`Unsupported Question Factory slot state: ${focus.state}`);
+    const focusState = focus ? focus.state as QuestionFactorySlotState : null;
+
+    const latestEvent = eventResult.data as EventRow | null;
 
     const stateCounts: Partial<Record<QuestionFactorySlotState, number>> = {};
-    for (const row of (slotsResult.data ?? []) as Array<{ state: string }>) {
-      if (!isSlotState(row.state)) continue;
+    for (const row of slots) {
+      if (!isSlotState(row.state)) throw new Error(`Unsupported Question Factory slot state: ${row.state}`);
       stateCounts[row.state] = (stateCounts[row.state] ?? 0) + 1;
     }
 
@@ -152,6 +154,23 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
       slotState: focusState,
       latestEventType: latestEvent?.event_type ?? null,
     };
+    const health = evaluateFactoryOperationalHealth({
+      run: {
+        status: run.status,
+        targetActive: run.target_active,
+        activeCount: run.active_count,
+        pipelineReadyCount: run.pipeline_ready_count,
+        lastError: run.last_error,
+      },
+      slots: slots.map((slot) => ({
+        state: slot.state as QuestionFactorySlotState,
+        authorRevision: slot.author_revision,
+        technicalRetryCount: slot.technical_retry_count,
+        updatedAt: slot.updated_at,
+      })),
+      latestEventAt: latestEvent?.created_at ?? null,
+      nowMs: Date.now(),
+    });
 
     return {
       source: "live",
@@ -163,6 +182,7 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
         targetActive: run.target_active,
         activeCount: run.active_count,
         pipelineReadyCount: run.pipeline_ready_count,
+        stateVersion: run.state_version,
         updatedAt: run.updated_at,
       },
       focusSlot: focus ? {
@@ -174,7 +194,8 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
       } : null,
       latestEvent: latestEvent ? { type: latestEvent.event_type, createdAt: latestEvent.created_at } : null,
       stateCounts,
-      totalSlots: (slotsResult.data ?? []).length,
+      totalSlots: slots.length,
+      health,
       projection: projectFactoryOffice(projectionInput),
     };
   } catch (error) {
