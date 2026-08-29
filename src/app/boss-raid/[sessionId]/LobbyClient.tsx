@@ -10,6 +10,7 @@ import {
 } from "@/lib/bossRaid/useBossRaidLobby";
 import { updateBossRaidConfig, startBossRaidGame, type BossRaidConfig } from "../actions";
 import JoinQr from "./JoinQr";
+import BossRaidGame from "./BossRaidGame";
 
 type ChapterRow = {
   id: number;
@@ -29,11 +30,13 @@ const STATUS_TH: Record<string, string> = {
 
 export default function LobbyClient({
   sessionId,
+  userId,
   isTeacher,
   initialSession,
   initialParticipants,
 }: {
   sessionId: string;
+  userId: string;
   isTeacher: boolean;
   initialSession: LobbySession;
   initialParticipants: LobbyParticipant[];
@@ -44,6 +47,7 @@ export default function LobbyClient({
   });
 
   const s = session ?? initialSession;
+  const myParticipant = participants.find((p) => p.user_id === userId) ?? null;
   const joinPath = `/boss-raid/join?code=${s.join_code}`;
   const [origin] = useState(() =>
     typeof window === "undefined" ? "" : window.location.origin
@@ -107,20 +111,34 @@ export default function LobbyClient({
       )}
 
       {s.status !== "lobby" && (s.boss_hp_max != null || s.crystal_hp_max != null) && (
-        <section className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
-            <p className="text-xs text-text3">บอส HP</p>
-            <p className="text-2xl font-bold text-red">
-              {s.boss_hp} / {s.boss_hp_max}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
-            <p className="text-xs text-text3">คริสตัล HP</p>
-            <p className="text-2xl font-bold text-indigo-hi">
-              {s.crystal_hp} / {s.crystal_hp_max}
-            </p>
-          </div>
-        </section>
+        <>
+          <section className="mt-6 grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
+              <p className="text-xs text-text3">บอส HP</p>
+              <p className="text-2xl font-bold text-red">
+                {s.boss_hp} / {s.boss_hp_max}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
+              <p className="text-xs text-text3">คริสตัล HP</p>
+              <p className="text-2xl font-bold text-indigo-hi">
+                {s.crystal_hp} / {s.crystal_hp_max}
+              </p>
+            </div>
+          </section>
+          <p className="mt-2 text-center text-xs text-text3">
+            ตอบผิดรวมทั้งห้อง {s.wrong_count_total ?? 0}
+          </p>
+        </>
+      )}
+
+      {s.status === "in_progress" && myParticipant && (
+        <BossRaidGame
+          participantId={myParticipant.id}
+          currentQuestionId={myParticipant.current_question_id ?? null}
+          bossHp={s.boss_hp}
+          bossHpMax={s.boss_hp_max}
+        />
       )}
 
       <section className="mt-8">
