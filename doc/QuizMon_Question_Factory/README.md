@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 6 Operational Hardening is in progress. Phase 6.0 deployed guarded Run completion; Phase 6.1 added a deterministic read-only health model and Factory Office panel for completion readiness, stale/bottleneck Slots, counter drift and retry/revision pressure. Production Run `27` evaluates healthy and completed with no bottleneck. Phase 6.2 scheduling/concurrency is next. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
+**Current checkpoint (2026-08-29):** Phase 6 Operational Hardening is complete. Guarded completion, operational health, bounded worker leases, immutable workload/cost budgets, reconciliation, recovery procedures and rollback-only production acceptance are deployed and verified. Production Run `27` remains healthy at `completed@v2`. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
 
 ## Core design
 

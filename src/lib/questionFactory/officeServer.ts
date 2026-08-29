@@ -42,6 +42,13 @@ type SlotRow = {
   updated_at: string;
 };
 type EventRow = { event_type: string; created_at: string };
+type LeaseRow = { state: string; lease_owner: string; lease_version: number; expires_at: string };
+type BudgetRow = {
+  generated_item_limit: number; asset_build_limit: number; technical_retry_limit: number;
+  cost_limit_microunits: number; generated_item_used: number; asset_build_used: number;
+  technical_retry_used: number; cost_used_microunits: number; budget_version: number;
+  exhausted_reason: Record<string, unknown> | null;
+};
 
 export type FactoryOfficeLiveSnapshot = {
   source: "live";
@@ -66,6 +73,13 @@ export type FactoryOfficeLiveSnapshot = {
   latestEvent: { type: string; createdAt: string } | null;
   stateCounts: Partial<Record<QuestionFactorySlotState, number>>;
   totalSlots: number;
+  controls: {
+    lease: { state: string; owner: string; version: number; expiresAt: string } | null;
+    budget: {
+      version: number; generated: [number, number]; assets: [number, number]; retries: [number, number];
+      costMicrounits: [number, number]; exhaustedReason: Record<string, unknown> | null;
+    } | null;
+  };
   health: FactoryOperationalHealth;
   projection: FactoryOfficeProjection[];
 };
@@ -117,7 +131,7 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
     if (!run) return { source: "unavailable", reason: "no_runs" };
     if (!isRunStatus(run.status)) throw new Error(`Unsupported Question Factory run status: ${run.status}`);
 
-    const [slotsResult, eventResult] = await Promise.all([
+    const [slotsResult, eventResult, leaseResult, budgetResult] = await Promise.all([
       admin
         .from("question_factory_slots")
         .select("id, slot_key, ordinal, state, author_revision, technical_retry_count, updated_at")
@@ -132,9 +146,16 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
         .order("id", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      admin.from("question_factory_run_leases")
+        .select("state, lease_owner, lease_version, expires_at").eq("run_id", run.id).maybeSingle(),
+      admin.from("question_factory_run_budgets")
+        .select("generated_item_limit, asset_build_limit, technical_retry_limit, cost_limit_microunits, generated_item_used, asset_build_used, technical_retry_used, cost_used_microunits, budget_version, exhausted_reason")
+        .eq("run_id", run.id).maybeSingle(),
     ]);
     if (slotsResult.error) throw slotsResult.error;
     if (eventResult.error) throw eventResult.error;
+    if (leaseResult.error) throw leaseResult.error;
+    if (budgetResult.error) throw budgetResult.error;
 
     const slots = (slotsResult.data ?? []) as SlotRow[];
     const focus = slots[0] ?? null;
@@ -195,6 +216,23 @@ export async function loadFactoryOfficeSnapshot(): Promise<FactoryOfficeServerSn
       latestEvent: latestEvent ? { type: latestEvent.event_type, createdAt: latestEvent.created_at } : null,
       stateCounts,
       totalSlots: slots.length,
+      controls: {
+        lease: leaseResult.data ? (() => {
+          const lease = leaseResult.data as LeaseRow;
+          return { state: lease.state, owner: lease.lease_owner, version: lease.lease_version, expiresAt: lease.expires_at };
+        })() : null,
+        budget: budgetResult.data ? (() => {
+          const budget = budgetResult.data as BudgetRow;
+          return {
+            version: budget.budget_version,
+            generated: [budget.generated_item_used, budget.generated_item_limit],
+            assets: [budget.asset_build_used, budget.asset_build_limit],
+            retries: [budget.technical_retry_used, budget.technical_retry_limit],
+            costMicrounits: [budget.cost_used_microunits, budget.cost_limit_microunits],
+            exhaustedReason: budget.exhausted_reason,
+          };
+        })() : null,
+      },
       health,
       projection: projectFactoryOffice(projectionInput),
     };

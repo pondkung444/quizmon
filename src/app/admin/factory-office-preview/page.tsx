@@ -26,7 +26,7 @@ export default async function FactoryOfficePreviewPage() {
           ภาพรวมสถานะการผลิตจาก run, slot และ event ล่าสุด พร้อมโหมด calibration สำหรับตรวจ visual
         </p>
       </header>
-      {snapshot.source === "live" && <FactoryOperationalHealthPanel health={snapshot.health} />}
+      {snapshot.source === "live" && <FactoryOperationalHealthPanel health={snapshot.health} controls={snapshot.controls} />}
       <FactoryOfficeLayerTest snapshot={snapshot} />
     </main>
   );

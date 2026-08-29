@@ -15,7 +15,13 @@ function minutesLabel(minutes: number | null): string {
   return `${Math.floor(minutes / (24 * 60))} วัน`;
 }
 
-export default function FactoryOperationalHealthPanel({ health }: { health: FactoryOperationalHealth }) {
+type FactoryControls = {
+  lease: { state: string; owner: string; version: number; expiresAt: string } | null;
+  budget: { version: number; generated: [number, number]; assets: [number, number]; retries: [number, number];
+    costMicrounits: [number, number]; exhaustedReason: Record<string, unknown> | null } | null;
+};
+
+export default function FactoryOperationalHealthPanel({ health, controls }: { health: FactoryOperationalHealth; controls: FactoryControls }) {
   const style = SEVERITY_STYLE[health.severity];
   const StatusIcon = style.icon;
   return (
@@ -56,6 +62,22 @@ export default function FactoryOperationalHealthPanel({ health }: { health: Fact
               : "ไม่มีงานค้างใน pipeline"}
           </p>
           <p className="mt-2 text-xs text-text3">Revision {health.revisionPressureCount} · Retry {health.retryPressureCount}</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-track p-4 text-sm text-text2">
+          <p className="font-bold text-text">Worker lease</p>
+          <p className="mt-2">{controls.lease
+            ? `${controls.lease.state} · ${controls.lease.owner} · v${controls.lease.version}`
+            : "ไม่มี worker ถือครอง Run นี้"}</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-track p-4 text-sm text-text2">
+          <p className="font-bold text-text">Run budget</p>
+          {controls.budget ? <>
+            <p className="mt-2">Generated {controls.budget.generated.join("/")} · Assets {controls.budget.assets.join("/")} · Retry {controls.budget.retries.join("/")}</p>
+            <p className="mt-1">Cost {controls.budget.costMicrounits.join("/")} µunit · v{controls.budget.version}</p>
+            {controls.budget.exhaustedReason && <p className="mt-2 text-amber-300">หยุดด้วยเหตุ: {String(controls.budget.exhaustedReason.reason_code ?? "budget exhausted")}</p>}
+          </> : <p className="mt-2">Run เก่าที่ยังไม่ได้ตั้ง budget contract</p>}
         </div>
       </div>
     </section>
