@@ -72,7 +72,7 @@ The user separately authorized Product Draft publication and learner-visible Act
 | Factory assets / matching Storage objects | 0 / 0 |
 | Run 26 residue across Factory tables | 0 |
 
-Activation event IDs `185`–`194` show monotonic counters from `active_count=1, pipeline_ready_count=9` through `active_count=10, pipeline_ready_count=0`. Run `27` has no error and retains `status=running`, `state_version=1`: the current v1 contract recalculates counters during Activation but does not yet provide a guarded terminal Run transition. Phase 6 Operational Hardening owns that lifecycle closure; production was not updated ad hoc.
+Activation event IDs `185`–`194` show monotonic counters from `active_count=1, pipeline_ready_count=9` through `active_count=10, pipeline_ready_count=0`. At the Phase 5.6 boundary Run `27` correctly remained `running@v1` because no terminal RPC existed. Phase 6.0 subsequently deployed the guarded transition and closed it as `completed@v2` with `RUN_COMPLETED` event `195`; see [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
 
 ## Exit gate
 
