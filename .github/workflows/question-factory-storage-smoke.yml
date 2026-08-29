@@ -56,6 +56,7 @@ jobs:
         run: |
           set -o pipefail
           node --experimental-strip-types scripts/verify-question-factory-asset-validation.mjs
+          node --experimental-strip-types scripts/verify-question-factory-office-projection.mjs
           node --experimental-strip-types scripts/verify-question-factory-storage.mjs | tee question-factory-storage-evidence.jsonl
 
       - name: Retain non-secret evidence

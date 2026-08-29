@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.4 is complete; Phase 5.5 end-to-end dry run is next. Category resolution, guarded Human Review, atomic draft publication, byte-verified asset promotion and explicit evidence-checked activation are implemented as separate idempotent gates. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
+**Current checkpoint (2026-08-29):** Phase 5.5 end-to-end dry run is in final verification. The complete RPC chain and deterministic Office reconstruction passed with transaction rollback and zero residue; the protected Storage workflow is the remaining exit check. See [phase-5.5-end-to-end-dry-run.md](phase-5.5-end-to-end-dry-run.md).
 
 ## Core design
 
@@ -27,6 +27,7 @@
 | 5.2 | [phase-5.2-text-loop.md](phase-5.2-text-loop.md) |
 | 5.3 | [phase-5.3-asset-loop.md](phase-5.3-asset-loop.md) |
 | 5.4 | [phase-5.4-review-publish.md](phase-5.4-review-publish.md) |
+| 5.5 | [phase-5.5-end-to-end-dry-run.md](phase-5.5-end-to-end-dry-run.md) |
 | Visual bible | [factory-office-character-bible-v1.md](factory-office-character-bible-v1.md) |
 | Production visual assets | [factory-office-production-assets-v1.md](factory-office-production-assets-v1.md) |
 
