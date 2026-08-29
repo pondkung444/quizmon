@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { joinBossRaidSession } from "../actions";
+import QrScanButton from "./QrScanButton";
 
 export default function JoinForm({ initialCode }: { initialCode: string }) {
   const router = useRouter();
@@ -10,17 +11,20 @@ export default function JoinForm({ initialCode }: { initialCode: string }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  function submit(value: string) {
-    start(async () => {
-      setError(null);
-      try {
-        const { sessionId } = await joinBossRaidSession(value);
-        router.push(`/boss-raid/${sessionId}`);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "เข้าห้องไม่สำเร็จ");
-      }
-    });
-  }
+  const submit = useCallback(
+    (value: string) => {
+      start(async () => {
+        setError(null);
+        try {
+          const { sessionId } = await joinBossRaidSession(value);
+          router.push(`/boss-raid/${sessionId}`);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "เข้าห้องไม่สำเร็จ");
+        }
+      });
+    },
+    [router]
+  );
 
   // ลิงก์/QR มี ?code= ครบ 6 หลัก -> join อัตโนมัติ
   useEffect(() => {
@@ -53,6 +57,13 @@ export default function JoinForm({ initialCode }: { initialCode: string }) {
         {pending ? "กำลังเข้าห้อง…" : "เข้าห้อง"}
       </button>
       {error && <p className="text-sm text-red">{error}</p>}
+
+      <QrScanButton
+        onCode={(scanned) => {
+          setCode(scanned);
+          submit(scanned);
+        }}
+      />
     </form>
   );
 }

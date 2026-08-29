@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { BarChart3, Settings } from "lucide-react";
+import { BarChart3, Settings, Swords } from "lucide-react";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -326,7 +326,7 @@ export default function PetCard({
           ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)
           "ขอแรงใจ" ย้ายออกจากแถวนี้ไปเป็น floating chat bubble แล้ว (ดู QmonChatBubble.tsx —
           จับคู่ผิดกลุ่มกับปุ่ม "สถิติ" ที่เป็น data view ไม่ใช่การคุยกับสัตว์เลี้ยง) */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setShowTopicStats(true)}
@@ -335,6 +335,13 @@ export default function PetCard({
           <BarChart3 size={18} />
           สถิติ
         </button>
+        <Link
+          href="/boss-raid/join"
+          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+        >
+          <Swords size={18} />
+          เข้าห้อง
+        </Link>
         <Link
           href="/settings"
           className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
