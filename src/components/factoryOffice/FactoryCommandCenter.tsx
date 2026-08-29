@@ -28,11 +28,11 @@ export default function FactoryCommandCenter({snapshot,commandKey}:{snapshot:Fac
       <NumberField name="medium" label="ปานกลาง" value={4} disabled={blocked||pending}/>
       <NumberField name="hard" label="ยาก" value={3} disabled={blocked||pending}/>
       <div className="flex items-end"><button disabled={blocked||pending||snapshot.options.length===0} className="w-full rounded-full border border-gold bg-amber px-5 py-3 font-bold text-track disabled:opacity-40">
-        {pending?"กำลังตรวจและสร้าง…":"ยืนยันและเริ่ม Run"}
+        {pending?"กำลังตรวจและสร้าง…":"สร้าง Run สำหรับทำผ่านแชท"}
       </button></div>
       {state.message&&<p className={`md:col-span-2 text-sm ${state.ok?"text-emerald-300":"text-red-300"}`}>{state.message}{state.runId?` · Run ${state.runId}`:""}</p>}
     </form>
-    <p className="mt-3 text-xs text-text3">ระบบสร้างได้ครั้งละหนึ่ง Run และหยุดที่ Human Review เสมอ ไม่มี auto-publish หรือ auto-activate</p>
+    <p className="mt-3 text-xs text-text3">ระบบเตรียม Run ได้ครั้งละหนึ่งงาน การแต่งและตรวจข้อสอบดำเนินผ่านผู้ดูแลในแชท ไม่มี Gemini worker, auto-publish หรือ auto-activate</p>
   </section>;
 }
 
