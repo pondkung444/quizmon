@@ -40,6 +40,7 @@ type AssetRow = {
 
 export type FactoryReviewQueueItem = {
   slotId: number;
+  questionId: number | null;
   slotKey: string;
   ordinal: number;
   state: "pending_human_review" | "approved";
@@ -52,7 +53,9 @@ export type FactoryReviewQueueItem = {
   question: FactoryQuestionCandidate;
   asset: null | {
     id: number;
+    state: string;
     revision: number;
+    stagingPath: string;
     checksum: string;
     mimeType: string;
     width: number | null;
@@ -79,7 +82,7 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
   const slotsResult = await admin
     .from("question_factory_slots")
     .select("id, run_id, slot_key, ordinal, state, question_id, state_version, author_revision, slot_spec, updated_at")
-    .or("state.eq.pending_human_review,and(state.eq.approved,question_id.is.null)")
+    .in("state", ["pending_human_review", "approved"])
     .order("updated_at", { ascending: true })
     .order("id", { ascending: true })
     .limit(200);
@@ -127,8 +130,8 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
     const asset = assetBySlot.get(slot.id);
     let preview: FactoryReviewQueueItem["asset"] = null;
     if (slot.slot_spec.representationType !== "none") {
-      if (!asset || asset.state !== "qc_passed") {
-        throw new Error(`Review queue slot ${slot.slot_key} does not reference the latest QC-passed asset`);
+      if (!asset || !["qc_passed", "promoted"].includes(asset.state)) {
+        throw new Error(`Review queue slot ${slot.slot_key} does not reference the latest approved asset`);
       }
       const signed = await admin.storage.from(STAGING_BUCKET)
         .createSignedUrl(asset.staging_path, PREVIEW_TTL_SECONDS);
@@ -136,7 +139,7 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
         throw new Error(`Unable to sign review asset ${slot.slot_key}: ${signed.error?.message ?? "missing URL"}`);
       }
       preview = {
-        id: asset.id, revision: asset.asset_revision, checksum: asset.checksum,
+        id: asset.id, state: asset.state, revision: asset.asset_revision, stagingPath: asset.staging_path, checksum: asset.checksum,
         mimeType: asset.mime_type, width: asset.width, height: asset.height,
         signedPreviewUrl: signed.data.signedUrl,
       };
@@ -166,7 +169,7 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
       mappingError = error instanceof Error ? error.message : "Unable to resolve Product Mapping Candidate";
     }
     return {
-      slotId: slot.id, slotKey: slot.slot_key, ordinal: slot.ordinal, state: slot.state,
+      slotId: slot.id, questionId: slot.question_id, slotKey: slot.slot_key, ordinal: slot.ordinal, state: slot.state,
       stateVersion: slot.state_version, runKey: run.run_key, scopeKey: run.scope_key,
       runStatus: run.status, queuedAt: slot.updated_at, slotSpec: slot.slot_spec,
       question: candidate, asset: preview, mappingCandidate, mappingError,

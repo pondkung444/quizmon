@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.4 is active. Category resolution, guarded Human Review and atomic/idempotent draft publication are implemented. New product rows remain `draft` with an all-null image tuple; asset promotion and activation remain separate gates. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
+**Current checkpoint (2026-08-29):** Phase 5.4e is next. Category resolution, guarded Human Review, atomic/idempotent draft publication and byte-verified asset promotion are implemented. Product rows remain `draft`; visual drafts have a complete promoted image tuple while text-only drafts remain all-null. Activation is still a separate gate. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
 
 ## Core design
 

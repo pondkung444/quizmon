@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
-import { submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
+import { submitAssetPromotion, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
 
 const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
@@ -37,10 +37,20 @@ function DraftButton({ disabled }: { disabled: boolean }) {
   );
 }
 
+function PromoteButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={disabled || pending} className="inline-flex items-center gap-2 rounded-xl bg-indigo px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+      <CheckCircle2 size={18} /> {pending ? "กำลังตรวจและโปรโมตภาพ…" : "โปรโมตภาพเข้า Product Draft"}
+    </button>
+  );
+}
+
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
   const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
   const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
+  const [promotionState, promotionFormAction] = useActionState(submitAssetPromotion, INITIAL_ACTION_STATE);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
   const item = items[selectedIndex];
   const queuedLabel = item ? new Intl.DateTimeFormat("th-TH", {
@@ -87,7 +97,9 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-gold-hi">#{queueItem.ordinal} · {queueItem.slotKey}</span>
                 <span className="rounded-full bg-indigo-dim px-2 py-0.5 text-[10px] text-indigo-hi">
-                  {queueItem.state === "approved" ? "รอ Draft" : `ยาก ${queueItem.question.difficulty}`}
+                  {queueItem.state !== "approved" ? `ยาก ${queueItem.question.difficulty}` :
+                    queueItem.questionId === null ? "รอ Draft" :
+                    queueItem.asset?.state === "qc_passed" ? "รอโปรโมตภาพ" : "พร้อม Activation"}
                 </span>
               </div>
               <p className="mt-2 line-clamp-2 text-sm text-text">{queueItem.question.questionText}</p>
@@ -206,7 +218,7 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
                 <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{actionState.message}</p>
               )}
             </>
-          ) : (
+          ) : item.questionId === null ? (
             <>
               <p className="mb-3 text-xs text-text2">Human Review อนุมัติแล้ว ขั้นนี้จะสร้างเฉพาะ <code>questions.status=draft</code> และยังไม่เปิดใช้ในเกม</p>
               <form action={draftFormAction}>
@@ -217,6 +229,22 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
                 <p className={`mt-3 text-xs ${draftState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{draftState.message}</p>
               )}
             </>
+          ) : item.asset?.state === "qc_passed" ? (
+            <>
+              <p className="mb-3 text-xs text-text2">Draft #{item.questionId} ถูกสร้างแล้ว ระบบจะตรวจ bytes/checksum อีกครั้งก่อนคัดลอกภาพไปยัง Product Storage และยังไม่เปิดใช้ในเกม</p>
+              <form action={promotionFormAction}>
+                <input type="hidden" name="slotId" value={item.slotId} />
+                <PromoteButton disabled={false} />
+              </form>
+              {promotionState.message && (
+                <p className={`mt-3 text-xs ${promotionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{promotionState.message}</p>
+              )}
+            </>
+          ) : (
+            <div className="rounded-2xl border border-emerald-700/60 bg-emerald-950/25 p-3 text-xs text-emerald-200">
+              <p className="font-semibold">Product Draft #{item.questionId} พร้อมสำหรับ Activation gate</p>
+              <p className="mt-1">{item.asset ? "ภาพผ่านการโปรโมตและผูกกับข้อสอบแล้ว" : "ข้อนี้ไม่มีภาพ จึงไม่ต้องผ่าน Storage promotion"}</p>
+            </div>
           )}
         </div>
       </section>

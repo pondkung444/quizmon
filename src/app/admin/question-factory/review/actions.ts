@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { recordFactoryHumanReview, type FactoryHumanReviewDecision } from "@/lib/questionFactory/humanReviewServer";
 import { publishFactoryDraft } from "@/lib/questionFactory/draftPublishServer";
+import { promoteFactoryAsset } from "@/lib/questionFactory/assetPromotionServer";
 import { loadFactoryReviewQueue } from "@/lib/questionFactory/reviewQueueServer";
 import { getUser } from "@/lib/supabase/server";
 
@@ -81,7 +82,7 @@ export async function submitDraftPublication(
     const slotId = Number(formData.get("slotId"));
     if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
     const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
-    if (!item || item.state !== "approved") {
+    if (!item || item.state !== "approved" || item.questionId !== null) {
       return { status: "error", message: "ข้อนี้ไม่ได้อยู่ในคิวอนุมัติแล้วรอสร้าง Draft" };
     }
     if (!item.mappingCandidate) {
@@ -102,5 +103,36 @@ export async function submitDraftPublication(
     };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "สร้าง Factory Draft ไม่สำเร็จ" };
+  }
+}
+
+export async function submitAssetPromotion(
+  _previous: HumanReviewActionState,
+  formData: FormData
+): Promise<HumanReviewActionState> {
+  try {
+    const user = await getUser();
+    if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์โปรโมตภาพ" };
+    const slotId = Number(formData.get("slotId"));
+    if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
+    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    if (!item || item.state !== "approved" || item.questionId === null || !item.asset || item.asset.state !== "qc_passed") {
+      return { status: "error", message: "ข้อนี้ไม่ได้อยู่ในคิวโปรโมตภาพ" };
+    }
+    const operationHash = createHash("sha256").update(JSON.stringify({
+      slotId, questionId: item.questionId, stateVersion: item.stateVersion,
+      assetRevision: item.asset.revision, checksum: item.asset.checksum,
+    })).digest("hex");
+    const result = await promoteFactoryAsset({
+      runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
+      questionId: item.questionId, assetRevision: item.asset.revision,
+      stagingPath: item.asset.stagingPath,
+      mimeType: item.asset.mimeType as "image/svg+xml" | "image/webp", checksum: item.asset.checksum,
+      actorId: user.email.toLowerCase(), idempotencyKey: `asset-promotion:${operationHash}`,
+    });
+    revalidatePath("/admin/question-factory/review");
+    return { status: "success", message: result.replayed ? "ยืนยันภาพ Product เดิมแล้ว" : `ผูกภาพกับ Draft #${result.questionId} แล้ว` };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "โปรโมตภาพไม่สำเร็จ" };
   }
 }

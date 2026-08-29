@@ -50,11 +50,15 @@ Phase 5.4c draft publication is now implemented as the service-only `question_fa
 
 The admin review route now retains approved Slots with no `question_id` as a separate “waiting for Draft” queue state. Creating a Product Draft requires an explicit second button and Server Action after Human approval. Production rollback smoke passed initial draft creation, semantic replay, altered-candidate rejection and stale-version rejection, with zero question/run residue afterward.
 
+Phase 5.4d asset promotion is complete. The server downloads the QC-passed private staging object, repeats MIME/dimension/safety/checksum validation, uploads without overwrite to the canonical public path `question-images/q{question_id}.svg|webp`, downloads and verifies the destination, and only then calls the service-only `question_factory_promote_asset` RPC. The RPC requires the exact approved Slot/version, immutable product mapping, mapped draft question, latest asset revision/checksum, canonical public Storage row and an empty product image tuple. It atomically fills all four image fields, records the asset public path/state and appends `ASSET_PROMOTED`. Retries accept an existing destination only after exact byte verification; failures remove only an object uploaded by that attempt through the Storage API. Text-only drafts skip this gate and remain all-null.
+
+The review page now keeps approved mapped drafts visible and labels the complete sequence: waiting for Draft, waiting for image promotion, and ready for Activation. Production rollback smoke passed initial promotion, exact replay, altered checksum rejection, stale-version rejection, complete image tuple binding and promoted asset state, with zero Factory fixture residue. `anon` and `authenticated` cannot execute the RPC; `service_role` can. No activation occurs in this phase.
+
 ## Remaining exit gates
 
 - add an admin taxonomy workflow for the 13 intentionally unmapped curriculum chapters before Profiles may target them;
 - require Profile/Blueprint builders to select the registry `topic_id` rather than accept arbitrary topic strings;
 - run the positive visual-asset Human Review branch through the trusted Storage smoke path;
 - verified asset promotion and compensation behavior;
-- separate activation RPC and rollback smoke proving no product residue;
+- Phase 5.4e: separate activation RPC and rollback smoke proving activation eligibility, exact replay and no product residue;
 - permission/advisor checks and trusted production workflow evidence.
