@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
-import { submitAssetPromotion, submitDraftActivation, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
+import { submitAssetPromotion, submitBulkHumanApproval, submitDraftActivation, submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
 
 const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
@@ -25,6 +25,15 @@ function DecisionButtons({ disabled }: { disabled: boolean }) {
       <button name="decision" value="REQUEST_REVISION" disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-amber-dim px-4 py-3 text-sm font-bold text-amber-100 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw size={18} /> ส่งกลับแก้ไข</button>
       <button name="decision" value="REJECT" disabled={locked} className="inline-flex items-center gap-2 rounded-xl bg-red/70 px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"><XCircle size={18} /> ปฏิเสธ</button>
     </div>
+  );
+}
+
+function BulkApproveButton({ count }: { count: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending || count === 0} className="inline-flex items-center gap-2 rounded-xl bg-emerald-800 px-4 py-2.5 text-xs font-bold text-emerald-100 disabled:cursor-not-allowed disabled:opacity-40">
+      <CheckCircle2 size={17} /> {pending ? "กำลังอนุมัติ…" : `อนุมัติที่เลือก (${count})`}
+    </button>
   );
 }
 
@@ -57,12 +66,18 @@ function ActivateButton() {
 
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
+  const [checkedIds, setCheckedIds] = useState<number[]>([]);
   const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
+  const [bulkActionState, bulkFormAction] = useActionState(submitBulkHumanApproval, INITIAL_ACTION_STATE);
   const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
   const [promotionState, promotionFormAction] = useActionState(submitAssetPromotion, INITIAL_ACTION_STATE);
   const [activationState, activationFormAction] = useActionState(submitDraftActivation, INITIAL_ACTION_STATE);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
   const item = items[selectedIndex];
+  const bulkEligibleItems = items.filter((queueItem) => queueItem.state === "pending_human_review" && queueItem.mappingCandidate);
+  const eligibleIds = new Set(bulkEligibleItems.map((queueItem) => queueItem.slotId));
+  const checkedEligibleIds = checkedIds.filter((id) => eligibleIds.has(id));
+  const allEligibleChecked = bulkEligibleItems.length > 0 && checkedEligibleIds.length === bulkEligibleItems.length;
   const queuedLabel = item ? new Intl.DateTimeFormat("th-TH", {
     dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok",
   }).format(new Date(item.queuedAt)) : "";
@@ -92,29 +107,58 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
             <Dice5 size={16} /> สุ่มดู
           </button>
         </div>
+        {bulkEligibleItems.length > 0 && (
+          <form action={bulkFormAction} className="mb-3 space-y-2 rounded-2xl border border-emerald-800/60 bg-emerald-950/20 p-3">
+            {checkedEligibleIds.map((slotId) => <input key={slotId} type="hidden" name="slotIds" value={slotId} />)}
+            <label className="flex items-center gap-2 text-xs font-semibold text-emerald-200">
+              <input
+                type="checkbox"
+                checked={allEligibleChecked}
+                onChange={(event) => setCheckedIds(event.target.checked ? bulkEligibleItems.map((queueItem) => queueItem.slotId) : [])}
+                className="h-4 w-4 accent-emerald-600"
+              />
+              เลือกทั้งหมดที่พร้อมอนุมัติ ({bulkEligibleItems.length})
+            </label>
+            <BulkApproveButton count={checkedEligibleIds.length} />
+            {bulkActionState.message && (
+              <p className={`text-[11px] ${bulkActionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{bulkActionState.message}</p>
+            )}
+          </form>
+        )}
         <div className="mt-2 max-h-[70vh] space-y-2 overflow-y-auto pr-1">
           {items.map((queueItem) => (
-            <button
+            <div
               key={queueItem.slotId}
-              type="button"
-              onClick={() => setSelectedId(queueItem.slotId)}
-              className={`w-full rounded-2xl border p-3 text-left transition ${
+              className={`flex w-full items-start rounded-2xl border text-left transition ${
                 queueItem.slotId === item.slotId
                   ? "border-gold bg-gold-dim/25"
                   : "border-border bg-track hover:border-indigo"
               }`}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-gold-hi">#{queueItem.ordinal} · {queueItem.slotKey}</span>
-                <span className="rounded-full bg-indigo-dim px-2 py-0.5 text-[10px] text-indigo-hi">
-                  {queueItem.state !== "approved" ? `ยาก ${queueItem.question.difficulty}` :
-                    queueItem.questionId === null ? "รอ Draft" :
-                    queueItem.asset?.state === "qc_passed" ? "รอโปรโมตภาพ" : "พร้อม Activation"}
+              {queueItem.state === "pending_human_review" && queueItem.mappingCandidate && (
+                <input
+                  type="checkbox"
+                  checked={checkedIds.includes(queueItem.slotId)}
+                  onChange={(event) => setCheckedIds((current) => event.target.checked
+                    ? [...current, queueItem.slotId]
+                    : current.filter((id) => id !== queueItem.slotId))}
+                  aria-label={`เลือกข้อ ${queueItem.ordinal} เพื่ออนุมัติพร้อมกัน`}
+                  className="ml-3 mt-3 h-4 w-4 shrink-0 accent-emerald-600"
+                />
+              )}
+              <button type="button" onClick={() => setSelectedId(queueItem.slotId)} className="min-w-0 flex-1 p-3 text-left">
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-gold-hi">#{queueItem.ordinal} · {queueItem.slotKey}</span>
+                  <span className="rounded-full bg-indigo-dim px-2 py-0.5 text-[10px] text-indigo-hi">
+                    {queueItem.state !== "approved" ? `ยาก ${queueItem.question.difficulty}` :
+                      queueItem.questionId === null ? "รอ Draft" :
+                      queueItem.asset?.state === "qc_passed" ? "รอโปรโมตภาพ" : "พร้อม Activation"}
+                  </span>
                 </span>
-              </div>
-              <p className="mt-2 line-clamp-2 text-sm text-text">{queueItem.question.questionText}</p>
-              <p className="mt-2 truncate text-[11px] text-text3">{queueItem.slotSpec.topic}</p>
-            </button>
+                <span className="mt-2 line-clamp-2 text-sm text-text">{queueItem.question.questionText}</span>
+                <span className="mt-2 block truncate text-[11px] text-text3">{queueItem.slotSpec.topic}</span>
+              </button>
+            </div>
           ))}
         </div>
       </aside>

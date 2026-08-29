@@ -18,6 +18,64 @@ function isAdminEmail(email: string): boolean {
     .includes(email.toLowerCase());
 }
 
+async function approveQueueItem(
+  item: Awaited<ReturnType<typeof loadFactoryReviewQueue>>[number],
+  reviewerId: string,
+) {
+  if (item.state !== "pending_human_review") throw new Error(`${item.slotKey} ไม่ได้อยู่ในคิว Human Review`);
+  if (!item.mappingCandidate) throw new Error(item.mappingError ?? `${item.slotKey} ยังไม่มี Product Mapping Candidate`);
+
+  const operationHash = createHash("sha256").update(JSON.stringify({
+    slotId: item.slotId, stateVersion: item.stateVersion, checksum: item.mappingCandidate.checksum,
+    decision: "APPROVE", revisionTarget: null, issues: [], reviewer: reviewerId,
+  })).digest("hex");
+  return recordFactoryHumanReview({
+    runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
+    subjectRevision: item.mappingCandidate.questionRevision,
+    mappingCandidateChecksum: item.mappingCandidate.checksum,
+    assetRevision: item.asset?.revision ?? null, assetChecksum: item.asset?.checksum ?? null,
+    decision: "APPROVE", revisionTarget: null, issues: [],
+    evidence: { product_mapping_candidate: item.mappingCandidate },
+    reviewerId, idempotencyKey: `human-review:${operationHash}`,
+  });
+}
+
+export async function submitBulkHumanApproval(
+  _previous: HumanReviewActionState,
+  formData: FormData,
+): Promise<HumanReviewActionState> {
+  try {
+    const user = await getUser();
+    if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์ตรวจข้อสอบ" };
+
+    const slotIds = [...new Set(formData.getAll("slotIds").map(Number))];
+    if (slotIds.length === 0 || slotIds.length > 100 || slotIds.some((id) => !Number.isSafeInteger(id) || id < 1)) {
+      return { status: "error", message: "กรุณาเลือก Slot ที่ถูกต้องอย่างน้อย 1 ข้อ" };
+    }
+
+    const queue = await loadFactoryReviewQueue();
+    const itemsById = new Map(queue.map((item) => [item.slotId, item]));
+    const missingIds = slotIds.filter((id) => !itemsById.has(id));
+    if (missingIds.length > 0) {
+      return { status: "error", message: "บางข้อไม่อยู่ในคิวแล้ว กรุณาโหลดหน้าใหม่ก่อนอนุมัติ" };
+    }
+
+    const reviewerId = user.email.toLowerCase();
+    const results = await Promise.allSettled(slotIds.map((id) => approveQueueItem(itemsById.get(id)!, reviewerId)));
+    const failures = results.flatMap((result, index) => result.status === "rejected"
+      ? [`#${itemsById.get(slotIds[index])?.ordinal ?? slotIds[index]}: ${result.reason instanceof Error ? result.reason.message : "อนุมัติไม่สำเร็จ"}`]
+      : []);
+    const approvedCount = results.length - failures.length;
+    revalidatePath("/admin/question-factory/review");
+    if (failures.length > 0) {
+      return { status: "error", message: `อนุมัติสำเร็จ ${approvedCount}/${results.length} ข้อ · ${failures.join(" · ")}` };
+    }
+    return { status: "success", message: `อนุมัติพร้อมกันสำเร็จ ${approvedCount} ข้อ` };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "อนุมัติหลายข้อไม่สำเร็จ" };
+  }
+}
+
 export async function submitHumanReview(
   _previous: HumanReviewActionState,
   formData: FormData

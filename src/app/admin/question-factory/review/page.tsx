@@ -19,7 +19,7 @@ export default async function QuestionFactoryReviewPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">Question Factory v1</p>
         <h1 className="mt-1 text-2xl font-bold text-text">ตรวจข้อสอบก่อนเผยแพร่</h1>
         <p className="mt-1 max-w-3xl text-sm text-text2">
-          เปิดดูทีละข้อหรือสุ่มจากคิว Human Review พร้อมสร้าง Draft โปรโมตภาพ และตรวจสถานะก่อน Activation
+          เปิดดูทีละข้อ สุ่มจากคิว หรือเลือกหลายข้อเพื่ออนุมัติพร้อมกัน พร้อมสร้าง Draft โปรโมตภาพ และตรวจสถานะก่อน Activation
         </p>
       </header>
       <FactoryReviewQueue items={items} />
