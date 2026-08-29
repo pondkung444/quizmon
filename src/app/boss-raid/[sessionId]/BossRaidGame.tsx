@@ -24,20 +24,31 @@ type AnswerResult = {
   is_crit: boolean;
   damage_dealt: number;
   boss_hp: number;
+  crystal_hp: number | null;
+  current_tier: "light" | "medium" | "heavy" | null;
+  crystal_damage: number | null;
 };
 
 type Phase = "loading" | "answering" | "submitting" | "result" | "error";
+
+const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
 export default function BossRaidGame({
   participantId,
   currentQuestionId,
   bossHp,
   bossHpMax,
+  crystalHp,
+  crystalHpMax,
+  currentTier,
 }: {
   participantId: string;
   currentQuestionId: number | null;
   bossHp: number | null | undefined;
   bossHpMax: number | null | undefined;
+  crystalHp: number | null | undefined;
+  crystalHpMax: number | null | undefined;
+  currentTier: string | null | undefined;
 }) {
   const supabase = createClient();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -148,6 +159,11 @@ export default function BossRaidGame({
   const bossPct = bossHpMax ? Math.max(0, (shownBossHp / bossHpMax) * 100) : 0;
   const timerPct = q ? Math.max(0, (remainMs / (q.personal_timer_seconds * 1000)) * 100) : 0;
 
+  const shownCrystalHp = result?.crystal_hp ?? crystalHp ?? 0;
+  const crystalPct = crystalHpMax ? Math.max(0, (shownCrystalHp / crystalHpMax) * 100) : 0;
+  const shownTier = result?.current_tier ?? currentTier ?? "light";
+  const crystalHit = phase === "result" && (result?.crystal_damage ?? 0) > 0;
+
   return (
     <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-4">
       {/* บอส HP */}
@@ -161,6 +177,33 @@ export default function BossRaidGame({
         <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-track">
           <div className="h-full bg-red transition-all" style={{ width: `${bossPct}%` }} />
         </div>
+      </div>
+
+      {/* คริสตัล HP + ระดับบอส (tier) */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-xs text-text3">
+          <span>
+            คริสตัล HP <span className="text-text2">· บอสระดับ{TIER_TH[shownTier] ?? "เบา"}</span>
+          </span>
+          <span>
+            {shownCrystalHp} / {crystalHpMax ?? "?"}
+          </span>
+        </div>
+        <div
+          className={`mt-1 h-3 w-full overflow-hidden rounded-full bg-track transition-colors ${
+            crystalHit ? "ring-2 ring-red" : ""
+          }`}
+        >
+          <div
+            className="h-full bg-indigo-hi transition-all"
+            style={{ width: `${crystalPct}%` }}
+          />
+        </div>
+        {crystalHit && (
+          <p className="mt-1 text-right text-xs font-bold text-red">
+            บอสฟาดคริสตัล −{result?.crystal_damage} HP
+          </p>
+        )}
       </div>
 
       {phase === "loading" && <p className="py-8 text-center text-sm text-text3">กำลังโหลดคำถาม…</p>}

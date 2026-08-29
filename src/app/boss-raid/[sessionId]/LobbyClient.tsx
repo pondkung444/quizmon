@@ -27,6 +27,7 @@ const STATUS_TH: Record<string, string> = {
   in_progress: "กำลังเล่น",
   ended: "จบแล้ว",
 };
+const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
 export default function LobbyClient({
   sessionId,
@@ -118,12 +119,36 @@ export default function LobbyClient({
               <p className="text-2xl font-bold text-red">
                 {s.boss_hp} / {s.boss_hp_max}
               </p>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-track">
+                <div
+                  className="h-full bg-red transition-all"
+                  style={{
+                    width: `${
+                      s.boss_hp_max ? Math.max(0, ((s.boss_hp ?? 0) / s.boss_hp_max) * 100) : 0
+                    }%`,
+                  }}
+                />
+              </div>
             </div>
             <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
-              <p className="text-xs text-text3">คริสตัล HP</p>
+              <p className="text-xs text-text3">
+                คริสตัล HP · บอสระดับ{TIER_TH[s.current_tier ?? "light"] ?? "เบา"}
+              </p>
               <p className="text-2xl font-bold text-indigo-hi">
                 {s.crystal_hp} / {s.crystal_hp_max}
               </p>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-track">
+                <div
+                  className="h-full bg-indigo-hi transition-all"
+                  style={{
+                    width: `${
+                      s.crystal_hp_max
+                        ? Math.max(0, ((s.crystal_hp ?? 0) / s.crystal_hp_max) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
             </div>
           </section>
           <p className="mt-2 text-center text-xs text-text3">
@@ -138,6 +163,9 @@ export default function LobbyClient({
           currentQuestionId={myParticipant.current_question_id ?? null}
           bossHp={s.boss_hp}
           bossHpMax={s.boss_hp_max}
+          crystalHp={s.crystal_hp}
+          crystalHpMax={s.crystal_hp_max}
+          currentTier={s.current_tier}
         />
       )}
 
