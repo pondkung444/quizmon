@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 5.4 is active. The service-only 85-entry category registry, deterministic checksum-bearing Product Mapping Candidate and guarded Human Review decisions are implemented without enabling product writes. Draft insertion, asset promotion and activation remain gated. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
+**Current checkpoint (2026-08-29):** Phase 5.4 is active. Category resolution, guarded Human Review and atomic/idempotent draft publication are implemented. New product rows remain `draft` with an all-null image tuple; asset promotion and activation remain separate gates. See [phase-5.4-review-publish.md](phase-5.4-review-publish.md).
 
 ## Core design
 

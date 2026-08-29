@@ -15,6 +15,8 @@ type SlotRow = {
   run_id: number;
   slot_key: string;
   ordinal: number;
+  state: "pending_human_review" | "approved";
+  question_id: number | null;
   state_version: number;
   author_revision: number;
   slot_spec: FactoryTextSlotSpec;
@@ -40,6 +42,7 @@ export type FactoryReviewQueueItem = {
   slotId: number;
   slotKey: string;
   ordinal: number;
+  state: "pending_human_review" | "approved";
   stateVersion: number;
   runKey: string;
   scopeKey: string;
@@ -75,8 +78,8 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
   const admin = createAdminClient();
   const slotsResult = await admin
     .from("question_factory_slots")
-    .select("id, run_id, slot_key, ordinal, state_version, author_revision, slot_spec, updated_at")
-    .eq("state", "pending_human_review")
+    .select("id, run_id, slot_key, ordinal, state, question_id, state_version, author_revision, slot_spec, updated_at")
+    .or("state.eq.pending_human_review,and(state.eq.approved,question_id.is.null)")
     .order("updated_at", { ascending: true })
     .order("id", { ascending: true })
     .limit(200);
@@ -163,7 +166,7 @@ export async function loadFactoryReviewQueue(): Promise<FactoryReviewQueueItem[]
       mappingError = error instanceof Error ? error.message : "Unable to resolve Product Mapping Candidate";
     }
     return {
-      slotId: slot.id, slotKey: slot.slot_key, ordinal: slot.ordinal,
+      slotId: slot.id, slotKey: slot.slot_key, ordinal: slot.ordinal, state: slot.state,
       stateVersion: slot.state_version, runKey: run.run_key, scopeKey: run.scope_key,
       runStatus: run.status, queuedAt: slot.updated_at, slotSpec: slot.slot_spec,
       question: candidate, asset: preview, mappingCandidate, mappingError,

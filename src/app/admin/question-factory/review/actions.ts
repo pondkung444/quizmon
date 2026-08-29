@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { recordFactoryHumanReview, type FactoryHumanReviewDecision } from "@/lib/questionFactory/humanReviewServer";
+import { publishFactoryDraft } from "@/lib/questionFactory/draftPublishServer";
 import { loadFactoryReviewQueue } from "@/lib/questionFactory/reviewQueueServer";
 import { getUser } from "@/lib/supabase/server";
 
@@ -67,5 +68,39 @@ export async function submitHumanReview(
     return { status: "success", message: result.replayed ? "ยืนยันคำตัดสินเดิมแล้ว" : "บันทึกคำตัดสินแล้ว" };
   } catch (error) {
     return { status: "error", message: error instanceof Error ? error.message : "บันทึก Human Review ไม่สำเร็จ" };
+  }
+}
+
+export async function submitDraftPublication(
+  _previous: HumanReviewActionState,
+  formData: FormData
+): Promise<HumanReviewActionState> {
+  try {
+    const user = await getUser();
+    if (!user?.email || !isAdminEmail(user.email)) return { status: "error", message: "ไม่มีสิทธิ์สร้าง Draft" };
+    const slotId = Number(formData.get("slotId"));
+    if (!Number.isSafeInteger(slotId) || slotId < 1) return { status: "error", message: "Slot ไม่ถูกต้อง" };
+    const item = (await loadFactoryReviewQueue()).find((candidate) => candidate.slotId === slotId);
+    if (!item || item.state !== "approved") {
+      return { status: "error", message: "ข้อนี้ไม่ได้อยู่ในคิวอนุมัติแล้วรอสร้าง Draft" };
+    }
+    if (!item.mappingCandidate) {
+      return { status: "error", message: item.mappingError ?? "ข้อนี้ยังไม่มี Product Mapping Candidate" };
+    }
+    const operationHash = createHash("sha256").update(JSON.stringify({
+      slotId, stateVersion: item.stateVersion, checksum: item.mappingCandidate.checksum,
+    })).digest("hex");
+    const result = await publishFactoryDraft({
+      runKey: item.runKey, slotKey: item.slotKey, expectedStateVersion: item.stateVersion,
+      mappingCandidate: item.mappingCandidate, actorId: user.email.toLowerCase(),
+      idempotencyKey: `draft-publication:${operationHash}`,
+    });
+    revalidatePath("/admin/question-factory/review");
+    return {
+      status: "success",
+      message: result.replayed ? `Draft เดิม #${result.questionId} ถูกยืนยันแล้ว` : `สร้าง Draft #${result.questionId} แล้ว`,
+    };
+  } catch (error) {
+    return { status: "error", message: error instanceof Error ? error.message : "สร้าง Factory Draft ไม่สำเร็จ" };
   }
 }

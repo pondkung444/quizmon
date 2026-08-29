@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { CheckCircle2, Dice5, RotateCcw, XCircle } from "lucide-react";
 
-import { submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
+import { submitDraftPublication, submitHumanReview, type HumanReviewActionState } from "@/app/admin/question-factory/review/actions";
 import type { FactoryReviewQueueItem } from "@/lib/questionFactory/reviewQueueServer";
 
 const INITIAL_ACTION_STATE: HumanReviewActionState = { status: "idle", message: "" };
@@ -28,9 +28,19 @@ function DecisionButtons({ disabled }: { disabled: boolean }) {
   );
 }
 
+function DraftButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={disabled || pending} className="inline-flex items-center gap-2 rounded-xl bg-indigo px-4 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">
+      <CheckCircle2 size={18} /> {pending ? "กำลังสร้าง Draft…" : "สร้าง Product Draft"}
+    </button>
+  );
+}
+
 export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueueItem[] }) {
   const [selectedId, setSelectedId] = useState(items[0]?.slotId ?? 0);
   const [actionState, formAction] = useActionState(submitHumanReview, INITIAL_ACTION_STATE);
+  const [draftState, draftFormAction] = useActionState(submitDraftPublication, INITIAL_ACTION_STATE);
   const selectedIndex = Math.max(0, items.findIndex((item) => item.slotId === selectedId));
   const item = items[selectedIndex];
   const queuedLabel = item ? new Intl.DateTimeFormat("th-TH", {
@@ -76,7 +86,9 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-gold-hi">#{queueItem.ordinal} · {queueItem.slotKey}</span>
-                <span className="rounded-full bg-indigo-dim px-2 py-0.5 text-[10px] text-indigo-hi">ยาก {queueItem.question.difficulty}</span>
+                <span className="rounded-full bg-indigo-dim px-2 py-0.5 text-[10px] text-indigo-hi">
+                  {queueItem.state === "approved" ? "รอ Draft" : `ยาก ${queueItem.question.difficulty}`}
+                </span>
               </div>
               <p className="mt-2 line-clamp-2 text-sm text-text">{queueItem.question.questionText}</p>
               <p className="mt-2 truncate text-[11px] text-text3">{queueItem.slotSpec.topic}</p>
@@ -171,27 +183,40 @@ export default function FactoryReviewQueue({ items }: { items: FactoryReviewQueu
               <p className="mt-1">{item.mappingError ?? "ไม่พบ Product Mapping Candidate"}</p>
             </div>
           )}
-          <form key={item.slotId} action={formAction} className="space-y-4">
-            <input type="hidden" name="slotId" value={item.slotId} />
-            <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-              <label className="text-xs text-text2">
-                เป้าหมายเมื่อส่งกลับ
-                <select name="revisionTarget" defaultValue="text" className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text">
-                  <option value="text">แก้ข้อความ/คำตอบ</option>
-                  <option value="asset" disabled={!item.asset}>แก้ภาพ</option>
-                </select>
-              </label>
-              <label className="text-xs text-text2">
-                เหตุผล (จำเป็นเมื่อส่งกลับหรือปฏิเสธ)
-                <textarea name="feedback" rows={2} maxLength={1000} className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" />
-              </label>
-            </div>
-            <DecisionButtons disabled={!item.mappingCandidate} />
-          </form>
-          {actionState.message && (
-            <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">
-              {actionState.message}
-            </p>
+          {item.state === "pending_human_review" ? (
+            <>
+              <form key={item.slotId} action={formAction} className="space-y-4">
+                <input type="hidden" name="slotId" value={item.slotId} />
+                <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                  <label className="text-xs text-text2">
+                    เป้าหมายเมื่อส่งกลับ
+                    <select name="revisionTarget" defaultValue="text" className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text">
+                      <option value="text">แก้ข้อความ/คำตอบ</option>
+                      <option value="asset" disabled={!item.asset}>แก้ภาพ</option>
+                    </select>
+                  </label>
+                  <label className="text-xs text-text2">
+                    เหตุผล (จำเป็นเมื่อส่งกลับหรือปฏิเสธ)
+                    <textarea name="feedback" rows={2} maxLength={1000} className="mt-1 w-full rounded-xl border border-border bg-track px-3 py-2 text-sm text-text" placeholder="ระบุจุดที่ต้องแก้ให้ชัดเจน" />
+                  </label>
+                </div>
+                <DecisionButtons disabled={!item.mappingCandidate} />
+              </form>
+              {actionState.message && (
+                <p className={`mt-3 text-xs ${actionState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{actionState.message}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-text2">Human Review อนุมัติแล้ว ขั้นนี้จะสร้างเฉพาะ <code>questions.status=draft</code> และยังไม่เปิดใช้ในเกม</p>
+              <form action={draftFormAction}>
+                <input type="hidden" name="slotId" value={item.slotId} />
+                <DraftButton disabled={!item.mappingCandidate} />
+              </form>
+              {draftState.message && (
+                <p className={`mt-3 text-xs ${draftState.status === "success" ? "text-emerald-300" : "text-red-300"}`} role="status">{draftState.message}</p>
+              )}
+            </>
           )}
         </div>
       </section>

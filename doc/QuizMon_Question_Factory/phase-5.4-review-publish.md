@@ -46,12 +46,15 @@ The review loader now resolves the current scope chapter and registry topic serv
 
 A corrective migration also locks Human Review to `candidate.revision = slot.author_revision + 1`. Production rollback smoke proves revision zero is rejected for an initial candidate, revision one is accepted, and no fixture remains.
 
+Phase 5.4c draft publication is now implemented as the service-only `question_factory_publish_draft` RPC. It accepts only the exact candidate JSON/checksum recorded by the successful Human Review, locks the approved Slot/version, verifies the current question revision and latest QC-passed asset reference when applicable, then creates the `questions.status='draft'` row, immutable `question_factory_product_mappings` row, Slot product link and factual event atomically. Every product image field remains null at this gate and the Slot remains `approved`; activation is impossible here.
+
+The admin review route now retains approved Slots with no `question_id` as a separate “waiting for Draft” queue state. Creating a Product Draft requires an explicit second button and Server Action after Human approval. Production rollback smoke passed initial draft creation, semantic replay, altered-candidate rejection and stale-version rejection, with zero question/run residue afterward.
+
 ## Remaining exit gates
 
 - add an admin taxonomy workflow for the 13 intentionally unmapped curriculum chapters before Profiles may target them;
 - require Profile/Blueprint builders to select the registry `topic_id` rather than accept arbitrary topic strings;
 - run the positive visual-asset Human Review branch through the trusted Storage smoke path;
-- atomic/idempotent draft + mapping insertion;
 - verified asset promotion and compensation behavior;
 - separate activation RPC and rollback smoke proving no product residue;
 - permission/advisor checks and trusted production workflow evidence.
