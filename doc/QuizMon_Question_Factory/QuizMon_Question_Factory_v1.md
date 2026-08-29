@@ -1,6 +1,6 @@
 # QuizMon Question Factory v1
 
-**Status:** Phase 6 Operational Hardening complete
+**Status:** Question Factory v1 complete through Phase 7 Production Orchestration
 **Purpose:** ใช้เป็นแนวทางกลางสำหรับการสร้าง ตรวจ และเผยแพร่ข้อสอบของ QuizMon ต่อจากนี้ โดยออกแบบให้รองรับได้ตั้งแต่ระดับประถม ม.ต้น ม.ปลาย และสามารถขยายไปยังหลักสูตร/วิชาอื่นในอนาคตได้โดยไม่ต้องรื้อ Factory Core
 
 ---
@@ -34,6 +34,10 @@ The curriculum gate is closed. The worker can now resolve a `chapter_key` server
 Phase 5.2 and Phase 5.3 passed their exit gates. The worker can now carry an `asset_build` Slot through immutable private staging revisions and exact-revision Image QC without anonymous or product-bucket writes.
 
 Phase 5.4 and Phase 5.5 passed their production exit gates. Phase 5.6 then exercised the first user-approved real batch end to end: 10/10 exact Human approvals, 10/10 Product Draft publications and 10/10 explicit Activations. Phase 6 closed the remaining operating-system gaps with guarded completion, health signals, leases, budgets and reconciliation; Run `27` is `completed@v2` with event `195` and reconciles healthy. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
+
+> **Phase 7 — Production Orchestration and Command Center**
+>
+> The final v1 phase adds admin intake, an atomic create/start/budget command, one-open-Run enforcement across the entire Factory, lease-gated deterministic work orders and guarded pause/resume/cancel. See [phase-7-production-orchestration.md](phase-7-production-orchestration.md).
 
 Phase 4.7 production evidence: migration history `20260828105201_curriculum_chapters_registry_bridge`; 95 rows, 95 distinct valid keys, zero null keys, zero natural-key duplicates, unchanged 3,512/3,663 exact legacy matches, anonymous SELECT allowed, anonymous writes denied, and no curriculum-registry security advisor finding. The local reviewed migration is `supabase/migrations/20260828104722_curriculum_chapters_registry_bridge.sql`; Supabase assigns the production history timestamp when applying it.
 

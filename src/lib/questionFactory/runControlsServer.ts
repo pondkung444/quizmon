@@ -77,3 +77,14 @@ export async function reserveFactoryRunBudget(input: {
 export async function reconcileFactoryRun(runKey: string) {
   return factoryRpc("question_factory_reconcile_run", { p_run_key: runKey });
 }
+
+export async function controlFactoryRun(input: { runKey:string; expectedStateVersion:number;
+  action:"pause"|"resume"|"cancel"; actorId:string; idempotencyKey:string }) {
+  return factoryRpc("question_factory_control_run", {p_run_key:input.runKey,
+    p_expected_state_version:input.expectedStateVersion,p_action:input.action,p_actor_id:input.actorId,
+    p_idempotency_key:input.idempotencyKey});
+}
+
+export async function nextFactoryWorkOrder(runKey:string,leaseToken:string){
+  return factoryRpc("question_factory_next_work_order",{p_run_key:runKey,p_lease_token:leaseToken});
+}

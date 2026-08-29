@@ -2,7 +2,7 @@
 
 เอกสารออกแบบและสัญญาระบบ Question Factory v1 สำหรับ QuizMon
 
-**Current checkpoint (2026-08-29):** Phase 6 Operational Hardening is complete. Guarded completion, operational health, bounded worker leases, immutable workload/cost budgets, reconciliation, recovery procedures and rollback-only production acceptance are deployed and verified. Production Run `27` remains healthy at `completed@v2`. See [phase-6-operational-hardening.md](phase-6-operational-hardening.md).
+**Current checkpoint (2026-08-29):** Question Factory v1 is complete through Phase 7. The admin Command Center can atomically create/start/budget one canonical Run; a global database guard prevents any new Run while an earlier queue remains open. Lease-gated work orders and guarded pause/resume/cancel are deployed. Human approval, publication and activation remain explicit. Production Run `27` remains healthy at `completed@v2`. See [phase-7-production-orchestration.md](phase-7-production-orchestration.md).
 
 ## Core design
 
@@ -23,6 +23,7 @@
 | 4.6 | [question-factory-office-visualization-v1.md](question-factory-office-visualization-v1.md) |
 | 5.6 | [phase-5.6-controlled-pilot.md](phase-5.6-controlled-pilot.md) |
 | 6 | [phase-6-operational-hardening.md](phase-6-operational-hardening.md) |
+| 7 | [phase-7-production-orchestration.md](phase-7-production-orchestration.md) |
 | 4.7 | Curriculum registry bridge (implemented across migration, resolver, Profile, Scope Key and Product Mapping contracts) |
 | 5.0 | [phase-5.0-worker-skeleton.md](phase-5.0-worker-skeleton.md) |
 | 5.1 | [phase-5.1-audit-blueprint.md](phase-5.1-audit-blueprint.md) |
