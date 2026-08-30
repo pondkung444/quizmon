@@ -24,20 +24,33 @@ type AnswerResult = {
   is_crit: boolean;
   damage_dealt: number;
   boss_hp: number;
+  crystal_hp: number | null;
+  current_tier: "light" | "medium" | "heavy" | null;
+  crystal_damage: number | null;
+  status?: "in_progress" | "ended" | "lobby";
+  result?: "win" | "lose" | null;
 };
 
-type Phase = "loading" | "answering" | "submitting" | "result" | "error";
+type Phase = "loading" | "answering" | "submitting" | "result" | "error" | "ended";
+
+const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
 export default function BossRaidGame({
   participantId,
   currentQuestionId,
   bossHp,
   bossHpMax,
+  crystalHp,
+  crystalHpMax,
+  currentTier,
 }: {
   participantId: string;
   currentQuestionId: number | null;
   bossHp: number | null | undefined;
   bossHpMax: number | null | undefined;
+  crystalHp: number | null | undefined;
+  crystalHpMax: number | null | undefined;
+  currentTier: string | null | undefined;
 }) {
   const supabase = createClient();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -72,7 +85,13 @@ export default function BossRaidGame({
       setQ(data as QState);
       setPhase("answering");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "โหลดคำถามไม่สำเร็จ");
+      const msg = e instanceof Error ? e.message : "โหลดคำถามไม่สำเร็จ";
+      // เกมจบระหว่างขอข้อใหม่ — จอ ended (banner win/lose อยู่ที่ LobbyClient ผ่าน realtime)
+      if (msg.includes("จบแล้ว")) {
+        setPhase("ended");
+        return;
+      }
+      setError(msg);
       setPhase("error");
     } finally {
       loadingRef.current = false;
@@ -93,14 +112,24 @@ export default function BossRaidGame({
           p_answer: answerIndex === null ? "" : String(answerIndex),
         });
         if (err) throw new Error(err.message);
-        setResult(data as AnswerResult);
+        const res = data as AnswerResult;
+        setResult(res);
         setPhase("result");
-        window.setTimeout(() => void loadQuestion(), 1800);
+        // เกมจบจากคำตอบนี้ (บอสตาย / คริสตัลแตก) — โชว์ผลแล้วค้างจอ ended
+        if (res.status === "ended") {
+          window.setTimeout(() => setPhase("ended"), 1800);
+        } else {
+          window.setTimeout(() => void loadQuestion(), 1800);
+        }
       } catch (e) {
         // ข้อหมดอายุ / เกมจบ — ขอสถานะใหม่จาก server แทนค้างจอ
         const msg = e instanceof Error ? e.message : "ส่งคำตอบไม่สำเร็จ";
         if (msg.includes("หมดอายุ")) {
           void loadQuestion();
+          return;
+        }
+        if (msg.includes("เกมจบ")) {
+          setPhase("ended");
           return;
         }
         submittedRef.current = false;
@@ -120,7 +149,12 @@ export default function BossRaidGame({
   // §12.4 — realtime: current_question_id ของ row ตัวเองเปลี่ยน (แท็บอื่นตอบ / reconnect)
   useEffect(() => {
     if (loadingRef.current) return;
-    if (phaseRef.current === "result" || phaseRef.current === "submitting") return;
+    if (
+      phaseRef.current === "result" ||
+      phaseRef.current === "submitting" ||
+      phaseRef.current === "ended"
+    )
+      return;
     const pid = currentQuestionId ?? null;
     if (pid === (qRef.current?.question_id ?? null)) return;
     const t = window.setTimeout(loadQuestion, 0);
@@ -148,6 +182,11 @@ export default function BossRaidGame({
   const bossPct = bossHpMax ? Math.max(0, (shownBossHp / bossHpMax) * 100) : 0;
   const timerPct = q ? Math.max(0, (remainMs / (q.personal_timer_seconds * 1000)) * 100) : 0;
 
+  const shownCrystalHp = result?.crystal_hp ?? crystalHp ?? 0;
+  const crystalPct = crystalHpMax ? Math.max(0, (shownCrystalHp / crystalHpMax) * 100) : 0;
+  const shownTier = result?.current_tier ?? currentTier ?? "light";
+  const crystalHit = phase === "result" && (result?.crystal_damage ?? 0) > 0;
+
   return (
     <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-4">
       {/* บอส HP */}
@@ -163,7 +202,38 @@ export default function BossRaidGame({
         </div>
       </div>
 
+      {/* คริสตัล HP + ระดับบอส (tier) */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-xs text-text3">
+          <span>
+            คริสตัล HP <span className="text-text2">· บอสระดับ{TIER_TH[shownTier] ?? "เบา"}</span>
+          </span>
+          <span>
+            {shownCrystalHp} / {crystalHpMax ?? "?"}
+          </span>
+        </div>
+        <div
+          className={`mt-1 h-3 w-full overflow-hidden rounded-full bg-track transition-colors ${
+            crystalHit ? "ring-2 ring-red" : ""
+          }`}
+        >
+          <div
+            className="h-full bg-indigo-hi transition-all"
+            style={{ width: `${crystalPct}%` }}
+          />
+        </div>
+        {crystalHit && (
+          <p className="mt-1 text-right text-xs font-bold text-red">
+            บอสฟาดคริสตัล −{result?.crystal_damage} HP
+          </p>
+        )}
+      </div>
+
       {phase === "loading" && <p className="py-8 text-center text-sm text-text3">กำลังโหลดคำถาม…</p>}
+
+      {phase === "ended" && (
+        <p className="py-8 text-center text-lg font-bold text-text2">เกมจบแล้ว</p>
+      )}
 
       {phase === "error" && (
         <div className="py-6 text-center">
