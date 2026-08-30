@@ -108,7 +108,11 @@ export default function LobbyClient({
       {isTeacher && s.status === "lobby" && <ConfigPanel sessionId={sessionId} config={s.config} />}
 
       {isTeacher && s.status === "lobby" && (
-        <StartGameButton sessionId={sessionId} canStart={participants.length > 0} />
+        <StartGameButton
+          sessionId={sessionId}
+          noPlayers={participants.length === 0}
+          noChapters={(s.config.chapter_ids?.length ?? 0) === 0}
+        />
       )}
 
       {s.status !== "lobby" && (s.boss_hp_max != null || s.crystal_hp_max != null) && (
@@ -210,9 +214,22 @@ export default function LobbyClient({
   );
 }
 
-function StartGameButton({ sessionId, canStart }: { sessionId: string; canStart: boolean }) {
+function StartGameButton({
+  sessionId,
+  noPlayers,
+  noChapters,
+}: {
+  sessionId: string;
+  noPlayers: boolean;
+  noChapters: boolean;
+}) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const blockedReason = noChapters
+    ? "เลือกบทเรียนแล้วกดบันทึกการตั้งค่าก่อนเริ่มเกม"
+    : noPlayers
+      ? "รอผู้เล่นเข้าห้องอย่างน้อย 1 คน"
+      : null;
 
   function go() {
     start(async () => {
@@ -231,13 +248,13 @@ function StartGameButton({ sessionId, canStart }: { sessionId: string; canStart:
       <button
         type="button"
         onClick={go}
-        disabled={pending || !canStart}
+        disabled={pending || blockedReason !== null}
         className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังเริ่ม…" : "เริ่มเกม"}
       </button>
-      {!canStart && (
-        <p className="mt-2 text-center text-xs text-text3">รอผู้เล่นเข้าห้องอย่างน้อย 1 คน</p>
+      {blockedReason && (
+        <p className="mt-2 text-center text-xs text-text3">{blockedReason}</p>
       )}
       {error && <p className="mt-2 text-center text-sm text-red">{error}</p>}
     </section>
