@@ -382,3 +382,89 @@ body {
     opacity: 0;
   }
 }
+
+/* ===== Boss Raid — จอทีวี (TvClient.tsx) ===== */
+@keyframes br-tv-lunge {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  30% {
+    transform: translate(0.7vw, -0.2vw) rotate(-5deg) scale(1.07);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+}
+.animate-br-tv-lunge {
+  animation: br-tv-lunge 0.55s ease-out;
+  z-index: 10;
+}
+
+@keyframes br-tv-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.6vw);
+  }
+}
+.animate-br-tv-bob {
+  animation: br-tv-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes br-tv-float-up {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-3.5vw);
+    opacity: 0;
+  }
+}
+.animate-br-tv-float-up {
+  animation: br-tv-float-up 0.9s ease-out forwards;
+}
+
+@keyframes br-tv-combo-pulse {
+  0% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-br-tv-combo-pulse {
+  animation: br-tv-combo-pulse 0.35s ease-out;
+}
+
+@keyframes br-tv-spotlight-pop {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-br-tv-spotlight-pop {
+  animation: br-tv-spotlight-pop 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-br-tv-lunge,
+  .animate-br-tv-bob,
+  .animate-br-tv-float-up,
+  .animate-br-tv-combo-pulse,
+  .animate-br-tv-spotlight-pop {
+    animation: none;
+  }
+}
