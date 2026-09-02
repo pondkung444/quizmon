@@ -2,6 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import TvClient from "./TvClient";
 import type { TvRankedParticipant, TvSession } from "@/lib/bossRaid/useBossRaidTv";
+import {
+  toParticipantDisplayMap,
+  type ParticipantDisplay,
+  type ParticipantDisplayRow,
+} from "@/lib/bossRaid/participantDisplay";
 
 // จอทีวี/โปรเจกเตอร์ที่ครูเปิดหน้าห้อง — server component ดึง snapshot เริ่มต้น (กัน flash ก่อน realtime ต่อ)
 // RLS คุมการเห็นเอง: ไม่ใช่ member (ครูเจ้าของ / นักเรียนในห้อง) -> maybeSingle คืน null -> notFound
@@ -27,7 +32,7 @@ export default async function BossRaidTvPage({
     .maybeSingle();
   if (!session) notFound();
 
-  const [{ data: ranked }, { count }, { data: nameRows }] = await Promise.all([
+  const [{ data: ranked }, { count }, { data: displayRows }] = await Promise.all([
     supabase
       .from("boss_raid_participants")
       .select("id, total_damage, joined_at")
@@ -39,13 +44,12 @@ export default async function BossRaidTvPage({
       .from("boss_raid_participants")
       .select("id", { count: "exact", head: true })
       .eq("session_id", sessionId),
-    supabase.rpc("get_boss_raid_participant_names", { p_session_id: sessionId }),
+    supabase.rpc("get_boss_raid_participant_display", { p_session_id: sessionId }),
   ]);
 
-  const names: Record<string, string> = {};
-  for (const r of (nameRows ?? []) as { participant_id: string; display_name: string }[]) {
-    names[r.participant_id] = r.display_name;
-  }
+  const roster: Record<string, ParticipantDisplay> = Object.fromEntries(
+    toParticipantDisplayMap((displayRows ?? []) as ParticipantDisplayRow[])
+  );
 
   return (
     <TvClient
@@ -53,7 +57,7 @@ export default async function BossRaidTvPage({
       initialSession={session as TvSession}
       initialTopFive={(ranked ?? []) as TvRankedParticipant[]}
       initialParticipantCount={count ?? 0}
-      initialNames={names}
+      initialRoster={roster}
     />
   );
 }

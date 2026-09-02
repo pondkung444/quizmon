@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  toParticipantDisplayMap,
+  type ParticipantDisplay,
+  type ParticipantDisplayRow,
+} from "@/lib/bossRaid/participantDisplay";
 
 // จอทีวี (Phase 1) — realtime hook แยกจาก useBossRaidLobby.ts เพราะจอทีวีต้อง subscribe เพิ่มอีก
 // 2 ตาราง (boss_raid_answers ทำ ticker/damage-float/participation-dot, boss_raid_event_log ทำ
@@ -12,17 +17,18 @@ import { createClient } from "@/lib/supabase/client";
 //
 // convention เดียวกับ useBossRaidLobby.ts (§12 Connection Resilience):
 //   - 1 channel ต่อ session, filter ทุก subscribe ด้วย session_id (ไม่ subscribe ทั้งตารางเปล่าๆ)
-//   - resync state หลัก (session/top5/count/names) เต็มทุกครั้งที่ (re)subscribe สำเร็จ
+//   - resync state หลัก (session/top5/count/roster) เต็มทุกครั้งที่ (re)subscribe สำเร็จ
 //   - ticker/combo/spotlight/damage-float เป็น ephemeral UI state ล้วนๆ — ไม่ replay ของเก่าตอน reconnect
 //
 // hook นี้เป็นเจ้าของ transient animation state ทั้งหมด (heroAttackRank/bossFlash/floats/litDots/
 // spotlight/comboBump) เพราะ setState จาก realtime callback อนุญาต แต่ setState จาก useEffect body
 // ใน component โดน eslint react-hooks/set-state-in-effect บล็อก — component เลยเหลือแค่ render อย่างเดียว
 //
-// ชื่อผู้เล่น: schema ไม่มี boss/pet species field (survey — start_boss_raid_game ไม่เคยเซ็ต boss identity)
-// TV ใช้ asset บอสตัวเดียวคงที่ + sprite Qmon generic ต่อ "ช่องอันดับ" (ไม่ผูกสายพันธุ์คนจริง — เหมือน
-// mockup v9 หมุน petKeys ตาม slot) ชื่อ/ดาเมจ top-5 จาก get_boss_raid_participant_names() เท่านั้นที่
-// เป็น per-player จริง
+// บอส: schema ไม่มี field เลือกสายพันธุ์บอส (survey — start_boss_raid_game ไม่เคยเซ็ต boss identity)
+// TV ใช้ asset บอสตัวเดียวคงที่
+// top-5 formation: ชื่อ + Qmon "ตัวจริง" ของผู้เล่นแต่ละคน จาก get_boss_raid_participant_display()
+// (sprite resolve ผ่าน src/lib/petImage.ts ใน participantDisplay.ts) — pets เป็น RLS select-own-row
+// เท่านั้น เลยต้องผ่าน SECURITY DEFINER RPC สโคป is_boss_raid_member
 
 export type TvActiveEvent =
   | null
@@ -63,7 +69,7 @@ type State = {
   session: TvSession | null;
   topFive: TvRankedParticipant[];
   participantCount: number;
-  names: Map<string, string>;
+  roster: Map<string, ParticipantDisplay>;
   ticker: TvTickerEvent[];
   combo: number;
   comboBump: number;
@@ -87,14 +93,14 @@ export function useBossRaidTv(
     session: TvSession | null;
     topFive: TvRankedParticipant[];
     participantCount: number;
-    names: Record<string, string>;
+    roster: Record<string, ParticipantDisplay>;
   }
 ): State {
   const [session, setSession] = useState<TvSession | null>(initial.session);
   const [topFive, setTopFive] = useState<TvRankedParticipant[]>(initial.topFive);
   const [participantCount, setParticipantCount] = useState(initial.participantCount);
-  const [names, setNames] = useState<Map<string, string>>(
-    () => new Map(Object.entries(initial.names))
+  const [roster, setRoster] = useState<Map<string, ParticipantDisplay>>(
+    () => new Map(Object.entries(initial.roster))
   );
   const [ticker, setTicker] = useState<TvTickerEvent[]>([]);
   const [combo, setCombo] = useState(0);
@@ -107,18 +113,18 @@ export function useBossRaidTv(
   const [connected, setConnected] = useState(false);
 
   // refs = ค่า state ล่าสุดสำหรับอ่านใน realtime callback (sync ผ่าน effect — ห้ามเขียน ref ตอน render)
-  const namesRef = useRef(names);
+  const rosterRef = useRef(roster);
   const sessionRef = useRef(session);
   const topFiveRef = useRef(topFive);
   const participantCountRef = useRef(participantCount);
   const prevActiveEventRef = useRef<TvActiveEvent>(initial.session?.active_event ?? null);
 
   useEffect(() => {
-    namesRef.current = names;
+    rosterRef.current = roster;
     sessionRef.current = session;
     topFiveRef.current = topFive;
     participantCountRef.current = participantCount;
-  }, [names, session, topFive, participantCount]);
+  }, [roster, session, topFive, participantCount]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -155,20 +161,13 @@ export function useBossRaidTv(
           .from("boss_raid_participants")
           .select("id", { count: "exact", head: true })
           .eq("session_id", sessionId),
-        supabase.rpc("get_boss_raid_participant_names", { p_session_id: sessionId }),
+        supabase.rpc("get_boss_raid_participant_display", { p_session_id: sessionId }),
       ]);
       if (cancelled) return;
       setTopFive((ranked as TvRankedParticipant[] | null) ?? []);
       setParticipantCount(count ?? 0);
       if (nameRows) {
-        setNames(
-          new Map(
-            (nameRows as { participant_id: string; display_name: string }[]).map((r) => [
-              r.participant_id,
-              r.display_name,
-            ])
-          )
-        );
+        setRoster(toParticipantDisplayMap(nameRows as ParticipantDisplayRow[]));
       }
     }
 
@@ -215,7 +214,7 @@ export function useBossRaidTv(
             const winnerId = nextEvent.winner_participant_id;
             setSpotlight({ participantId: winnerId, bonusDamage: METEOR_BONUS_DAMAGE });
             later(() => setSpotlight(null), 2600);
-            const name = namesRef.current.get(winnerId) ?? "ผู้เล่น";
+            const name = rosterRef.current.get(winnerId)?.name ?? "ผู้เล่น";
             pushTicker(`⭐ ${name} คว้าโบนัสฝนดาวตกไปก่อน! +${METEOR_BONUS_DAMAGE}`, true);
           }
 
@@ -252,7 +251,7 @@ export function useBossRaidTv(
 
           const dmg = row.damage_dealt ?? 0;
           const crit = !!row.is_crit;
-          const name = namesRef.current.get(row.participant_id) ?? "ผู้เล่น";
+          const name = rosterRef.current.get(row.participant_id)?.name ?? "ผู้เล่น";
           pushTicker(crit ? `🔥 ${name} CRITICAL! -${dmg}` : `⚔️ ${name} โจมตี -${dmg}`, crit, row.id);
 
           // บอสวาบ
@@ -308,7 +307,7 @@ export function useBossRaidTv(
     session,
     topFive,
     participantCount,
-    names,
+    roster,
     ticker,
     combo,
     comboBump,

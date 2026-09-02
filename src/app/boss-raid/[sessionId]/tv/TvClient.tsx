@@ -7,6 +7,7 @@ import {
   type TvRankedParticipant,
   type TvSession,
 } from "@/lib/bossRaid/useBossRaidTv";
+import type { ParticipantDisplay } from "@/lib/bossRaid/participantDisplay";
 
 // จอทีวี Boss Raid — layout/พฤติกรรมอ้างจาก mockup v9 (docs/boss-raid-mockups/boss-raid-tv-screen-mockup-v9.html)
 // ทุกตำแหน่งคุมด้วยโค้ดเป็น % ของกล่องฉาก 16:9 ไม่ผูกกับพิกเซลในภาพพื้นหลัง
@@ -20,8 +21,10 @@ const CRYSTAL_SRC = "/raid/boss_raid_crystal_DRAFT_autocut.png";
 const BOSS_SRC = "/raid/boss_ridge_mist.png";
 const BOSS_ASPECT = 1024 / 1536; // boss_ridge_mist.png — ตรงกับ SPRITE_ASPECT_RATIO ใน spriteGroundOffsets.ts
 
-// sprite Qmon generic ต่อ "ช่องอันดับ" (ไม่ใช่สายพันธุ์จริงของผู้เล่น — เหมือน mockup ที่หมุน petKeys ตาม slot)
-const RANK_SPRITES = [
+// Qmon ของ top-5 มาจาก roster (get_boss_raid_participant_display -> resolveParticipantSprite ผ่าน
+// petImage.ts) — อันนี้เป็นแค่ fallback ต่อ "ช่องอันดับ" เผื่อ resolve ไม่ได้ (pet ต่ำกว่า stage 3
+// ที่ยังไม่มี subline/personality, stage นอกช่วง ฯลฯ) ให้ยังเห็น sprite ต่างกันต่อ slot ไม่ใช่ช่องว่าง
+const FALLBACK_SPRITES = [
   "/pets/egg1_stage4_balance_A.png",
   "/pets/egg2_stage4_balance_A.png",
   "/pets/egg3_stage4_balance_A.png",
@@ -51,19 +54,19 @@ export default function TvClient({
   initialSession,
   initialTopFive,
   initialParticipantCount,
-  initialNames,
+  initialRoster,
 }: {
   sessionId: string;
   initialSession: TvSession;
   initialTopFive: TvRankedParticipant[];
   initialParticipantCount: number;
-  initialNames: Record<string, string>;
+  initialRoster: Record<string, ParticipantDisplay>;
 }) {
   const {
     session,
     topFive,
     participantCount,
-    names,
+    roster,
     ticker,
     combo,
     comboBump,
@@ -77,7 +80,7 @@ export default function TvClient({
     session: initialSession,
     topFive: initialTopFive,
     participantCount: initialParticipantCount,
-    names: initialNames,
+    roster: initialRoster,
   });
 
   const s = session ?? initialSession;
@@ -193,7 +196,9 @@ export default function TvClient({
           {/* top-5 heroes */}
           {FORMATION.map((f, i) => {
             const p = topFive[i];
-            const name = p ? names.get(p.id) ?? "…" : null;
+            const d = p ? roster.get(p.id) : null;
+            const name = p ? d?.name ?? "…" : null;
+            const sprite = d?.sprite ?? FALLBACK_SPRITES[i];
             return (
               <div
                 key={i}
@@ -202,7 +207,7 @@ export default function TvClient({
               >
                 <div className="relative w-full" style={{ aspectRatio: 1 }}>
                   <Image
-                    src={RANK_SPRITES[i]}
+                    src={sprite}
                     alt=""
                     fill
                     sizes="12vw"
@@ -309,7 +314,7 @@ export default function TvClient({
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[rgba(10,8,26,.82)]">
             <div className="animate-br-tv-spotlight-pop text-[clamp(40px,7vw,90px)]">⭐</div>
             <div className="mt-[1vw] text-[clamp(16px,2.4vw,30px)] font-extrabold text-gold-hi drop-shadow-lg">
-              {names.get(spotlight.participantId) ?? "ผู้เล่น"}
+              {roster.get(spotlight.participantId)?.name ?? "ผู้เล่น"}
             </div>
             <div className="mt-[.4vw] text-[clamp(10px,1.05vw,14px)] text-white">
               คว้าโบนัสฝนดาวตกไปก่อน! +{spotlight.bonusDamage}
