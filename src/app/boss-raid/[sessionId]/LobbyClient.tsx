@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -8,7 +8,15 @@ import {
   type LobbyParticipant,
   type LobbySession,
 } from "@/lib/bossRaid/useBossRaidLobby";
-import { updateBossRaidConfig, startBossRaidGame, type BossRaidConfig } from "../actions";
+import Image from "next/image";
+import {
+  updateBossRaidConfig,
+  startBossRaidGame,
+  getBossRaidRewards,
+  type BossRaidConfig,
+  type BossRaidRewardRow,
+} from "../actions";
+import { getPetImagePath } from "@/lib/petImage";
 import JoinQr from "./JoinQr";
 import BossRaidGame from "./BossRaidGame";
 
@@ -19,6 +27,8 @@ type ChapterRow = {
   subject_label: string;
   chapter: string;
 };
+
+type RewardEggRow = { id: string; name_th: string; tier: string };
 
 const DIFFICULTIES: Array<BossRaidConfig["difficulty"]> = ["easy", "medium", "hard"];
 const DIFF_TH: Record<string, string> = { easy: "ง่าย", medium: "กลาง", hard: "ยาก" };
@@ -162,15 +172,11 @@ export default function LobbyClient({
       )}
 
       {s.status === "ended" && (
-        <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-10 text-center">
-          <p
-            className={`text-4xl font-bold ${
-              s.result === "win" ? "text-gold-hi" : "text-red"
-            }`}
-          >
-            {s.result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะ 💀"}
-          </p>
-        </section>
+        <EndScreen
+          sessionId={sessionId}
+          result={s.result ?? null}
+          myParticipantId={myParticipant?.id ?? null}
+        />
       )}
 
       {s.status === "in_progress" && myParticipant && (
@@ -211,6 +217,101 @@ export default function LobbyClient({
         </ul>
       </section>
     </main>
+  );
+}
+
+function EndScreen({
+  sessionId,
+  result,
+  myParticipantId,
+}: {
+  sessionId: string;
+  result: "win" | "lose" | null;
+  myParticipantId: string | null;
+}) {
+  const [rewards, setRewards] = useState<BossRaidRewardRow[] | null>(null);
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (result !== "win" || fetchedRef.current) return;
+    fetchedRef.current = true;
+    let cancelled = false;
+    async function load(attempt: number) {
+      try {
+        const rows = await getBossRaidRewards(sessionId);
+        if (cancelled) return;
+        // distribution อยู่ transaction เดียวกับ win-transition แล้ว แต่กันเหนียว: ถ้ายังว่าง retry 1 ครั้ง
+        if (rows.length === 0 && attempt === 0) {
+          setTimeout(() => void load(1), 1200);
+          return;
+        }
+        setRewards(rows);
+      } catch (e) {
+        console.error("getBossRaidRewards failed:", e);
+        if (!cancelled) setRewards([]);
+      }
+    }
+    void load(0);
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, result]);
+
+  const myReward =
+    myParticipantId != null ? rewards?.find((r) => r.participantId === myParticipantId) ?? null : null;
+
+  return (
+    <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-8 text-center">
+      <p className={`text-4xl font-bold ${result === "win" ? "text-gold-hi" : "text-red"}`}>
+        {result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะ 💀"}
+      </p>
+
+      {result === "win" && rewards != null && (
+        <div className="mt-5">
+          {myParticipantId != null ? (
+            myReward ? (
+              <div className="flex flex-col items-center gap-2">
+                <Image
+                  src={getPetImagePath(myReward.spritePrefix, 1, null, null)}
+                  alt={myReward.eggNameTh}
+                  width={120}
+                  height={120}
+                  className="animate-evolve-pop"
+                />
+                <p className="text-lg font-bold text-gold-hi">
+                  🥚 คุณได้รับ {myReward.eggNameTh}!
+                </p>
+                <p className="text-xs text-text3">อันดับ #{myReward.rank} · ดาเมจ {myReward.totalDamage}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-text3">
+                {rewards.length > 0
+                  ? "รอบนี้ยังไม่ได้ไข่ — ตอบให้ไวขึ้นรอบหน้านะ"
+                  : "รอบนี้ไม่มีรางวัลไข่"}
+              </p>
+            )
+          ) : rewards.length > 0 ? (
+            <div className="mx-auto max-w-xs text-left">
+              <p className="mb-2 text-center text-sm font-semibold text-text2">
+                ผู้ได้รับไข่รางวัล
+              </p>
+              <ul className="space-y-1 text-sm text-text">
+                {rewards.map((r) => (
+                  <li key={r.participantId} className="flex justify-between gap-2">
+                    <span>
+                      #{r.rank} · {r.eggNameTh}
+                    </span>
+                    <span className="text-text3">ดาเมจ {r.totalDamage}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-sm text-text3">รอบนี้ไม่มีรางวัลไข่</p>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -274,6 +375,11 @@ function ConfigPanel({
     (config.difficulty as BossRaidConfig["difficulty"]) ?? "medium"
   );
   const [timer, setTimer] = useState<number>(config.timer_seconds ?? 30);
+  const [rewardEggs, setRewardEggs] = useState<RewardEggRow[]>([]);
+  const [rewardEggTypeId, setRewardEggTypeId] = useState<string | null>(
+    config.reward_egg_type_id ?? null
+  );
+  const [rewardTopN, setRewardTopN] = useState<number>(config.reward_top_n ?? 5);
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -286,6 +392,19 @@ function ConfigPanel({
       .order("grade_order", { ascending: true })
       .order("chapter_order", { ascending: true })
       .then(({ data }) => setChapters((data ?? []) as ChapterRow[]));
+  }, []);
+
+  // ชนิดไข่รางวัลที่เลือกได้ — dynamic: tier common/rare/epic ที่ยัง obtainable (legendary กรองด้วย tier)
+  useEffect(() => {
+    const supabase = createClient();
+    void supabase
+      .from("egg_types")
+      .select("id, name_th, tier")
+      .in("tier", ["common", "rare", "epic"])
+      .eq("is_obtainable", true)
+      .order("tier", { ascending: true })
+      .order("id", { ascending: true })
+      .then(({ data }) => setRewardEggs((data ?? []) as RewardEggRow[]));
   }, []);
 
   const grouped = useMemo(() => {
@@ -306,6 +425,8 @@ function ConfigPanel({
           chapter_ids: chapterIds,
           difficulty,
           timer_seconds: timer,
+          reward_egg_type_id: rewardEggTypeId,
+          reward_top_n: rewardEggTypeId ? rewardTopN : null,
         });
         setSaved(true);
       } catch (e) {
@@ -371,6 +492,46 @@ function ConfigPanel({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <p className="text-sm font-semibold text-text2">รางวัลเมื่อชนะบอส</p>
+        <p className="mt-0.5 text-xs text-text3">
+          แจกไข่ให้ผู้เล่นที่ทำดาเมจสูงสุดตามอันดับ — เฉพาะตอนห้องชนะ (แพ้ไม่ได้อะไร)
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select
+            value={rewardEggTypeId ?? ""}
+            onChange={(e) => setRewardEggTypeId(e.target.value || null)}
+            className="rounded border border-border bg-track px-2 py-1 text-sm text-text"
+          >
+            <option value="">ไม่แจกรางวัล</option>
+            {rewardEggs.map((egg) => (
+              <option key={egg.id} value={egg.id}>
+                {egg.name_th} ({egg.tier})
+              </option>
+            ))}
+          </select>
+          <label className="flex items-center gap-2 text-sm text-text2">
+            จำนวนคนที่ได้:
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={rewardTopN}
+              disabled={!rewardEggTypeId}
+              onChange={(e) => setRewardTopN(Number(e.target.value))}
+              className="w-20 rounded border border-border bg-track px-2 py-1 text-text disabled:opacity-50"
+            />
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-gold-hi">
+          {rewardEggTypeId
+            ? `จะแจก "${
+                rewardEggs.find((e) => e.id === rewardEggTypeId)?.name_th ?? rewardEggTypeId
+              }" ให้ผู้เล่น ${Math.min(50, Math.max(1, Math.round(rewardTopN || 1)))} อันดับแรกเมื่อชนะบอส`
+            : "ไม่แจกรางวัลรอบนี้"}
+        </p>
       </div>
 
       <div className="mt-4 flex items-center gap-3">

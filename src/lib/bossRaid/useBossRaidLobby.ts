@@ -17,7 +17,13 @@ export type LobbySession = {
   id: string;
   status: "lobby" | "in_progress" | "ended";
   join_code: string;
-  config: { chapter_ids?: number[]; difficulty?: string; timer_seconds?: number };
+  config: {
+    chapter_ids?: number[];
+    difficulty?: string;
+    timer_seconds?: number;
+    reward_egg_type_id?: string | null;
+    reward_top_n?: number | null;
+  };
   teacher_id: string;
   boss_hp?: number | null;
   boss_hp_max?: number | null;
