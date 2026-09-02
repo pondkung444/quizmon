@@ -13,8 +13,10 @@ import {
   updateBossRaidConfig,
   startBossRaidGame,
   getBossRaidRewards,
+  getBossRaidSummary,
   type BossRaidConfig,
   type BossRaidRewardRow,
+  type BossRaidSummary,
 } from "../actions";
 import { getPetImagePath } from "@/lib/petImage";
 import JoinQr from "./JoinQr";
@@ -220,6 +222,13 @@ export default function LobbyClient({
   );
 }
 
+function fmtDuration(sec: number | null): string {
+  if (sec == null || sec < 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function EndScreen({
   sessionId,
   result,
@@ -230,28 +239,41 @@ function EndScreen({
   myParticipantId: string | null;
 }) {
   const [rewards, setRewards] = useState<BossRaidRewardRow[] | null>(null);
+  const [summary, setSummary] = useState<BossRaidSummary | null>(null);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (result !== "win" || fetchedRef.current) return;
+    if (fetchedRef.current) return;
     fetchedRef.current = true;
     let cancelled = false;
-    async function load(attempt: number) {
-      try {
-        const rows = await getBossRaidRewards(sessionId);
-        if (cancelled) return;
-        // distribution อยู่ transaction เดียวกับ win-transition แล้ว แต่กันเหนียว: ถ้ายังว่าง retry 1 ครั้ง
-        if (rows.length === 0 && attempt === 0) {
-          setTimeout(() => void load(1), 1200);
-          return;
+
+    // สรุปผล — ขึ้นทั้งชนะและแพ้
+    void getBossRaidSummary(sessionId)
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch((e) => console.error("getBossRaidSummary failed:", e));
+
+    // ไข่รางวัล — เฉพาะตอนชนะ
+    if (result === "win") {
+      const loadRewards = async (attempt: number) => {
+        try {
+          const rows = await getBossRaidRewards(sessionId);
+          if (cancelled) return;
+          // distribution อยู่ transaction เดียวกับ win-transition แล้ว แต่กันเหนียว: ถ้ายังว่าง retry 1 ครั้ง
+          if (rows.length === 0 && attempt === 0) {
+            setTimeout(() => void loadRewards(1), 1200);
+            return;
+          }
+          setRewards(rows);
+        } catch (e) {
+          console.error("getBossRaidRewards failed:", e);
+          if (!cancelled) setRewards([]);
         }
-        setRewards(rows);
-      } catch (e) {
-        console.error("getBossRaidRewards failed:", e);
-        if (!cancelled) setRewards([]);
-      }
+      };
+      void loadRewards(0);
     }
-    void load(0);
+
     return () => {
       cancelled = true;
     };
@@ -259,12 +281,55 @@ function EndScreen({
 
   const myReward =
     myParticipantId != null ? rewards?.find((r) => r.participantId === myParticipantId) ?? null : null;
+  const myRank =
+    myParticipantId != null
+      ? summary?.ranking.find((r) => r.participantId === myParticipantId) ?? null
+      : null;
 
   return (
     <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-8 text-center">
       <p className={`text-4xl font-bold ${result === "win" ? "text-gold-hi" : "text-red"}`}>
         {result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะ 💀"}
       </p>
+
+      {/* สถิติส่วนตัว */}
+      {myRank && (
+        <div className="mx-auto mt-5 max-w-xs rounded-xl border border-border bg-track p-4">
+          <p className="text-xs font-semibold text-text3">ผลของคุณ</p>
+          <p className="mt-1 text-2xl font-bold text-gold-hi">
+            อันดับ #{myRank.rank}
+            <span className="text-sm font-normal text-text3">
+              {" "}
+              / {summary?.ranking.length ?? "?"} คน
+            </span>
+          </p>
+          <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <p className="font-bold text-text">{myRank.totalDamage}</p>
+              <p className="text-xs text-text3">ดาเมจ</p>
+            </div>
+            <div>
+              <p className="font-bold text-text">
+                {myRank.correctCount}
+                <span className="text-text3">/{myRank.correctCount + myRank.wrongCount}</span>
+              </p>
+              <p className="text-xs text-text3">ตอบถูก</p>
+            </div>
+            <div>
+              <p className="font-bold text-text">{myRank.accuracyPct}%</p>
+              <p className="text-xs text-text3">แม่นยำ</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* สถิติรวมทีมแบบย่อ */}
+      {summary && (
+        <p className="mt-3 text-xs text-text3">
+          ทั้งห้อง · เวลา {fmtDuration(summary.team.durationSeconds)} · แม่นยำรวม{" "}
+          {summary.team.accuracyPct}% ({summary.team.totalCorrect}/{summary.team.totalAnswers} ข้อ)
+        </p>
+      )}
 
       {result === "win" && rewards != null && (
         <div className="mt-5">

@@ -121,6 +121,79 @@ export async function getBossRaidRewards(sessionId: string): Promise<BossRaidRew
   }));
 }
 
+export type BossRaidSummaryTeam = {
+  durationSeconds: number | null;
+  totalAnswers: number;
+  totalCorrect: number;
+  accuracyPct: number;
+  wrongCountTotal: number;
+  totalDamageDealt: number;
+};
+
+export type BossRaidRankRow = {
+  participantId: string;
+  userId: string;
+  totalDamage: number;
+  correctCount: number;
+  wrongCount: number;
+  accuracyPct: number;
+  rank: number;
+};
+
+export type BossRaidSummary = {
+  result: "win" | "lose" | null;
+  team: BossRaidSummaryTeam;
+  ranking: BossRaidRankRow[];
+};
+
+// สรุปผลท้ายเกม — team stats + ranking เต็มห้อง. RPC เดียวใช้ทั้ง TV (top-5 + team) และ
+// มือถือ (แถวของตัวเอง + team). ขึ้นทั้งชนะและแพ้
+export async function getBossRaidSummary(sessionId: string): Promise<BossRaidSummary> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("get_boss_raid_summary", { p_session_id: sessionId });
+  if (error || !data) throw new Error(error?.message ?? "ดึงสรุปผลไม่สำเร็จ");
+  const d = data as {
+    result: "win" | "lose" | null;
+    team: {
+      duration_seconds: number | null;
+      total_answers: number;
+      total_correct: number;
+      accuracy_pct: number;
+      wrong_count_total: number;
+      total_damage_dealt: number;
+    };
+    ranking: Array<{
+      participant_id: string;
+      user_id: string;
+      total_damage: number;
+      correct_count: number;
+      wrong_count: number;
+      accuracy_pct: number;
+      rank: number;
+    }>;
+  };
+  return {
+    result: d.result,
+    team: {
+      durationSeconds: d.team.duration_seconds,
+      totalAnswers: d.team.total_answers,
+      totalCorrect: d.team.total_correct,
+      accuracyPct: d.team.accuracy_pct,
+      wrongCountTotal: d.team.wrong_count_total,
+      totalDamageDealt: d.team.total_damage_dealt,
+    },
+    ranking: (d.ranking ?? []).map((r) => ({
+      participantId: r.participant_id,
+      userId: r.user_id,
+      totalDamage: r.total_damage,
+      correctCount: r.correct_count,
+      wrongCount: r.wrong_count,
+      accuracyPct: r.accuracy_pct,
+      rank: r.rank,
+    })),
+  };
+}
+
 export type JoinBossRaidResult = {
   sessionId: string;
   status: "lobby" | "in_progress" | "ended";
