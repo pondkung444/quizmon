@@ -430,6 +430,40 @@ body {
   animation: br-tv-float-up 0.9s ease-out forwards;
 }
 
+/* ลูกพลังงานพุ่งจาก Qmon ไปบอส — จุดเริ่ม = left/top (%) ที่ TvClient ตั้ง inline,
+   จุดปลาย = --bolt-x1/--bolt-y1 (%) คำนวณจากตำแหน่งบอสปัจจุบัน (ขยับตาม crystalFrac) */
+@keyframes br-tv-bolt {
+  0% {
+    transform: translate(-50%, -50%) scale(0.45);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    left: var(--bolt-x1);
+    top: var(--bolt-y1);
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.9;
+  }
+}
+.animate-br-tv-bolt {
+  animation: br-tv-bolt var(--bolt-dur, 0.26s) cubic-bezier(0.4, 0, 0.9, 1) forwards;
+}
+/* หางจาง ๆ ชี้กลับไปทาง Qmon (บอสอยู่ขวา → ลูกพลังพุ่งไปขวา → หางไปซ้าย) */
+.animate-br-tv-bolt::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 45%;
+  width: 2.6vw;
+  height: 42%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(to left, rgba(255, 184, 92, 0.7), transparent);
+  filter: blur(1px);
+}
+
 @keyframes br-tv-combo-pulse {
   0% {
     transform: scale(1.3);
@@ -466,5 +500,9 @@ body {
   .animate-br-tv-combo-pulse,
   .animate-br-tv-spotlight-pop {
     animation: none;
+  }
+  /* ลูกพลังไม่มีตำแหน่งพักที่สื่อความหมาย — ซ่อนทั้งก้อนแทนการค้างที่จุดเริ่ม */
+  .animate-br-tv-bolt {
+    display: none;
   }
 }

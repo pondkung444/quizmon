@@ -72,6 +72,10 @@ export type TvFloat = { key: number; text: string; x: number; y: number };
 
 export type TvSpotlight = { participantId: string; bonusDamage: number };
 
+// ลูกพลังงานที่พุ่งจาก Qmon (rank ใน FORMATION) ไปยังบอส — TvClient คำนวณจุดปลายทางจาก
+// ตำแหน่งบอส ณ ขณะนั้น (บอสขยับตาม crystalFrac) เอง
+export type TvBolt = { key: number; rank: number; crit: boolean };
+
 export type TvReward = {
   participantId: string;
   rank: number;
@@ -90,6 +94,7 @@ type State = {
   comboBump: number;
   heroAttackRank: number | null;
   bossFlash: boolean;
+  bolts: TvBolt[];
   floats: TvFloat[];
   litDots: number[];
   spotlight: TvSpotlight | null;
@@ -123,6 +128,7 @@ export function useBossRaidTv(
   const [comboBump, setComboBump] = useState(0);
   const [heroAttackRank, setHeroAttackRank] = useState<number | null>(null);
   const [bossFlash, setBossFlash] = useState(false);
+  const [bolts, setBolts] = useState<TvBolt[]>([]);
   const [floats, setFloats] = useState<TvFloat[]>([]);
   const [litDots, setLitDots] = useState<number[]>([]);
   const [spotlight, setSpotlight] = useState<TvSpotlight | null>(null);
@@ -295,15 +301,31 @@ export function useBossRaidTv(
           const name = rosterRef.current.get(row.participant_id)?.name ?? "ผู้เล่น";
           pushTicker(crit ? `🔥 ${name} CRITICAL! -${dmg}` : `⚔️ ${name} โจมตี -${dmg}`, crit, row.id);
 
-          // บอสวาบ
-          setBossFlash(true);
-          later(() => setBossFlash(false), 160);
-
-          // hero lunge เฉพาะถ้าผู้โจมตีอยู่ใน top-5 จริง (คนนอก top-5 ขึ้นแค่ ticker ไม่มี sprite ให้ขยับ)
+          // hero lunge + ลูกพลัง เฉพาะถ้าผู้โจมตีอยู่ใน top-5 จริง (คนนอก top-5 ขึ้นแค่ ticker ไม่มี sprite)
           const rank = topFiveRef.current.findIndex((p) => p.id === row.participant_id);
+          // ~ระยะเวลาที่ลูกพลังบินจาก Qmon ถึงบอส (ตรงกับ --bolt-dur ใน globals.css) —
+          // หน่วง bossFlash เท่านี้ให้ "วาบ" พอดีตอนลูกพลังไปถึง ไม่ใช่วาบก่อนโดน
+          const BOLT_TRAVEL_MS = 260;
+
           if (rank >= 0) {
             setHeroAttackRank(rank);
             later(() => setHeroAttackRank((r) => (r === rank ? null : r)), 550);
+
+            const bkey = Date.now() + Math.random();
+            setBolts((prev) => [...prev, { key: bkey, rank, crit }]);
+            later(
+              () => setBolts((prev) => prev.filter((b) => b.key !== bkey)),
+              BOLT_TRAVEL_MS + 140
+            );
+
+            later(() => {
+              setBossFlash(true);
+              later(() => setBossFlash(false), 160);
+            }, BOLT_TRAVEL_MS);
+          } else {
+            // คนนอก top-5 ไม่มี sprite/ลูกพลัง — บอสวาบทันที
+            setBossFlash(true);
+            later(() => setBossFlash(false), 160);
           }
 
           // damage float ใกล้บอสฝั่งขวา
@@ -397,6 +419,7 @@ export function useBossRaidTv(
     comboBump,
     heroAttackRank,
     bossFlash,
+    bolts,
     floats,
     litDots,
     spotlight,
