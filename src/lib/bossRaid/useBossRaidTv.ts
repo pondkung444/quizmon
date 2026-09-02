@@ -47,7 +47,13 @@ export type TvSession = {
   id: string;
   status: "lobby" | "in_progress" | "ended";
   join_code: string;
-  config: { chapter_ids?: number[]; difficulty?: string; timer_seconds?: number };
+  config: {
+    chapter_ids?: number[];
+    difficulty?: string;
+    timer_seconds?: number;
+    reward_egg_type_id?: string | null;
+    reward_top_n?: number | null;
+  };
   boss_hp: number | null;
   boss_hp_max: number | null;
   crystal_hp: number | null;
@@ -66,6 +72,14 @@ export type TvFloat = { key: number; text: string; x: number; y: number };
 
 export type TvSpotlight = { participantId: string; bonusDamage: number };
 
+export type TvReward = {
+  participantId: string;
+  rank: number;
+  totalDamage: number;
+  eggNameTh: string;
+  spritePrefix: string;
+};
+
 type State = {
   session: TvSession | null;
   topFive: TvRankedParticipant[];
@@ -79,6 +93,7 @@ type State = {
   floats: TvFloat[];
   litDots: number[];
   spotlight: TvSpotlight | null;
+  rewards: TvReward[] | null;
   connected: boolean;
 };
 
@@ -111,6 +126,7 @@ export function useBossRaidTv(
   const [floats, setFloats] = useState<TvFloat[]>([]);
   const [litDots, setLitDots] = useState<number[]>([]);
   const [spotlight, setSpotlight] = useState<TvSpotlight | null>(null);
+  const [rewards, setRewards] = useState<TvReward[] | null>(null);
   const [connected, setConnected] = useState(false);
 
   // refs = ค่า state ล่าสุดสำหรับอ่านใน realtime callback (sync ผ่าน effect — ห้ามเขียน ref ตอน render)
@@ -332,6 +348,45 @@ export function useBossRaidTv(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
+  // ผลรางวัล Top-N — ดึงครั้งเดียวเมื่อเกมจบด้วยชัยชนะ (distribution อยู่ transaction เดียวกับ
+  // win-transition แล้ว เลยพร้อมอ่านทันที; retry 1 ครั้งเผื่อ realtime status มาถึงก่อน commit เห็น)
+  const endedWin = session?.status === "ended" && session?.result === "win";
+  useEffect(() => {
+    if (!endedWin) return;
+    const supabase = createClient();
+    let cancelled = false;
+    async function load(attempt: number) {
+      const { data, error } = await supabase.rpc("get_boss_raid_rewards", {
+        p_session_id: sessionId,
+      });
+      if (cancelled || error) return;
+      const rows = (data ?? []) as Array<{
+        participant_id: string;
+        rank: number;
+        total_damage: number;
+        egg_name_th: string;
+        sprite_prefix: string;
+      }>;
+      if (rows.length === 0 && attempt === 0) {
+        window.setTimeout(() => void load(1), 1200);
+        return;
+      }
+      setRewards(
+        rows.map((r) => ({
+          participantId: r.participant_id,
+          rank: r.rank,
+          totalDamage: r.total_damage,
+          eggNameTh: r.egg_name_th,
+          spritePrefix: r.sprite_prefix,
+        }))
+      );
+    }
+    void load(0);
+    return () => {
+      cancelled = true;
+    };
+  }, [endedWin, sessionId]);
+
   return {
     session,
     topFive,
@@ -345,6 +400,7 @@ export function useBossRaidTv(
     floats,
     litDots,
     spotlight,
+    rewards,
     connected,
   };
 }

@@ -83,6 +83,7 @@ export default function TvClient({
     floats,
     litDots,
     spotlight,
+    rewards,
     connected,
   } = useBossRaidTv(sessionId, {
     session: initialSession,
@@ -338,6 +339,27 @@ export default function TvClient({
                 ? "ทั้งห้องช่วยกันล้มบอสได้สำเร็จ"
                 : "คริสตัลแตกแล้ว — รอบหน้าลองใหม่ ทุกคนทำได้ดีมาก"}
             </div>
+
+            {s.result === "win" && rewards && rewards.length > 0 && (
+              <div className="mt-[2vw] w-[min(560px,70%)]">
+                <div className="mb-[.6vw] text-[clamp(11px,1.15vw,15px)] font-bold text-gold-hi">
+                  🥚 ผู้ได้รับไข่รางวัล ({rewards[0].eggNameTh})
+                </div>
+                <ol className="flex flex-col gap-[.4vw]">
+                  {rewards.map((r) => (
+                    <li
+                      key={r.participantId}
+                      className="flex items-center justify-between rounded-md bg-white/10 px-[1.2vw] py-[.5vw] text-[clamp(10px,1.05vw,14px)] text-white"
+                    >
+                      <span>
+                        {r.rank}. {roster.get(r.participantId)?.name ?? "ผู้เล่น"}
+                      </span>
+                      <span className="text-white/60">ดาเมจ {r.totalDamage}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         )}
       </div>
