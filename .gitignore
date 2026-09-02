@@ -52,3 +52,6 @@ next-env.d.ts
 *.p12
 .capgo-credentials.json
 keystore.properties
+
+# Boss Raid mockup reference files (large base64-embedded HTML, kept locally only)
+docs/boss-raid-mockups/
