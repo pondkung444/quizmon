@@ -14,15 +14,13 @@ import {
   startBossRaidGame,
   getBossRaidRewards,
   getBossRaidSummary,
-  listBossRaidSelectablePets,
-  selectBossRaidPet,
   type BossRaidConfig,
   type BossRaidRewardRow,
   type BossRaidSummary,
 } from "../actions";
-import type { BossRaidSelectablePet } from "@/lib/bossRaid/selectablePets";
 import { getPetImagePath } from "@/lib/petImage";
 import BossRaidGame from "./BossRaidGame";
+import BossRaidLoadout from "./BossRaidLoadout";
 
 type ChapterRow = {
   id: number;
@@ -119,7 +117,7 @@ export default function LobbyClient({
       )}
 
       {!isTeacher && s.status === "lobby" && myParticipant && (
-        <PetPicker
+        <BossRaidLoadout
           participantId={myParticipant.id}
           currentPetId={myParticipant.pet_id}
         />
@@ -384,104 +382,6 @@ function EndScreen({
           )}
         </div>
       )}
-    </section>
-  );
-}
-
-function PetPicker({
-  participantId,
-  currentPetId,
-}: {
-  participantId: string;
-  currentPetId: string;
-}) {
-  const [pets, setPets] = useState<BossRaidSelectablePet[] | null>(null);
-  // ตัวที่เลือกล่าสุด (optimistic) — พอ realtime push participant กลับมา currentPetId prop จะ sync เอง
-  const [optimisticPetId, setOptimisticPetId] = useState<string | null>(null);
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void listBossRaidSelectablePets()
-      .then((rows) => {
-        if (!cancelled) setPets(rows);
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          console.error("listBossRaidSelectablePets failed:", e);
-          setPets([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (pets == null) {
-    return (
-      <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
-        <p className="text-sm text-text3">กำลังโหลด Qmon ของคุณ…</p>
-      </section>
-    );
-  }
-  if (pets.length === 0) return null;
-
-  const selectedId = optimisticPetId ?? currentPetId;
-
-  function pick(petId: string) {
-    if (petId === selectedId || pending) return;
-    setOptimisticPetId(petId);
-    setError(null);
-    start(async () => {
-      try {
-        await selectBossRaidPet(participantId, petId);
-        // ไม่ต้อง setState เพิ่ม — realtime UPDATE ของ participant จะ push pet_id/stat_snapshot มาเอง
-      } catch (e) {
-        setOptimisticPetId(null);
-        setError(e instanceof Error ? e.message : "เปลี่ยน Qmon ไม่สำเร็จ");
-      }
-    });
-  }
-
-  return (
-    <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
-      <h2 className="text-lg font-bold text-gold-hi">เลือก Qmon ลงสนาม</h2>
-      <p className="mt-0.5 text-xs text-text3">
-        เลือกได้จนกว่าครูจะกดเริ่มเกม — สเตตัสจะคำนวณใหม่ตามตัวที่เลือก
-      </p>
-      <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {pets.map((p) => {
-          const active = p.id === selectedId;
-          return (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => pick(p.id)}
-                disabled={pending}
-                aria-pressed={active}
-                className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 transition active:scale-95 disabled:opacity-60 ${
-                  active
-                    ? "border-gold bg-amber/15 ring-2 ring-gold"
-                    : "border-border bg-track hover:border-gold-dim"
-                }`}
-              >
-                <Image
-                  src={p.imagePath}
-                  alt={p.speciesName}
-                  width={64}
-                  height={64}
-                  className="h-16 w-16 object-contain"
-                />
-                <span className="w-full truncate text-center text-xs text-text2">
-                  {p.nickname || p.speciesName}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {error && <p className="mt-2 text-sm text-red">{error}</p>}
     </section>
   );
 }
