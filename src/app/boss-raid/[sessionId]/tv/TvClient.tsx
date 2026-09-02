@@ -47,6 +47,13 @@ const BOX_ASPECT = 16 / 9; // กล่องฉาก 16:9 — แปลง % �
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
+function fmtDuration(sec: number | null): string {
+  if (sec == null || sec < 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 // active_event.expires_at เก็บเป็น (now() + interval 'N seconds')::text ฝั่ง DB — รูปแบบ
 // "2026-09-02 06:15:30.123+00" (space คั่น, offset "+00" ไม่ใช่ "+00:00") ซึ่งไม่ใช่ ISO เป๊ะ
 // บาง engine parse ไม่ได้ -> คืน NaN -> event ไม่โชว์ทั้งที่ยัง active. normalize ก่อน parse
@@ -89,6 +96,7 @@ export default function TvClient({
     litDots,
     spotlight,
     rewards,
+    summary,
     connected,
   } = useBossRaidTv(sessionId, {
     session: initialSession,
@@ -362,40 +370,89 @@ export default function TvClient({
           </div>
         )}
 
-        {/* ===== end ===== */}
+        {/* ===== end — หน้าสรุปผล (สไลซ์ 1.3) ===== */}
         {ended && (
-          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-[rgba(10,8,26,.9)] text-center">
+          <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center gap-[1.4vw] overflow-y-auto bg-[rgba(10,8,26,.92)] px-[4%] py-[3vh] text-center">
             <div
-              className={`text-[clamp(32px,6vw,72px)] font-extrabold ${
+              className={`text-[clamp(28px,5vw,60px)] font-extrabold ${
                 s.result === "win" ? "text-gold-hi" : "text-white"
               }`}
             >
               {s.result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะรอบนี้ 💫"}
             </div>
-            <div className="mt-3 text-[clamp(12px,1.4vw,18px)] text-white/75">
-              {s.result === "win"
-                ? "ทั้งห้องช่วยกันล้มบอสได้สำเร็จ"
-                : "คริสตัลแตกแล้ว — รอบหน้าลองใหม่ ทุกคนทำได้ดีมาก"}
-            </div>
 
-            {s.result === "win" && rewards && rewards.length > 0 && (
-              <div className="mt-[2vw] w-[min(560px,70%)]">
-                <div className="mb-[.6vw] text-[clamp(11px,1.15vw,15px)] font-bold text-gold-hi">
-                  🥚 ผู้ได้รับไข่รางวัล ({rewards[0].eggNameTh})
+            {/* แถบสถิติรวมทีม */}
+            {summary && (
+              <div className="flex flex-wrap justify-center gap-[.8vw] text-[clamp(9px,1vw,13px)]">
+                {[
+                  ["⏱ เวลา", fmtDuration(summary.team.durationSeconds)],
+                  ["📝 ตอบรวม", `${summary.team.totalAnswers} ข้อ`],
+                  ["🎯 แม่นยำ", `${summary.team.accuracyPct}%`],
+                  ["❌ ตอบผิด", `${summary.team.wrongCountTotal}`],
+                  ["⚔️ ดาเมจรวม", `${summary.team.totalDamageDealt}`],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-lg border border-white/20 bg-white/5 px-[1.1vw] py-[.5vw]"
+                  >
+                    <span className="text-white/55">{label} </span>
+                    <span className="font-bold text-white">{value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* การ์ดสถิติ top-5 */}
+            {summary && summary.ranking.length > 0 && (
+              <div className="w-[min(680px,86%)]">
+                <div className="grid grid-cols-[1.6vw_1fr_auto_auto_auto] gap-x-[1vw] border-b border-white/20 pb-[.3vw] text-[clamp(8px,.82vw,11px)] uppercase tracking-wide text-white/45">
+                  <span></span>
+                  <span className="text-left">ผู้เล่น</span>
+                  <span>ดาเมจ</span>
+                  <span>ตอบถูก</span>
+                  <span>แม่นยำ</span>
                 </div>
-                <ol className="flex flex-col gap-[.4vw]">
-                  {rewards.map((r) => (
-                    <li
+                {summary.ranking.slice(0, 5).map((r) => {
+                  const gotEgg = rewards?.some((x) => x.participantId === r.participantId);
+                  return (
+                    <div
                       key={r.participantId}
-                      className="flex items-center justify-between rounded-md bg-white/10 px-[1.2vw] py-[.5vw] text-[clamp(10px,1.05vw,14px)] text-white"
+                      className="grid grid-cols-[1.6vw_1fr_auto_auto_auto] items-center gap-x-[1vw] py-[.45vw] text-[clamp(10px,1.05vw,15px)] text-white [&:not(:last-child)]:border-b [&:not(:last-child)]:border-white/10"
                     >
-                      <span>
-                        {r.rank}. {roster.get(r.participantId)?.name ?? "ผู้เล่น"}
+                      <span className={r.rank === 1 ? "font-bold text-gold-hi" : "text-white/60"}>
+                        {r.rank}
                       </span>
-                      <span className="text-white/60">ดาเมจ {r.totalDamage}</span>
-                    </li>
+                      <span className="truncate text-left">
+                        {roster.get(r.participantId)?.name ?? "ผู้เล่น"}
+                        {gotEgg && <span title="ได้รับไข่รางวัล"> 🥚</span>}
+                      </span>
+                      <span className="tabular-nums">{r.totalDamage}</span>
+                      <span className="tabular-nums text-white/75">
+                        {r.correctCount}/{r.correctCount + r.wrongCount}
+                      </span>
+                      <span className="tabular-nums text-white/75">{r.accuracyPct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ไข่รางวัล (เฉพาะชนะ) */}
+            {s.result === "win" && rewards && rewards.length > 0 && (
+              <div className="w-[min(560px,80%)]">
+                <div className="mb-[.4vw] text-[clamp(10px,1.05vw,14px)] font-bold text-gold-hi">
+                  🥚 ผู้ได้รับ {rewards[0].eggNameTh}
+                </div>
+                <div className="flex flex-wrap justify-center gap-[.4vw] text-[clamp(9px,.95vw,13px)] text-white/85">
+                  {rewards.map((r) => (
+                    <span
+                      key={r.participantId}
+                      className="rounded-md bg-white/10 px-[.9vw] py-[.35vw]"
+                    >
+                      {r.rank}. {roster.get(r.participantId)?.name ?? "ผู้เล่น"}
+                    </span>
                   ))}
-                </ol>
+                </div>
               </div>
             )}
           </div>

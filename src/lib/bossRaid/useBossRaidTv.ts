@@ -84,6 +84,26 @@ export type TvReward = {
   spritePrefix: string;
 };
 
+export type TvSummaryTeam = {
+  durationSeconds: number | null;
+  totalAnswers: number;
+  totalCorrect: number;
+  accuracyPct: number;
+  wrongCountTotal: number;
+  totalDamageDealt: number;
+};
+
+export type TvRankRow = {
+  participantId: string;
+  totalDamage: number;
+  correctCount: number;
+  wrongCount: number;
+  accuracyPct: number;
+  rank: number;
+};
+
+export type TvSummary = { team: TvSummaryTeam; ranking: TvRankRow[] };
+
 type State = {
   session: TvSession | null;
   topFive: TvRankedParticipant[];
@@ -99,6 +119,7 @@ type State = {
   litDots: number[];
   spotlight: TvSpotlight | null;
   rewards: TvReward[] | null;
+  summary: TvSummary | null;
   connected: boolean;
 };
 
@@ -133,6 +154,7 @@ export function useBossRaidTv(
   const [litDots, setLitDots] = useState<number[]>([]);
   const [spotlight, setSpotlight] = useState<TvSpotlight | null>(null);
   const [rewards, setRewards] = useState<TvReward[] | null>(null);
+  const [summary, setSummary] = useState<TvSummary | null>(null);
   const [connected, setConnected] = useState(false);
 
   // refs = ค่า state ล่าสุดสำหรับอ่านใน realtime callback (sync ผ่าน effect — ห้ามเขียน ref ตอน render)
@@ -409,6 +431,59 @@ export function useBossRaidTv(
     };
   }, [endedWin, sessionId]);
 
+  // สรุปผลท้ายเกม — ดึงครั้งเดียวเมื่อจบ (ทั้งชนะและแพ้)
+  const ended = session?.status === "ended";
+  useEffect(() => {
+    if (!ended) return;
+    const supabase = createClient();
+    let cancelled = false;
+    void (async () => {
+      const { data, error } = await supabase.rpc("get_boss_raid_summary", {
+        p_session_id: sessionId,
+      });
+      if (cancelled || error || !data) return;
+      const d = data as {
+        team: {
+          duration_seconds: number | null;
+          total_answers: number;
+          total_correct: number;
+          accuracy_pct: number;
+          wrong_count_total: number;
+          total_damage_dealt: number;
+        };
+        ranking: Array<{
+          participant_id: string;
+          total_damage: number;
+          correct_count: number;
+          wrong_count: number;
+          accuracy_pct: number;
+          rank: number;
+        }>;
+      };
+      setSummary({
+        team: {
+          durationSeconds: d.team.duration_seconds,
+          totalAnswers: d.team.total_answers,
+          totalCorrect: d.team.total_correct,
+          accuracyPct: d.team.accuracy_pct,
+          wrongCountTotal: d.team.wrong_count_total,
+          totalDamageDealt: d.team.total_damage_dealt,
+        },
+        ranking: (d.ranking ?? []).map((r) => ({
+          participantId: r.participant_id,
+          totalDamage: r.total_damage,
+          correctCount: r.correct_count,
+          wrongCount: r.wrong_count,
+          accuracyPct: r.accuracy_pct,
+          rank: r.rank,
+        })),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ended, sessionId]);
+
   return {
     session,
     topFive,
@@ -424,6 +499,7 @@ export function useBossRaidTv(
     litDots,
     spotlight,
     rewards,
+    summary,
     connected,
   };
 }
