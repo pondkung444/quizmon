@@ -123,11 +123,11 @@ export default function TvClient({
   const shownTicker = useMemo(() => ticker.slice(-3).reverse(), [ticker]);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-track p-4">
-      <div
-        className="relative aspect-video w-full max-w-[1600px] overflow-hidden rounded-2xl shadow-2xl"
-        style={{ maxHeight: "100dvh" }}
-      >
+    // fixed inset-0 z-50 = เต็มจอจริง ทับ BottomNav ของ layout (จอโปรเจกเตอร์ ไม่ใช่หน้าแอปปกติ)
+    // — วิธีเดียวกับ RaidBossScreen.tsx กล่องฉากเป็น 16:9 letterbox กลางจอ กว้างไม่เกิน 1600px และ
+    // ไม่บังคับให้สูงเกิน viewport (177.78vh = 100vh * 16/9)
+    <main className="fixed inset-0 z-50 grid place-items-center overflow-hidden bg-black">
+      <div className="relative aspect-video w-[min(1600px,177.78vh)] max-w-full overflow-hidden">
         <Image src={BG_SRC} alt="" fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/30" />
 
@@ -193,11 +193,12 @@ export default function TvClient({
             </div>
           </div>
 
-          {/* top-5 heroes */}
+          {/* top-5 heroes — ช่องที่ยังไม่มีผู้เล่นจริง ไม่ render อะไรเลย (ไม่โชว์ sprite ผี) */}
           {FORMATION.map((f, i) => {
             const p = topFive[i];
-            const d = p ? roster.get(p.id) : null;
-            const name = p ? d?.name ?? "…" : null;
+            if (!p) return null;
+            const d = roster.get(p.id);
+            const name = d?.name ?? "…";
             const sprite = d?.sprite ?? FALLBACK_SPRITES[i];
             return (
               <div
@@ -206,23 +207,15 @@ export default function TvClient({
                 style={{ left: `${f.left}%`, bottom: `${f.bottom}%`, width: `${f.w}%` }}
               >
                 <div className="relative w-full" style={{ aspectRatio: 1 }}>
-                  <Image
-                    src={sprite}
-                    alt=""
-                    fill
-                    sizes="12vw"
-                    className={`object-contain drop-shadow-lg ${p ? "" : "opacity-30 grayscale"}`}
-                  />
+                  <Image src={sprite} alt="" fill sizes="12vw" className="object-contain drop-shadow-lg" />
                 </div>
-                {name && (
-                  <div
-                    className={`mt-[2px] whitespace-nowrap rounded-md bg-[rgba(15,12,34,.72)] px-[6px] py-[1px] text-[clamp(8px,.75vw,10px)] ${
-                      i === 0 ? "font-bold text-gold-hi" : "text-white"
-                    }`}
-                  >
-                    {i + 1}. {name}
-                  </div>
-                )}
+                <div
+                  className={`mt-[2px] whitespace-nowrap rounded-md bg-[rgba(15,12,34,.72)] px-[6px] py-[1px] text-[clamp(8px,.75vw,10px)] ${
+                    i === 0 ? "font-bold text-gold-hi" : "text-white"
+                  }`}
+                >
+                  {i + 1}. {name}
+                </div>
               </div>
             );
           })}
