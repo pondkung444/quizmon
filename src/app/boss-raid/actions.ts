@@ -1,6 +1,10 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  getBossRaidSelectablePets,
+  type BossRaidSelectablePet,
+} from "@/lib/bossRaid/selectablePets";
 
 // Classroom Boss Raid — Phase 0.1 server actions
 // เขียนทุกอย่างผ่าน RPC security definer (create/join) — client ไม่ insert boss_raid_* ตรง
@@ -220,6 +224,27 @@ export async function joinBossRaidSession(joinCode: string): Promise<JoinBossRai
     joinCode: row.join_code,
     participantId: row.participant_id,
   };
+}
+
+// รายการ Qmon stage 4 ของนักเรียน ให้เลือกลงสนามที่หน้ารอ (เรียกจาก LobbyClient useEffect)
+export async function listBossRaidSelectablePets(): Promise<BossRaidSelectablePet[]> {
+  const { supabase, user } = await requireUser();
+  return getBossRaidSelectablePets(supabase, user.id);
+}
+
+// นักเรียนสลับ Qmon ระหว่างห้องยัง lobby — re-snapshot stat ผ่าน RPC security definer
+export async function selectBossRaidPet(
+  participantId: string,
+  petId: string
+): Promise<{ petId: string; statSnapshot: Record<string, number> }> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("select_boss_raid_pet", {
+    p_participant_id: participantId,
+    p_pet_id: petId,
+  });
+  if (error || !data) throw new Error(error?.message ?? "เปลี่ยน Qmon ไม่สำเร็จ");
+  const row = data as { pet_id: string; stat_snapshot: Record<string, number> };
+  return { petId: row.pet_id, statSnapshot: row.stat_snapshot };
 }
 
 // Phase 0.2 — ครูกดเริ่มเกม: aggregate stat + คำนวณ HP scaling ผ่าน RPC security definer
