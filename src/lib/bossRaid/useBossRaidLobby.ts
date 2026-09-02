@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 // §12 Connection Resilience — จอครู/ทีวี/นักเรียน subscribe state ห้องเดียวกันผ่าน Supabase Realtime
@@ -54,6 +55,7 @@ export function useBossRaidLobby(
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+    let channel: RealtimeChannel | null = null;
 
     async function refetch() {
       const [{ data: s }, { data: p }] = await Promise.all([
@@ -69,7 +71,21 @@ export function useBossRaidLobby(
       setParticipants((p as LobbyParticipant[] | null) ?? []);
     }
 
-    const channel = supabase
+    // ให้ realtime socket ถือ JWT ของผู้ใช้ก่อนสร้าง postgres_changes binding — ไม่งั้น binding
+    // ผูกในบทบาท anon, is_boss_raid_member() RLS เท็จทุกครั้ง -> SUBSCRIBED แต่ไม่มี event
+    // (@supabase/ssr browser client เปิด socket ด้วย anon key ก่อน setAuth ทีหลัง; issue 2026-09-02)
+    void (async () => {
+      try {
+        const {
+          data: { session: auth },
+        } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(auth?.access_token ?? null);
+      } catch {
+        /* setAuth ล้มเหลว — ปล่อยให้ subscribe callback รายงาน CHANNEL_ERROR เอง */
+      }
+      if (cancelled) return;
+
+      channel = supabase
       .channel(`boss-raid:${sessionId}`)
       .on(
         "postgres_changes",
@@ -89,16 +105,20 @@ export function useBossRaidLobby(
           if (!cancelled) void refetch();
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         if (cancelled) return;
+        if (status !== "SUBSCRIBED") {
+          console.info(`[boss-raid ${sessionId.slice(0, 8)}] channel status:`, status, err ?? "");
+        }
         const ok = status === "SUBSCRIBED";
         setConnected(ok);
         if (ok) void refetch(); // §12.4 — resync ทุกครั้งที่ (re)subscribe สำเร็จ
       });
+    })();
 
     return () => {
       cancelled = true;
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
     // initial.session ตั้งใจไม่ใส่ใน deps — ใช้แค่เป็น fallback ตอน merge, ไม่ต้อง resubscribe เมื่อมันเปลี่ยน
     // eslint-disable-next-line react-hooks/exhaustive-deps

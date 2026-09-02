@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
   toParticipantDisplayMap,
@@ -129,7 +130,15 @@ export function useBossRaidTv(
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+    let channel: RealtimeChannel | null = null;
     const timers = new Set<ReturnType<typeof setTimeout>>();
+
+    // observability — deploy จริงเราไม่เคยเห็น status transition หลัง mount เลย
+    // (issue 2026-09-02: SUBSCRIBED แล้วเงียบสนิท ไม่รู้ว่าเข้า state ไหนต่อ)
+    const tag = `[boss-raid-tv ${sessionId.slice(0, 8)}]`;
+    function log(...args: unknown[]) {
+      console.info(tag, ...args);
+    }
 
     // setTimeout ที่ auto-clear ตัวเองออกจาก set + ถูกเก็บกวาดตอน unmount
     function later(fn: () => void, ms: number) {
@@ -185,7 +194,23 @@ export function useBossRaidTv(
       setSession(row);
     }
 
-    const channel = supabase
+    // ให้ realtime socket ถือ JWT ของผู้ใช้ "ก่อน" สร้าง postgres_changes binding —
+    // @supabase/ssr browser client เปิด socket ด้วย anon key ก่อน แล้วค่อย setAuth ผ่าน
+    // onAuthStateChange ทีหลัง; ถ้า binding ถูกสร้างตอนยัง anon อยู่ is_boss_raid_member()
+    // RLS จะเท็จทุกครั้ง -> callback ได้ SUBSCRIBED แต่ไม่มี event เข้ามาเลย (issue 2026-09-02)
+    void (async () => {
+      try {
+        const {
+          data: { session: auth },
+        } = await supabase.auth.getSession();
+        await supabase.realtime.setAuth(auth?.access_token ?? null);
+        log("setAuth done", auth ? "(authed)" : "(NO SESSION -> anon binding)");
+      } catch (e) {
+        log("setAuth error", e);
+      }
+      if (cancelled) return;
+
+      channel = supabase
       .channel(`boss-raid-tv:${sessionId}`)
       .on(
         "postgres_changes",
@@ -283,8 +308,11 @@ export function useBossRaidTv(
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         if (cancelled) return;
+        // เก็บ "ทุก" transition ไม่ใช่แค่ === 'SUBSCRIBED' — CHANNEL_ERROR/TIMED_OUT/CLOSED
+        // บอกได้ว่า binding ตายเพราะอะไร
+        log("channel status:", status, err ?? "");
         const ok = status === "SUBSCRIBED";
         setConnected(ok);
         if (ok) {
@@ -293,12 +321,13 @@ export function useBossRaidTv(
           void refetchRoster();
         }
       });
+    })();
 
     return () => {
       cancelled = true;
       timers.forEach((id) => clearTimeout(id));
       timers.clear();
-      void supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
