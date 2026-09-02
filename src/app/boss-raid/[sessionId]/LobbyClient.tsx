@@ -14,12 +14,14 @@ import {
   startBossRaidGame,
   getBossRaidRewards,
   getBossRaidSummary,
+  listBossRaidSelectablePets,
+  selectBossRaidPet,
   type BossRaidConfig,
   type BossRaidRewardRow,
   type BossRaidSummary,
 } from "../actions";
+import type { BossRaidSelectablePet } from "@/lib/bossRaid/selectablePets";
 import { getPetImagePath } from "@/lib/petImage";
-import JoinQr from "./JoinQr";
 import BossRaidGame from "./BossRaidGame";
 
 type ChapterRow = {
@@ -94,27 +96,33 @@ export default function LobbyClient({
         </div>
       </div>
 
-      {s.status === "lobby" && (
-        <section className="mt-4 flex flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-5 sm:flex-row sm:items-center">
-          <JoinQr url={joinUrl} size={168} />
-          <div className="min-w-0 flex-1 text-center sm:text-left">
-            <p className="text-sm font-bold text-gold-hi">ให้นักเรียนสแกน QR เพื่อเข้าห้อง</p>
-            <p className="mt-1 text-xs text-text3">หรือเปิดลิงก์ / กรอกรหัส {s.join_code} ที่หน้าเข้าห้อง</p>
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-track px-3 py-2 text-xs text-text2">
-              <Link href={joinPath} className="min-w-0 break-all underline hover:text-gold-hi">
-                {joinPath}
-              </Link>
-              <button
-                type="button"
-                onClick={copyLink}
-                disabled={!joinUrl}
-                className="ml-auto shrink-0 rounded border border-gold-dim bg-card px-2 py-1 font-medium text-gold-hi disabled:opacity-50"
-              >
-                {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
-              </button>
-            </div>
+      {isTeacher && s.status === "lobby" && (
+        <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
+          <p className="text-sm font-bold text-gold-hi">ให้นักเรียนกรอกรหัสห้องที่หน้าเข้าห้อง</p>
+          <p className="mt-1 text-xs text-text3">
+            รหัส <span className="font-mono font-bold text-gold-hi">{s.join_code}</span> — หรือเปิดลิงก์นี้
+          </p>
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-track px-3 py-2 text-xs text-text2">
+            <Link href={joinPath} className="min-w-0 break-all underline hover:text-gold-hi">
+              {joinPath}
+            </Link>
+            <button
+              type="button"
+              onClick={copyLink}
+              disabled={!joinUrl}
+              className="ml-auto shrink-0 rounded border border-gold-dim bg-card px-2 py-1 font-medium text-gold-hi disabled:opacity-50"
+            >
+              {copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+            </button>
           </div>
         </section>
+      )}
+
+      {!isTeacher && s.status === "lobby" && myParticipant && (
+        <PetPicker
+          participantId={myParticipant.id}
+          currentPetId={myParticipant.pet_id}
+        />
       )}
 
       {isTeacher && s.status === "lobby" && <ConfigPanel sessionId={sessionId} config={s.config} />}
@@ -376,6 +384,104 @@ function EndScreen({
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+function PetPicker({
+  participantId,
+  currentPetId,
+}: {
+  participantId: string;
+  currentPetId: string;
+}) {
+  const [pets, setPets] = useState<BossRaidSelectablePet[] | null>(null);
+  // ตัวที่เลือกล่าสุด (optimistic) — พอ realtime push participant กลับมา currentPetId prop จะ sync เอง
+  const [optimisticPetId, setOptimisticPetId] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listBossRaidSelectablePets()
+      .then((rows) => {
+        if (!cancelled) setPets(rows);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error("listBossRaidSelectablePets failed:", e);
+          setPets([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (pets == null) {
+    return (
+      <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
+        <p className="text-sm text-text3">กำลังโหลด Qmon ของคุณ…</p>
+      </section>
+    );
+  }
+  if (pets.length === 0) return null;
+
+  const selectedId = optimisticPetId ?? currentPetId;
+
+  function pick(petId: string) {
+    if (petId === selectedId || pending) return;
+    setOptimisticPetId(petId);
+    setError(null);
+    start(async () => {
+      try {
+        await selectBossRaidPet(participantId, petId);
+        // ไม่ต้อง setState เพิ่ม — realtime UPDATE ของ participant จะ push pet_id/stat_snapshot มาเอง
+      } catch (e) {
+        setOptimisticPetId(null);
+        setError(e instanceof Error ? e.message : "เปลี่ยน Qmon ไม่สำเร็จ");
+      }
+    });
+  }
+
+  return (
+    <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
+      <h2 className="text-lg font-bold text-gold-hi">เลือก Qmon ลงสนาม</h2>
+      <p className="mt-0.5 text-xs text-text3">
+        เลือกได้จนกว่าครูจะกดเริ่มเกม — สเตตัสจะคำนวณใหม่ตามตัวที่เลือก
+      </p>
+      <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {pets.map((p) => {
+          const active = p.id === selectedId;
+          return (
+            <li key={p.id}>
+              <button
+                type="button"
+                onClick={() => pick(p.id)}
+                disabled={pending}
+                aria-pressed={active}
+                className={`flex w-full flex-col items-center gap-1 rounded-xl border p-2 transition active:scale-95 disabled:opacity-60 ${
+                  active
+                    ? "border-gold bg-amber/15 ring-2 ring-gold"
+                    : "border-border bg-track hover:border-gold-dim"
+                }`}
+              >
+                <Image
+                  src={p.imagePath}
+                  alt={p.speciesName}
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 object-contain"
+                />
+                <span className="w-full truncate text-center text-xs text-text2">
+                  {p.nickname || p.speciesName}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {error && <p className="mt-2 text-sm text-red">{error}</p>}
     </section>
   );
 }

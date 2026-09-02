@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { joinBossRaidSession } from "../actions";
-import QrScanButton from "./QrScanButton";
 
 export default function JoinForm({ initialCode }: { initialCode: string }) {
   const router = useRouter();
@@ -57,13 +56,6 @@ export default function JoinForm({ initialCode }: { initialCode: string }) {
         {pending ? "กำลังเข้าห้อง…" : "เข้าห้อง"}
       </button>
       {error && <p className="text-sm text-red">{error}</p>}
-
-      <QrScanButton
-        onCode={(scanned) => {
-          setCode(scanned);
-          submit(scanned);
-        }}
-      />
     </form>
   );
 }
