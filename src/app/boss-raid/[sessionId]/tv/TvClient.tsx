@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
   useBossRaidTv,
@@ -32,14 +32,18 @@ const FALLBACK_SPRITES = [
   "/pets/egg5_stage4_balance_A.png",
 ];
 
-// แนวป้องกันหน้าคริสตัล — rank1 (total_damage สูงสุด) หน้าสุดในกลุ่ม (bottom % น้อย = ใกล้กล้อง = ใหญ่)
+// แนวป้องกันหน้าคริสตัล — จัดทัพ 1-2-2 เรียงเข้าหาบอส (บอสอยู่ขวาจอ)
+// rank1 หน้าสุด/ใหญ่สุด/ใกล้บอส → แถวกลาง 2 ตัว (เหลื่อมบน-ล่าง) → แถวหลัง 2 ตัวเล็กสุด
+// bottom % น้อย = ใกล้กล้อง = ดูใหญ่. ตำแหน่ง/ขนาดเป็นค่าตั้งต้น — จูนสดกับปอนด์บน preview
 const FORMATION = [
-  { left: 36, bottom: 8, w: 10.0 },
-  { left: 20, bottom: 13, w: 8.6 },
-  { left: 50, bottom: 15, w: 8.2 },
-  { left: 12, bottom: 20, w: 7.2 },
-  { left: 58, bottom: 22, w: 7.0 },
+  { left: 50, bottom: 10, w: 11.0 }, // 1 — แถวหน้า เดี่ยว
+  { left: 34, bottom: 16, w: 8.6 }, // 2 — แถวกลาง บน
+  { left: 38, bottom: 6, w: 8.6 }, // 3 — แถวกลาง ล่าง
+  { left: 18, bottom: 19, w: 6.8 }, // 4 — แถวหลัง บน
+  { left: 22, bottom: 9, w: 6.8 }, // 5 — แถวหลัง ล่าง
 ];
+
+const BOX_ASPECT = 16 / 9; // กล่องฉาก 16:9 — แปลง % แกนกว้าง <-> % แกนสูง
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
@@ -80,6 +84,7 @@ export default function TvClient({
     comboBump,
     heroAttackRank,
     bossFlash,
+    bolts,
     floats,
     litDots,
     spotlight,
@@ -126,6 +131,12 @@ export default function TvClient({
     meteorLive && activeEvent
       ? Math.max(0, Math.ceil((tsMs(activeEvent.expires_at) - now) / 1000))
       : 0;
+
+  // ปลายทางลูกพลัง = กลางลำตัวบอส ณ ตำแหน่งปัจจุบัน (บอสขยับ/ย่อ-ขยายตาม crystalFrac)
+  // แปลง % แกนสูง: bossWidth เป็น % ของแกนกว้าง, boss สูง = width / BOSS_ASPECT (px) = width * BOX_ASPECT / BOSS_ASPECT (% แกนสูง)
+  const bossHeightPct = (bossWidth * BOX_ASPECT) / BOSS_ASPECT;
+  const boltTargetX = 100 - bossRight - bossWidth * 0.5;
+  const boltTargetY = 100 - bossBottom - bossHeightPct * 0.62;
 
   const litSet = useMemo(() => new Set(litDots), [litDots]);
   const ended = s.status === "ended" && s.result;
@@ -254,6 +265,33 @@ export default function TvClient({
               />
             </div>
           </div>
+
+          {/* ลูกพลังงานพุ่งจาก Qmon (rank ที่โจมตี) ไปยังบอส ณ ตำแหน่งปัจจุบัน */}
+          {bolts.map((b) => {
+            const f = FORMATION[b.rank];
+            if (!f) return null;
+            const ox = f.left + f.w / 2;
+            const oy = 100 - f.bottom - f.w * BOX_ASPECT * 0.5;
+            return (
+              <span
+                key={b.key}
+                className="animate-br-tv-bolt pointer-events-none absolute z-30 block h-[1.15vw] min-h-[9px] w-[1.15vw] min-w-[9px] rounded-full"
+                style={
+                  {
+                    left: `${ox}%`,
+                    top: `${oy}%`,
+                    "--bolt-x1": `${boltTargetX}%`,
+                    "--bolt-y1": `${boltTargetY}%`,
+                    background:
+                      "radial-gradient(circle at 35% 35%, #fff6da 0%, #ffd47a 45%, #ff9a3c 100%)",
+                    boxShadow: b.crit
+                      ? "0 0 10px 3px rgba(255,150,60,.95), 0 0 22px 8px rgba(255,120,40,.5)"
+                      : "0 0 8px 2px rgba(255,190,90,.85), 0 0 16px 5px rgba(255,150,60,.4)",
+                  } as CSSProperties
+                }
+              />
+            );
+          })}
 
           {/* damage floats */}
           {floats.map((fl) => (
