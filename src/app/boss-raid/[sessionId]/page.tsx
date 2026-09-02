@@ -20,7 +20,7 @@ export default async function BossRaidSessionPage({
   const { data: session } = await supabase
     .from("boss_raid_sessions")
     .select(
-      "id, status, join_code, config, teacher_id, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, result"
+      "id, status, join_code, config, teacher_id, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, active_event, result"
     )
     .eq("id", sessionId)
     .maybeSingle();

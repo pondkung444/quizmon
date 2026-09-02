@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import type { BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
 
 // §12 Connection Resilience — จอครู/ทีวี/นักเรียน subscribe state ห้องเดียวกันผ่าน Supabase Realtime
 // realtime hook ตัวแรกของ repo (survey: ไม่มี postgres_changes ที่อื่นเลย) — convention ให้เฟสถัดไป reuse:
@@ -31,6 +32,7 @@ export type LobbySession = {
   crystal_hp_max?: number | null;
   current_tier?: "light" | "medium" | "heavy" | null;
   wrong_count_total?: number | null;
+  active_event?: BossRaidActiveEvent;
   result?: "win" | "lose" | null;
 };
 
