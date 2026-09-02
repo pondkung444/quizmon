@@ -43,10 +43,18 @@ const FORMATION = [
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
+// active_event.expires_at เก็บเป็น (now() + interval 'N seconds')::text ฝั่ง DB — รูปแบบ
+// "2026-09-02 06:15:30.123+00" (space คั่น, offset "+00" ไม่ใช่ "+00:00") ซึ่งไม่ใช่ ISO เป๊ะ
+// บาง engine parse ไม่ได้ -> คืน NaN -> event ไม่โชว์ทั้งที่ยัง active. normalize ก่อน parse
+function tsMs(s: string): number {
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? Date.parse(s.replace(" ", "T")) : t;
+}
+
 function liveEvent(session: TvSession, now: number): TvSession["active_event"] {
   const e = session.active_event;
   if (!e) return null;
-  return new Date(e.expires_at).getTime() > now ? e : null;
+  return tsMs(e.expires_at) > now ? e : null;
 }
 
 export default function TvClient({
@@ -111,11 +119,11 @@ export default function TvClient({
 
   const weakPointPct =
     weakPointLive && activeEvent
-      ? Math.max(0, Math.min(100, ((new Date(activeEvent.expires_at).getTime() - now) / 20000) * 100))
+      ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 20000) * 100))
       : 100;
   const meteorRemain =
     meteorLive && activeEvent
-      ? Math.max(0, Math.ceil((new Date(activeEvent.expires_at).getTime() - now) / 1000))
+      ? Math.max(0, Math.ceil((tsMs(activeEvent.expires_at) - now) / 1000))
       : 0;
 
   const litSet = useMemo(() => new Set(litDots), [litDots]);
