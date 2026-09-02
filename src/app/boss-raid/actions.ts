@@ -2,9 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import {
-  getBossRaidSelectablePets,
-  type BossRaidSelectablePet,
-} from "@/lib/bossRaid/selectablePets";
+  getEligibleRaidPets,
+  getUserRaidGearItems,
+  type EligibleRaidPet,
+  type RaidGearItemFull,
+} from "@/lib/raid";
 
 // Classroom Boss Raid — Phase 0.1 server actions
 // เขียนทุกอย่างผ่าน RPC security definer (create/join) — client ไม่ insert boss_raid_* ตรง
@@ -226,10 +228,20 @@ export async function joinBossRaidSession(joinCode: string): Promise<JoinBossRai
   };
 }
 
-// รายการ Qmon stage 4 ของนักเรียน ให้เลือกลงสนามที่หน้ารอ (เรียกจาก LobbyClient useEffect)
-export async function listBossRaidSelectablePets(): Promise<BossRaidSelectablePet[]> {
+export type BossRaidLoadoutData = {
+  pets: EligibleRaidPet[];
+  gear: RaidGearItemFull[];
+};
+
+// Qmon stage 4 ของนักเรียน + อุปกรณ์ทั้งหมด — จอเลือกตัว/ปรับ loadout ที่หน้ารอ
+// reuse ตัวโหลดชุดเดียวกับจอ "ตั้งค่าก่อนเข้าด่าน" ของระบบท้าทาย (stage>=4, ไม่กรอง is_active)
+export async function getBossRaidLoadoutData(): Promise<BossRaidLoadoutData> {
   const { supabase, user } = await requireUser();
-  return getBossRaidSelectablePets(supabase, user.id);
+  const [pets, gear] = await Promise.all([
+    getEligibleRaidPets(supabase, user.id),
+    getUserRaidGearItems(supabase, user.id),
+  ]);
+  return { pets, gear };
 }
 
 // นักเรียนสลับ Qmon ระหว่างห้องยัง lobby — re-snapshot stat ผ่าน RPC security definer

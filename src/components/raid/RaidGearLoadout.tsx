@@ -35,6 +35,8 @@ export default function RaidGearLoadout({
   thresholdPct,
   items,
   setItems,
+  showReadiness = true,
+  onAfterChange,
 }: {
   petId: string;
   rawStats: RaidStatRecord;
@@ -42,6 +44,9 @@ export default function RaidGearLoadout({
   thresholdPct: number;
   items: RaidGearItemFull[];
   setItems: Dispatch<SetStateAction<RaidGearItemFull[]>>;
+  // Boss Raid ไม่มีเกณฑ์ด่าน — ซ่อนเกจความพร้อม, และ re-snapshot ผ่าน onAfterChange หลัง equip/unequip
+  showReadiness?: boolean;
+  onAfterChange?: () => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -116,6 +121,7 @@ export default function RaidGearLoadout({
         return;
       }
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, equippedPetId: null } : i)));
+      onAfterChange?.();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ถอดอุปกรณ์ไม่สำเร็จ");
     } finally {
@@ -151,6 +157,7 @@ export default function RaidGearLoadout({
         return;
       }
       setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, equippedPetId: petId } : i)));
+      onAfterChange?.();
       setOpenSlot(null);
       if (unequippedNotes.length > 0) {
         setInfoMessage(`ถอด ${unequippedNotes.join(", ")} ออกอัตโนมัติ`);
@@ -168,9 +175,11 @@ export default function RaidGearLoadout({
 
       <RaidStatRadar raw={rawStats} effective={effective} caps={caps} />
 
-      <div className="mt-2">
-        <RaidReadinessGauge pct={readinessPct} thresholdPct={thresholdPct} />
-      </div>
+      {showReadiness && (
+        <div className="mt-2">
+          <RaidReadinessGauge pct={readinessPct} thresholdPct={thresholdPct} />
+        </div>
+      )}
 
       <div className="mt-3 flex justify-center gap-4">
         {SLOTS.map((slot) => {
