@@ -35,9 +35,14 @@ export default function BossRaidLoadout({
         if (cancelled) return;
         setData(d);
         setItems(d.gear);
-        setSelectedPetId(
-          d.pets.some((p) => p.id === currentPetId) ? currentPetId : d.pets[0]?.id ?? null
-        );
+        const isCurrentEligible = d.pets.some((p) => p.id === currentPetId);
+        const initialPetId = isCurrentEligible ? currentPetId : d.pets[0]?.id ?? null;
+        setSelectedPetId(initialPetId);
+        // fallback ไป pet ตัวอื่นที่ไม่ใช่ตัวที่ join มา ต้อง persist ลง DB ทันที
+        // ไม่งั้นจอโชว์ตัวหนึ่ง ("Qmon ที่จะลงสนาม") แต่ boss_raid_participants.pet_id ยังเป็นตัวเดิม
+        if (initialPetId && !isCurrentEligible) {
+          void reSnapshot(initialPetId);
+        }
       })
       .catch((e) => {
         if (!cancelled) {
