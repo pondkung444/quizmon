@@ -26,7 +26,7 @@ export default async function BossRaidTvPage({
   const { data: session } = await supabase
     .from("boss_raid_sessions")
     .select(
-      "id, status, join_code, config, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, active_event, result"
+      "id, status, join_code, config, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, correct_streak_current, active_event, result"
     )
     .eq("id", sessionId)
     .maybeSingle();

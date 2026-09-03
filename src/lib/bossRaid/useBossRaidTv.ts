@@ -58,6 +58,7 @@ export type TvSession = {
   crystal_hp_max: number | null;
   current_tier: "light" | "medium" | "heavy" | null;
   wrong_count_total: number | null;
+  correct_streak_current: number | null;
   active_event: TvActiveEvent;
   result: "win" | "lose" | null;
 };
@@ -226,7 +227,7 @@ export function useBossRaidTv(
       const { data } = await supabase
         .from("boss_raid_sessions")
         .select(
-          "id, status, join_code, config, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, active_event, result"
+          "id, status, join_code, config, boss_hp, boss_hp_max, crystal_hp, crystal_hp_max, current_tier, wrong_count_total, correct_streak_current, active_event, result"
         )
         .eq("id", sessionId)
         .maybeSingle();
@@ -267,10 +268,12 @@ export function useBossRaidTv(
             pushTicker(
               nextEvent.type === "weak_point"
                 ? "✦ จุดอ่อนเผย! ดาเมจทั้งห้อง ×2"
-                : nextEvent.type === "chosen_warrior"
-                  ? `⚔️ ${nextEvent.chosen_name} ถูกเลือกเป็นนักรบ!`
-                  : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
-              nextEvent.type === "chosen_warrior"
+                : nextEvent.type === "enrage"
+                  ? "🔥 บอสโกรธ! ดาเมจทั้งห้อง ×2.5"
+                  : nextEvent.type === "chosen_warrior"
+                    ? `⚔️ ${nextEvent.chosen_name} ถูกเลือกเป็นนักรบ!`
+                    : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
+              nextEvent.type === "chosen_warrior" || nextEvent.type === "enrage"
             );
           }
 
@@ -364,6 +367,20 @@ export function useBossRaidTv(
             const dot = Math.floor(Math.random() * n);
             setLitDots((prev) => (prev.includes(dot) ? prev : [...prev, dot]));
             later(() => setLitDots((prev) => prev.filter((d) => d !== dot)), 900);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "boss_raid_event_log", filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          if (cancelled) return;
+          const row = payload.new as { event_type: string; bonus_damage: number | null };
+          // combo_burst = burst ครั้งเดียวของทั้งห้อง (ไม่ใช้ active_event slot) — โชว์ ticker + วาบบอส
+          if (row.event_type === "combo_burst") {
+            pushTicker(`🔥 พลังรวมพลัง! ทั้งห้องช่วยกัน −${row.bonus_damage ?? 40}`, true);
+            setBossFlash(true);
+            later(() => setBossFlash(false), 220);
           }
         }
       )

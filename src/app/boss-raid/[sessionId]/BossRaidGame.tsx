@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import type { BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
+import { tsMs, type BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
 
 // Phase 0.3 — จอเล่นของนักเรียน (§12.3 timer จาก deadline timestamp, §12.4 resume ข้อค้าง)
 // - get_next_boss_raid_question: resume-aware (server คืนข้อเดิมถ้ายังค้าง) -> ไม่ต้องอ่าน questions เอง
@@ -35,6 +35,7 @@ type AnswerResult = {
   status?: "in_progress" | "ended" | "lobby";
   result?: "win" | "lose" | null;
   frozen?: boolean;
+  combo_burst?: boolean;
 };
 
 type ChosenResult = {
@@ -97,6 +98,18 @@ export default function BossRaidGame({
   const [cwBusy, setCwBusy] = useState(false);
   const cwSubmittedRef = useRef(false);
   const prevCwRef = useRef<string | null>(null);
+
+  // บัฟดาเมจ passive (จุดอ่อนเผย / บอสโกรธ) — banner นับถอยหลังเอง (expires_at ผ่านไปเงียบๆ ไม่มี realtime)
+  const timedBuff =
+    activeEvent?.type === "weak_point" || activeEvent?.type === "enrage" ? activeEvent : null;
+  const [buffNow, setBuffNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!timedBuff) return;
+    const t = window.setInterval(() => setBuffNow(Date.now()), 500);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timedBuff?.type, timedBuff?.expires_at]);
+  const buff = timedBuff && tsMs(timedBuff.expires_at) > buffNow ? timedBuff : null;
 
   const loadingRef = useRef(false);
   const submittedRef = useRef(false);
@@ -317,6 +330,21 @@ export default function BossRaidGame({
         )}
       </div>
 
+      {/* ===== บัฟดาเมจ passive (จุดอ่อนเผย / บอสโกรธ) ===== */}
+      {buff && (
+        <div
+          className={`mb-3 rounded-xl px-3 py-2 text-center text-sm font-bold ${
+            buff.type === "enrage"
+              ? "border border-red bg-red/10 text-red"
+              : "border border-gold bg-amber/10 text-gold-hi"
+          }`}
+        >
+          {buff.type === "enrage"
+            ? `🔥 บอสโกรธ! ตอบถูกช่วงนี้ ดาเมจ ×${buff.multiplier}`
+            : `✦ จุดอ่อนเผย! ตอบถูกช่วงนี้ ดาเมจ ×${buff.multiplier ?? 2}`}
+        </div>
+      )}
+
       {/* ===== event: นักรบถูกเลือก ===== */}
       {cw && !amChosen && (
         <div className="rounded-xl border border-amber bg-amber/10 p-6 text-center">
@@ -461,6 +489,11 @@ export default function BossRaidGame({
                 </>
               ) : (
                 <p className="text-2xl font-bold text-text2">ยังไม่ถูกนะ</p>
+              )}
+              {result.combo_burst && (
+                <p className="mt-2 text-sm font-bold text-indigo-hi">
+                  🔥 พลังรวมพลัง! ทั้งห้อง −40 เพิ่ม
+                </p>
               )}
               <p className="mt-3 text-xs text-text3">กำลังไปข้อต่อไป…</p>
             </div>

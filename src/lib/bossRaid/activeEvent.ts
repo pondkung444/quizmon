@@ -3,7 +3,9 @@
 
 export type BossRaidActiveEvent =
   | null
-  | { type: "weak_point"; expires_at: string }
+  | { type: "weak_point"; expires_at: string; multiplier?: number }
+  // Phase 2 — "บอสโกรธ": deterministic weak_point (HP milestone), แรงกว่า/สั้นกว่า
+  | { type: "enrage"; expires_at: string; multiplier: number }
   | {
       type: "meteor";
       question_id: number;

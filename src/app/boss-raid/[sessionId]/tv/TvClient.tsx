@@ -45,6 +45,7 @@ const FORMATION = [
 ];
 
 const BOX_ASPECT = 16 / 9; // กล่องฉาก 16:9 — แปลง % แกนกว้าง <-> % แกนสูง
+const COMBO_BURST_N = 8; // ตรงกับ c_combo_n ใน submit_boss_raid_answer
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
@@ -124,6 +125,7 @@ export default function TvClient({
 
   const activeEvent = liveEvent(s, now);
   const weakPointLive = activeEvent?.type === "weak_point";
+  const enrageLive = activeEvent?.type === "enrage";
   const meteorLive = activeEvent?.type === "meteor";
   const chosenWarrior = activeEvent?.type === "chosen_warrior" ? activeEvent : null;
 
@@ -142,6 +144,10 @@ export default function TvClient({
   const weakPointPct =
     activeEvent?.type === "weak_point"
       ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 20000) * 100))
+      : 100;
+  const enragePct =
+    activeEvent?.type === "enrage"
+      ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 15000) * 100))
       : 100;
   const meteorRemain =
     activeEvent?.type === "meteor"
@@ -198,7 +204,39 @@ export default function TvClient({
               🔥 คอมโบ x{combo}
             </span>
           )}
+          {(s.correct_streak_current ?? 0) > 0 && (
+            <span className="flex items-center gap-[.5vw] whitespace-nowrap rounded-full border-[1.5px] border-[rgba(129,140,248,.6)] bg-[rgba(129,140,248,.18)] px-[1.2%] py-[.4%] text-[clamp(9px,.95vw,12px)] font-bold text-[#c7d2fe]">
+              รวมพลัง {s.correct_streak_current ?? 0}/{COMBO_BURST_N}
+              <span className="flex gap-[2px]">
+                {Array.from({ length: COMBO_BURST_N }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-[.55vw] max-h-[7px] w-[.55vw] max-w-[7px] rounded-full ${
+                      i < (s.correct_streak_current ?? 0) ? "bg-[#818cf8]" : "bg-white/20"
+                    }`}
+                  />
+                ))}
+              </span>
+            </span>
+          )}
         </div>
+
+        {/* ===== enrage (บอสโกรธ) banner + countdown — ธีมแดง/ส้มเข้ม ดุกว่า weak_point ===== */}
+        {enrageLive && (
+          <>
+            <div className="absolute left-1/2 top-[12%] z-30 -translate-x-1/2 animate-pulse whitespace-nowrap rounded-full bg-gradient-to-r from-[rgba(220,38,38,.95)] to-[rgba(234,88,12,.95)] px-[2.4%] py-[.7%] text-[clamp(10px,1.05vw,14px)] font-extrabold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.5)]">
+              🔥 บอสโกรธ! จุดอ่อนเปิด ดาเมจ ×2.5
+            </div>
+            <div className="absolute left-1/2 top-[17.5%] z-30 w-[26%] -translate-x-1/2">
+              <div className="h-[.85vw] max-h-[11px] overflow-hidden rounded-full border-[1.5px] border-[rgba(248,113,113,.6)] bg-black/45">
+                <div
+                  className="h-full bg-gradient-to-r from-[#f87171] to-[#dc2626] transition-[width] duration-200 ease-linear"
+                  style={{ width: `${enragePct}%` }}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ===== weak point banner + countdown ===== */}
         {weakPointLive && (
@@ -274,9 +312,11 @@ export default function TvClient({
                 fill
                 sizes="40vw"
                 className={`object-contain ${
-                  weakPointLive
-                    ? "drop-shadow-[0_0_1.6vw_#ffd166]"
-                    : "drop-shadow-[0_1.4vw_1.4vw_rgba(0,0,0,.6)]"
+                  enrageLive
+                    ? "drop-shadow-[0_0_1.8vw_#ef4444]"
+                    : weakPointLive
+                      ? "drop-shadow-[0_0_1.6vw_#ffd166]"
+                      : "drop-shadow-[0_1.4vw_1.4vw_rgba(0,0,0,.6)]"
                 }`}
               />
             </div>
