@@ -9,6 +9,7 @@ import {
 } from "@/lib/bossRaid/useBossRaidTv";
 import type { ParticipantDisplay } from "@/lib/bossRaid/participantDisplay";
 import { liveBossRaidEvent } from "@/lib/bossRaid/activeEvent";
+import { tvAudio } from "@/lib/bossRaid/tvAudio";
 
 // จอทีวี Boss Raid — layout/พฤติกรรมอ้างจาก mockup v9 (docs/boss-raid-mockups/boss-raid-tv-screen-mockup-v9.html)
 // ทุกตำแหน่งคุมด้วยโค้ดเป็น % ของกล่องฉาก 16:9 ไม่ผูกกับพิกเซลในภาพพื้นหลัง
@@ -115,6 +116,20 @@ export default function TvClient({
 
   const s = session ?? initialSession;
   const [now, setNow] = useState(() => Date.now());
+  const [soundOn, setSoundOn] = useState(false);
+
+  // preload ไฟล์เสียงทั้งหมดตอน mount (ยังไม่เล่นจนกว่าครูจะแตะปุ่มเปิดเสียง — autoplay policy)
+  useEffect(() => {
+    tvAudio.init();
+    return () => tvAudio.dispose();
+  }, []);
+
+  // BGM ตาม state ของห้อง — idempotent, ปลอดภัยเรียกซ้ำตอน reconnect/resync
+  useEffect(() => {
+    tvAudio.setBgm(
+      s.status === "lobby" ? "lobby" : s.status === "in_progress" ? "battle" : null
+    );
+  }, [s.status]);
 
   // ticking clock — เดินเฉพาะตอนมี event ที่ต้องนับถอยหลัง (ประหยัด render)
   useEffect(() => {
@@ -542,6 +557,19 @@ export default function TvClient({
               </div>
             )}
           </div>
+        )}
+        {/* ===== ปุ่มเปิดเสียง — ครูแตะครั้งเดียวตอนตั้งจอ (unlock AudioContext ใน gesture จริง) ===== */}
+        {!soundOn && (
+          <button
+            type="button"
+            onClick={() => {
+              tvAudio.unlock();
+              setSoundOn(true);
+            }}
+            className="absolute right-[3%] top-[3%] z-[70] animate-pulse rounded-full border-[1.5px] border-gold bg-black/70 px-[1.6%] py-[.7%] text-[clamp(11px,1.1vw,15px)] font-bold text-gold-hi backdrop-blur"
+          >
+            🔊 แตะเพื่อเปิดเสียง
+          </button>
         )}
       </div>
     </main>
