@@ -259,6 +259,13 @@ export async function selectBossRaidPet(
   return { petId: row.pet_id, statSnapshot: row.stat_snapshot };
 }
 
+// Phase 2 — ครูกดข้าม event "นักรบถูกเลือก" (teacher-only, เช็ค teacher_id ใน RPC)
+export async function dismissBossRaidEvent(sessionId: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("dismiss_boss_raid_event", { p_session_id: sessionId });
+  if (error) throw new Error(error.message);
+}
+
 // Phase 0.2 — ครูกดเริ่มเกม: aggregate stat + คำนวณ HP scaling ผ่าน RPC security definer
 // (lobby -> in_progress; client เห็นผ่าน realtime UPDATE ของ boss_raid_sessions)
 export async function startBossRaidGame(sessionId: string): Promise<void> {

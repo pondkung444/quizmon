@@ -8,6 +8,7 @@ import {
   type ParticipantDisplay,
   type ParticipantDisplayRow,
 } from "@/lib/bossRaid/participantDisplay";
+import type { BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
 
 // จอทีวี (Phase 1) — realtime hook แยกจาก useBossRaidLobby.ts เพราะจอทีวีต้อง subscribe เพิ่มอีก
 // 2 ตาราง (boss_raid_answers ทำ ticker/damage-float/participation-dot, boss_raid_event_log ทำ
@@ -31,17 +32,14 @@ import {
 // (sprite resolve ผ่าน src/lib/petImage.ts ใน participantDisplay.ts) — pets เป็น RLS select-own-row
 // เท่านั้น เลยต้องผ่าน SECURITY DEFINER RPC สโคป is_boss_raid_member
 
-export type TvActiveEvent =
-  | null
-  | { type: "weak_point"; expires_at: string }
-  | {
-      type: "meteor";
-      question_id: number;
-      question_text: string;
-      choices: string[];
-      expires_at: string;
-      winner_participant_id: string | null;
-    };
+export type TvActiveEvent = BossRaidActiveEvent;
+
+// discriminator สำหรับเทียบ event เดิม/ใหม่ — chosen_warrior ไม่มี expires_at
+function eventKey(e: TvActiveEvent): string {
+  if (!e) return "";
+  if (e.type === "chosen_warrior") return `chosen_warrior:${e.started_at}`;
+  return `${e.type}:${e.expires_at}`;
+}
 
 export type TvSession = {
   id: string;
@@ -265,13 +263,14 @@ export function useBossRaidTv(
           const prevEvent = prevActiveEventRef.current;
           const nextEvent = merged.active_event;
 
-          if (
-            nextEvent &&
-            (!prevEvent || prevEvent.type !== nextEvent.type || prevEvent.expires_at !== nextEvent.expires_at)
-          ) {
+          if (nextEvent && eventKey(nextEvent) !== eventKey(prevEvent)) {
             pushTicker(
-              nextEvent.type === "weak_point" ? "✦ จุดอ่อนเผย! ดาเมจทั้งห้อง ×2" : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
-              false
+              nextEvent.type === "weak_point"
+                ? "✦ จุดอ่อนเผย! ดาเมจทั้งห้อง ×2"
+                : nextEvent.type === "chosen_warrior"
+                  ? `⚔️ ${nextEvent.chosen_name} ถูกเลือกเป็นนักรบ!`
+                  : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
+              nextEvent.type === "chosen_warrior"
             );
           }
 

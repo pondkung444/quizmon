@@ -14,6 +14,7 @@ import {
   startBossRaidGame,
   getBossRaidRewards,
   getBossRaidSummary,
+  dismissBossRaidEvent,
   type BossRaidConfig,
   type BossRaidRewardRow,
   type BossRaidSummary,
@@ -187,10 +188,16 @@ export default function LobbyClient({
         />
       )}
 
+      {isTeacher && s.status === "in_progress" && s.active_event?.type === "chosen_warrior" && (
+        <DismissEventButton sessionId={sessionId} chosenName={s.active_event.chosen_name} />
+      )}
+
       {s.status === "in_progress" && myParticipant && (
         <BossRaidGame
           participantId={myParticipant.id}
           currentQuestionId={myParticipant.current_question_id ?? null}
+          questionStartedAt={myParticipant.question_started_at ?? null}
+          activeEvent={s.active_event ?? null}
           bossHp={s.boss_hp}
           bossHpMax={s.boss_hp_max}
           crystalHp={s.crystal_hp}
@@ -382,6 +389,44 @@ function EndScreen({
           )}
         </div>
       )}
+    </section>
+  );
+}
+
+function DismissEventButton({
+  sessionId,
+  chosenName,
+}: {
+  sessionId: string;
+  chosenName: string;
+}) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <section className="mt-4 rounded-2xl border border-amber bg-amber/10 p-4">
+      <p className="text-sm font-bold text-gold-hi">⚔️ นักรบถูกเลือก: {chosenName}</p>
+      <p className="mt-0.5 text-xs text-text3">
+        คำถามปกติของทั้งห้องหยุดชั่วคราวจนกว่า {chosenName} จะตอบ — หรือกดข้ามด้านล่าง
+      </p>
+      <button
+        type="button"
+        onClick={() =>
+          start(async () => {
+            setError(null);
+            try {
+              await dismissBossRaidEvent(sessionId);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "ข้าม event ไม่สำเร็จ");
+            }
+          })
+        }
+        disabled={pending}
+        className="mt-3 w-full rounded-xl border border-gold-dim bg-track py-2.5 text-sm font-bold text-gold-hi transition active:scale-95 disabled:opacity-50"
+      >
+        {pending ? "กำลังข้าม…" : "ข้าม event นี้"}
+      </button>
+      {error && <p className="mt-2 text-center text-xs text-red">{error}</p>}
     </section>
   );
 }

@@ -8,6 +8,7 @@ import {
   type TvSession,
 } from "@/lib/bossRaid/useBossRaidTv";
 import type { ParticipantDisplay } from "@/lib/bossRaid/participantDisplay";
+import { liveBossRaidEvent } from "@/lib/bossRaid/activeEvent";
 
 // จอทีวี Boss Raid — layout/พฤติกรรมอ้างจาก mockup v9 (docs/boss-raid-mockups/boss-raid-tv-screen-mockup-v9.html)
 // ทุกตำแหน่งคุมด้วยโค้ดเป็น % ของกล่องฉาก 16:9 ไม่ผูกกับพิกเซลในภาพพื้นหลัง
@@ -63,10 +64,16 @@ function tsMs(s: string): number {
 }
 
 function liveEvent(session: TvSession, now: number): TvSession["active_event"] {
-  const e = session.active_event;
-  if (!e) return null;
-  return tsMs(e.expires_at) > now ? e : null;
+  return liveBossRaidEvent(session.active_event, now);
 }
+
+const STAT_TH: Record<string, string> = {
+  hp: "พลังชีวิต",
+  atk: "พลังโจมตี",
+  def: "พลังป้องกัน",
+  spd: "ความเร็ว",
+  foc: "สมาธิ",
+};
 
 export default function TvClient({
   sessionId,
@@ -118,6 +125,7 @@ export default function TvClient({
   const activeEvent = liveEvent(s, now);
   const weakPointLive = activeEvent?.type === "weak_point";
   const meteorLive = activeEvent?.type === "meteor";
+  const chosenWarrior = activeEvent?.type === "chosen_warrior" ? activeEvent : null;
 
   const bossHp = s.boss_hp ?? 0;
   const bossHpMax = s.boss_hp_max ?? 0;
@@ -132,11 +140,11 @@ export default function TvClient({
   const bossWidth = 30 - crystalFrac * 6;
 
   const weakPointPct =
-    weakPointLive && activeEvent
+    activeEvent?.type === "weak_point"
       ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 20000) * 100))
       : 100;
   const meteorRemain =
-    meteorLive && activeEvent
+    activeEvent?.type === "meteor"
       ? Math.max(0, Math.ceil((tsMs(activeEvent.expires_at) - now) / 1000))
       : 0;
 
@@ -354,6 +362,44 @@ export default function TvClient({
               รีบตอบที่มือถือ — คนแรกที่ตอบถูกได้โบนัส +15
             </div>
             <div className="mt-[.8vw] text-[clamp(24px,4vw,48px)] font-extrabold text-white">{meteorRemain}</div>
+          </div>
+        )}
+
+        {/* ===== chosen_warrior overlay ===== */}
+        {chosenWarrior && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-[.6vw] bg-[rgba(10,8,26,.72)] px-[6%] text-center">
+            <div className="text-[clamp(16px,2.8vw,34px)] font-extrabold text-gold-hi drop-shadow-lg">
+              ⚔️ นักรบถูกเลือก!
+            </div>
+            {(() => {
+              const d = roster.get(chosenWarrior.chosen_participant_id);
+              const sprite = d?.sprite ?? FALLBACK_SPRITES[0];
+              return (
+                <>
+                  <Image
+                    src={sprite}
+                    alt=""
+                    width={140}
+                    height={140}
+                    className="h-[13vw] max-h-[150px] w-[13vw] max-w-[150px] object-contain drop-shadow-[0_0_20px_rgba(255,200,80,.6)]"
+                  />
+                  <div className="text-[clamp(14px,2vw,26px)] font-extrabold text-white">
+                    {d?.name ?? chosenWarrior.chosen_name}
+                  </div>
+                </>
+              );
+            })()}
+            <div className="text-[clamp(10px,1.15vw,15px)] text-gold-hi">
+              {chosenWarrior.criterion === "total"
+                ? `สเตตัสรวม ${chosenWarrior.stat_value} — สูงสุดที่ถูกสุ่ม`
+                : `${STAT_TH[chosenWarrior.stat_key ?? ""] ?? chosenWarrior.stat_key} ${chosenWarrior.stat_value}`}
+            </div>
+            <div className="mt-[.4vw] max-w-[72%] whitespace-pre-wrap text-[clamp(11px,1.35vw,18px)] font-medium text-white">
+              {chosenWarrior.question_text}
+            </div>
+            <div className="text-[clamp(9px,1vw,13px)] text-white/70">
+              ตอบถูก บอสเสียเลือด ×3 · ตอบผิด คริสตัลแตก ×2.5
+            </div>
           </div>
         )}
 
