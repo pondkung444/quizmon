@@ -267,10 +267,12 @@ export function useBossRaidTv(
             pushTicker(
               nextEvent.type === "weak_point"
                 ? "✦ จุดอ่อนเผย! ดาเมจทั้งห้อง ×2"
-                : nextEvent.type === "chosen_warrior"
-                  ? `⚔️ ${nextEvent.chosen_name} ถูกเลือกเป็นนักรบ!`
-                  : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
-              nextEvent.type === "chosen_warrior"
+                : nextEvent.type === "enrage"
+                  ? "🔥 บอสโกรธ! ดาเมจทั้งห้อง ×2.5"
+                  : nextEvent.type === "chosen_warrior"
+                    ? `⚔️ ${nextEvent.chosen_name} ถูกเลือกเป็นนักรบ!`
+                    : "☄️ ฝนดาวตก! รีบตอบที่มือถือ",
+              nextEvent.type === "chosen_warrior" || nextEvent.type === "enrage"
             );
           }
 

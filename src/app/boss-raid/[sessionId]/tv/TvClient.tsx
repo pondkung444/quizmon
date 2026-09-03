@@ -124,6 +124,7 @@ export default function TvClient({
 
   const activeEvent = liveEvent(s, now);
   const weakPointLive = activeEvent?.type === "weak_point";
+  const enrageLive = activeEvent?.type === "enrage";
   const meteorLive = activeEvent?.type === "meteor";
   const chosenWarrior = activeEvent?.type === "chosen_warrior" ? activeEvent : null;
 
@@ -142,6 +143,10 @@ export default function TvClient({
   const weakPointPct =
     activeEvent?.type === "weak_point"
       ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 20000) * 100))
+      : 100;
+  const enragePct =
+    activeEvent?.type === "enrage"
+      ? Math.max(0, Math.min(100, ((tsMs(activeEvent.expires_at) - now) / 15000) * 100))
       : 100;
   const meteorRemain =
     activeEvent?.type === "meteor"
@@ -199,6 +204,23 @@ export default function TvClient({
             </span>
           )}
         </div>
+
+        {/* ===== enrage (บอสโกรธ) banner + countdown — ธีมแดง/ส้มเข้ม ดุกว่า weak_point ===== */}
+        {enrageLive && (
+          <>
+            <div className="absolute left-1/2 top-[12%] z-30 -translate-x-1/2 animate-pulse whitespace-nowrap rounded-full bg-gradient-to-r from-[rgba(220,38,38,.95)] to-[rgba(234,88,12,.95)] px-[2.4%] py-[.7%] text-[clamp(10px,1.05vw,14px)] font-extrabold text-white [text-shadow:0_1px_2px_rgba(0,0,0,.5)]">
+              🔥 บอสโกรธ! จุดอ่อนเปิด ดาเมจ ×2.5
+            </div>
+            <div className="absolute left-1/2 top-[17.5%] z-30 w-[26%] -translate-x-1/2">
+              <div className="h-[.85vw] max-h-[11px] overflow-hidden rounded-full border-[1.5px] border-[rgba(248,113,113,.6)] bg-black/45">
+                <div
+                  className="h-full bg-gradient-to-r from-[#f87171] to-[#dc2626] transition-[width] duration-200 ease-linear"
+                  style={{ width: `${enragePct}%` }}
+                />
+              </div>
+            </div>
+          </>
+        )}
 
         {/* ===== weak point banner + countdown ===== */}
         {weakPointLive && (
@@ -274,9 +296,11 @@ export default function TvClient({
                 fill
                 sizes="40vw"
                 className={`object-contain ${
-                  weakPointLive
-                    ? "drop-shadow-[0_0_1.6vw_#ffd166]"
-                    : "drop-shadow-[0_1.4vw_1.4vw_rgba(0,0,0,.6)]"
+                  enrageLive
+                    ? "drop-shadow-[0_0_1.8vw_#ef4444]"
+                    : weakPointLive
+                      ? "drop-shadow-[0_0_1.6vw_#ffd166]"
+                      : "drop-shadow-[0_1.4vw_1.4vw_rgba(0,0,0,.6)]"
                 }`}
               />
             </div>
