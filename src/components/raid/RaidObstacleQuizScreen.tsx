@@ -109,7 +109,7 @@ export default function RaidObstacleQuizScreen({
           <p className="text-sm font-bold text-gold-hi">{revealedTh}</p>
         </div>
 
-        <h2 className="text-xl font-bold leading-relaxed text-text">{question.questionText}</h2>
+        <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{question.questionText}</h2>
 
         <div className="flex flex-col gap-3">
           {question.choices.map((choiceText, choiceIndex) => {
@@ -126,7 +126,7 @@ export default function RaidObstacleQuizScreen({
                 type="button"
                 disabled={selectedChoice !== null || isSubmitting}
                 onClick={() => handleSelect(choiceIndex)}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
+                className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-4 text-left font-sarabun text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                   {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}

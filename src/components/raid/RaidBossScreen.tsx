@@ -374,7 +374,7 @@ export default function RaidBossScreen({
               ))}
             </div>
 
-            <h2 className="mt-5 text-xl font-bold leading-relaxed text-text">{sheetQuestion.questionText}</h2>
+            <h2 className="mt-5 font-sarabun text-xl font-bold leading-relaxed text-text">{sheetQuestion.questionText}</h2>
 
             <div className="mt-4 flex flex-col gap-3">
               {sheetQuestion.choices.map((choiceText, choiceIndex) => {
@@ -392,7 +392,7 @@ export default function RaidBossScreen({
                     type="button"
                     disabled={selectedChoice !== null || isSubmitting}
                     onClick={() => handleSelect(choiceIndex)}
-                    className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-4 text-left text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
+                    className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-4 text-left font-sarabun text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                       {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}

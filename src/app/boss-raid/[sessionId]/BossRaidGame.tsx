@@ -396,7 +396,7 @@ export default function BossRaidGame({
             </div>
           ) : (
             <>
-              <p className="mt-4 whitespace-pre-wrap text-base font-medium text-text">
+              <p className="mt-4 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
                 {cw.question_text}
               </p>
               <div className="mt-4 grid gap-2">
@@ -458,7 +458,7 @@ export default function BossRaidGame({
                 </div>
               )}
 
-              <p className="mt-3 whitespace-pre-wrap text-base font-medium text-text">
+              <p className="mt-3 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
                 {q.question_text}
               </p>
 

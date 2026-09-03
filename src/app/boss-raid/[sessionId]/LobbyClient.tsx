@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   useBossRaidLobby,
@@ -440,6 +441,7 @@ function StartGameButton({
   noPlayers: boolean;
   noChapters: boolean;
 }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const blockedReason = noChapters
@@ -453,7 +455,7 @@ function StartGameButton({
       setError(null);
       try {
         await startBossRaidGame(sessionId);
-        // ไม่ต้อง setState — realtime UPDATE ของ session จะ push status/HP มาเอง
+        router.push(`/boss-raid/${sessionId}/tv`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "เริ่มเกมไม่สำเร็จ");
       }
