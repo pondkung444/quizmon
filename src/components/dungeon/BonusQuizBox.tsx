@@ -118,7 +118,7 @@ export default function BonusQuizBox({
       <p className="mb-2 text-center text-xs text-text2">ข้อที่ {index + 1}/5</p>
       {current && (
         <>
-          <p className="mb-3 text-center text-sm font-bold text-text">{current.questionText}</p>
+          <p className="mb-3 text-center font-sarabun text-sm font-bold text-text">{current.questionText}</p>
           <div className="flex flex-col gap-2">
             {current.choices.map((choiceText, choiceIndex) => {
               const isSelected = selectedChoice === choiceIndex;

@@ -566,7 +566,7 @@ export default function TvClient({
               tvAudio.unlock();
               setSoundOn(true);
             }}
-            className="absolute right-[3%] top-[3%] z-[70] animate-pulse rounded-full border-[1.5px] border-gold bg-black/70 px-[1.6%] py-[.7%] text-[clamp(11px,1.1vw,15px)] font-bold text-gold-hi backdrop-blur"
+            className="absolute right-[3%] bottom-[4%] z-[70] animate-pulse rounded-full border-[1.5px] border-gold bg-black/70 px-[1.6%] py-[.7%] text-[clamp(11px,1.1vw,15px)] font-bold text-gold-hi backdrop-blur"
           >
             🔊 แตะเพื่อเปิดเสียง
           </button>

@@ -609,7 +609,7 @@ export default function QuizClient({
     return (
       <div className="flex flex-col gap-6 pb-24">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gold-hi">เลือกวิชาที่จะฝึกวันนี้</h1>
+          <h1 className="font-sarabun text-2xl font-bold text-gold-hi">เลือกวิชาที่จะฝึกวันนี้</h1>
           <p className="mt-1 text-sm text-text3">ตอบให้ถูกเยอะๆ แล้วไปเลี้ยงเพื่อนตัวน้อยกัน!</p>
         </div>
 
@@ -808,7 +808,7 @@ export default function QuizClient({
 
         <div>
           <p className="text-6xl">🍚</p>
-          <h1 className="mt-2 text-2xl font-bold text-gold-hi">เลือกอาหารให้ Qmon</h1>
+          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">เลือกอาหารให้ Qmon</h1>
           <p className="mt-1 text-sm text-text3">
             ทำภารกิจวันนี้ครบแล้ว! เลือกอาหารที่จะสะสมไว้ตัดสินบุคลิกตอน Qmon โตเต็มที่
           </p>
@@ -866,7 +866,7 @@ export default function QuizClient({
         <div>
           <p className="text-6xl">🎯</p>
           {/* ข้อความ Qmon เชิงความพยายามเสมอ ไม่อิงจำนวนถูก (ห้ามลงโทษ/ตำหนิ ตามหลักดีไซน์) */}
-          <h1 className="mt-2 text-2xl font-bold text-gold-hi">วันนี้เราฝึกครบแล้ว!</h1>
+          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">วันนี้เราฝึกครบแล้ว!</h1>
         </div>
 
         <div className="rounded-3xl border border-gold-dim bg-card p-6">
@@ -937,7 +937,7 @@ export default function QuizClient({
 
       <div>
         <p className="text-6xl">{correctCount >= questions.length ? "🏆" : correctCount > 0 ? "🎊" : "💪"}</p>
-        <h1 className="mt-2 text-2xl font-bold text-gold-hi">จบรอบแล้ว!</h1>
+        <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">จบรอบแล้ว!</h1>
       </div>
 
       <div className="rounded-3xl border border-gold-dim bg-card p-6">
