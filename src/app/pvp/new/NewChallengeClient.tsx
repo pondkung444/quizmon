@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
 import { createPvpChallenge } from "../actions";
-import { PvpPetCard } from "../PvpPetCard";
+import PvpPetPicker from "../PvpPetPicker";
 
 export default function NewChallengeClient({
   friends,
@@ -66,15 +66,8 @@ export default function NewChallengeClient({
       <section className="mt-6">
         <h2 className="text-sm font-bold text-text2">เลือก Qmon (ระดับสูงสุด)</h2>
         <p className="mt-1 text-xs text-text3">อีกฝ่ายจะไม่เห็นว่าคุณเลือกตัวไหนจนกว่าจะเริ่มดวล</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {pets.map((p) => (
-            <PvpPetCard
-              key={p.id}
-              pet={p}
-              selected={petId === p.id}
-              onSelect={() => setPetId(p.id)}
-            />
-          ))}
+        <div className="mt-2">
+          <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
       </section>
 

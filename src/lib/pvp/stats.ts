@@ -11,8 +11,9 @@ export type PvpPetStats = Record<PvpStatKey, number>;
 // สไลซ์ 4: raw + โบนัสจากอุปกรณ์ PvP ที่ผูกกับแมตช์ — เติม "ที่จุดเดียวนี้" คู่กับ SQL snapshot
 //          ใน accept_pvp_challenge (pvp_matches.stat_a/stat_b)
 //
-// กฎเหล็ก: ทุกจุดในโค้ด PvP ที่อ่านสเตตัส (ตัดสิน SPD, ดาเมจ, timer) ต้องผ่านฟังก์ชันนี้เท่านั้น
-// ห้ามอ่าน stats.atk / pet.stat_atk ตรงๆ
+// กฎเหล็ก: ทุกจุดในโค้ด PvP ที่อ่านสเตตัส (ดาเมจ ATK/DEF, คริ FOC, ความยาว timer จาก SPD)
+// ต้องผ่านฟังก์ชันนี้เท่านั้น ห้ามอ่าน stats.atk / pet.stat_atk ตรงๆ
+// (turn order ไม่ใช้ SPD แล้ว — ผู้รับคำท้าได้เล่นก่อนเสมอ ดู accept_pvp_challenge revision 2026-09-04)
 export function pvpEffectiveStat(stats: PvpPetStats, stat: PvpStatKey): number {
   return stats[stat] ?? 0;
 }

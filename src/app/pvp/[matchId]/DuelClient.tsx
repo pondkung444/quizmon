@@ -9,21 +9,60 @@ import { pvpEstimatedDamage } from "@/lib/pvp/combat";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
 import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from "../actions";
 
-function HpBar({ label, hp, hpMax, mine }: { label: string; hp: number; hpMax: number; mine: boolean }) {
+// keyframes สำหรับ "โดนตี" — สั่น + แฟลชแดง (inject ครั้งเดียว)
+const DUEL_CSS = `
+@keyframes pvp-hit { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.pvp-hit { animation: pvp-hit .5s ease-in-out; }
+.pvp-hit-flash { filter: brightness(1.4) sepia(1) hue-rotate(-30deg) saturate(4); }
+`;
+
+function PetStage({
+  image,
+  name,
+  hp,
+  hpMax,
+  side,
+  glow,
+  hit,
+}: {
+  image: string | null;
+  name: string;
+  hp: number;
+  hpMax: number;
+  side: "mine" | "opp";
+  glow: boolean;
+  hit: boolean;
+}) {
   const pct = Math.max(0, Math.min(100, (hp / Math.max(1, hpMax)) * 100));
   return (
-    <div className="flex-1">
-      <div className="flex items-center justify-between text-xs text-text3">
-        <span>{label}</span>
-        <span>
-          {Math.max(0, hp)} / {hpMax}
-        </span>
+    <div className={`flex items-center gap-2 ${side === "opp" ? "flex-row-reverse" : ""}`}>
+      <div
+        className={`relative h-24 w-24 shrink-0 rounded-full transition ${
+          glow ? "ring-4 ring-amber ring-offset-2 ring-offset-transparent" : ""
+        } ${hit ? "pvp-hit" : ""}`}
+      >
+        {image && (
+          <Image
+            src={image}
+            alt={name}
+            fill
+            unoptimized
+            className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
+            style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
+          />
+        )}
       </div>
-      <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-track">
-        <div
-          className={`h-full transition-all ${mine ? "bg-green-400" : "bg-red"}`}
-          style={{ width: `${pct}%` }}
-        />
+      <div className={`w-28 ${side === "opp" ? "text-right" : ""}`}>
+        <p className="truncate text-xs font-bold text-text">{name}</p>
+        <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-track">
+          <div
+            className={`h-full transition-all duration-500 ${side === "mine" ? "bg-green-400" : "bg-red"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <p className="mt-0.5 text-[10px] text-text3">
+          {Math.max(0, hp)} / {hpMax}
+        </p>
       </div>
     </div>
   );
@@ -36,14 +75,32 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const [result, setResult] = useState<PvpSubmitResult | null>(null);
   const submittedRef = useRef(false);
 
-  // ระหว่างโชว์ผลตอบ (2.2 วิ) อย่าให้ realtime กระชากหน้าให้ remount ก่อนผู้เล่นเห็นผล —
-  // ตัว setTimeout หลัง submit เป็นคนสั่ง refresh จริงเอง
   const holdRef = useRef(false);
   const refresh = useCallback(() => {
     if (holdRef.current) return;
     router.refresh();
   }, [router]);
   usePvpMatch(view.matchId, refresh);
+
+  // ---- hit feedback: จับ hp ที่ลดลงระหว่าง render ----
+  const [hitMine, setHitMine] = useState(false);
+  const [hitOpp, setHitOpp] = useState(false);
+  const prevHp = useRef({ mine: view.hpMine, opp: view.hpOpp });
+  useEffect(() => {
+    if (view.hpMine < prevHp.current.mine) {
+      setHitMine(true);
+      const t = window.setTimeout(() => setHitMine(false), 600);
+      prevHp.current.mine = view.hpMine;
+      return () => window.clearTimeout(t);
+    }
+    if (view.hpOpp < prevHp.current.opp) {
+      setHitOpp(true);
+      const t = window.setTimeout(() => setHitOpp(false), 600);
+      prevHp.current.opp = view.hpOpp;
+      return () => window.clearTimeout(t);
+    }
+    prevHp.current = { mine: view.hpMine, opp: view.hpOpp };
+  }, [view.hpMine, view.hpOpp]);
 
   // attacker: มือว่าง (edge case) -> จั่วเอง
   useEffect(() => {
@@ -55,13 +112,10 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   }, [view.status, view.isAttacker, view.hand.length, view.matchId, refresh]);
 
   // ---- ผู้ตอบ: timer (display เท่านั้น — หมดเวลา = auto-submit -1) ----
-  // DuelClient remount ทุกครั้งที่เฟส/ยกเปลี่ยน (key ในหน้า page.tsx) -> init state พอ ไม่ต้อง reset ใน effect
   const [remain, setRemain] = useState(view.timerSeconds);
   useEffect(() => {
     if (!view.isDefender || result) return;
-    const t = window.setInterval(() => {
-      setRemain((s) => (s <= 1 ? 0 : s - 1));
-    }, 1000);
+    const t = window.setInterval(() => setRemain((s) => (s <= 1 ? 0 : s - 1)), 1000);
     return () => window.clearInterval(t);
   }, [view.isDefender, result]);
 
@@ -111,16 +165,45 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     refresh();
   };
 
+  const glowMine = view.status === "active" && view.myTurn;
+  const glowOpp = view.status === "active" && !view.myTurn;
+
+  const battleStage = (
+    <div className="rounded-2xl border border-gold-dim bg-card p-4">
+      <div className="flex justify-end">
+        <PetStage
+          image={view.petOppImage}
+          name={view.petOppName}
+          hp={view.hpOpp}
+          hpMax={view.hpOppMax}
+          side="opp"
+          glow={glowOpp}
+          hit={hitOpp}
+        />
+      </div>
+      <div className="my-1 text-center text-xs font-black tracking-widest text-gold-hi">VS</div>
+      <div className="flex justify-start">
+        <PetStage
+          image={view.petMineImage}
+          name={view.petMineName}
+          hp={view.hpMine}
+          hpMax={view.hpMineMax}
+          side="mine"
+          glow={glowMine}
+          hit={hitMine}
+        />
+      </div>
+    </div>
+  );
+
   // ================= จบแมตช์ =================
   if (view.status === "finished" || view.status === "abandoned") {
     const abandoned = view.status === "abandoned";
     return (
-      <main className="mx-auto max-w-xl px-4 py-10 pb-24 text-center">
-        <div className="mt-6 flex items-center gap-3">
-          <HpBar label={view.meName} hp={view.hpMine} hpMax={view.hpMineMax} mine />
-          <HpBar label={view.oppName} hp={view.hpOpp} hpMax={view.hpOppMax} mine={false} />
-        </div>
-        <div className="mt-10">
+      <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+        <style>{DUEL_CSS}</style>
+        {battleStage}
+        <div className="mt-8 text-center">
           {abandoned ? (
             <p className="text-xl font-bold text-text2">การประลองถูกพักไว้ — ไม่มีผลกับสถิติ</p>
           ) : view.iWon === null ? (
@@ -136,7 +219,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         </div>
         <Link
           href="/pvp"
-          className="mt-10 inline-block rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
+          className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
         >
           กลับหน้าประลอง
         </Link>
@@ -146,31 +229,32 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
   // ================= กำลังดวล =================
   return (
-    <main className="mx-auto max-w-xl px-4 py-6 pb-24">
-      <div className="flex items-center justify-between">
+    <main className="mx-auto max-w-xl px-4 py-4 pb-24">
+      <style>{DUEL_CSS}</style>
+
+      <div className="mb-2 flex items-center justify-between">
         <Link href="/pvp" className="text-xs text-text3 underline">
           ← ประลอง
         </Link>
-        <span className="text-xs text-text3">ยกที่ {view.currentRound} / {view.maxRounds}</span>
+        <span className="text-xs text-text3">
+          ยกที่ {view.currentRound} / {view.maxRounds}
+        </span>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <HpBar label={view.meName} hp={view.hpMine} hpMax={view.hpMineMax} mine />
-        <HpBar label={view.oppName} hp={view.hpOpp} hpMax={view.hpOppMax} mine={false} />
-      </div>
+      {battleStage}
 
-      {error && <p className="mt-4 text-sm text-red">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red">{error}</p>}
 
       {/* ---- ผลตอบล่าสุด ---- */}
       {result && (
-        <div className="mt-6 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+        <div className="mt-4 rounded-2xl border border-gold-dim bg-card p-5 text-center">
           {result.is_correct ? (
             <p className="text-xl font-bold text-gold-hi">ตอบถูก! ไม่เสียเลือด</p>
           ) : (
             <>
-              <p className="text-xl font-bold text-text2">ยังไม่ถูก…</p>
-              <p className="mt-2 text-lg font-bold text-red">
-                −{result.damage} เลือด {result.crit && <span className="text-amber">คริ ✦</span>}
+              <p className="text-lg font-bold text-text2">ยังไม่ถูก…</p>
+              <p className="mt-1 text-2xl font-bold text-red">
+                −{result.damage} {result.crit && <span className="text-amber">คริ ✦</span>}
               </p>
             </>
           )}
@@ -180,10 +264,10 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- ผู้ส่ง: เลือกการ์ด ---- */}
       {!result && view.isAttacker && (
-        <section className="mt-6">
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
           <h2 className="text-sm font-bold text-text2">เลือกการ์ดโจทย์ให้ {view.oppName} ทำ</h2>
           <p className="mt-1 text-xs text-text3">
-            ตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ
+            เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ
           </p>
           <div className="mt-3 grid gap-2">
             {view.hand.map((c) => (
@@ -192,9 +276,9 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                 type="button"
                 disabled={busy}
                 onClick={() => void doAssign(c.id)}
-                className="rounded-xl border border-border bg-track px-4 py-3 text-left transition active:scale-[0.98] disabled:opacity-50"
+                className="rounded-xl border border-border bg-track px-4 py-3 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
               >
-                <p className="text-sm font-bold text-text">{c.chapter}</p>
+                <p className="font-sarabun text-sm font-bold text-text">{c.chapter}</p>
                 <p className="text-xs text-text3">
                   {c.subject === "math" ? "คณิต" : "วิทย์"} · ความยาก {c.difficulty}
                 </p>
@@ -209,11 +293,14 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- ผู้ตอบ: ทำโจทย์ ---- */}
       {!result && view.isDefender && view.activeQuestion && (
-        <section className="mt-6">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-track">
+        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+          {/* timer bar — เหนือโจทย์ */}
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-track">
             <div
-              className="h-full bg-amber transition-[width] duration-1000 ease-linear"
-              style={{ width: `${(remain / view.timerSeconds) * 100}%` }}
+              className={`h-full transition-[width] duration-1000 ease-linear ${
+                remain <= 10 ? "bg-red" : "bg-amber"
+              }`}
+              style={{ width: `${Math.max(0, (remain / view.timerSeconds) * 100)}%` }}
             />
           </div>
           <p className="mt-1 text-right text-xs text-text3">{remain} วิ</p>
@@ -246,7 +333,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                 type="button"
                 disabled={busy}
                 onClick={() => void doSubmit(i)}
-                className="rounded-xl border border-border bg-track px-4 py-3 text-left text-sm text-text transition active:scale-[0.98] disabled:opacity-50"
+                className="rounded-xl border border-border bg-track px-4 py-3 text-left font-sarabun text-sm text-text transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
               >
                 {c}
               </button>
@@ -257,7 +344,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- รอคู่ต่อสู้ ---- */}
       {!result && !view.myTurn && (
-        <div className="mt-10 rounded-2xl border border-dashed border-border p-8 text-center">
+        <div className="mt-4 rounded-2xl border border-dashed border-border p-8 text-center">
           <p className="text-sm font-bold text-text2">
             {view.phase === "assigning"
               ? `รอ ${view.oppName} เลือกการ์ด…`
