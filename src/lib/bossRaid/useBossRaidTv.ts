@@ -9,6 +9,7 @@ import {
   type ParticipantDisplayRow,
 } from "@/lib/bossRaid/participantDisplay";
 import type { BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
+import { tvAudio } from "@/lib/bossRaid/tvAudio";
 
 // จอทีวี (Phase 1) — realtime hook แยกจาก useBossRaidLobby.ts เพราะจอทีวีต้อง subscribe เพิ่มอีก
 // 2 ตาราง (boss_raid_answers ทำ ticker/damage-float/participation-dot, boss_raid_event_log ทำ
@@ -162,6 +163,10 @@ export function useBossRaidTv(
   const topFiveRef = useRef(topFive);
   const participantCountRef = useRef(participantCount);
   const prevActiveEventRef = useRef<TvActiveEvent>(initial.session?.active_event ?? null);
+  // prev tier/result สำหรับยิงเสียง one-shot จาก realtime UPDATE จริงเท่านั้น — update คู่กันใน
+  // refetchSession() ด้วย เพื่อไม่ให้ resync ตอน reconnect เล่นเสียงย้อนหลัง
+  const prevTierRef = useRef<TvSession["current_tier"]>(initial.session?.current_tier ?? null);
+  const prevResultRef = useRef<TvSession["result"]>(initial.session?.result ?? null);
 
   useEffect(() => {
     rosterRef.current = roster;
@@ -234,6 +239,8 @@ export function useBossRaidTv(
       if (cancelled) return;
       const row = (data as TvSession | null) ?? null;
       prevActiveEventRef.current = row?.active_event ?? null;
+      prevTierRef.current = row?.current_tier ?? null;
+      prevResultRef.current = row?.result ?? null;
       setSession(row);
     }
 
@@ -265,6 +272,15 @@ export function useBossRaidTv(
           const nextEvent = merged.active_event;
 
           if (nextEvent && eventKey(nextEvent) !== eventKey(prevEvent)) {
+            tvAudio.sfx(
+              nextEvent.type === "weak_point"
+                ? "event_weak_point"
+                : nextEvent.type === "enrage"
+                  ? "event_enrage"
+                  : nextEvent.type === "chosen_warrior"
+                    ? "event_chosen_warrior"
+                    : "event_meteor"
+            );
             pushTicker(
               nextEvent.type === "weak_point"
                 ? "✦ จุดอ่อนเผย! ดาเมจทั้งห้อง ×2"
@@ -288,6 +304,18 @@ export function useBossRaidTv(
             const name = rosterRef.current.get(winnerId)?.name ?? "ผู้เล่น";
             pushTicker(`⭐ ${name} คว้าโบนัสฝนดาวตกไปก่อน! +${METEOR_BONUS_DAMAGE}`, true);
           }
+
+          // เสียงเปลี่ยนระดับบอส (tier) — เฉพาะตอนค่าเปลี่ยนจริงจาก UPDATE สด
+          if (merged.current_tier && merged.current_tier !== prevTierRef.current) {
+            tvAudio.sfx("tier_up");
+          }
+          prevTierRef.current = merged.current_tier;
+
+          // เสียงผลจบเกม — เฉพาะตอน result เพิ่งถูกเซ็ต (win/lose) ไม่ใช่ตอน resync
+          if (merged.result && merged.result !== prevResultRef.current) {
+            tvAudio.sfx(merged.result === "win" ? "result_win" : "result_lose");
+          }
+          prevResultRef.current = merged.result;
 
           prevActiveEventRef.current = nextEvent;
           setSession(merged);
@@ -314,9 +342,11 @@ export function useBossRaidTv(
           };
           if (!row.is_correct) {
             // ตอบผิด: รีเซ็ตคอมโบเงียบๆ — ไม่ขึ้น ticker ต่อคน (กันการชี้ตัวว่าใครตอบผิดต่อหน้าห้อง)
+            tvAudio.sfx("crystal_crack");
             setCombo(0);
             return;
           }
+          tvAudio.sfx(row.is_crit ? "hit_crit" : "hit_normal");
           setCombo((c) => c + 1);
           setComboBump((b) => b + 1);
 
@@ -378,6 +408,7 @@ export function useBossRaidTv(
           const row = payload.new as { event_type: string; bonus_damage: number | null };
           // combo_burst = burst ครั้งเดียวของทั้งห้อง (ไม่ใช้ active_event slot) — โชว์ ticker + วาบบอส
           if (row.event_type === "combo_burst") {
+            tvAudio.sfx("event_combo_burst");
             pushTicker(`🔥 พลังรวมพลัง! ทั้งห้องช่วยกัน −${row.bonus_damage ?? 40}`, true);
             setBossFlash(true);
             later(() => setBossFlash(false), 220);
