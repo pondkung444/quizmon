@@ -35,6 +35,7 @@ type AnswerResult = {
   status?: "in_progress" | "ended" | "lobby";
   result?: "win" | "lose" | null;
   frozen?: boolean;
+  combo_burst?: boolean;
 };
 
 type ChosenResult = {
@@ -488,6 +489,11 @@ export default function BossRaidGame({
                 </>
               ) : (
                 <p className="text-2xl font-bold text-text2">ยังไม่ถูกนะ</p>
+              )}
+              {result.combo_burst && (
+                <p className="mt-2 text-sm font-bold text-indigo-hi">
+                  🔥 พลังรวมพลัง! ทั้งห้อง −40 เพิ่ม
+                </p>
               )}
               <p className="mt-3 text-xs text-text3">กำลังไปข้อต่อไป…</p>
             </div>

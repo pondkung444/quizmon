@@ -45,6 +45,7 @@ const FORMATION = [
 ];
 
 const BOX_ASPECT = 16 / 9; // กล่องฉาก 16:9 — แปลง % แกนกว้าง <-> % แกนสูง
+const COMBO_BURST_N = 8; // ตรงกับ c_combo_n ใน submit_boss_raid_answer
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 
@@ -201,6 +202,21 @@ export default function TvClient({
               className="animate-br-tv-combo-pulse whitespace-nowrap rounded-full border-[1.5px] border-[rgba(255,106,77,.6)] bg-[rgba(255,106,77,.2)] px-[1.2%] py-[.4%] text-[clamp(10px,1vw,13px)] font-bold text-[#ffb37a]"
             >
               🔥 คอมโบ x{combo}
+            </span>
+          )}
+          {(s.correct_streak_current ?? 0) > 0 && (
+            <span className="flex items-center gap-[.5vw] whitespace-nowrap rounded-full border-[1.5px] border-[rgba(129,140,248,.6)] bg-[rgba(129,140,248,.18)] px-[1.2%] py-[.4%] text-[clamp(9px,.95vw,12px)] font-bold text-[#c7d2fe]">
+              รวมพลัง {s.correct_streak_current ?? 0}/{COMBO_BURST_N}
+              <span className="flex gap-[2px]">
+                {Array.from({ length: COMBO_BURST_N }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-[.55vw] max-h-[7px] w-[.55vw] max-w-[7px] rounded-full ${
+                      i < (s.correct_streak_current ?? 0) ? "bg-[#818cf8]" : "bg-white/20"
+                    }`}
+                  />
+                ))}
+              </span>
             </span>
           )}
         </div>
