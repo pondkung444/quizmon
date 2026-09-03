@@ -122,11 +122,6 @@ export type RaidView =
       gearItem: RaidGearItemView | null;
     };
 
-export async function isRaidAllowlisted(supabase: SupabaseServerClient, userId: string): Promise<boolean> {
-  const { data } = await supabase.from("raid_allowlist").select("user_id").eq("user_id", userId).maybeSingle();
-  return !!data;
-}
-
 export async function getRaidTicketCount(supabase: SupabaseServerClient, userId: string): Promise<number> {
   const { count } = await supabase
     .from("raid_tickets")
@@ -261,13 +256,14 @@ export async function getRaidZonesWithLevels(
   });
 }
 
-// auth + allowlist ในจุดเดียว ให้ /raid/page.tsx กับ /raid/[slug]/page.tsx เรียกร่วมกัน กันลืมเช็คซ้ำรอย
+// auth ในจุดเดียว ให้ /raid/page.tsx กับ /raid/[slug]/page.tsx เรียกร่วมกัน กันลืมเช็คซ้ำรอย
 // บั๊กเดิม (ปุ่ม "กลับไปต่อ" เคยหลุดผ่านทั้งที่หน้าปิดอยู่) — redirect() throw ออกจาก helper ได้ปกติ
-export async function requireRaidAccess(supabase: SupabaseServerClient): Promise<{ id: string }> {
+// ระบบท้าทายเปิดให้นักเรียนทุกคนตั้งแต่ 10 ส.ค. แล้ว — ไม่มี allowlist gate อีกต่อไป
+// param `_supabase` คงไว้เพื่อไม่ต้องแก้ call site ทั้งสองจุด (ไม่ได้ใช้แล้วหลังตัด allowlist)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function requireRaidAccess(_supabase: SupabaseServerClient): Promise<{ id: string }> {
   const user = await getUser();
   if (!user) redirect("/login");
-  const allowed = await isRaidAllowlisted(supabase, user.id);
-  if (!allowed) redirect("/pet");
   return user;
 }
 
@@ -579,7 +575,6 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
 }
 
 export type RaidEntryState =
-  | { status: "not_allowlisted" }
   | { status: "no_ticket" }
   | { status: "ready"; ticketCount: number }
   | { status: "own_run" }
@@ -592,9 +587,6 @@ export async function getRaidEntryState(
   userId: string,
   petId: string
 ): Promise<RaidEntryState> {
-  const allowed = await isRaidAllowlisted(supabase, userId);
-  if (!allowed) return { status: "not_allowlisted" };
-
   const { data: run } = await supabase
     .from("raid_runs")
     .select("pet_id")

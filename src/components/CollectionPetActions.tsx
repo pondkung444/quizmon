@@ -9,7 +9,8 @@ const DISABLED_CLASS =
 
 // server component ล้วน (ไม่มี "use client") — ปุ่มทั้งสองเป็น Link อย่างเดียว ไม่มี state/เขียน DB
 // เลย วางเป็น sibling นอก CollectedPetCard.tsx (ไม่ใช่ prop ของมัน) เพื่อรักษาสัญญา write-free ของ
-// การ์ดนั้นไว้ตามเดิม — ปุ่มท้าทายไม่แสดงเลยถ้าไม่อยู่ใน raid_allowlist (ซ่อนทั้งปุ่ม ไม่ใช่ disabled)
+// การ์ดนั้นไว้ตามเดิม — ปุ่มท้าทายแสดงตามสถานะตั๋ว/run เท่านั้น (no_ticket โชว์ข้อความ, ready โชว์ปุ่ม)
+// ไม่มี allowlist gate แล้ว: ระบบท้าทายเปิดให้นักเรียนทุกคนตั้งแต่ 10 ส.ค.
 export default function CollectionPetActions({
   petId,
   dungeonState,
@@ -69,7 +70,6 @@ export default function CollectionPetActions({
           <span className="text-sm text-text3">กุญแจได้จากการรับของผจญภัย</span>
         </div>
       )}
-      {/* raidState.status === "not_allowlisted" -> ไม่ render อะไรเลย ซ่อนทั้งปุ่ม */}
     </div>
   );
 }
