@@ -1,12 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
 import type { RaidGearItemFull } from "@/lib/raid";
+import { resolvePetDisplay } from "@/components/social/petSummary";
 import { createPvpChallenge } from "../actions";
 import PvpPetPicker from "../PvpPetPicker";
 import PvpGearLoadout from "../PvpGearLoadout";
+
+function FriendAvatar({ friend }: { friend: ChallengeableFriend }) {
+  const display = friend.pet ? resolvePetDisplay(friend.pet) : null;
+  return (
+    <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-card">
+      {display?.imagePath ? (
+        <Image src={display.imagePath} alt="" fill className="object-contain" unoptimized />
+      ) : (
+        <span className="text-lg font-bold text-text2">{friend.username.charAt(0).toUpperCase()}</span>
+      )}
+      {friend.matchCount > 0 && (
+        <span className="absolute -bottom-0.5 -right-0.5 rounded-md border-2 border-bg bg-red px-1 text-[9px] font-extrabold text-track">
+          x{friend.matchCount}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function NewChallengeClient({
   friends,
@@ -27,9 +47,23 @@ export default function NewChallengeClient({
   const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const selectedPet = pets.find((p) => p.id === petId) ?? null;
   const locked = petId ? lockedPetIds.includes(petId) : false;
+
+  const filteredFriends = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return friends;
+    return friends.filter((f) => f.username.toLowerCase().includes(q));
+  }, [friends, query]);
+
+  const selectFriend = (id: string) => {
+    setFriendId(id);
+    setSearchOpen(false);
+    setQuery("");
+  };
 
   const submit = () => {
     if (!friendId || !petId) return;
@@ -66,23 +100,71 @@ export default function NewChallengeClient({
             ยังไม่มีเพื่อนระดับชั้นเดียวกัน — เพิ่มเพื่อนก่อนในหน้าสังคม
           </p>
         ) : (
-          <div className="mt-2 space-y-2">
-            {friends.map((f) => (
-              <button
-                key={f.userId}
-                type="button"
-                onClick={() => setFriendId(f.userId)}
-                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                  friendId === f.userId
-                    ? "border-gold bg-amber/10"
-                    : "border-border bg-card"
-                }`}
-              >
-                <span className="text-sm font-bold text-text">{f.username}</span>
-                {friendId === f.userId && <span className="text-xs text-gold-hi">เลือกแล้ว</span>}
-              </button>
-            ))}
-          </div>
+          <>
+            <p className="mt-0.5 mb-2 text-[11px] text-text3">เรียงตามที่ท้ากันบ่อย — เลื่อนดูคนอื่นได้</p>
+            <p className="mb-1.5 text-[11px] font-bold text-gold-dim">ท้าบ่อยล่าสุด</p>
+            <div className="mb-3 flex gap-2.5 overflow-x-auto pb-1">
+              {friends.map((f) => (
+                <button
+                  key={f.userId}
+                  type="button"
+                  onClick={() => selectFriend(f.userId)}
+                  className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+                >
+                  <span
+                    className={`rounded-full ${
+                      friendId === f.userId ? "ring-2 ring-gold ring-offset-2 ring-offset-bg" : ""
+                    }`}
+                  >
+                    <FriendAvatar friend={f} />
+                  </span>
+                  <span className="w-16 truncate text-center text-[11px] text-text">{f.username}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                placeholder="ค้นหาเพื่อนคนอื่น..."
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-text placeholder:text-text3 focus:border-gold-dim focus:outline-none"
+              />
+              {searchOpen && (
+                <div className="mt-2 max-h-64 space-y-1.5 overflow-y-auto">
+                  {filteredFriends.length === 0 ? (
+                    <p className="px-2 py-3 text-center text-xs text-text3">ไม่พบเพื่อน</p>
+                  ) : (
+                    filteredFriends.map((f) => (
+                      <button
+                        key={f.userId}
+                        type="button"
+                        onClick={() => selectFriend(f.userId)}
+                        className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                          friendId === f.userId ? "border-gold bg-amber/10" : "border-border bg-card"
+                        }`}
+                      >
+                        <span className="text-sm font-bold text-text">{f.username}</span>
+                        {friendId === f.userId && <span className="text-xs text-gold-hi">เลือกแล้ว</span>}
+                      </button>
+                    ))
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      setQuery("");
+                    }}
+                    className="w-full py-1.5 text-center text-xs text-text3"
+                  >
+                    ปิด
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </section>
 
