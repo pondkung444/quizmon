@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,33 @@ const ACCENT = {
 
 const DMG_COLOR = "#f87171";
 const HEAL_COLOR = "#34d399";
+
+// ไอคอน/ป้ายวิชา — อ้างอิง emoji เดิมของแอป (QuizClient MODES/SENIOR_MODES)
+const SUBJECT_META: Record<string, { emoji: string; label: string }> = {
+  math: { emoji: "🧮", label: "คณิต" },
+  science: { emoji: "🔬", label: "วิทย์" },
+  physics: { emoji: "⚛️", label: "ฟิสิกส์" },
+  chemistry: { emoji: "⚗️", label: "เคมี" },
+  biology: { emoji: "🧬", label: "ชีวะ" },
+};
+function subjectMeta(subject: string): { emoji: string; label: string } {
+  return SUBJECT_META[subject] ?? { emoji: "📚", label: "วิชา" };
+}
+
+const RULES_TEXT =
+  "เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ · การ์ดมีสี = มีเอฟเฟกต์พิเศษ";
+const RULES_SEEN_KEY = "pvp_rules_seen_count";
+
+// นับต่อเครื่อง (localStorage) — โชว์กติกาเต็ม 3 ครั้งแรกที่เข้าจอเลือกการ์ด
+const rulesStoreNoop = () => () => {};
+function readRulesSeenEnough(): boolean {
+  try {
+    return Number(window.localStorage.getItem(RULES_SEEN_KEY) ?? "0") >= 3;
+  } catch {
+    return false;
+  }
+}
+const readRulesSeenEnoughServer = () => false;
 
 type SideFloat = { key: number; text: string; color: string; crit: boolean } | null;
 
@@ -139,6 +166,25 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const [result, setResult] = useState<PvpSubmitResult | null>(null);
   const submittedRef = useRef(false);
   const resultRef = useRef<PvpSubmitResult | null>(null);
+
+  // กติกาย่อ: โชว์เต็ม 3 ครั้งแรกที่เข้าจอเลือกการ์ด แล้วยุบเหลือปุ่ม "?" (นับต่อเครื่อง)
+  const rulesSeenEnough = useSyncExternalStore(
+    rulesStoreNoop,
+    readRulesSeenEnough,
+    readRulesSeenEnoughServer
+  );
+  const [rulesExpanded, setRulesExpanded] = useState(false);
+  const rulesCountedRef = useRef(false);
+  useEffect(() => {
+    if (!view.isAttacker || rulesCountedRef.current) return;
+    rulesCountedRef.current = true;
+    try {
+      const n = Number(window.localStorage.getItem(RULES_SEEN_KEY) ?? "0");
+      window.localStorage.setItem(RULES_SEEN_KEY, String(Math.min(n + 1, 99)));
+    } catch {
+      /* private mode ฯลฯ — คงโชว์เต็มไว้ */
+    }
+  }, [view.isAttacker]);
 
   const holdRef = useRef(false);
   const refresh = useCallback(() => {
@@ -447,12 +493,24 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       {!result && view.isAttacker && (
         <section className="mt-4 rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-bold text-text2">เลือกการ์ดโจทย์ให้ {view.oppName} ทำ</h2>
-          <p className="mt-1 text-xs text-text3">
-            เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ · การ์ดมีสี = มีเอฟเฟกต์พิเศษ
-          </p>
+          <div className="mt-1 flex items-start gap-2">
+            {rulesSeenEnough && !rulesExpanded ? (
+              <button
+                type="button"
+                onClick={() => setRulesExpanded(true)}
+                aria-label="ดูกติกา"
+                className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border text-[11px] font-bold text-text3"
+              >
+                ?
+              </button>
+            ) : (
+              <p className="text-xs text-text3">{RULES_TEXT}</p>
+            )}
+          </div>
           <div className="mt-4 grid gap-3">
             {view.hand.map((c) => {
               const meta = pvpEffectMeta(c.effect_id);
+              const subj = subjectMeta(c.subject);
               return (
                 <button
                   key={c.id}
@@ -462,19 +520,25 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                   className="rounded-xl border border-border bg-track px-4 py-3.5 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
                   style={
                     meta
-                      ? { borderLeftColor: meta.color, borderLeftWidth: 4 }
+                      ? {
+                          borderLeftColor: meta.color,
+                          borderLeftWidth: 4,
+                          // สีเอฟเฟกต์อาบทั้งใบ ~8% (ทับบน bg-track) — สแกนเร็ว ๆ ก็เห็นว่า "มีสี"
+                          backgroundImage: `linear-gradient(0deg, ${meta.color}14, ${meta.color}14)`,
+                        }
                       : undefined
                   }
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="inline-block rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
-                      {c.subject === "math" ? "คณิต" : "วิทย์"} · ความยาก {c.difficulty}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
+                      <span aria-hidden>{subj.emoji}</span>
+                      {subj.label} · ความยาก {c.difficulty}
                     </span>
                     {meta && <PvpEffectBadge id={meta.id} />}
                   </div>
                   <p className="mt-1.5 font-sarabun text-sm font-bold text-text">{c.chapter}</p>
                   {meta && (
-                    <p className="mt-0.5 text-[11px]" style={{ color: meta.color }}>
+                    <p className="mt-0.5 text-[11px] font-medium" style={{ color: meta.color }}>
                       {meta.hintTh}
                     </p>
                   )}
@@ -516,8 +580,9 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           </p>
 
           <div className="mt-4 flex items-center justify-between gap-2">
-            <span className="inline-block rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
-              {view.activeQuestion.subject === "math" ? "คณิต" : "วิทย์"} · {view.activeQuestion.chapter}
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
+              <span aria-hidden>{subjectMeta(view.activeQuestion.subject).emoji}</span>
+              {subjectMeta(view.activeQuestion.subject).label} · {view.activeQuestion.chapter}
             </span>
             <span className="shrink-0 text-xs text-text3">
               ตอบผิดเสีย ~{pvpEstimatedDamage(view.statsOpp, view.statsMine)}
