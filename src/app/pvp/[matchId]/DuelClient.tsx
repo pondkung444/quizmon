@@ -15,6 +15,7 @@ const ACCENT = {
   opp: { hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
 } as const;
 
+// คลัสเตอร์ของ 1 ฝั่ง: สไปรต์ + ป้ายชื่อ + แถบ HP — วางชิดขอบด้านของตัวเอง (opp=ขวาบน, mine=ซ้ายล่าง)
 function PetSide({
   image,
   name,
@@ -34,32 +35,33 @@ function PetSide({
 }) {
   const a = ACCENT[side];
   const pct = Math.max(0, Math.min(100, (hp / Math.max(1, hpMax)) * 100));
+  const opp = side === "opp";
   return (
-    <div className={`flex items-end gap-3 ${side === "opp" ? "flex-row-reverse" : ""}`}>
-      <div className="relative h-24 w-24 shrink-0">
-        {/* แท่นพลังงานที่ "พื้น" ใต้เท้า — จานแบน accent สีของฝ่ายนั้น สว่างขึ้นตอนถึงตา (ไม่ใช่ออร่ารอบตัว) */}
+    <div className={`flex items-center gap-3 ${opp ? "flex-row-reverse" : ""}`}>
+      {/* สไปรต์ */}
+      <div className="relative h-20 w-20 shrink-0">
+        {/* แท่นพลังงานที่พื้นใต้เท้า — จานแบน accent สว่างขึ้นตอนถึงตา */}
         <div
-          className={`pointer-events-none absolute left-1/2 top-[82%] h-6 w-24 -translate-x-1/2 rounded-[50%] blur-[3px] ${
+          className={`pointer-events-none absolute left-1/2 top-[80%] h-5 w-20 -translate-x-1/2 rounded-[50%] blur-[3px] ${
             glow ? "animate-pvp-platform-pulse" : ""
           }`}
           style={{
-            background: `radial-gradient(ellipse at center, rgba(${a.rgba},${glow ? 0.9 : 0.3}) 0%, transparent 75%)`,
+            background: `radial-gradient(ellipse at center, rgba(${a.rgba},${glow ? 0.9 : 0.28}) 0%, transparent 75%)`,
           }}
         />
-        {/* เงาพื้น */}
-        <div className="pointer-events-none absolute left-1/2 top-[88%] h-2 w-14 -translate-x-1/2 rounded-[50%] bg-black/50 blur-[2px]" />
-        {/* สไปรต์ — เรืองแสง accent ตอนถึงตา (box-shadow นุ่ม ไม่ใช่ ring แข็งที่โดน overflow-hidden ตัด) */}
+        <div className="pointer-events-none absolute left-1/2 top-[86%] h-2 w-12 -translate-x-1/2 rounded-[50%] bg-black/50 blur-[2px]" />
+        {/* เรืองแสง accent ตอนถึงตา (box-shadow นุ่ม) */}
         <div
-          className="relative h-24 w-24 rounded-full transition-shadow duration-300"
+          className="relative h-full w-full rounded-full transition-shadow duration-300"
           style={
             glow
-              ? { boxShadow: `0 0 0 2px rgba(${a.rgba},0.9), 0 0 18px 5px rgba(${a.rgba},0.55)` }
+              ? { boxShadow: `0 0 0 2px rgba(${a.rgba},0.9), 0 0 16px 4px rgba(${a.rgba},0.5)` }
               : undefined
           }
         >
           <div
             className={`relative h-full w-full ${hit ? "animate-pvp-hit" : "animate-pvp-idle-bob"}`}
-            style={!hit && side === "opp" ? { animationDelay: "-1.6s" } : undefined}
+            style={!hit && opp ? { animationDelay: "-1.6s" } : undefined}
           >
             {image && (
               <Image
@@ -68,21 +70,21 @@ function PetSide({
                 fill
                 unoptimized
                 className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
-                style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
+                style={opp ? { transform: "scaleX(-1)" } : undefined}
               />
             )}
           </div>
         </div>
       </div>
-      <div className={`w-32 shrink-0 pb-1 ${side === "opp" ? "text-right" : ""}`}>
-        {/* ชื่อ 1 บรรทัด ตัด ... เสมอ (A.3) — ชื่อยาวห้ามดันเลย์เอาต์ */}
+      {/* ชื่อ + HP */}
+      <div className={`w-[9.5rem] ${opp ? "text-right" : ""}`}>
         <span
           className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-xs font-bold ${a.pill}`}
           title={name}
         >
           {name}
         </span>
-        <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-track">
+        <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-black/40">
           <div className={`h-full ${a.hp} transition-all duration-500`} style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-0.5 text-[10px] text-text3">
@@ -194,13 +196,14 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowOpp = view.status === "active" && !view.myTurn;
 
   const battleStage = (
-    // ความสูงคงที่ทุก state (A.1) — h-60 (240px) เผื่อ margin จาก single-line layout ที่ truncate แล้ว (A.3)
-    <div className="relative flex h-60 flex-col justify-between overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-4">
-      {/* ลำแสงกลาง แผ่จากจุด VS */}
-      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
+    // A.1/A.4 — ขนาดคงที่ทุก state (w เต็ม, h 240px). คลัสเตอร์สองฝั่ง absolute ชิดมุมของตัวเอง
+    <div className="relative h-60 w-full overflow-hidden rounded-2xl border border-gold-dim bg-gradient-to-b from-[#23252c] to-track">
+      {/* ลำแสงกลาง + แสงเรืองที่จุด VS */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
 
-      <div className="relative flex justify-end">
+      {/* คู่ต่อสู้ — ขวาบน */}
+      <div className="absolute right-4 top-4">
         <PetSide
           image={view.petOppImage}
           name={view.petOppName}
@@ -212,8 +215,9 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         />
       </div>
 
-      <div className="relative my-2 flex items-center justify-center">
-        <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/25 blur-md" />
+      {/* VS — กลางจริง */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute left-1/2 top-1/2 h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/25 blur-md" />
         {spark > 0 && (
           <span
             key={spark}
@@ -224,7 +228,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         <span className="relative text-sm font-black tracking-[0.3em] text-gold-hi">VS</span>
       </div>
 
-      <div className="relative flex justify-start">
+      {/* เรา — ซ้ายล่าง */}
+      <div className="absolute bottom-4 left-4">
         <PetSide
           image={view.petMineImage}
           name={view.petMineName}
