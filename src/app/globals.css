@@ -547,8 +547,19 @@ body {
   animation: pvp-platform-pulse 1.8s ease-in-out infinite;
 }
 
+/* idle — Qmon ขยับขึ้นลงเบา ๆ ตลอด (opp เยื้องเฟสด้วย animation-delay ที่ตั้ง inline)
+   ให้สไปรต์รู้สึกมีชีวิตแม้ไม่ถึงตา — เบาพอไม่ดึงสายตาจากพาเนลคำถาม */
+@keyframes pvp-idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.animate-pvp-idle-bob {
+  animation: pvp-idle-bob 3.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pvp-hit,
+  .animate-pvp-idle-bob,
   .animate-pvp-platform-pulse { animation: none; }
   .animate-pvp-vs-spark { display: none; }
 }

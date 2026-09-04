@@ -46,22 +46,27 @@ function PetSide({
         />
         {/* เงาพื้น */}
         <div className="pointer-events-none absolute left-1/2 top-[88%] h-2.5 w-16 -translate-x-1/2 rounded-[50%] bg-black/45 blur-[2px]" />
-        {/* สไปรต์ */}
+        {/* สไปรต์ — วงแหวนถึงตา (ring) แยกจากชั้น animation ด้านใน */}
         <div
           className={`relative h-24 w-24 rounded-full transition ${
             glow ? `ring-4 ${a.ring} ring-offset-2 ring-offset-track` : ""
-          } ${hit ? "animate-pvp-hit" : ""}`}
+          }`}
         >
-          {image && (
-            <Image
-              src={image}
-              alt={name}
-              fill
-              unoptimized
-              className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
-              style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
-            />
-          )}
+          <div
+            className={`relative h-full w-full ${hit ? "animate-pvp-hit" : "animate-pvp-idle-bob"}`}
+            style={!hit && side === "opp" ? { animationDelay: "-1.6s" } : undefined}
+          >
+            {image && (
+              <Image
+                src={image}
+                alt={name}
+                fill
+                unoptimized
+                className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
+                style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
+              />
+            )}
+          </div>
         </div>
       </div>
       <div className={`w-32 pb-1 ${side === "opp" ? "text-right" : ""}`}>
@@ -180,7 +185,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowOpp = view.status === "active" && !view.myTurn;
 
   const battleStage = (
-    <div className="relative overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-5">
+    // ความสูงคงที่ทุก state (A.1) — พาเนลข้างล่างเปลี่ยนเนื้อหาได้ แต่ arena ต้องไม่ขยับขนาด
+    <div className="relative flex h-56 flex-col justify-between overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-4">
       {/* ลำแสงกลาง แผ่จากจุด VS */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
@@ -288,24 +294,24 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- ผู้ส่ง: เลือกการ์ด ---- */}
       {!result && view.isAttacker && (
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+        <section className="mt-4 rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-bold text-text2">เลือกการ์ดโจทย์ให้ {view.oppName} ทำ</h2>
           <p className="mt-1 text-xs text-text3">
             เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ
           </p>
-          <div className="mt-3 grid gap-2">
+          <div className="mt-4 grid gap-3">
             {view.hand.map((c) => (
               <button
                 key={c.id}
                 type="button"
                 disabled={busy}
                 onClick={() => void doAssign(c.id)}
-                className="rounded-xl border border-border bg-track px-4 py-3 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
+                className="rounded-xl border border-border bg-track px-4 py-3.5 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
               >
-                <p className="font-sarabun text-sm font-bold text-text">{c.chapter}</p>
-                <p className="text-xs text-text3">
+                <span className="inline-block rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
                   {c.subject === "math" ? "คณิต" : "วิทย์"} · ความยาก {c.difficulty}
-                </p>
+                </span>
+                <p className="mt-1.5 font-sarabun text-sm font-bold text-text">{c.chapter}</p>
               </button>
             ))}
             {view.hand.length === 0 && (
@@ -317,7 +323,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- ผู้ตอบ: ทำโจทย์ ---- */}
       {!result && view.isDefender && view.activeQuestion && (
-        <section className="mt-4 rounded-2xl border border-border bg-card p-4">
+        <section className="mt-4 rounded-2xl border border-border bg-card p-5">
           {/* timer bar — เหนือโจทย์ */}
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-track">
             <div
@@ -329,13 +335,17 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           </div>
           <p className="mt-1 text-right text-xs text-text3">{remain} วิ</p>
 
-          <p className="mt-2 text-xs text-text3">
-            {view.activeQuestion.chapter} · ตอบผิดเสีย ~
-            {pvpEstimatedDamage(view.statsOpp, view.statsMine)} เลือด
-          </p>
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="inline-block rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
+              {view.activeQuestion.subject === "math" ? "คณิต" : "วิทย์"} · {view.activeQuestion.chapter}
+            </span>
+            <span className="shrink-0 text-xs text-text3">
+              ตอบผิดเสีย ~{pvpEstimatedDamage(view.statsOpp, view.statsMine)}
+            </span>
+          </div>
 
           {view.activeQuestion.imageUrl && (
-            <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-xl bg-track">
+            <div className="relative mt-4 aspect-video w-full overflow-hidden rounded-xl bg-track">
               <Image
                 src={view.activeQuestion.imageUrl}
                 alt=""
@@ -346,20 +356,21 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
             </div>
           )}
 
-          <p className="mt-3 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
+          <p className="mt-4 whitespace-pre-wrap font-sarabun text-base font-medium leading-relaxed text-text">
             {view.activeQuestion.questionText}
           </p>
 
-          <div className="mt-4 grid gap-2">
+          <div className="mt-5 grid gap-3">
             {view.activeQuestion.choices.map((c, i) => (
               <button
                 key={i}
                 type="button"
                 disabled={busy}
                 onClick={() => void doSubmit(i)}
-                className="rounded-xl border border-border bg-track px-4 py-3 text-left font-sarabun text-sm text-text transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
+                className="flex items-start gap-3 rounded-xl border border-border bg-track px-4 py-3.5 text-left font-sarabun text-sm text-text transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
               >
-                {c}
+                <span className="mt-0.5 h-4 w-4 shrink-0 rounded-full border border-text3" />
+                <span className="leading-relaxed">{c}</span>
               </button>
             ))}
           </div>

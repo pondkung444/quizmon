@@ -386,6 +386,7 @@ export type PvpDuelQuestion = {
   imageUrl: string | null;
   difficulty: number;
   chapter: string;
+  subject: string;
 };
 
 export type PvpMatchView = {
@@ -487,7 +488,7 @@ export async function getPvpMatchView(
       const admin = createAdminClient();
       const { data: q } = await admin
         .from("questions")
-        .select("id, question_text, choices, image_url, difficulty, chapter")
+        .select("id, question_text, choices, image_url, difficulty, chapter, subject")
         .eq("id", c.question_id)
         .maybeSingle();
       if (q) {
@@ -498,6 +499,7 @@ export async function getPvpMatchView(
           imageUrl: q.image_url ?? null,
           difficulty: q.difficulty,
           chapter: q.chapter,
+          subject: q.subject,
         };
       }
     }
