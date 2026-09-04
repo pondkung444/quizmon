@@ -37,15 +37,17 @@ function PetSide({
   return (
     <div className={`flex items-end gap-3 ${side === "opp" ? "flex-row-reverse" : ""}`}>
       <div className="relative h-24 w-24 shrink-0">
-        {/* แท่นพลังงาน (radial glow) */}
+        {/* แท่นพลังงาน (radial glow) — accent สีของฝ่ายนั้น สว่างขึ้นตอนถึงตา */}
         <div
-          className={`pointer-events-none absolute left-1/2 top-[64%] h-9 w-24 -translate-x-1/2 rounded-[50%] ${
+          className={`pointer-events-none absolute left-1/2 top-[58%] h-14 w-28 -translate-x-1/2 rounded-[50%] blur-[2px] ${
             glow ? "animate-pvp-platform-pulse" : ""
           }`}
-          style={{ background: `radial-gradient(ellipse, rgba(${a.rgba},${glow ? 0.55 : 0.3}) 0%, transparent 70%)` }}
+          style={{
+            background: `radial-gradient(ellipse at center, rgba(${a.rgba},${glow ? 0.85 : 0.42}) 0%, rgba(${a.rgba},0.15) 45%, transparent 72%)`,
+          }}
         />
         {/* เงาพื้น */}
-        <div className="pointer-events-none absolute left-1/2 top-[88%] h-2.5 w-16 -translate-x-1/2 rounded-[50%] bg-black/45 blur-[2px]" />
+        <div className="pointer-events-none absolute left-1/2 top-[90%] h-2.5 w-16 -translate-x-1/2 rounded-[50%] bg-black/50 blur-[2px]" />
         {/* สไปรต์ — วงแหวนถึงตา (ring) แยกจากชั้น animation ด้านใน */}
         <div
           className={`relative h-24 w-24 rounded-full transition ${
@@ -69,8 +71,12 @@ function PetSide({
           </div>
         </div>
       </div>
-      <div className={`w-32 pb-1 ${side === "opp" ? "text-right" : ""}`}>
-        <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${a.pill}`}>
+      <div className={`w-32 shrink-0 pb-1 ${side === "opp" ? "text-right" : ""}`}>
+        {/* ชื่อ 1 บรรทัด ตัด ... เสมอ (A.3) — ชื่อยาวห้ามดันเลย์เอาต์ */}
+        <span
+          className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-xs font-bold ${a.pill}`}
+          title={name}
+        >
           {name}
         </span>
         <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-track">
@@ -185,8 +191,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowOpp = view.status === "active" && !view.myTurn;
 
   const battleStage = (
-    // ความสูงคงที่ทุก state (A.1) — พาเนลข้างล่างเปลี่ยนเนื้อหาได้ แต่ arena ต้องไม่ขยับขนาด
-    <div className="relative flex h-56 flex-col justify-between overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-4">
+    // ความสูงคงที่ทุก state (A.1) — h-60 (240px) เผื่อ margin จาก single-line layout ที่ truncate แล้ว (A.3)
+    <div className="relative flex h-60 flex-col justify-between overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-4">
       {/* ลำแสงกลาง แผ่จากจุด VS */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
