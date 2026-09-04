@@ -79,6 +79,36 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
   return pets;
 }
 
+// สไลซ์ 4: Qmon ที่ถอด/ใส่อุปกรณ์ไม่ได้ตอนนี้ (ผูกกับ PvP อยู่) — ตรงกับ lock ใน equip_raid_gear
+//   - เป็น challenger_pet_id ของคำท้าที่ status='pending'
+//   - เป็น pet_a/pet_b ของแมตช์ที่ status='active'
+export async function getPvpGearLockedPetIds(userId: string): Promise<string[]> {
+  const admin = createAdminClient();
+  const [{ data: myPets }, { data: pending }, { data: active }] = await Promise.all([
+    admin.from("pets").select("id").eq("user_id", userId),
+    admin
+      .from("pvp_challenges")
+      .select("challenger_pet_id")
+      .eq("challenger_id", userId)
+      .eq("status", "pending"),
+    admin
+      .from("pvp_matches")
+      .select("pet_a_id, pet_b_id")
+      .eq("status", "active")
+      .or(`player_a_id.eq.${userId},player_b_id.eq.${userId}`),
+  ]);
+  const mine = new Set((myPets ?? []).map((p) => p.id as string));
+  const locked = new Set<string>();
+  for (const c of pending ?? []) {
+    if (c.challenger_pet_id) locked.add(c.challenger_pet_id as string);
+  }
+  for (const m of active ?? []) {
+    if (m.pet_a_id && mine.has(m.pet_a_id as string)) locked.add(m.pet_a_id as string);
+    if (m.pet_b_id && mine.has(m.pet_b_id as string)) locked.add(m.pet_b_id as string);
+  }
+  return [...locked];
+}
+
 export type ChallengeableFriend = {
   userId: string;
   username: string;

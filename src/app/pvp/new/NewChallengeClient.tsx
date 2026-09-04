@@ -3,23 +3,33 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
+import type { RaidGearItemFull } from "@/lib/raid";
 import { createPvpChallenge } from "../actions";
 import PvpPetPicker from "../PvpPetPicker";
+import PvpGearLoadout from "../PvpGearLoadout";
 
 export default function NewChallengeClient({
   friends,
   pets,
   ticketBalance,
+  gearItems,
+  lockedPetIds,
 }: {
   friends: ChallengeableFriend[];
   pets: PvpPetPick[];
   ticketBalance: number;
+  gearItems: RaidGearItemFull[];
+  lockedPetIds: string[];
 }) {
   const router = useRouter();
   const [friendId, setFriendId] = useState<string | null>(friends[0]?.userId ?? null);
   const [petId, setPetId] = useState<string | null>(pets[0]?.id ?? null);
+  const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const selectedPet = pets.find((p) => p.id === petId) ?? null;
+  const locked = petId ? lockedPetIds.includes(petId) : false;
 
   const submit = () => {
     if (!friendId || !petId) return;
@@ -82,6 +92,15 @@ export default function NewChallengeClient({
         <div className="mt-2">
           <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
+        {selectedPet && (
+          <PvpGearLoadout
+            petId={selectedPet.id}
+            baseStats={selectedPet.stats}
+            items={items}
+            setItems={setItems}
+            locked={locked}
+          />
+        )}
       </section>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}

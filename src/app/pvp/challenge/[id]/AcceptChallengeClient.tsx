@@ -3,20 +3,30 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PvpChallengeForAccept, PvpPetPick } from "@/lib/pvp";
+import type { RaidGearItemFull } from "@/lib/raid";
 import { acceptPvpChallenge, declinePvpChallenge } from "../../actions";
 import PvpPetPicker from "../../PvpPetPicker";
+import PvpGearLoadout from "../../PvpGearLoadout";
 
 export default function AcceptChallengeClient({
   challenge,
   pets,
+  gearItems,
+  lockedPetIds,
 }: {
   challenge: PvpChallengeForAccept;
   pets: PvpPetPick[];
+  gearItems: RaidGearItemFull[];
+  lockedPetIds: string[];
 }) {
   const router = useRouter();
   const [petId, setPetId] = useState<string | null>(pets[0]?.id ?? null);
+  const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const selectedPet = pets.find((p) => p.id === petId) ?? null;
+  const locked = petId ? lockedPetIds.includes(petId) : false;
 
   const accept = () => {
     if (!petId) return;
@@ -53,6 +63,15 @@ export default function AcceptChallengeClient({
         <div className="mt-2">
           <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
+        {selectedPet && (
+          <PvpGearLoadout
+            petId={selectedPet.id}
+            baseStats={selectedPet.stats}
+            items={items}
+            setItems={setItems}
+            locked={locked}
+          />
+        )}
       </section>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}

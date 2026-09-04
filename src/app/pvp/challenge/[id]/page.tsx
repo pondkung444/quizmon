@@ -4,7 +4,9 @@ import {
   requirePvpAccess,
   getPvpChallengeForAccept,
   getPvpEligiblePets,
+  getPvpGearLockedPetIds,
 } from "@/lib/pvp";
+import { getUserRaidGearItems } from "@/lib/raid";
 import AcceptChallengeClient from "./AcceptChallengeClient";
 
 export const dynamic = "force-dynamic";
@@ -22,8 +24,19 @@ export default async function AcceptPvpChallengePage({
   if (!challenge) redirect("/pvp");
   if (challenge.status !== "pending") redirect("/pvp");
 
-  const pets = await getPvpEligiblePets(user.id);
+  const [pets, gearItems, lockedPetIds] = await Promise.all([
+    getPvpEligiblePets(user.id),
+    getUserRaidGearItems(supabase, user.id),
+    getPvpGearLockedPetIds(user.id),
+  ]);
   if (pets.length === 0) redirect("/pet");
 
-  return <AcceptChallengeClient challenge={challenge} pets={pets} />;
+  return (
+    <AcceptChallengeClient
+      challenge={challenge}
+      pets={pets}
+      gearItems={gearItems}
+      lockedPetIds={lockedPetIds}
+    />
+  );
 }
