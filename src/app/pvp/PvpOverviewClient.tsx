@@ -57,7 +57,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
   };
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+    <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
         <Link

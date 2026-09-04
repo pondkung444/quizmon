@@ -208,6 +208,37 @@ export type PvpOverview = {
   finished: PvpMatchListItem[];
 };
 
+async function petSpriteMap(
+  petIds: string[]
+): Promise<Map<string, { imagePath: string; name: string }>> {
+  const admin = createAdminClient();
+  const uniq = [...new Set(petIds)].filter(Boolean);
+  const out = new Map<string, { imagePath: string; name: string }>();
+  if (uniq.length === 0) return out;
+  const { data } = await admin
+    .from("pets")
+    .select("id, nickname, subline, personality, egg_types(sprite_prefix, name_th)")
+    .in("id", uniq);
+  for (const p of data ?? []) {
+    const egg = (Array.isArray(p.egg_types) ? p.egg_types[0] : p.egg_types) as
+      | { sprite_prefix: string; name_th: string }
+      | null;
+    const line = parsePetLine(p.subline);
+    if (!egg || !line || !p.personality) continue;
+    try {
+      out.set(p.id, {
+        imagePath: getPetImagePath(egg.sprite_prefix, 4, line as Subline, p.personality as Personality),
+        name:
+          p.nickname ??
+          getSpeciesName(egg.sprite_prefix, 4, line, p.personality as Personality, egg.name_th),
+      });
+    } catch {
+      /* skip */
+    }
+  }
+  return out;
+}
+
 async function nameMap(userIds: string[]): Promise<Map<string, string>> {
   const admin = createAdminClient();
   const uniq = [...new Set(userIds)].filter(Boolean);
@@ -355,6 +386,7 @@ export type PvpDuelQuestion = {
   imageUrl: string | null;
   difficulty: number;
   chapter: string;
+  subject: string;
 };
 
 export type PvpMatchView = {
@@ -367,6 +399,10 @@ export type PvpMatchView = {
   iAm: "a" | "b";
   meName: string;
   oppName: string;
+  petMineImage: string | null;
+  petMineName: string;
+  petOppImage: string | null;
+  petOppName: string;
   hpMine: number;
   hpMineMax: number;
   hpOpp: number;
@@ -403,7 +439,12 @@ export async function getPvpMatchView(
   const isAttacker = m.status === "active" && m.phase === "assigning" && turnHolder === userId;
   const isDefender = m.status === "active" && m.phase === "answering" && turnHolder === userId;
 
-  const names = await nameMap([m.player_a_id, m.player_b_id]);
+  const [names, sprites] = await Promise.all([
+    nameMap([m.player_a_id, m.player_b_id]),
+    petSpriteMap([m.pet_a_id, m.pet_b_id]),
+  ]);
+  const myPetId = iAm === "a" ? m.pet_a_id : m.pet_b_id;
+  const oppPetId = iAm === "a" ? m.pet_b_id : m.pet_a_id;
 
   // มือของเรา (การ์ดที่ยังไม่เล่น) — RLS ยอมให้เห็นเฉพาะมือตัวเอง
   let hand: PvpCard[] = [];
@@ -447,7 +488,7 @@ export async function getPvpMatchView(
       const admin = createAdminClient();
       const { data: q } = await admin
         .from("questions")
-        .select("id, question_text, choices, image_url, difficulty, chapter")
+        .select("id, question_text, choices, image_url, difficulty, chapter, subject")
         .eq("id", c.question_id)
         .maybeSingle();
       if (q) {
@@ -458,6 +499,7 @@ export async function getPvpMatchView(
           imageUrl: q.image_url ?? null,
           difficulty: q.difficulty,
           chapter: q.chapter,
+          subject: q.subject,
         };
       }
     }
@@ -475,6 +517,10 @@ export async function getPvpMatchView(
     iAm,
     meName: names.get(userId) ?? "คุณ",
     oppName: names.get(iAm === "a" ? m.player_b_id : m.player_a_id) ?? "เพื่อน",
+    petMineImage: sprites.get(myPetId)?.imagePath ?? null,
+    petMineName: sprites.get(myPetId)?.name ?? "Qmon ของคุณ",
+    petOppImage: sprites.get(oppPetId)?.imagePath ?? null,
+    petOppName: sprites.get(oppPetId)?.name ?? "Qmon คู่ต่อสู้",
     hpMine: iAm === "a" ? m.hp_a : m.hp_b,
     hpMineMax: statsMine.hp || 1,
     hpOpp: iAm === "a" ? m.hp_b : m.hp_a,

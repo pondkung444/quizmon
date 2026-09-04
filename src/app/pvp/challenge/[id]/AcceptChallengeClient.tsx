@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PvpChallengeForAccept, PvpPetPick } from "@/lib/pvp";
 import { acceptPvpChallenge, declinePvpChallenge } from "../../actions";
-import { PvpPetCard } from "../../PvpPetCard";
+import PvpPetPicker from "../../PvpPetPicker";
 
 export default function AcceptChallengeClient({
   challenge,
@@ -41,7 +41,7 @@ export default function AcceptChallengeClient({
   };
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+    <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">รับคำท้า</h1>
       <p className="mt-2 text-sm text-text2">
         {challenge.challengerName} ท้าประลอง · ส่ง {challenge.challengerPetName} ลงสนาม
@@ -50,15 +50,8 @@ export default function AcceptChallengeClient({
       <section className="mt-6">
         <h2 className="text-sm font-bold text-text2">เลือก Qmon ของคุณ</h2>
         <p className="mt-1 text-xs text-text3">เริ่มดวลทันทีเมื่อกดรับ</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {pets.map((p) => (
-            <PvpPetCard
-              key={p.id}
-              pet={p}
-              selected={petId === p.id}
-              onSelect={() => setPetId(p.id)}
-            />
-          ))}
+        <div className="mt-2">
+          <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
       </section>
 
