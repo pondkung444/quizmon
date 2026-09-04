@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Crown, Users, Warehouse } from "lucide-react";
+import { Swords, Users, Warehouse } from "lucide-react";
 
 const TABS = [
   {
@@ -26,9 +26,9 @@ const TABS = [
     icon: (active: boolean) => <Warehouse strokeWidth={active ? 2 : 1.5} />,
   },
   {
-    href: "/hall-of-fame",
-    label: "หอเกียรติยศ",
-    icon: (active: boolean) => <Crown strokeWidth={active ? 2 : 1.5} />,
+    href: "/pvp",
+    label: "ประลอง",
+    icon: (active: boolean) => <Swords strokeWidth={active ? 2 : 1.5} />,
   },
 ];
 

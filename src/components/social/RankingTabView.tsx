@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Flame, CalendarCheck, Trophy, Egg } from "lucide-react";
+import { Flame, CalendarCheck, Trophy, Egg, Crown, ChevronRight } from "lucide-react";
 import { resolvePetDisplay } from "@/components/social/petSummary";
 import { loadRanking } from "@/app/social/actions";
 import type { RankingCategory, RankingData, RankingRow, RankingScope } from "@/lib/ranking";
@@ -140,6 +140,21 @@ export default function RankingTabView({
           );
         })}
       </div>
+
+      {/* จุดเข้าหอเกียรติยศ — ย้ายมาจากปุ่มเมนูล่าง (สไลซ์ 5 PvP) ให้เด่นเป็นการ์ดเต็มแถว ไม่ใช่ tile ที่ 5 ของ grid */}
+      <Link
+        href="/hall-of-fame"
+        className="flex min-h-16 items-center gap-3 rounded-2xl border border-gold bg-gradient-to-r from-gold/20 via-gold-dim/10 to-transparent p-4 transition active:scale-95"
+      >
+        <span className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-gold/20">
+          <Crown className="h-6 w-6 text-gold-hi" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-extrabold text-gold-hi">หอเกียรติยศ</p>
+          <p className="text-xs text-text3">ดูผู้เล่นระดับตำนานทั้งหมด</p>
+        </div>
+        <ChevronRight className="h-5 w-5 flex-none text-gold-dim" />
+      </Link>
 
       {error && <p className="text-center text-sm text-red">{error}</p>}
 
