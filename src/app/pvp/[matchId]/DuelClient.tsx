@@ -13,6 +13,7 @@ import {
   applyPvpMatchEvolution,
   assignPvpCard,
   drawPvpCards,
+  startPvpAnswer,
   submitPvpCard,
   type PvpSubmitResult,
 } from "../actions";
@@ -367,6 +368,19 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     refresh();
   };
 
+  // สไลซ์ 5 — ผู้ตอบกด "เริ่มตอบ" หลังเห็น preview การ์ด -> นาฬิกาเริ่มนับจริง ณ ตอนนี้
+  const doStart = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await startPvpAnswer(view.matchId);
+    setBusy(false);
+    if (!r.ok) {
+      setError(r.message);
+      return;
+    }
+    refresh();
+  };
+
   const glowMine = view.status === "active" && view.myTurn;
   const glowOpp = view.status === "active" && !view.myTurn;
 
@@ -607,6 +621,32 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         </section>
       )}
 
+      {/* ---- ผู้ตอบ: เห็นการ์ดมาถึงแล้ว แต่นาฬิกายังไม่เริ่ม (สไลซ์ 5) ---- */}
+      {!result && view.isCardReady && view.activeCard && (
+        <section className="mt-4 rounded-2xl border border-border bg-card p-5 text-center">
+          <p className="text-sm font-bold text-text2">การ์ดโจทย์จาก {view.oppName} มาถึงแล้ว</p>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
+              <span aria-hidden>{subjectMeta(view.activeCard.subject).emoji}</span>
+              {subjectMeta(view.activeCard.subject).label} · ความยาก {view.activeCard.difficulty}
+            </span>
+            {pvpEffectMeta(view.activeCard.effect_id) && (
+              <PvpEffectBadge id={view.activeCard.effect_id as string} />
+            )}
+          </div>
+          <p className="mt-2 font-sarabun text-base font-bold text-text">{view.activeCard.chapter}</p>
+          <p className="mt-3 text-xs text-text3">นาฬิกาจะเริ่มนับตอนกดเริ่มตอบ ไม่ใช่ตอนนี้</p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void doStart()}
+            className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          >
+            เริ่มตอบ
+          </button>
+        </section>
+      )}
+
       {/* ---- ผู้ตอบ: ทำโจทย์ ---- */}
       {!result && view.isDefender && view.activeQuestion && (
         <section className="mt-4 rounded-2xl border border-border bg-card p-5">
@@ -684,7 +724,9 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           <p className="text-sm font-bold text-text2">
             {view.phase === "assigning"
               ? `รอ ${view.oppName} เลือกการ์ด…`
-              : `รอ ${view.oppName} ตอบโจทย์…`}
+              : view.phase === "card_ready"
+                ? `รอ ${view.oppName} เปิดดูการ์ด…`
+                : `รอ ${view.oppName} ตอบโจทย์…`}
           </p>
           <p className="mt-2 text-xs text-text3">ปิดแอปได้ กลับมาเล่นต่อได้ภายใน 3 วัน</p>
         </div>

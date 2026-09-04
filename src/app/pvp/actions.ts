@@ -146,6 +146,15 @@ export async function assignPvpCard(
   return { ok: true, data: null };
 }
 
+// สไลซ์ 5 — ผู้ตอบเห็น preview การ์ด (phase='card_ready') แล้วกด "เริ่มตอบ" -> นาฬิกาเริ่มนับจริง ณ ตอนนี้
+export async function startPvpAnswer(matchId: string): Promise<PvpActionResult> {
+  await requireUserId();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("start_pvp_answer", { p_match_id: matchId });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: null };
+}
+
 export type PvpSubmitResult = {
   is_correct: boolean | null;
   damage: number; // ดาเมจรวมที่ผู้ตอบได้รับยกนี้ (ฐาน + pierce)

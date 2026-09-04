@@ -346,6 +346,36 @@ export async function getPvpTicketBalance(
   return count ?? 0;
 }
 
+// สไลซ์ 5 — ตัวเลข badge สีแดงบนปุ่ม "ประลอง" ในเมนูล่าง (mirror pattern hasUnreadEncouragements
+// ใน src/app/layout.tsx) รวม 2 ก้อน:
+//   1) แมตช์ active ที่ถึงตาเรา — ใช้ matchTurnHolder ตัวเดียวกับที่ getPvpOverview ใช้แบ่ง yourTurn/waiting
+//      (ครอบคลุมทั้ง 3 เคสจากเอกสาร: card_ready ที่เราเป็นผู้ตอบ, assigning ที่เราเป็นผู้ส่ง,
+//      answering ที่เราเป็นผู้ตอบ — เพราะ turnHolder คืนผู้ตอบเสมอเมื่อ phase ไม่ใช่ assigning)
+//   2) คำท้าที่ "รับเข้ามา" (opponent_id = เรา) และยัง pending — ไม่นับคำท้าที่เราส่งเองรอฝั่งเขาตอบ
+// เรียก pvp_gc() ก่อนนับ (เหมือน getPvpOverview) กันนับแมตช์/คำท้าที่หมดอายุจริงแล้วแต่ยังไม่ lazy-resolve
+export async function getPvpBadgeCount(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<number> {
+  await supabase.rpc("pvp_gc");
+
+  const [{ data: matches }, { count: pendingCount }] = await Promise.all([
+    supabase
+      .from("pvp_matches")
+      .select("phase, attacker_id, player_a_id, player_b_id")
+      .eq("status", "active")
+      .or(`player_a_id.eq.${userId},player_b_id.eq.${userId}`),
+    supabase
+      .from("pvp_challenges")
+      .select("id", { count: "exact", head: true })
+      .eq("opponent_id", userId)
+      .eq("status", "pending"),
+  ]);
+
+  const myTurnCount = (matches ?? []).filter((m) => matchTurnHolder(m) === userId).length;
+  return myTurnCount + (pendingCount ?? 0);
+}
+
 // ตรรกะ reconcile วิวัฒนาการ PvP ย้ายไป src/lib/petEvolution.ts (evolvePet) —
 // ใช้ร่วมกับ finishQuizRound. server action = applyPvpMatchEvolution (src/app/pvp/actions.ts)
 
@@ -394,7 +424,7 @@ function matchTurnHolder(m: {
   player_a_id: string;
   player_b_id: string;
 }): string {
-  // phase='assigning' -> ผู้ส่ง (attacker) · phase='answering' -> ผู้ตอบ (อีกคน)
+  // phase='assigning' -> ผู้ส่ง (attacker) · phase='card_ready'|'answering' -> ผู้ตอบ (อีกคน)
   if (m.phase === "assigning") return m.attacker_id;
   return m.attacker_id === m.player_a_id ? m.player_b_id : m.player_a_id;
 }
@@ -541,7 +571,7 @@ export type PvpDuelQuestion = {
 export type PvpMatchView = {
   matchId: string;
   status: "active" | "finished" | "abandoned";
-  phase: "assigning" | "answering";
+  phase: "assigning" | "card_ready" | "answering";
   currentRound: number;
   maxRounds: number;
 
@@ -560,14 +590,15 @@ export type PvpMatchView = {
   statsOpp: PvpPetStats;
 
   isAttacker: boolean; // ถึงตาเราส่งการ์ด
-  isDefender: boolean; // ถึงตาเราตอบ
+  isCardReady: boolean; // สไลซ์ 5: การ์ดมาถึงแล้วแต่นาฬิกายังไม่เริ่ม — รอเรากด "เริ่มตอบ"
+  isDefender: boolean; // ถึงตาเราตอบ (phase='answering' — นาฬิกาเริ่มนับแล้ว)
   myTurn: boolean;
 
   hand: PvpCard[]; // มือของเรา (เฉพาะตอน isAttacker && phase='assigning')
-  activeCard: PvpCard | null; // การ์ดที่กำลังเล่น (phase='answering')
-  activeQuestion: PvpDuelQuestion | null; // โจทย์ของ activeCard — ตัด correct_index ออก
+  activeCard: PvpCard | null; // การ์ดที่กำลังเล่น (phase='card_ready'|'answering') — metadata เท่านั้น ไม่มีโจทย์
+  activeQuestion: PvpDuelQuestion | null; // โจทย์ของ activeCard — เฉพาะตอน phase='answering' (ตัด correct_index ออก)
   timerSeconds: number; // ความยาว timer เต็มของยกนี้ (คิด haste แล้ว)
-  roundDeadline: string | null; // เส้นตายตอบจริงจาก server (ISO) — null เมื่อไม่ใช่ช่วง answering
+  roundDeadline: string | null; // เส้นตายตอบจริงจาก server (ISO) — null จนกว่าจะกด "เริ่มตอบ" (start_pvp_answer)
 
   outcome: "a_win" | "b_win" | "draw" | null;
   iWon: boolean | null;
@@ -594,6 +625,7 @@ export async function getPvpMatchView(
   const statsOpp = parsePvpStats(iAm === "a" ? m.stat_b : m.stat_a);
   const turnHolder = matchTurnHolder(m);
   const isAttacker = m.status === "active" && m.phase === "assigning" && turnHolder === userId;
+  const isCardReady = m.status === "active" && m.phase === "card_ready" && turnHolder === userId;
   const isDefender = m.status === "active" && m.phase === "answering" && turnHolder === userId;
 
   const [names, sprites] = await Promise.all([
@@ -623,10 +655,11 @@ export async function getPvpMatchView(
     }));
   }
 
-  // การ์ด + โจทย์ที่กำลังเล่น (phase='answering')
+  // การ์ดที่กำลังเล่น — metadata ระหว่าง 'card_ready'|'answering' ทั้งคู่ (ผู้ตอบเห็นได้ตั้งแต่ card_ready
+  // แต่ยังไม่เห็นตัวโจทย์จริง), โจทย์เต็ม (พร้อม choices) โหลดเฉพาะตอน 'answering' เท่านั้น
   let activeCard: PvpCard | null = null;
   let activeQuestion: PvpDuelQuestion | null = null;
-  if (m.status === "active" && m.phase === "answering" && m.active_card_id) {
+  if (m.status === "active" && (m.phase === "card_ready" || m.phase === "answering") && m.active_card_id) {
     const { data: c } = await supabase
       .from("pvp_match_cards")
       .select("id, chapter, subject, difficulty, effect_id, question_id")
@@ -641,23 +674,25 @@ export async function getPvpMatchView(
         effect_id: c.effect_id,
         question_id: c.question_id,
       };
-      // อ่านโจทย์ผ่าน admin (questions RLS ล็อก) — ตัด correct_index/explanation ทิ้งก่อนส่ง client
-      const admin = createAdminClient();
-      const { data: q } = await admin
-        .from("questions")
-        .select("id, question_text, choices, image_url, difficulty, chapter, subject")
-        .eq("id", c.question_id)
-        .maybeSingle();
-      if (q) {
-        activeQuestion = {
-          questionId: q.id,
-          questionText: q.question_text,
-          choices: (q.choices ?? []) as string[],
-          imageUrl: q.image_url ?? null,
-          difficulty: q.difficulty,
-          chapter: q.chapter,
-          subject: q.subject,
-        };
+      if (m.phase === "answering") {
+        // อ่านโจทย์ผ่าน admin (questions RLS ล็อก) — ตัด correct_index/explanation ทิ้งก่อนส่ง client
+        const admin = createAdminClient();
+        const { data: q } = await admin
+          .from("questions")
+          .select("id, question_text, choices, image_url, difficulty, chapter, subject")
+          .eq("id", c.question_id)
+          .maybeSingle();
+        if (q) {
+          activeQuestion = {
+            questionId: q.id,
+            questionText: q.question_text,
+            choices: (q.choices ?? []) as string[],
+            imageUrl: q.image_url ?? null,
+            difficulty: q.difficulty,
+            chapter: q.chapter,
+            subject: q.subject,
+          };
+        }
       }
     }
   }
@@ -685,8 +720,9 @@ export async function getPvpMatchView(
     statsMine,
     statsOpp,
     isAttacker,
+    isCardReady,
     isDefender,
-    myTurn: isAttacker || isDefender,
+    myTurn: isAttacker || isCardReady || isDefender,
     hand,
     activeCard,
     activeQuestion,
