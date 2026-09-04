@@ -9,9 +9,11 @@ import PvpPetPicker from "../PvpPetPicker";
 export default function NewChallengeClient({
   friends,
   pets,
+  ticketBalance,
 }: {
   friends: ChallengeableFriend[];
   pets: PvpPetPick[];
+  ticketBalance: number;
 }) {
   const router = useRouter();
   const [friendId, setFriendId] = useState<string | null>(friends[0]?.userId ?? null);
@@ -34,7 +36,17 @@ export default function NewChallengeClient({
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
-      <h1 className="text-2xl font-bold text-gold-hi">ท้าประลอง</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gold-hi">ท้าประลอง</h1>
+        <span className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-text2">
+          🎟️ {ticketBalance}
+        </span>
+      </div>
+      {ticketBalance <= 0 && (
+        <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-text3">
+          ตั๋วประลองหมด — เติมวันละ 2 ใบ หรือได้เพิ่ม 1 ใบต่อการผจญภัยที่จบ
+        </p>
+      )}
 
       <section className="mt-6">
         <h2 className="text-sm font-bold text-text2">เลือกเพื่อน</h2>
@@ -75,7 +87,7 @@ export default function NewChallengeClient({
 
       <button
         type="button"
-        disabled={pending || !friendId || !petId}
+        disabled={pending || !friendId || !petId || ticketBalance <= 0}
         onClick={submit}
         className="mt-6 w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
       >

@@ -2,9 +2,11 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import {
   STAGE_EXP_THRESHOLD,
   STAGE_LABEL_TH,
+  tryAdvanceStage,
   type Subline,
   type Personality,
 } from "@/lib/evolution";
+import { reconcilePvpEvolutionForPet } from "@/lib/pvp";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
@@ -193,6 +195,20 @@ export default async function PetPage({
         };
       });
     }
+  }
+
+  // safety net (สไลซ์ 3): PvP ให้ EXP ตัว active ตรง ๆ ใน SQL โดยไม่เช็ค stage-up (option B) —
+  // ถ้า exp ข้าม threshold แล้วแต่ stage ยังไม่ขยับ (เช่นปิดแอปตอนแมตช์จบ ไม่ได้เปิดหน้าแมตช์) reconcile ที่นี่
+  if (user && pet && tryAdvanceStage(pet.stage, pet.exp) !== pet.stage) {
+    await reconcilePvpEvolutionForPet(supabase, user.id, pet.id);
+    const { data: fresh } = await supabase
+      .from("pets")
+      .select(
+        "id, nickname, exp, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, exp_today, exp_today_date, math_correct, science_correct, combo_milestones, egg_types(sprite_prefix, name_th)"
+      )
+      .eq("id", pet.id)
+      .maybeSingle();
+    if (fresh) pet = fresh;
   }
 
   const exp = pet?.exp ?? 0;
