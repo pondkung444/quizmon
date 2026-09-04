@@ -33,7 +33,7 @@ export default function NewChallengeClient({
   };
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+    <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">ท้าประลอง</h1>
 
       <section className="mt-6">

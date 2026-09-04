@@ -11,8 +11,8 @@ import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from
 
 // accent ต่อฝั่ง — เรา = น้ำเงิน (--color-indigo), คู่ต่อสู้ = แดง (--color-red)
 const ACCENT = {
-  mine: { ring: "ring-indigo", hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
-  opp: { ring: "ring-red", hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
+  mine: { hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
+  opp: { hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
 } as const;
 
 function PetSide({
@@ -37,22 +37,25 @@ function PetSide({
   return (
     <div className={`flex items-end gap-3 ${side === "opp" ? "flex-row-reverse" : ""}`}>
       <div className="relative h-24 w-24 shrink-0">
-        {/* แท่นพลังงาน (radial glow) — accent สีของฝ่ายนั้น สว่างขึ้นตอนถึงตา */}
+        {/* แท่นพลังงานที่ "พื้น" ใต้เท้า — จานแบน accent สีของฝ่ายนั้น สว่างขึ้นตอนถึงตา (ไม่ใช่ออร่ารอบตัว) */}
         <div
-          className={`pointer-events-none absolute left-1/2 top-[58%] h-14 w-28 -translate-x-1/2 rounded-[50%] blur-[2px] ${
+          className={`pointer-events-none absolute left-1/2 top-[82%] h-6 w-24 -translate-x-1/2 rounded-[50%] blur-[3px] ${
             glow ? "animate-pvp-platform-pulse" : ""
           }`}
           style={{
-            background: `radial-gradient(ellipse at center, rgba(${a.rgba},${glow ? 0.85 : 0.42}) 0%, rgba(${a.rgba},0.15) 45%, transparent 72%)`,
+            background: `radial-gradient(ellipse at center, rgba(${a.rgba},${glow ? 0.9 : 0.3}) 0%, transparent 75%)`,
           }}
         />
         {/* เงาพื้น */}
-        <div className="pointer-events-none absolute left-1/2 top-[90%] h-2.5 w-16 -translate-x-1/2 rounded-[50%] bg-black/50 blur-[2px]" />
-        {/* สไปรต์ — วงแหวนถึงตา (ring) แยกจากชั้น animation ด้านใน */}
+        <div className="pointer-events-none absolute left-1/2 top-[88%] h-2 w-14 -translate-x-1/2 rounded-[50%] bg-black/50 blur-[2px]" />
+        {/* สไปรต์ — เรืองแสง accent ตอนถึงตา (box-shadow นุ่ม ไม่ใช่ ring แข็งที่โดน overflow-hidden ตัด) */}
         <div
-          className={`relative h-24 w-24 rounded-full transition ${
-            glow ? `ring-4 ${a.ring} ring-offset-2 ring-offset-track` : ""
-          }`}
+          className="relative h-24 w-24 rounded-full transition-shadow duration-300"
+          style={
+            glow
+              ? { boxShadow: `0 0 0 2px rgba(${a.rgba},0.9), 0 0 18px 5px rgba(${a.rgba},0.55)` }
+              : undefined
+          }
         >
           <div
             className={`relative h-full w-full ${hit ? "animate-pvp-hit" : "animate-pvp-idle-bob"}`}
@@ -239,7 +242,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   if (view.status === "finished" || view.status === "abandoned") {
     const abandoned = view.status === "abandoned";
     return (
-      <main className="mx-auto max-w-xl px-4 py-8 pb-24">
+      <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
         {battleStage}
         <div className="mt-8 text-center">
           {abandoned ? (
@@ -267,7 +270,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
   // ================= กำลังดวล =================
   return (
-    <main className="mx-auto max-w-xl px-4 py-4 pb-24">
+    <main className="mx-auto w-full max-w-xl px-4 py-4 pb-24">
       <div className="mb-2 flex items-center justify-between">
         <Link href="/pvp" className="text-xs text-text3 underline">
           ← ประลอง
