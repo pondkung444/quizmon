@@ -98,8 +98,8 @@ export async function assignPvpCard(
 }
 
 export type PvpSubmitResult = {
-  is_correct: boolean;
-  damage: number;
+  is_correct: boolean | null;
+  damage: number; // ดาเมจรวมที่ผู้ตอบได้รับยกนี้ (ฐาน + pierce)
   crit: boolean;
   hp_a: number;
   hp_b: number;
@@ -109,6 +109,17 @@ export type PvpSubmitResult = {
   current_round: number;
   attacker_id: string;
   phase: "assigning" | "answering";
+  // ---- สไลซ์ 2: เอฟเฟกต์การ์ด ----
+  effect_id: string | null;
+  effect_triggered: boolean;
+  self_damage: number; // reprisal — ดาเมจสะท้อนใส่ผู้ส่ง
+  heal_self: number; // lifesteal — เลือดคืนผู้ส่ง (หลัง cap)
+  heal_defender: number; // heal — เลือดคืนผู้ตอบ (หลัง cap)
+  pierce: number;
+  defender_side: "a" | "b";
+  attacker_side: "a" | "b";
+  timed_out: boolean;
+  noop?: boolean;
 };
 
 // answerIndex = -1 => หมดเวลา (client timer) => นับเป็นตอบผิด

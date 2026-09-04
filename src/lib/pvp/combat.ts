@@ -6,12 +6,23 @@
 import { pvpEffectiveStat, type PvpPetStats } from "@/lib/pvp/stats";
 
 export const PVP_BASE_TIMER_SECONDS = 60;
+export const PVP_HASTE_TIMER_SECONDS = 30; // การ์ด effect_id='haste' — ต้องตรงกับ assign_pvp_card (SQL)
 export const PVP_MAX_ROUNDS = 30;
 
-// timer ของ "ผู้ตอบ" — display เท่านั้นในสไลซ์ 1 (server ไม่บังคับ 60 วิ เพราะต้อง resume ได้)
+// timer ของ "ผู้ตอบ" — สไลซ์ 2: server บังคับผ่าน pvp_matches.round_deadline
+// (client ยังคำนวณเลขนี้ไว้ fallback ตอนยังไม่มี deadline ใน view)
 // TEMP
 export function pvpTimerSeconds(defenderStats: PvpPetStats): number {
   return PVP_BASE_TIMER_SECONDS + Math.round(pvpEffectiveStat(defenderStats, "spd") / 20);
+}
+
+// timer ที่คิดเอฟเฟกต์การ์ดปัจจุบันแล้ว — haste = 30 วิ ตายตัว
+export function pvpTimerSecondsForCard(
+  defenderStats: PvpPetStats,
+  effectId: string | null
+): number {
+  if (effectId === "haste") return PVP_HASTE_TIMER_SECONDS;
+  return pvpTimerSeconds(defenderStats);
 }
 
 // ดาเมจโดยประมาณเมื่อ "ผู้ตอบ" ตอบผิด (โชว์บนการ์ดก่อนส่ง / สรุปหลังตอบ) — TEMP

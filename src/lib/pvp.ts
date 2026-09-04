@@ -5,7 +5,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { getSpeciesName, parsePetLine } from "@/lib/petLine";
 import type { Personality, Subline } from "@/lib/evolution";
 import { parsePvpStats, type PvpCard, type PvpPetStats } from "@/lib/pvp/stats";
-import { pvpTimerSeconds } from "@/lib/pvp/combat";
+import { pvpTimerSecondsForCard } from "@/lib/pvp/combat";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -417,7 +417,8 @@ export type PvpMatchView = {
   hand: PvpCard[]; // มือของเรา (เฉพาะตอน isAttacker && phase='assigning')
   activeCard: PvpCard | null; // การ์ดที่กำลังเล่น (phase='answering')
   activeQuestion: PvpDuelQuestion | null; // โจทย์ของ activeCard — ตัด correct_index ออก
-  timerSeconds: number; // display เท่านั้น (สไลซ์ 1)
+  timerSeconds: number; // ความยาว timer เต็มของยกนี้ (คิด haste แล้ว)
+  roundDeadline: string | null; // เส้นตายตอบจริงจาก server (ISO) — null เมื่อไม่ใช่ช่วง answering
 
   outcome: "a_win" | "b_win" | "draw" | null;
   iWon: boolean | null;
@@ -428,6 +429,9 @@ export async function getPvpMatchView(
   userId: string,
   matchId: string
 ): Promise<PvpMatchView | null> {
+  // lazy: resolve ยกที่หมดเวลาตอบแล้ว (haste 30 วิ / timer ปกติ) ก่อนอ่านสถานะ
+  await supabase.rpc("pvp_gc_round_timeouts");
+
   const { data: m } = await supabase.from("pvp_matches").select("*").eq("id", matchId).maybeSingle();
   if (!m) return null;
   if (m.player_a_id !== userId && m.player_b_id !== userId) return null;
@@ -533,7 +537,8 @@ export async function getPvpMatchView(
     hand,
     activeCard,
     activeQuestion,
-    timerSeconds: pvpTimerSeconds(statsMine),
+    timerSeconds: pvpTimerSecondsForCard(statsMine, activeCard?.effect_id ?? null),
+    roundDeadline: m.phase === "answering" ? (m.round_deadline ?? null) : null,
     outcome: m.outcome,
     iWon: won,
   };
