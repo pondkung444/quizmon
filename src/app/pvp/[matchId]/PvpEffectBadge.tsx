@@ -53,13 +53,15 @@ export function PvpEffectIcon({ id, size = 14 }: { id: PvpEffectId; size?: numbe
 }
 
 // ป้ายเอฟเฟกต์ไว้โชว์บนการ์ด/แถบโจทย์ — ผู้ตอบต้องเห็นก่อนกดตอบ (ไม่ซ่อนหลัง hover)
+// pill สีทึบเต็ม + ตัวอักษรเข้มคอนทราสต์สูง (อ่านง่ายตอนสแกนเร็ว ๆ บนพื้นการ์ดมืด)
+// สีเอฟเฟกต์ทั้ง 6 สว่างพอให้ตัวอักษรสีเกือบดำผ่าน AA สำหรับ bold text ทุกสี
 export function PvpEffectBadge({ id }: { id: string }) {
   const meta = pvpEffectMeta(id);
   if (!meta) return null;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold"
-      style={{ background: `${meta.color}22`, color: meta.color }}
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-extrabold"
+      style={{ background: meta.color, color: "#0b0b12" }}
     >
       <PvpEffectIcon id={meta.id} size={12} />
       {meta.nameTh}
