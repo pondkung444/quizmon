@@ -11,10 +11,13 @@ import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
 import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from "../actions";
 import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
 
-// accent ต่อฝั่ง — เรา = น้ำเงิน (--color-indigo), คู่ต่อสู้ = แดง (--color-red)
+// accent ต่อ "บทบาทในแมตช์" (ไม่ใช่ต่อผู้ชม) — ทั้งสองฝั่งเห็นสีเดียวกันเสมอ
+//   player_a = ผู้ท้า (challenger) -> แดง
+//   player_b = ผู้รับคำท้า (accepter) -> น้ำเงิน
+// ตำแหน่งบนจอยังปรับตามผู้ชม (เรา=ซ้ายล่าง, คู่ต่อสู้=ขวาบน) — แก้เฉพาะสี
 const ACCENT = {
-  mine: { hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
-  opp: { hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
+  a: { hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
+  b: { hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
 } as const;
 
 const DMG_COLOR = "#f87171";
@@ -56,6 +59,7 @@ function PetSide({
   hp,
   hpMax,
   side,
+  accent,
   glow,
   hit,
   float,
@@ -65,13 +69,14 @@ function PetSide({
   name: string;
   hp: number;
   hpMax: number;
-  side: "mine" | "opp";
+  side: "mine" | "opp"; // ตำแหน่ง/เลย์เอาต์ (ตามผู้ชม)
+  accent: "a" | "b"; // สี (ตามบทบาท player_a/player_b — เหมือนกันทั้งสองจอ)
   glow: boolean;
   hit: boolean;
   float: SideFloat;
   critFlash: number;
 }) {
-  const a = ACCENT[side];
+  const a = ACCENT[accent];
   const pct = Math.max(0, Math.min(100, (hp / Math.max(1, hpMax)) * 100));
   const opp = side === "opp";
   return (
@@ -344,6 +349,10 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowMine = view.status === "active" && view.myTurn;
   const glowOpp = view.status === "active" && !view.myTurn;
 
+  // สี = ตามบทบาท (player_a แดง / player_b น้ำเงิน) — เหมือนกันทั้งสองจอ
+  const accentMine: "a" | "b" = view.iAm;
+  const accentOpp: "a" | "b" = view.iAm === "a" ? "b" : "a";
+
   const activeEffect = pvpEffectMeta(view.activeCard?.effect_id);
 
   const battleStage = (
@@ -380,6 +389,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           hp={view.hpOpp}
           hpMax={view.hpOppMax}
           side="opp"
+          accent={accentOpp}
           glow={glowOpp}
           hit={hitOpp}
           float={floatOpp}
@@ -408,6 +418,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           hp={view.hpMine}
           hpMax={view.hpMineMax}
           side="mine"
+          accent={accentMine}
           glow={glowMine}
           hit={hitMine}
           float={floatMine}
