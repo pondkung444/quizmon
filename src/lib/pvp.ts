@@ -6,6 +6,7 @@ import { getSpeciesName, parsePetLine } from "@/lib/petLine";
 import type { Personality, Subline } from "@/lib/evolution";
 import { parsePvpStats, type PvpCard, type PvpPetStats } from "@/lib/pvp/stats";
 import { pvpTimerSecondsForCard } from "@/lib/pvp/combat";
+import type { PetDisplayInput } from "@/components/social/petSummary";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -30,6 +31,8 @@ export type PvpPetPick = {
   imagePath: string;
   subline: string;
   stats: PvpPetStats;
+  statTotal: number;
+  matchCount: number; // จำนวนแมตช์ PvP ทั้งหมด (all-time) ที่ Qmon ตัวนี้เคยลงสนาม — ใช้ตัดสิน badge "ใช้บ่อย"
 };
 
 // Qmon ที่ประลองได้ — stage 4 เท่านั้น (ไม่กรอง is_active — stage 4 ทุกตัว is_active=false)
@@ -44,14 +47,39 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
     .eq("stage", 4)
     .order("hatched_at", { ascending: false });
 
+  const rows = data ?? [];
+  const petIds = rows.map((r) => r.id);
+  const matchCounts = new Map<string, number>();
+  if (petIds.length > 0) {
+    const { data: matches } = await admin
+      .from("pvp_matches")
+      .select("pet_a_id, pet_b_id")
+      .or(`pet_a_id.in.(${petIds.join(",")}),pet_b_id.in.(${petIds.join(",")})`);
+    for (const m of matches ?? []) {
+      if (m.pet_a_id && petIds.includes(m.pet_a_id)) {
+        matchCounts.set(m.pet_a_id, (matchCounts.get(m.pet_a_id) ?? 0) + 1);
+      }
+      if (m.pet_b_id && petIds.includes(m.pet_b_id)) {
+        matchCounts.set(m.pet_b_id, (matchCounts.get(m.pet_b_id) ?? 0) + 1);
+      }
+    }
+  }
+
   const pets: PvpPetPick[] = [];
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const egg = (Array.isArray(row.egg_types) ? row.egg_types[0] : row.egg_types) as
       | { sprite_prefix: string; name_th: string }
       | null;
     const line = parsePetLine(row.subline);
     if (!egg || !line || !row.personality) continue;
     try {
+      const stats = parsePvpStats({
+        hp: row.stat_hp,
+        atk: row.stat_atk,
+        def: row.stat_def,
+        spd: row.stat_spd,
+        foc: row.stat_foc,
+      });
       pets.push({
         id: row.id,
         nickname: row.nickname,
@@ -64,13 +92,9 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
         ),
         imagePath: getPetImagePath(egg.sprite_prefix, 4, line as Subline, row.personality as Personality),
         subline: row.subline as string,
-        stats: parsePvpStats({
-          hp: row.stat_hp,
-          atk: row.stat_atk,
-          def: row.stat_def,
-          spd: row.stat_spd,
-          foc: row.stat_foc,
-        }),
+        stats,
+        statTotal: stats.hp + stats.atk + stats.def + stats.spd + stats.foc,
+        matchCount: matchCounts.get(row.id) ?? 0,
       });
     } catch {
       // pet ข้อมูลไม่ครบ (เช่น sprite mapping ล้ม) — ข้าม
@@ -113,9 +137,13 @@ export type ChallengeableFriend = {
   userId: string;
   username: string;
   gradeBand: string;
+  matchCount: number; // จำนวนแมตช์ที่เคยเล่นจริงกับเพื่อนคนนี้ (all-time) — ใช้เรียงแถว "ท้าบ่อยล่าสุด"
+  friendsSince: string; // fallback sort เมื่อยังไม่มีประวัติแมตช์เลย (บัญชีใหม่)
+  pet: (PetDisplayInput & { nickname: string | null }) | null; // Qmon ที่ภูมิใจของเพื่อน (fallback: ตัวที่ active)
 };
 
 // เพื่อนที่ประลองได้ = เพื่อนที่ยืนยันแล้ว + grade_band เดียวกับเรา (ไม่ null)
+// เรียงตามจำนวนแมตช์ที่เคยเล่นจริงด้วยกัน (มาก -> น้อย) ตามด้วยเพื่อนใหม่สุดก่อนเมื่อยังไม่เคยเล่น
 export async function getChallengeableFriends(userId: string): Promise<ChallengeableFriend[]> {
   const admin = createAdminClient();
   const { data: me } = await admin.from("profiles").select("grade_band").eq("id", userId).maybeSingle();
@@ -124,25 +152,88 @@ export async function getChallengeableFriends(userId: string): Promise<Challenge
 
   const { data: rows } = await admin
     .from("friendships")
-    .select("user_id_low, user_id_high")
+    .select("user_id_low, user_id_high, created_at")
     .or(`user_id_low.eq.${userId},user_id_high.eq.${userId}`);
 
-  const friendIds = (rows ?? []).map((r) =>
-    r.user_id_low === userId ? r.user_id_high : r.user_id_low
-  );
+  const friendsSinceById = new Map<string, string>();
+  for (const r of rows ?? []) {
+    const friendId = r.user_id_low === userId ? r.user_id_high : r.user_id_low;
+    friendsSinceById.set(friendId, r.created_at as string);
+  }
+  const friendIds = [...friendsSinceById.keys()];
   if (friendIds.length === 0) return [];
 
-  const { data: profs } = await admin
-    .from("profiles")
-    .select("id, username, grade_band")
-    .in("id", friendIds)
-    .eq("grade_band", myBand);
+  const [{ data: profs }, { data: settings }, { data: activePets }, { data: matches }] = await Promise.all([
+    admin.from("profiles").select("id, username, grade_band").in("id", friendIds).eq("grade_band", myBand),
+    admin.from("profile_settings").select("user_id, pride_pet_id").in("user_id", friendIds),
+    admin.from("pets").select("id, user_id").in("user_id", friendIds).eq("is_active", true),
+    admin
+      .from("pvp_matches")
+      .select("player_a_id, player_b_id")
+      .or(
+        `and(player_a_id.eq.${userId},player_b_id.in.(${friendIds.join(",")})),and(player_b_id.eq.${userId},player_a_id.in.(${friendIds.join(",")}))`
+      ),
+  ]);
 
-  return (profs ?? []).map((p) => ({
-    userId: p.id,
-    username: p.username ?? "เพื่อน",
-    gradeBand: p.grade_band as string,
-  }));
+  const eligibleFriends = profs ?? [];
+  if (eligibleFriends.length === 0) return [];
+
+  // Qmon ที่ภูมิใจ (pride_pet_id) -> fallback ตัวที่ active — pattern เดียวกับ _ranking_pride_pet_id ใน SQL
+  const activePetByUser = new Map((activePets ?? []).map((p) => [p.user_id as string, p.id as string]));
+  const prideByUser = new Map((settings ?? []).map((s) => [s.user_id as string, s.pride_pet_id as string | null]));
+  const showcasePetIdByUser = new Map<string, string>();
+  for (const f of eligibleFriends) {
+    const petId = prideByUser.get(f.id) ?? activePetByUser.get(f.id);
+    if (petId) showcasePetIdByUser.set(f.id, petId);
+  }
+
+  const showcasePetIds = [...showcasePetIdByUser.values()];
+  const petDetailById = new Map<string, PetDisplayInput & { nickname: string | null }>();
+  if (showcasePetIds.length > 0) {
+    const { data: petRows } = await admin
+      .from("pets")
+      .select("id, nickname, stage, subline, personality, egg_types(sprite_prefix, name_th)")
+      .in("id", showcasePetIds);
+    for (const p of petRows ?? []) {
+      const egg = (Array.isArray(p.egg_types) ? p.egg_types[0] : p.egg_types) as
+        | { sprite_prefix: string; name_th: string }
+        | null;
+      if (!egg) continue;
+      petDetailById.set(p.id, {
+        nickname: p.nickname,
+        stage: p.stage,
+        subline: p.subline,
+        personality: p.personality,
+        eggSpritePrefix: egg.sprite_prefix,
+        eggNameTh: egg.name_th,
+      });
+    }
+  }
+
+  const matchCountByFriend = new Map<string, number>();
+  for (const m of matches ?? []) {
+    const friendId = m.player_a_id === userId ? m.player_b_id : m.player_a_id;
+    matchCountByFriend.set(friendId, (matchCountByFriend.get(friendId) ?? 0) + 1);
+  }
+
+  const friends: ChallengeableFriend[] = eligibleFriends.map((p) => {
+    const showcasePetId = showcasePetIdByUser.get(p.id);
+    return {
+      userId: p.id,
+      username: p.username ?? "เพื่อน",
+      gradeBand: p.grade_band as string,
+      matchCount: matchCountByFriend.get(p.id) ?? 0,
+      friendsSince: friendsSinceById.get(p.id) ?? new Date(0).toISOString(),
+      pet: showcasePetId ? (petDetailById.get(showcasePetId) ?? null) : null,
+    };
+  });
+
+  friends.sort((a, b) => {
+    if (b.matchCount !== a.matchCount) return b.matchCount - a.matchCount;
+    return b.friendsSince.localeCompare(a.friendsSince);
+  });
+
+  return friends;
 }
 
 export type PvpChallengeForAccept = {
