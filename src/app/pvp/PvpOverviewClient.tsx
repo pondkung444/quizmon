@@ -28,7 +28,7 @@ function MatchRow({ m }: { m: PvpMatchListItem }) {
       <div>
         <p className="text-sm font-bold text-text">{m.opponentName}</p>
         <p className="text-xs text-text3">
-          ยกที่ {m.currentRound} · เลือด {m.hpMine} — {m.hpOpp}
+          ยกที่ {m.currentRound} · เลือด {Math.max(0, m.hpMine)} — {Math.max(0, m.hpOpp)}
         </p>
       </div>
       <span
@@ -60,34 +60,55 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
 
-      {/* ตั๋ว + ปุ่มท้า + คำอธิบายรางวัล */}
+      {/* ตั๋ว + รางวัล + ปุ่มท้า */}
       <div className="mt-3 rounded-2xl border border-gold-dim bg-card p-4">
-        <p className="text-sm text-text2">
-          <span className="font-bold text-text">ตั๋วประลอง {overview.ticketBalance} ใบ</span>
-          <span className="text-text3"> · เติมวันละ 2 ใบ + ได้เพิ่มจากท้าทาย (ชนะหรือแพ้ก็ได้)</span>
-        </p>
-        <p className="mt-2 text-xs leading-relaxed text-text3">
-          ชนะ = EXP เต็มก้อน · สู้จนจบ = ได้ EXP ติดมือ · ทั้งหมดนี้ไม่กินโควตา EXP ต่อวัน
-        </p>
+        {/* จำนวนตั๋ว */}
+        <div className="flex items-baseline gap-2">
+          <span className="text-xl">🎟️</span>
+          <span className="text-3xl font-extrabold leading-none text-gold-hi">
+            {overview.ticketBalance}
+          </span>
+          <span className="text-sm font-bold text-text2">ตั๋วประลอง</span>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold text-text3">
+          <span className="rounded-full bg-track px-2 py-1">📅 เติมวันละ 2</span>
+          <span className="rounded-full bg-track px-2 py-1">⚔️ +1 ทุกท้าทายที่จบ · ชนะ/แพ้</span>
+        </div>
+
+        {/* รางวัล EXP */}
+        <div className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
+          <p className="flex items-center gap-2">
+            <span>🏆</span>
+            <span className="font-extrabold text-gold-hi">ชนะ</span>
+            <span className="text-text2">— รับ EXP เต็มก้อน</span>
+          </p>
+          <p className="flex items-center gap-2">
+            <span>🔥</span>
+            <span className="font-extrabold text-amber">สู้จนจบ</span>
+            <span className="text-text2">— ยังได้ EXP ติดมือกลับไป</span>
+          </p>
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
+            ✨ ไม่กินโควตา EXP รายวัน
+          </span>
+        </div>
+
+        {/* ปุ่มท้า */}
         <Link
           href="/pvp/new"
-          className={`mt-3 flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold active:scale-[0.98] ${
+          className={`mt-4 flex items-center justify-center gap-2 rounded-xl border py-3 text-base font-extrabold active:scale-[0.98] ${
             overview.ticketBalance > 0
-              ? "border-gold bg-amber text-track"
+              ? "border-gold bg-amber text-track shadow-md"
               : "pointer-events-none border-border bg-track text-text3 opacity-60"
           }`}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M14.5 3.5 20.5 9.5M4 20l3.5-1 10-10-2.5-2.5-10 10L4 20Zm11-13 2-2 2 2-2 2"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <span>⚔️</span>
           ท้าเพื่อนประลอง
         </Link>
+        {overview.ticketBalance <= 0 && (
+          <p className="mt-2 text-center text-[11px] text-text3">
+            ตั๋วหมด — พรุ่งนี้ได้อีก 2 หรือไปเล่นท้าทายให้จบ
+          </p>
+        )}
       </div>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
