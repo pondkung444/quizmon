@@ -34,9 +34,12 @@ const TABS = [
 
 export default function BottomNav({
   hasUnreadEncouragements = false,
+  pvpBadgeCount = 0,
   forceShow = false,
 }: {
   hasUnreadEncouragements?: boolean;
+  // สไลซ์ 5 — ตัวเลขรวม: แมตช์ที่ถึงตาเรา + คำท้าที่รับเข้ามาแล้วยัง pending (src/lib/pvp.ts getPvpBadgeCount)
+  pvpBadgeCount?: number;
   // forceShow: ข้ามการซ่อนบน /quiz — ใช้ตอน QuizClient เรนเดอร์เมนูล่างเองในหน้าเลือกวิชา/เลือกบท
   // (ก่อนเริ่มรอบ ต้องมีทางกลับหน้าอื่นตามกฎ UX) ส่วนระหว่างตอบโจทย์ยังซ่อนตามเดิม
   forceShow?: boolean;
@@ -67,6 +70,12 @@ export default function BottomNav({
                 {/* จุดสีส้ม (§8.1) — มีข้อความกำลังใจใหม่ที่ยังไม่อ่าน หายไปหลังเปิด S08 (read_at ถูกเซ็ต) */}
                 {tab.href === "/social" && hasUnreadEncouragements && (
                   <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber" />
+                )}
+                {/* ตัวเลขแดง (สไลซ์ 5 §7) — ถึงตาเรา (รวม card_ready ที่ต้องกดเริ่มตอบ) + คำท้าที่รับเข้ามารอตอบรับ */}
+                {tab.href === "/pvp" && pvpBadgeCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-card bg-red px-1 text-[9px] font-extrabold leading-none text-track">
+                    {pvpBadgeCount > 9 ? "9+" : pvpBadgeCount}
+                  </span>
                 )}
               </span>
               {tab.label}

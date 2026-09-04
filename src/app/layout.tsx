@@ -9,6 +9,7 @@ import NativeAppSetup from "@/components/NativeAppSetup";
 import OfflineScreen from "@/components/OfflineScreen";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
+import { getPvpBadgeCount } from "@/lib/pvp";
 
 const kanit = Kanit({
   variable: "--font-kanit",
@@ -49,15 +50,18 @@ export default async function RootLayout({
   let activePetStage: number | null = null;
   let activePetSubline: string | null = null;
   let hasUnreadEncouragements = false;
+  let pvpBadgeCount = 0;
   if (user) {
-    const [{ data: pet }, unreadCount, { data: profile }] = await Promise.all([
+    const [{ data: pet }, unreadCount, { data: profile }, badgeCount] = await Promise.all([
       supabase.from("pets").select("stage, subline").eq("user_id", user.id).eq("is_active", true).maybeSingle(),
       getUnreadEncouragementCount(supabase),
       supabase.from("profiles").select("username, grade_level").eq("id", user.id).single(),
+      getPvpBadgeCount(supabase, user.id),
     ]);
     activePetStage = pet?.stage ?? null;
     activePetSubline = pet?.subline ?? null;
     hasUnreadEncouragements = unreadCount > 0;
+    pvpBadgeCount = badgeCount;
 
     // บังคับให้กรอก complete-profile ให้เสร็จก่อนเข้าหน้าอื่นในแอป (กันเคส Google OAuth
     // signup ที่ profile ยังไม่ครบแล้วหนีไปหน้าอื่นได้เฉยๆ โดยไม่ผ่านฟอร์ม)
@@ -73,7 +77,7 @@ export default async function RootLayout({
         <OfflineScreen />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}
-        <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} />
+        <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
       </body>
     </html>
   );
