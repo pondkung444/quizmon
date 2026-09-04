@@ -34,3 +34,7 @@ export async function GET(request: Request) {
     );
   }
 }
+
+// pg_cron ยิง route นี้ด้วย net.http_post (HTTP POST) — Next route handler จะ 405 ทุก method
+// ที่ไม่ได้ export ไว้ ทำให้ cron นี้ 405 มาตลอดตั้งแต่ deploy. POST = GET เดิม (auth เหมือนกัน)
+export const POST = GET;
