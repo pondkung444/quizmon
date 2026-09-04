@@ -6,14 +6,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { PvpMatchView } from "@/lib/pvp";
 import { pvpEstimatedDamage } from "@/lib/pvp/combat";
+import { pvpEffectMeta } from "@/lib/pvp/effects";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
 import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from "../actions";
+import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
 
 // accent ต่อฝั่ง — เรา = น้ำเงิน (--color-indigo), คู่ต่อสู้ = แดง (--color-red)
 const ACCENT = {
   mine: { hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
   opp: { hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
 } as const;
+
+const DMG_COLOR = "#f87171";
+const HEAL_COLOR = "#34d399";
+
+type SideFloat = { key: number; text: string; color: string; crit: boolean } | null;
 
 // คลัสเตอร์ของ 1 ฝั่ง: สไปรต์ + ป้ายชื่อ + แถบ HP — วางชิดขอบด้านของตัวเอง (opp=ขวาบน, mine=ซ้ายล่าง)
 function PetSide({
@@ -24,6 +31,8 @@ function PetSide({
   side,
   glow,
   hit,
+  float,
+  critFlash,
 }: {
   image: string | null;
   name: string;
@@ -32,6 +41,8 @@ function PetSide({
   side: "mine" | "opp";
   glow: boolean;
   hit: boolean;
+  float: SideFloat;
+  critFlash: number;
 }) {
   const a = ACCENT[side];
   const pct = Math.max(0, Math.min(100, (hp / Math.max(1, hpMax)) * 100));
@@ -74,10 +85,36 @@ function PetSide({
               />
             )}
           </div>
+          {/* แฟลชคริ — วาบ radial แดงจาง ๆ (สั้น < 0.5s, guard prefers-reduced-motion ใน CSS) */}
+          {critFlash > 0 && (
+            <span
+              key={critFlash}
+              className="animate-pvp-crit-flash pointer-events-none absolute -inset-3 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(248,113,113,0.7) 0%, rgba(248,113,113,0.15) 45%, transparent 70%)",
+              }}
+            />
+          )}
         </div>
       </div>
       {/* ชื่อ + HP */}
-      <div className={`w-[9.5rem] ${opp ? "text-right" : ""}`}>
+      <div className={`relative w-[9.5rem] ${opp ? "text-right" : ""}`}>
+        {/* ตัวเลขดาเมจ/ฮีลลอย — เหนือแถบ HP */}
+        {float && (
+          <span
+            key={float.key}
+            className="animate-pvp-float-up pointer-events-none absolute left-1/2 top-0 z-10 whitespace-nowrap text-lg font-extrabold"
+            style={{ color: float.color, textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
+          >
+            {float.text}
+            {float.crit && (
+              <span className="ml-1 align-middle text-[10px] font-bold" style={{ color: "#fbbf24" }}>
+                คริ ✦
+              </span>
+            )}
+          </span>
+        )}
         <span
           className={`inline-block max-w-full truncate rounded-md px-2 py-0.5 text-xs font-bold ${a.pill}`}
           title={name}
@@ -101,6 +138,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<PvpSubmitResult | null>(null);
   const submittedRef = useRef(false);
+  const resultRef = useRef<PvpSubmitResult | null>(null);
 
   const holdRef = useRef(false);
   const refresh = useCallback(() => {
@@ -109,25 +147,73 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   }, [router]);
   usePvpMatch(view.matchId, refresh);
 
-  // ---- hit feedback: จับ hp ที่ลดลงระหว่าง render -> ประกาย VS + สั่นตัวที่โดน ----
+  // ---- hit feedback: จับ hp ที่ขยับระหว่าง render -> ประกาย VS + สั่นตัวที่โดน + เลขลอย ----
   const [hitMine, setHitMine] = useState(false);
   const [hitOpp, setHitOpp] = useState(false);
-  const [spark, setSpark] = useState(0); // เปลี่ยนค่า = trigger animation ใหม่
+  const [spark, setSpark] = useState(0);
+  const [floatMine, setFloatMine] = useState<SideFloat>(null);
+  const [floatOpp, setFloatOpp] = useState<SideFloat>(null);
+  const [critMine, setCritMine] = useState(0);
+  const [critOpp, setCritOpp] = useState(0);
+  const [linkArc, setLinkArc] = useState(0);
   const prevHp = useRef({ mine: view.hpMine, opp: view.hpOpp });
+
   useEffect(() => {
-    const dMine = view.hpMine < prevHp.current.mine;
-    const dOpp = view.hpOpp < prevHp.current.opp;
+    const dMine = view.hpMine - prevHp.current.mine;
+    const dOpp = view.hpOpp - prevHp.current.opp;
     prevHp.current = { mine: view.hpMine, opp: view.hpOpp };
-    if (!dMine && !dOpp) return;
+    if (dMine === 0 && dOpp === 0) return;
+
+    const seq = Date.now();
+    const r = resultRef.current;
+    // ฝั่งที่โดนคริ (จาก result เท่านั้น — มีเฉพาะฝั่งผู้ตอบ)
+    const critSide: "mine" | "opp" | null =
+      r && !r.is_correct && r.crit
+        ? r.defender_side === view.iAm
+          ? "mine"
+          : "opp"
+        : null;
+
     setSpark((n) => n + 1);
-    if (dMine) setHitMine(true);
-    if (dOpp) setHitOpp(true);
+
+    if (dMine !== 0) {
+      const dmg = dMine < 0;
+      setFloatMine({
+        key: seq,
+        text: `${dmg ? "−" : "+"}${Math.abs(dMine)}`,
+        color: dmg ? DMG_COLOR : HEAL_COLOR,
+        crit: critSide === "mine",
+      });
+      if (dmg) setHitMine(true);
+      if (critSide === "mine") setCritMine((n) => n + 1);
+    }
+    if (dOpp !== 0) {
+      const dmg = dOpp < 0;
+      setFloatOpp({
+        key: seq + 1,
+        text: `${dmg ? "−" : "+"}${Math.abs(dOpp)}`,
+        color: dmg ? DMG_COLOR : HEAL_COLOR,
+        crit: critSide === "opp",
+      });
+      if (dmg) setHitOpp(true);
+      if (critSide === "opp") setCritOpp((n) => n + 1);
+    }
+    // HP ขยับทั้งสองฝั่งจากยกเดียว (lifesteal / reprisal) -> เส้นโยง
+    if (dMine !== 0 && dOpp !== 0) setLinkArc((n) => n + 1);
+
     const t = window.setTimeout(() => {
       setHitMine(false);
       setHitOpp(false);
     }, 600);
-    return () => window.clearTimeout(t);
-  }, [view.hpMine, view.hpOpp]);
+    const t2 = window.setTimeout(() => {
+      setFloatMine(null);
+      setFloatOpp(null);
+    }, 2100);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [view.hpMine, view.hpOpp, view.iAm]);
 
   // attacker: มือว่าง (edge case) -> จั่วเอง
   useEffect(() => {
@@ -138,13 +224,29 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     });
   }, [view.status, view.isAttacker, view.hand.length, view.matchId, refresh]);
 
-  // ---- ผู้ตอบ: timer (display เท่านั้น — หมดเวลา = auto-submit -1) ----
-  const [remain, setRemain] = useState(view.timerSeconds);
+  // ---- ผู้ตอบ: timer — sync กับ round_deadline จริงจาก server (haste = 30 วิ) ----
+  const deadlineRemain = useCallback(() => {
+    if (view.roundDeadline) {
+      return Math.max(
+        0,
+        Math.ceil((new Date(view.roundDeadline).getTime() - Date.now()) / 1000)
+      );
+    }
+    return view.timerSeconds;
+  }, [view.roundDeadline, view.timerSeconds]);
+
+  const [remain, setRemain] = useState(deadlineRemain);
+  // resync ตอนขึ้นยกใหม่ (deadline เปลี่ยน) — pattern "ปรับ state ระหว่าง render ตาม prop" ของ React (ไม่ใช้ effect)
+  const [prevDeadline, setPrevDeadline] = useState(view.roundDeadline);
+  if (prevDeadline !== view.roundDeadline) {
+    setPrevDeadline(view.roundDeadline);
+    setRemain(deadlineRemain());
+  }
   useEffect(() => {
     if (!view.isDefender || result) return;
-    const t = window.setInterval(() => setRemain((s) => (s <= 1 ? 0 : s - 1)), 1000);
+    const t = window.setInterval(() => setRemain(() => deadlineRemain()), 1000);
     return () => window.clearInterval(t);
-  }, [view.isDefender, result]);
+  }, [view.isDefender, result, deadlineRemain]);
 
   const doSubmit = useCallback(
     async (answerIndex: number) => {
@@ -164,6 +266,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         setError(r.message);
         return;
       }
+      resultRef.current = r.data;
       setResult(r.data);
       holdRef.current = true;
       window.setTimeout(() => {
@@ -195,12 +298,33 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowMine = view.status === "active" && view.myTurn;
   const glowOpp = view.status === "active" && !view.myTurn;
 
+  const activeEffect = pvpEffectMeta(view.activeCard?.effect_id);
+
   const battleStage = (
     // A.1/A.4 — ขนาดคงที่ทุก state (w เต็ม, h 240px). คลัสเตอร์สองฝั่ง absolute ชิดมุมของตัวเอง
     <div className="relative h-60 w-full overflow-hidden rounded-2xl border border-gold-dim bg-gradient-to-b from-[#23252c] to-track">
       {/* ลำแสงกลาง + แสงเรืองที่จุด VS */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
+
+      {/* เส้นโยงสองฝั่งตอน lifesteal / reprisal */}
+      {linkArc > 0 && (
+        <svg
+          key={linkArc}
+          className="animate-pvp-link-arc pointer-events-none absolute inset-0 h-full w-full"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path
+            className="pvp-link-arc-dash"
+            d="M18 82 Q50 20 82 18"
+            fill="none"
+            stroke="#dc2626"
+            strokeWidth={0.8}
+          />
+        </svg>
+      )}
 
       {/* คู่ต่อสู้ — ขวาบน */}
       <div className="absolute right-4 top-4">
@@ -212,6 +336,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           side="opp"
           glow={glowOpp}
           hit={hitOpp}
+          float={floatOpp}
+          critFlash={critOpp}
         />
       </div>
 
@@ -238,6 +364,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           side="mine"
           glow={glowMine}
           hit={hitMine}
+          float={floatMine}
+          critFlash={critMine}
         />
       </div>
     </div>
@@ -302,6 +430,15 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
               </p>
             </>
           )}
+          {result.effect_id && result.effect_triggered && (
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-text3">
+              <PvpEffectBadge id={result.effect_id} />
+              {result.self_damage > 0 && <span>ดาเมจสวนกลับใส่ผู้ส่ง −{result.self_damage}</span>}
+              {result.heal_self > 0 && <span>ผู้ส่งดูดเลือด +{result.heal_self}</span>}
+              {result.heal_defender > 0 && <span>ได้เลือดคืน +{result.heal_defender}</span>}
+              {result.pierce > 0 && result.self_damage === 0 && <span>ทะลุเกราะ</span>}
+            </p>
+          )}
           <p className="mt-3 text-xs text-text3">กำลังไปตาต่อไป…</p>
         </div>
       )}
@@ -311,23 +448,39 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         <section className="mt-4 rounded-2xl border border-border bg-card p-5">
           <h2 className="text-sm font-bold text-text2">เลือกการ์ดโจทย์ให้ {view.oppName} ทำ</h2>
           <p className="mt-1 text-xs text-text3">
-            เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ
+            เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ · การ์ดมีสี = มีเอฟเฟกต์พิเศษ
           </p>
           <div className="mt-4 grid gap-3">
-            {view.hand.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                disabled={busy}
-                onClick={() => void doAssign(c.id)}
-                className="rounded-xl border border-border bg-track px-4 py-3.5 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
-              >
-                <span className="inline-block rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
-                  {c.subject === "math" ? "คณิต" : "วิทย์"} · ความยาก {c.difficulty}
-                </span>
-                <p className="mt-1.5 font-sarabun text-sm font-bold text-text">{c.chapter}</p>
-              </button>
-            ))}
+            {view.hand.map((c) => {
+              const meta = pvpEffectMeta(c.effect_id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void doAssign(c.id)}
+                  className="rounded-xl border border-border bg-track px-4 py-3.5 text-left transition hover:border-gold-dim active:scale-[0.98] disabled:opacity-50"
+                  style={
+                    meta
+                      ? { borderLeftColor: meta.color, borderLeftWidth: 4 }
+                      : undefined
+                  }
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-block rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
+                      {c.subject === "math" ? "คณิต" : "วิทย์"} · ความยาก {c.difficulty}
+                    </span>
+                    {meta && <PvpEffectBadge id={meta.id} />}
+                  </div>
+                  <p className="mt-1.5 font-sarabun text-sm font-bold text-text">{c.chapter}</p>
+                  {meta && (
+                    <p className="mt-0.5 text-[11px]" style={{ color: meta.color }}>
+                      {meta.hintTh}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
             {view.hand.length === 0 && (
               <p className="py-6 text-center text-sm text-text3">กำลังจั่วการ์ด…</p>
             )}
@@ -344,10 +497,23 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
               className={`h-full transition-[width] duration-1000 ease-linear ${
                 remain <= 10 ? "bg-red" : "bg-amber"
               }`}
-              style={{ width: `${Math.max(0, (remain / view.timerSeconds) * 100)}%` }}
+              style={{ width: `${Math.max(0, (remain / Math.max(1, view.timerSeconds)) * 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-right text-xs text-text3">{remain} วิ</p>
+          <p className="mt-1 flex items-center justify-between text-xs text-text3">
+            {activeEffect ? (
+              <span
+                className="inline-flex items-center gap-1 font-bold"
+                style={{ color: activeEffect.color }}
+              >
+                <PvpEffectIcon id={activeEffect.id} size={12} />
+                {activeEffect.nameTh} — {activeEffect.hintTh}
+              </span>
+            ) : (
+              <span />
+            )}
+            <span>{remain} วิ</span>
+          </p>
 
           <div className="mt-4 flex items-center justify-between gap-2">
             <span className="inline-block rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
@@ -355,6 +521,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
             </span>
             <span className="shrink-0 text-xs text-text3">
               ตอบผิดเสีย ~{pvpEstimatedDamage(view.statsOpp, view.statsMine)}
+              {view.activeCard?.effect_id === "high_stake" && " ×2"}
             </span>
           </div>
 

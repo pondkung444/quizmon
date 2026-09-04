@@ -563,3 +563,52 @@ body {
   .animate-pvp-platform-pulse { animation: none; }
   .animate-pvp-vs-spark { display: none; }
 }
+
+/* ---- สไลซ์ 2: ดาเมจลอย + แฟลชคริ + เส้นโยงเอฟเฟกต์สองฝั่ง ---- */
+
+/* ตัวเลขดาเมจ/ฮีลลอยขึ้นเหนือแถบ HP แล้วจางหาย */
+@keyframes pvp-float-up {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+  12%  { opacity: 1; transform: translate(-50%, -6px) scale(1.12); }
+  30%  { opacity: 1; transform: translate(-50%, -20px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -40px) scale(0.9); }
+}
+.animate-pvp-float-up {
+  animation: pvp-float-up 2s ease-in-out forwards;
+}
+
+/* แฟลชคริ — วาบ radial แดงจาง ๆ ที่ฝั่งที่โดนคริ (สั้น < 0.5s) */
+@keyframes pvp-crit-flash {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.animate-pvp-crit-flash {
+  animation: pvp-crit-flash 0.45s ease-out forwards;
+}
+
+/* เส้นประโยงสองฝั่งตอน lifesteal / reprisal (HP ขยับทั้งสองฝั่ง) */
+@keyframes pvp-link-arc {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.9; }
+  70%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+.animate-pvp-link-arc {
+  animation: pvp-link-arc 1.4s ease-in-out forwards;
+}
+.pvp-link-arc-dash {
+  stroke-dasharray: 5 5;
+  animation: pvp-link-dash 1.4s linear forwards;
+}
+@keyframes pvp-link-dash {
+  to { stroke-dashoffset: -40; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* คงตัวเลขไว้ให้อ่านได้ แต่ตัดการเคลื่อน — โผล่แล้วค้างสั้น ๆ ให้ JS ถอดออกเอง */
+  .animate-pvp-float-up { animation: none; opacity: 1; transform: translate(-50%, -20px); }
+  .animate-pvp-crit-flash { animation: none; opacity: 0; }
+  .animate-pvp-link-arc { animation: none; opacity: 0.6; }
+  .pvp-link-arc-dash { animation: none; }
+}
