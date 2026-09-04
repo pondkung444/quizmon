@@ -26,8 +26,9 @@ export function pvpTimerSecondsForCard(
 }
 
 // ดาเมจโดยประมาณเมื่อ "ผู้ตอบ" ตอบผิด (โชว์บนการ์ดก่อนส่ง / สรุปหลังตอบ) — TEMP
+// base_mult ต้องตรงกับ _pvp_resolve_round (SQL): จูนรอบ 1 (2026-09-04) = 0.55 (เดิม 0.10)
 export function pvpEstimatedDamage(attackerStats: PvpPetStats, defenderStats: PvpPetStats): number {
-  const base = Math.round((10 * pvpEffectiveStat(attackerStats, "atk")) / 100);
+  const base = Math.round(pvpEffectiveStat(attackerStats, "atk") * 0.55);
   return Math.max(1, Math.round(base * (1 - pvpEffectiveStat(defenderStats, "def") / 200)));
 }
 
