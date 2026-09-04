@@ -9,14 +9,13 @@ import { pvpEstimatedDamage } from "@/lib/pvp/combat";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
 import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from "../actions";
 
-// keyframes สำหรับ "โดนตี" — สั่น + แฟลชแดง (inject ครั้งเดียว)
-const DUEL_CSS = `
-@keyframes pvp-hit { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-.pvp-hit { animation: pvp-hit .5s ease-in-out; }
-.pvp-hit-flash { filter: brightness(1.4) sepia(1) hue-rotate(-30deg) saturate(4); }
-`;
+// accent ต่อฝั่ง — เรา = น้ำเงิน (--color-indigo), คู่ต่อสู้ = แดง (--color-red)
+const ACCENT = {
+  mine: { ring: "ring-indigo", hp: "bg-indigo", pill: "bg-indigo/15 text-indigo-hi", rgba: "112,137,209" },
+  opp: { ring: "ring-red", hp: "bg-red", pill: "bg-red/15 text-red", rgba: "216,54,47" },
+} as const;
 
-function PetStage({
+function PetSide({
   image,
   name,
   hp,
@@ -33,32 +32,44 @@ function PetStage({
   glow: boolean;
   hit: boolean;
 }) {
+  const a = ACCENT[side];
   const pct = Math.max(0, Math.min(100, (hp / Math.max(1, hpMax)) * 100));
   return (
-    <div className={`flex items-center gap-2 ${side === "opp" ? "flex-row-reverse" : ""}`}>
-      <div
-        className={`relative h-24 w-24 shrink-0 rounded-full transition ${
-          glow ? "ring-4 ring-amber ring-offset-2 ring-offset-transparent" : ""
-        } ${hit ? "pvp-hit" : ""}`}
-      >
-        {image && (
-          <Image
-            src={image}
-            alt={name}
-            fill
-            unoptimized
-            className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
-            style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
-          />
-        )}
+    <div className={`flex items-end gap-3 ${side === "opp" ? "flex-row-reverse" : ""}`}>
+      <div className="relative h-24 w-24 shrink-0">
+        {/* แท่นพลังงาน (radial glow) */}
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[64%] h-9 w-24 -translate-x-1/2 rounded-[50%] ${
+            glow ? "animate-pvp-platform-pulse" : ""
+          }`}
+          style={{ background: `radial-gradient(ellipse, rgba(${a.rgba},${glow ? 0.55 : 0.3}) 0%, transparent 70%)` }}
+        />
+        {/* เงาพื้น */}
+        <div className="pointer-events-none absolute left-1/2 top-[88%] h-2.5 w-16 -translate-x-1/2 rounded-[50%] bg-black/45 blur-[2px]" />
+        {/* สไปรต์ */}
+        <div
+          className={`relative h-24 w-24 rounded-full transition ${
+            glow ? `ring-4 ${a.ring} ring-offset-2 ring-offset-track` : ""
+          } ${hit ? "animate-pvp-hit" : ""}`}
+        >
+          {image && (
+            <Image
+              src={image}
+              alt={name}
+              fill
+              unoptimized
+              className={`object-contain ${hit ? "pvp-hit-flash" : ""}`}
+              style={side === "opp" ? { transform: "scaleX(-1)" } : undefined}
+            />
+          )}
+        </div>
       </div>
-      <div className={`w-28 ${side === "opp" ? "text-right" : ""}`}>
-        <p className="truncate text-xs font-bold text-text">{name}</p>
-        <div className="mt-1 h-2.5 w-full overflow-hidden rounded-full bg-track">
-          <div
-            className={`h-full transition-all duration-500 ${side === "mine" ? "bg-green-400" : "bg-red"}`}
-            style={{ width: `${pct}%` }}
-          />
+      <div className={`w-32 pb-1 ${side === "opp" ? "text-right" : ""}`}>
+        <span className={`inline-block rounded-md px-2 py-0.5 text-xs font-bold ${a.pill}`}>
+          {name}
+        </span>
+        <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-track">
+          <div className={`h-full ${a.hp} transition-all duration-500`} style={{ width: `${pct}%` }} />
         </div>
         <p className="mt-0.5 text-[10px] text-text3">
           {Math.max(0, hp)} / {hpMax}
@@ -82,24 +93,24 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   }, [router]);
   usePvpMatch(view.matchId, refresh);
 
-  // ---- hit feedback: จับ hp ที่ลดลงระหว่าง render ----
+  // ---- hit feedback: จับ hp ที่ลดลงระหว่าง render -> ประกาย VS + สั่นตัวที่โดน ----
   const [hitMine, setHitMine] = useState(false);
   const [hitOpp, setHitOpp] = useState(false);
+  const [spark, setSpark] = useState(0); // เปลี่ยนค่า = trigger animation ใหม่
   const prevHp = useRef({ mine: view.hpMine, opp: view.hpOpp });
   useEffect(() => {
-    if (view.hpMine < prevHp.current.mine) {
-      setHitMine(true);
-      const t = window.setTimeout(() => setHitMine(false), 600);
-      prevHp.current.mine = view.hpMine;
-      return () => window.clearTimeout(t);
-    }
-    if (view.hpOpp < prevHp.current.opp) {
-      setHitOpp(true);
-      const t = window.setTimeout(() => setHitOpp(false), 600);
-      prevHp.current.opp = view.hpOpp;
-      return () => window.clearTimeout(t);
-    }
+    const dMine = view.hpMine < prevHp.current.mine;
+    const dOpp = view.hpOpp < prevHp.current.opp;
     prevHp.current = { mine: view.hpMine, opp: view.hpOpp };
+    if (!dMine && !dOpp) return;
+    setSpark((n) => n + 1);
+    if (dMine) setHitMine(true);
+    if (dOpp) setHitOpp(true);
+    const t = window.setTimeout(() => {
+      setHitMine(false);
+      setHitOpp(false);
+    }, 600);
+    return () => window.clearTimeout(t);
   }, [view.hpMine, view.hpOpp]);
 
   // attacker: มือว่าง (edge case) -> จั่วเอง
@@ -169,9 +180,13 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const glowOpp = view.status === "active" && !view.myTurn;
 
   const battleStage = (
-    <div className="rounded-2xl border border-gold-dim bg-card p-4">
-      <div className="flex justify-end">
-        <PetStage
+    <div className="relative overflow-hidden rounded-2xl border border-gold-dim bg-track px-4 py-5">
+      {/* ลำแสงกลาง แผ่จากจุด VS */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/30 to-transparent" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
+
+      <div className="relative flex justify-end">
+        <PetSide
           image={view.petOppImage}
           name={view.petOppName}
           hp={view.hpOpp}
@@ -181,9 +196,21 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           hit={hitOpp}
         />
       </div>
-      <div className="my-1 text-center text-xs font-black tracking-widest text-gold-hi">VS</div>
-      <div className="flex justify-start">
-        <PetStage
+
+      <div className="relative my-2 flex items-center justify-center">
+        <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/25 blur-md" />
+        {spark > 0 && (
+          <span
+            key={spark}
+            className="animate-pvp-vs-spark pointer-events-none absolute left-1/2 top-1/2 h-14 w-14 rounded-full bg-white/80"
+            style={{ boxShadow: "0 0 24px 8px rgba(255,255,255,0.6)" }}
+          />
+        )}
+        <span className="relative text-sm font-black tracking-[0.3em] text-gold-hi">VS</span>
+      </div>
+
+      <div className="relative flex justify-start">
+        <PetSide
           image={view.petMineImage}
           name={view.petMineName}
           hp={view.hpMine}
@@ -201,7 +228,6 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     const abandoned = view.status === "abandoned";
     return (
       <main className="mx-auto max-w-xl px-4 py-8 pb-24">
-        <style>{DUEL_CSS}</style>
         {battleStage}
         <div className="mt-8 text-center">
           {abandoned ? (
@@ -230,8 +256,6 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   // ================= กำลังดวล =================
   return (
     <main className="mx-auto max-w-xl px-4 py-4 pb-24">
-      <style>{DUEL_CSS}</style>
-
       <div className="mb-2 flex items-center justify-between">
         <Link href="/pvp" className="text-xs text-text3 underline">
           ← ประลอง
