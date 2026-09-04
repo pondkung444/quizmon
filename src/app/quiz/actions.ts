@@ -12,9 +12,10 @@ import {
   getComboMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
-import { tryAdvanceStage, determineSubline, getEvolutionProgress } from "@/lib/evolution";
+import { getEvolutionProgress } from "@/lib/evolution";
+import { planPetEvolution } from "@/lib/petEvolution";
 import { getGradeBand, visibleBands } from "@/lib/gradeBand";
-import { resolveSeniorLine, type PetLine, type SeniorLine } from "@/lib/petLine";
+import { type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
   getMissionProgress,
@@ -446,42 +447,24 @@ export async function finishQuizRound(
   const capped = expAddedToPet < roundExpEarned;
   const newExp = activePet.exp + expAddedToPet;
 
-  const newStage = tryAdvanceStage(activePet.stage, newExp);
-
-  // เพิ่งขยับเข้า stage 3 -> ต้องตัดสิน subline ครั้งเดียว (ล็อกถาวร) — junior ใช้
-  // math_correct/science_correct ตรงๆ เหมือนเดิม (ห้ามแตะ path นี้เด็ดขาด), senior ต้องแยก
-  // ฟิสิกส์/เคมี/ชีวะจาก quiz_attempts ผ่าน get_pet_branch_counts() เพราะ math_correct/
-  // science_correct รวมเคมี+ชีวะเป็นก้อนเดียว แยกไม่ออก (ดู src/lib/petLine.ts + หมวด 4
-  // ของแผน senior subline) — ค่าจริงยังไม่เขียนตรงนี้ รอ guard กันเขียนทับด้านล่าง
-  let computedSubline: PetLine | null = null;
-  let seniorLockLog: { line: SeniorLine; counts: Partial<Record<SeniorLine, number>> } | null = null;
-
-  if (activePet.stage < 3 && newStage === 3) {
-    const band = await getGradeBand(user.id);
-    if (band === "junior") {
-      computedSubline = determineSubline(activePet.math_correct, activePet.science_correct);
-    } else {
-      const { data: branchCounts } = await supabase.rpc("get_pet_branch_counts", {
-        p_pet_id: activePet.id,
-      });
-      const counts: Partial<Record<SeniorLine, number>> = {};
-      for (const row of (branchCounts ?? []) as { branch: string; correct_count: number }[]) {
-        if (row.branch === "physics" || row.branch === "chemistry" || row.branch === "biology") {
-          counts[row.branch] = row.correct_count;
-        }
-      }
-      computedSubline = resolveSeniorLine(counts);
-      seniorLockLog = { line: computedSubline, counts };
-    }
-  }
+  // ตรรกะ "ขยับ stage + คิด subline ตอนเข้า stage 3" ย้ายไป src/lib/petEvolution.ts (จุดเดียว
+  // ใช้ร่วมกับ PvP match-end evolution) — พฤติกรรมเหมือนเดิมเป๊ะ, ยังเขียน stage คู่กับ exp
+  // ในก้อน update ก้อนเดียวด้านล่าง + guard subline .is("subline", null) เหมือนเดิม
+  const plan = await planPetEvolution(supabase, user.id, activePet, newExp);
+  const newStage = plan.newStage;
+  const computedSubline = plan.computedSubline;
+  const seniorLockLog: { line: SeniorLine; counts: Partial<Record<SeniorLine, number>> } | null =
+    plan.seniorLockCounts && plan.computedSubline
+      ? { line: plan.computedSubline as SeniorLine, counts: plan.seniorLockCounts }
+      : null;
 
   const evolutionFields: Record<string, unknown> = { stage: newStage };
 
   // stage 4 ไม่คำนวณ personality/stat_* ที่นี่แล้ว — เข้าถึง stage 4 ก่อน (stage อย่างเดียว)
   // แล้วให้ StageUpModal พาไปเลือกบุคลิกเอง จากนั้นเรียก choosePersonalityAfterEvolve()
   // (src/app/pet/actions.ts) ล็อก personality ลง DB ให้เสร็จก่อน ค่อย snapshot stat_* ทีหลัง
-  const reachedStage4 = activePet.stage < 4 && newStage === 4;
-  const evolved = newStage !== activePet.stage;
+  const reachedStage4 = plan.reachedStage4;
+  const evolved = plan.evolved;
 
   // nearEvolution คือ "ใกล้" ไม่ใช่ "ถึง" — ถ้ารอบนี้วิวัฒนาการไปแล้วไม่ต้องเช็คต่อ
   // และ stage 4 ไม่มี threshold ถัดไปให้ใกล้ (สูงสุดใน MVP, getEvolutionProgress คืน 0 ให้เอง)

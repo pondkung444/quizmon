@@ -6,7 +6,7 @@ import {
   type Subline,
   type Personality,
 } from "@/lib/evolution";
-import { reconcilePvpEvolutionForPet } from "@/lib/pvp";
+import { evolvePet } from "@/lib/petEvolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
@@ -200,7 +200,13 @@ export default async function PetPage({
   // safety net (สไลซ์ 3): PvP ให้ EXP ตัว active ตรง ๆ ใน SQL โดยไม่เช็ค stage-up (option B) —
   // ถ้า exp ข้าม threshold แล้วแต่ stage ยังไม่ขยับ (เช่นปิดแอปตอนแมตช์จบ ไม่ได้เปิดหน้าแมตช์) reconcile ที่นี่
   if (user && pet && tryAdvanceStage(pet.stage, pet.exp) !== pet.stage) {
-    await reconcilePvpEvolutionForPet(supabase, user.id, pet.id);
+    await evolvePet(
+      supabase,
+      user.id,
+      { id: pet.id, stage: pet.stage, math_correct: pet.math_correct, science_correct: pet.science_correct },
+      pet.exp,
+      "/pet"
+    );
     const { data: fresh } = await supabase
       .from("pets")
       .select(

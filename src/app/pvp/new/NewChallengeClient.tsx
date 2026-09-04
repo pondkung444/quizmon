@@ -36,15 +36,14 @@ export default function NewChallengeClient({
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gold-hi">ท้าประลอง</h1>
-        <span className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-text2">
-          🎟️ {ticketBalance}
-        </span>
-      </div>
+      <h1 className="text-2xl font-bold text-gold-hi">ท้าประลอง</h1>
+      <p className="mt-2 text-sm text-text2">
+        <span className="font-bold text-text">ตั๋วประลอง {ticketBalance} ใบ</span>
+        <span className="text-text3"> · เติมวันละ 2 ใบ + ได้เพิ่มจากท้าทาย (ชนะหรือแพ้ก็ได้)</span>
+      </p>
       {ticketBalance <= 0 && (
         <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-text3">
-          ตั๋วประลองหมด — เติมวันละ 2 ใบ หรือได้เพิ่ม 1 ใบต่อการผจญภัยที่จบ
+          ตั๋วหมดแล้ว — พรุ่งนี้ได้เติมอีก 2 ใบ หรือไปเล่นท้าทายให้จบอีกรอบ
         </p>
       )}
 

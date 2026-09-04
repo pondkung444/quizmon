@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 import { getUser, type createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
-import { getSpeciesName, parsePetLine, resolveSeniorLine, type PetLine, type SeniorLine } from "@/lib/petLine";
-import { tryAdvanceStage, determineSubline, type Personality, type Subline } from "@/lib/evolution";
-import { getGradeBand } from "@/lib/gradeBand";
+import { getSpeciesName, parsePetLine } from "@/lib/petLine";
+import type { Personality, Subline } from "@/lib/evolution";
 import { parsePvpStats, type PvpCard, type PvpPetStats } from "@/lib/pvp/stats";
 import { pvpTimerSecondsForCard } from "@/lib/pvp/combat";
 
@@ -226,74 +225,8 @@ export async function getPvpTicketBalance(
   return count ?? 0;
 }
 
-export type PvpEvolveResult = {
-  evolved: boolean;
-  fromStage: number;
-  toStage: number;
-  reachedStage4: boolean;
-};
-
-// สไลซ์ 3 (option B): PvP EXP อัปเดต pets.exp ตรง ๆ ใน SQL แต่ไม่เช็ค stage-up —
-// ตัวนี้เช็ค threshold + ขยับ stage + ล็อก subline ตอนเข้า stage 3 ด้วยตรรกะเดียวกับ finishQuizRound()
-// (evolution.ts import อ่านอย่างเดียว) กัน logic วิวัฒนาการ drift. idempotent — เรียกซ้ำได้
-// เรียกจาก: server action reconcilePvpEvolution (DuelClient หลังแมตช์จบ) + หน้า pet (safety net)
-export async function reconcilePvpEvolutionForPet(
-  supabase: SupabaseServerClient,
-  userId: string,
-  petId: string
-): Promise<PvpEvolveResult | null> {
-  const { data: pet } = await supabase
-    .from("pets")
-    .select("id, user_id, exp, stage, subline, math_correct, science_correct")
-    .eq("id", petId)
-    .maybeSingle();
-  if (!pet || pet.user_id !== userId) return null;
-
-  const fromStage = pet.stage as number;
-  const toStage = tryAdvanceStage(fromStage, pet.exp as number);
-  if (toStage === fromStage) {
-    return { evolved: false, fromStage, toStage, reachedStage4: false };
-  }
-
-  let computedSubline: PetLine | null = null;
-  if (fromStage < 3 && toStage === 3 && !pet.subline) {
-    const band = await getGradeBand(userId);
-    if (band === "junior") {
-      computedSubline = determineSubline(
-        pet.math_correct as number,
-        pet.science_correct as number
-      );
-    } else {
-      const { data: branchCounts } = await supabase.rpc("get_pet_branch_counts", {
-        p_pet_id: pet.id,
-      });
-      const counts: Partial<Record<SeniorLine, number>> = {};
-      for (const row of (branchCounts ?? []) as { branch: string; correct_count: number }[]) {
-        if (row.branch === "physics" || row.branch === "chemistry" || row.branch === "biology") {
-          counts[row.branch] = row.correct_count;
-        }
-      }
-      computedSubline = resolveSeniorLine(counts);
-    }
-  }
-
-  // guard ด้วย stage เดิม — กัน race กับ finishQuizRound / reconcile ซ้ำ
-  await supabase.from("pets").update({ stage: toStage }).eq("id", pet.id).eq("stage", fromStage);
-  if (computedSubline) {
-    await supabase
-      .from("pets")
-      .update({ subline: computedSubline })
-      .eq("id", pet.id)
-      .is("subline", null);
-  }
-
-  return {
-    evolved: true,
-    fromStage,
-    toStage,
-    reachedStage4: fromStage < 4 && toStage === 4,
-  };
-}
+// ตรรกะ reconcile วิวัฒนาการ PvP ย้ายไป src/lib/petEvolution.ts (evolvePet) —
+// ใช้ร่วมกับ finishQuizRound. server action = applyPvpMatchEvolution (src/app/pvp/actions.ts)
 
 async function petSpriteMap(
   petIds: string[]

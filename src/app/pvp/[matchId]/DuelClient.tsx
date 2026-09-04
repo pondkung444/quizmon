@@ -4,18 +4,20 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PvpMatchView, PvpEvolveResult } from "@/lib/pvp";
+import type { PvpMatchView } from "@/lib/pvp";
+import type { PetEvolveOutcome } from "@/lib/petEvolution";
 import { pvpEstimatedDamage } from "@/lib/pvp/combat";
 import { pvpEffectMeta } from "@/lib/pvp/effects";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
 import {
+  applyPvpMatchEvolution,
   assignPvpCard,
   drawPvpCards,
-  reconcilePvpEvolution,
   submitPvpCard,
   type PvpSubmitResult,
 } from "../actions";
 import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
+import PersonalityDecisionModal from "@/components/PersonalityDecisionModal";
 
 // accent ต่อ "บทบาทในแมตช์" (ไม่ใช่ต่อผู้ชม) — ทั้งสองฝั่งเห็นสีเดียวกันเสมอ
 //   player_a = ผู้ท้า (challenger) -> แดง
@@ -340,17 +342,18 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     }
   }, [view.isDefender, remain, result, doSubmit]);
 
-  // แมตช์จบ -> reconcile วิวัฒนาการของ "ตัวที่กำลังเลี้ยง" ที่เพิ่งได้ EXP (option B, สไลซ์ 3)
-  // ทั้งสองฝ่ายที่โหลดหน้าแมตช์ที่จบแล้วจะเรียกจุดนี้ — idempotent, guard ด้วย ref กันเรียกซ้ำ
-  const [evolveResult, setEvolveResult] = useState<PvpEvolveResult | null>(null);
+  // แมตช์จบ -> เช็ควิวัฒนาการของ "ตัวที่กำลังเลี้ยง" ที่เพิ่งได้ EXP แล้วเด้ง flow เดียวกับ quiz ปกติ
+  // (evolved ไม่ถึง stage 4 -> ไป /pet?evolved=1 ป๊อป · reachedStage4 -> PersonalityDecisionModal เต็มจอ)
+  // ทั้งสองฝ่ายที่โหลดหน้าแมตช์ที่จบแล้วเรียกจุดนี้ — idempotent, guard ด้วย ref กันเรียกซ้ำ
+  const [evolveResult, setEvolveResult] = useState<PetEvolveOutcome | null>(null);
   const reconciledRef = useRef(false);
   useEffect(() => {
-    if (view.status !== "finished" || !view.myExpPetId || reconciledRef.current) return;
+    if (view.status !== "finished" || view.myExpAward == null || reconciledRef.current) return;
     reconciledRef.current = true;
-    void reconcilePvpEvolution(view.myExpPetId).then((r) => {
+    void applyPvpMatchEvolution(view.matchId).then((r) => {
       if (r.ok && r.data.evolved) setEvolveResult(r.data);
     });
-  }, [view.status, view.myExpPetId]);
+  }, [view.status, view.myExpAward, view.matchId]);
 
   const doAssign = async (cardId: string) => {
     setBusy(true);
@@ -474,12 +477,27 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
             </p>
           )}
         </div>
-        <Link
-          href="/pvp"
-          className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
-        >
-          กลับหน้าประลอง
-        </Link>
+
+        {evolveResult?.evolved && !evolveResult.reachedStage4 ? (
+          <Link
+            href="/pet?evolved=1"
+            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
+          >
+            ไปดู Qmon ที่วิวัฒนาการ
+          </Link>
+        ) : (
+          <Link
+            href="/pvp"
+            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
+          >
+            กลับหน้าประลอง
+          </Link>
+        )}
+
+        {/* ขยับเข้า stage 4 -> flow เลือกบุคลิก + snapshot stat เต็มจอ (ตัวเดียวกับ quiz ปกติ) */}
+        {evolveResult?.reachedStage4 && (
+          <PersonalityDecisionModal onClose={() => router.push("/pet")} />
+        )}
       </main>
     );
   }
