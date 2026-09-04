@@ -1,11 +1,23 @@
 "use server";
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { reconcilePvpEvolutionForPet, type PvpEvolveResult } from "@/lib/pvp";
 
 async function requireUserId(): Promise<string> {
   const user = await getUser();
   if (!user) throw new Error("ต้องเข้าสู่ระบบก่อน");
   return user.id;
+}
+
+// สไลซ์ 3 (option B) — เรียกจาก DuelClient หลังแมตช์จบ (ทั้งสองฝ่าย, idempotent)
+export async function reconcilePvpEvolution(
+  petId: string
+): Promise<PvpActionResult<PvpEvolveResult>> {
+  const uid = await requireUserId();
+  const supabase = await createClient();
+  const result = await reconcilePvpEvolutionForPet(supabase, uid, petId);
+  if (!result) return { ok: false, message: "ไม่พบ Qmon นี้" };
+  return { ok: true, data: result };
 }
 
 export type PvpActionResult<T = null> =
@@ -120,6 +132,11 @@ export type PvpSubmitResult = {
   attacker_side: "a" | "b";
   timed_out: boolean;
   noop?: boolean;
+  // ---- สไลซ์ 3: EXP ตอนแมตช์จบ (ให้ "ตัวที่กำลังเลี้ยง" ของแต่ละฝ่าย) ----
+  exp_a: number | null;
+  exp_b: number | null;
+  exp_pet_a: string | null;
+  exp_pet_b: string | null;
 };
 
 // answerIndex = -1 => หมดเวลา (client timer) => นับเป็นตอบผิด

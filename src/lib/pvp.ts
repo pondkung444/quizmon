@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { getUser, type createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
-import { getSpeciesName, parsePetLine } from "@/lib/petLine";
-import type { Personality, Subline } from "@/lib/evolution";
+import { getSpeciesName, parsePetLine, resolveSeniorLine, type PetLine, type SeniorLine } from "@/lib/petLine";
+import { tryAdvanceStage, determineSubline, type Personality, type Subline } from "@/lib/evolution";
+import { getGradeBand } from "@/lib/gradeBand";
 import { parsePvpStats, type PvpCard, type PvpPetStats } from "@/lib/pvp/stats";
 import { pvpTimerSecondsForCard } from "@/lib/pvp/combat";
 
@@ -206,7 +207,93 @@ export type PvpOverview = {
   incoming: PvpIncomingChallenge[];
   outgoing: PvpOutgoingChallenge[];
   finished: PvpMatchListItem[];
+  ticketBalance: number; // ตั๋วประลองที่ใช้ได้ (เติมวันละ 2 + raid bonus, เพดาน 15)
 };
+
+export const PVP_TICKET_CAP = 15;
+
+// นับตั๋วที่ใช้ได้ของผู้ใช้ (หลัง lazy grant) — เรียกจากหน้า /pvp และ /pvp/new
+export async function getPvpTicketBalance(
+  supabase: SupabaseServerClient,
+  userId: string
+): Promise<number> {
+  await supabase.rpc("pvp_grant_tickets");
+  const { count } = await supabase
+    .from("pvp_tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .is("consumed_at", null);
+  return count ?? 0;
+}
+
+export type PvpEvolveResult = {
+  evolved: boolean;
+  fromStage: number;
+  toStage: number;
+  reachedStage4: boolean;
+};
+
+// สไลซ์ 3 (option B): PvP EXP อัปเดต pets.exp ตรง ๆ ใน SQL แต่ไม่เช็ค stage-up —
+// ตัวนี้เช็ค threshold + ขยับ stage + ล็อก subline ตอนเข้า stage 3 ด้วยตรรกะเดียวกับ finishQuizRound()
+// (evolution.ts import อ่านอย่างเดียว) กัน logic วิวัฒนาการ drift. idempotent — เรียกซ้ำได้
+// เรียกจาก: server action reconcilePvpEvolution (DuelClient หลังแมตช์จบ) + หน้า pet (safety net)
+export async function reconcilePvpEvolutionForPet(
+  supabase: SupabaseServerClient,
+  userId: string,
+  petId: string
+): Promise<PvpEvolveResult | null> {
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("id, user_id, exp, stage, subline, math_correct, science_correct")
+    .eq("id", petId)
+    .maybeSingle();
+  if (!pet || pet.user_id !== userId) return null;
+
+  const fromStage = pet.stage as number;
+  const toStage = tryAdvanceStage(fromStage, pet.exp as number);
+  if (toStage === fromStage) {
+    return { evolved: false, fromStage, toStage, reachedStage4: false };
+  }
+
+  let computedSubline: PetLine | null = null;
+  if (fromStage < 3 && toStage === 3 && !pet.subline) {
+    const band = await getGradeBand(userId);
+    if (band === "junior") {
+      computedSubline = determineSubline(
+        pet.math_correct as number,
+        pet.science_correct as number
+      );
+    } else {
+      const { data: branchCounts } = await supabase.rpc("get_pet_branch_counts", {
+        p_pet_id: pet.id,
+      });
+      const counts: Partial<Record<SeniorLine, number>> = {};
+      for (const row of (branchCounts ?? []) as { branch: string; correct_count: number }[]) {
+        if (row.branch === "physics" || row.branch === "chemistry" || row.branch === "biology") {
+          counts[row.branch] = row.correct_count;
+        }
+      }
+      computedSubline = resolveSeniorLine(counts);
+    }
+  }
+
+  // guard ด้วย stage เดิม — กัน race กับ finishQuizRound / reconcile ซ้ำ
+  await supabase.from("pets").update({ stage: toStage }).eq("id", pet.id).eq("stage", fromStage);
+  if (computedSubline) {
+    await supabase
+      .from("pets")
+      .update({ subline: computedSubline })
+      .eq("id", pet.id)
+      .is("subline", null);
+  }
+
+  return {
+    evolved: true,
+    fromStage,
+    toStage,
+    reachedStage4: fromStage < 4 && toStage === 4,
+  };
+}
 
 async function petSpriteMap(
   petIds: string[]
@@ -264,8 +351,10 @@ export async function getPvpOverview(
 ): Promise<PvpOverview> {
   // housekeeping (คำท้าหมดอายุ 24 ชม. / แมตช์ถูกทิ้ง 3 วัน) — lazy ตรงนี้ ไม่ต้องรอ cron
   await supabase.rpc("pvp_gc");
+  // เติมตั๋ว lazy (daily 2 + raid bonus) — จุดเดียวกับ pvp_gc, ไม่มี cron
+  await supabase.rpc("pvp_grant_tickets");
 
-  const [{ data: challenges }, { data: matches }] = await Promise.all([
+  const [{ data: challenges }, { data: matches }, { count: ticketCount }] = await Promise.all([
     supabase
       .from("pvp_challenges")
       .select("*")
@@ -276,6 +365,11 @@ export async function getPvpOverview(
       .select("*")
       .or(`player_a_id.eq.${userId},player_b_id.eq.${userId}`)
       .order("last_action_at", { ascending: false }),
+    supabase
+      .from("pvp_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("consumed_at", null),
   ]);
 
   const chRows = challenges ?? [];
@@ -374,6 +468,7 @@ export async function getPvpOverview(
     incoming,
     outgoing,
     finished,
+    ticketBalance: ticketCount ?? 0,
   };
 }
 
@@ -422,6 +517,10 @@ export type PvpMatchView = {
 
   outcome: "a_win" | "b_win" | "draw" | null;
   iWon: boolean | null;
+
+  // สไลซ์ 3: EXP ที่ "ตัวที่กำลังเลี้ยง" ของเราได้จากแมตช์นี้ (เฉพาะตอน finished) + pet id เพื่อ reconcile วิวัฒนาการ
+  myExpAward: number | null;
+  myExpPetId: string | null;
 };
 
 export async function getPvpMatchView(
@@ -541,5 +640,7 @@ export async function getPvpMatchView(
     roundDeadline: m.phase === "answering" ? (m.round_deadline ?? null) : null,
     outcome: m.outcome,
     iWon: won,
+    myExpAward: m.status === "finished" ? (iAm === "a" ? m.exp_a : m.exp_b) ?? null : null,
+    myExpPetId: m.status === "finished" ? (iAm === "a" ? m.exp_pet_a : m.exp_pet_b) ?? null : null,
   };
 }

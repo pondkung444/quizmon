@@ -4,11 +4,17 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { PvpMatchView } from "@/lib/pvp";
+import type { PvpMatchView, PvpEvolveResult } from "@/lib/pvp";
 import { pvpEstimatedDamage } from "@/lib/pvp/combat";
 import { pvpEffectMeta } from "@/lib/pvp/effects";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
-import { assignPvpCard, drawPvpCards, submitPvpCard, type PvpSubmitResult } from "../actions";
+import {
+  assignPvpCard,
+  drawPvpCards,
+  reconcilePvpEvolution,
+  submitPvpCard,
+  type PvpSubmitResult,
+} from "../actions";
 import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
 
 // accent ต่อ "บทบาทในแมตช์" (ไม่ใช่ต่อผู้ชม) — ทั้งสองฝั่งเห็นสีเดียวกันเสมอ
@@ -334,6 +340,18 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     }
   }, [view.isDefender, remain, result, doSubmit]);
 
+  // แมตช์จบ -> reconcile วิวัฒนาการของ "ตัวที่กำลังเลี้ยง" ที่เพิ่งได้ EXP (option B, สไลซ์ 3)
+  // ทั้งสองฝ่ายที่โหลดหน้าแมตช์ที่จบแล้วจะเรียกจุดนี้ — idempotent, guard ด้วย ref กันเรียกซ้ำ
+  const [evolveResult, setEvolveResult] = useState<PvpEvolveResult | null>(null);
+  const reconciledRef = useRef(false);
+  useEffect(() => {
+    if (view.status !== "finished" || !view.myExpPetId || reconciledRef.current) return;
+    reconciledRef.current = true;
+    void reconcilePvpEvolution(view.myExpPetId).then((r) => {
+      if (r.ok && r.data.evolved) setEvolveResult(r.data);
+    });
+  }, [view.status, view.myExpPetId]);
+
   const doAssign = async (cardId: string) => {
     setBusy(true);
     setError(null);
@@ -447,6 +465,14 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
             </p>
           )}
           <p className="mt-2 text-sm text-text3">จบที่ยกที่ {view.currentRound}</p>
+          {!abandoned && view.myExpAward != null && (
+            <p className="mt-3 text-sm font-bold text-indigo-hi">
+              Qmon ที่กำลังเลี้ยงได้รับ EXP +{view.myExpAward}
+              {evolveResult?.evolved && (
+                <span className="ml-1 text-gold-hi">· วิวัฒนาการแล้ว! 🎉</span>
+              )}
+            </p>
+          )}
         </div>
         <Link
           href="/pvp"

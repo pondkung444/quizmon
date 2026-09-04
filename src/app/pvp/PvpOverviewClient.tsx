@@ -60,12 +60,24 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
-        <Link
-          href="/pvp/new"
-          className="rounded-xl border border-gold-dim bg-track px-4 py-2 text-sm font-bold text-gold-hi active:scale-95"
-        >
-          ท้าเพื่อน
-        </Link>
+        <div className="flex items-center gap-2">
+          <span
+            className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-text2"
+            title="ตั๋วประลอง — เติมวันละ 2 ใบ + 1 ใบต่อการผจญภัยที่จบ (เก็บสูงสุด 15)"
+          >
+            🎟️ {overview.ticketBalance}
+          </span>
+          <Link
+            href="/pvp/new"
+            className={`rounded-xl border px-4 py-2 text-sm font-bold active:scale-95 ${
+              overview.ticketBalance > 0
+                ? "border-gold-dim bg-track text-gold-hi"
+                : "pointer-events-none border-border bg-card text-text3 opacity-60"
+            }`}
+          >
+            ท้าเพื่อน
+          </Link>
+        </div>
       </div>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
