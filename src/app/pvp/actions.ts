@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, getUser } from "@/lib/supabase/server";
-import { reconcilePvpEvolutionForPet, type PvpEvolveResult } from "@/lib/pvp";
+import { evolvePet, type PetEvolveOutcome } from "@/lib/petEvolution";
 
 async function requireUserId(): Promise<string> {
   const user = await getUser();
@@ -9,15 +9,52 @@ async function requireUserId(): Promise<string> {
   return user.id;
 }
 
-// สไลซ์ 3 (option B) — เรียกจาก DuelClient หลังแมตช์จบ (ทั้งสองฝ่าย, idempotent)
-export async function reconcilePvpEvolution(
-  petId: string
-): Promise<PvpActionResult<PvpEvolveResult>> {
+// สไลซ์ 3 (option B) — เรียกจาก DuelClient ทันทีที่ได้ผลแมตช์ที่ "จบ" (ชนะ/แพ้/เสมอ ทุกกรณีให้ EXP)
+// SQL (_pvp_resolve_round) อัปเดต pets.exp + เก็บ exp_pet_a/b บนแมตช์ไว้แล้ว — ตัวนี้เช็ค stage-up
+// + ล็อก subline ผ่าน evolvePet() (ตรรกะเดียวกับ finishQuizRound). idempotent — เรียกซ้ำ = no-op
+// คืน shape เดียวกับ RoundFinishResult (evolved/reachedStage4/fromStage/toStage) เพื่อให้ client
+// เด้ง flow วิวัฒนาการ/เลือกบุคลิกแบบเดียวกับ quiz ปกติ
+export async function applyPvpMatchEvolution(
+  matchId: string
+): Promise<PvpActionResult<PetEvolveOutcome>> {
   const uid = await requireUserId();
   const supabase = await createClient();
-  const result = await reconcilePvpEvolutionForPet(supabase, uid, petId);
-  if (!result) return { ok: false, message: "ไม่พบ Qmon นี้" };
-  return { ok: true, data: result };
+
+  const { data: m } = await supabase
+    .from("pvp_matches")
+    .select("player_a_id, player_b_id, status, exp_pet_a, exp_pet_b")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (!m) return { ok: false, message: "ไม่พบแมตช์นี้" };
+  if (m.status !== "finished") return { ok: false, message: "แมตช์ยังไม่จบ" };
+
+  const side = m.player_a_id === uid ? "a" : m.player_b_id === uid ? "b" : null;
+  if (!side) return { ok: false, message: "ไม่ใช่แมตช์ของคุณ" };
+
+  const petId = (side === "a" ? m.exp_pet_a : m.exp_pet_b) as string | null;
+  const noop: PetEvolveOutcome = { evolved: false, fromStage: 0, toStage: 0, reachedStage4: false };
+  if (!petId) return { ok: true, data: noop }; // ไม่มีตัวที่กำลังเลี้ยงตอนแมตช์จบ
+
+  const { data: pet } = await supabase
+    .from("pets")
+    .select("id, user_id, exp, stage, math_correct, science_correct")
+    .eq("id", petId)
+    .maybeSingle();
+  if (!pet || pet.user_id !== uid) return { ok: true, data: noop };
+
+  const outcome = await evolvePet(
+    supabase,
+    uid,
+    {
+      id: pet.id,
+      stage: pet.stage as number,
+      math_correct: pet.math_correct as number,
+      science_correct: pet.science_correct as number,
+    },
+    pet.exp as number,
+    "/pvp"
+  );
+  return { ok: true, data: outcome };
 }
 
 export type PvpActionResult<T = null> =

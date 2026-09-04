@@ -58,26 +58,36 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
-        <div className="flex items-center gap-2">
-          <span
-            className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-bold text-text2"
-            title="ตั๋วประลอง — เติมวันละ 2 ใบ + 1 ใบต่อการผจญภัยที่จบ (เก็บสูงสุด 15)"
-          >
-            🎟️ {overview.ticketBalance}
-          </span>
-          <Link
-            href="/pvp/new"
-            className={`rounded-xl border px-4 py-2 text-sm font-bold active:scale-95 ${
-              overview.ticketBalance > 0
-                ? "border-gold-dim bg-track text-gold-hi"
-                : "pointer-events-none border-border bg-card text-text3 opacity-60"
-            }`}
-          >
-            ท้าเพื่อน
-          </Link>
-        </div>
+      <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
+
+      {/* ตั๋ว + ปุ่มท้า + คำอธิบายรางวัล */}
+      <div className="mt-3 rounded-2xl border border-gold-dim bg-card p-4">
+        <p className="text-sm text-text2">
+          <span className="font-bold text-text">ตั๋วประลอง {overview.ticketBalance} ใบ</span>
+          <span className="text-text3"> · เติมวันละ 2 ใบ + ได้เพิ่มจากท้าทาย (ชนะหรือแพ้ก็ได้)</span>
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-text3">
+          ชนะ = EXP เต็มก้อน · สู้จนจบ = ได้ EXP ติดมือ · ทั้งหมดนี้ไม่กินโควตา EXP ต่อวัน
+        </p>
+        <Link
+          href="/pvp/new"
+          className={`mt-3 flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold active:scale-[0.98] ${
+            overview.ticketBalance > 0
+              ? "border-gold bg-amber text-track"
+              : "pointer-events-none border-border bg-track text-text3 opacity-60"
+          }`}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M14.5 3.5 20.5 9.5M4 20l3.5-1 10-10-2.5-2.5-10 10L4 20Zm11-13 2-2 2 2-2 2"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          ท้าเพื่อนประลอง
+        </Link>
       </div>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
