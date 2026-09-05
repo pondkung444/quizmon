@@ -27,7 +27,7 @@ export type ChooseRaidPathResult = {
   rollPassed: boolean;
   resultText: string | null;
   needsQuiz: boolean;
-  question: { id: number; questionText: string; choices: string[] } | null;
+  question: { id: number; questionText: string; choices: string[]; imageUrl: string | null } | null;
   // ตัวเลขที่ "เห็น" บนจอ — กลับด้านจาก fraction ที่ตัดสินผลจริงแล้ว (ดู computeRollDisplay) เป็น
   // "ต้องทอยเกิน N" แบบ D&D DC ให้ตรงสัญชาตญาณเกมทอยเต๋า ไม่ใช่ค่าดิบจาก DB — ผ่านการ์ดกับ rollPassed
   // มาแล้วที่จุดเดียว (ในนี้) ห้ามคำนวณ/กลับด้านซ้ำใน component
@@ -47,7 +47,7 @@ export async function chooseRaidPath(runId: string, side: "a" | "b"): Promise<Ch
     rollPassed: boolean;
     resultText?: string;
     needsQuiz: boolean;
-    question?: { id: number; questionText: string; choices: string[] };
+    question?: { id: number; questionText: string; choices: string[]; imageUrl: string | null };
     rollValueScaled: number;
     rollThresholdScaled: number;
   };
@@ -87,14 +87,32 @@ export async function submitRaidObstacleAnswer(
   return result;
 }
 
-export type RaidBossQuestion = { seq: number; questionId: number; questionText: string; choices: string[] };
+export type RaidBossQuestion = {
+  seq: number;
+  questionId: number;
+  questionText: string;
+  choices: string[];
+  imageUrl: string | null;
+};
 
 export async function startRaidBoss(runId: string): Promise<RaidBossQuestion[]> {
   const supabase = await requireUser();
   const { data, error } = await supabase.rpc("start_raid_boss", { p_run_id: runId });
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as { seq: number; question_id: number; question_text: string; choices: string[] }[];
-  return rows.map((r) => ({ seq: r.seq, questionId: r.question_id, questionText: r.question_text, choices: r.choices }));
+  const rows = (data ?? []) as {
+    seq: number;
+    question_id: number;
+    question_text: string;
+    choices: string[];
+    image_url: string | null;
+  }[];
+  return rows.map((r) => ({
+    seq: r.seq,
+    questionId: r.question_id,
+    questionText: r.question_text,
+    choices: r.choices,
+    imageUrl: r.image_url,
+  }));
 }
 
 export type AnswerRaidBossResult = {
