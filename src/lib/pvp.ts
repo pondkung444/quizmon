@@ -10,17 +10,12 @@ import type { PetDisplayInput } from "@/components/social/petSummary";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-// auth + allowlist ในจุดเดียว (pattern เดียวกับ requireRaidAccess) — ทุก page/action ของ /pvp เรียกตัวนี้
+// auth gate ในจุดเดียว — ทุก page/action ของ /pvp เรียกตัวนี้
+// ประลองเปิดให้ทุก authenticated user แล้ว (เอา pvp_allowlist gate ออก 2026-09-05) —
+// การบล็อก guest/anonymous ทำฝั่ง backend RPC (create_pvp_challenge / accept_pvp_challenge) แล้ว
 export async function requirePvpAccess(): Promise<{ id: string }> {
   const user = await getUser();
   if (!user) redirect("/login");
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("pvp_allowlist")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!data) redirect("/pet");
   return user;
 }
 
