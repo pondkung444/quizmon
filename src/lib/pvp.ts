@@ -13,10 +13,10 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // auth gate ในจุดเดียว — ทุก page/action ของ /pvp เรียกตัวนี้
 // ประลองเปิดให้ทุก authenticated user แล้ว (เอา pvp_allowlist gate ออก 2026-09-05) —
 // การบล็อก guest/anonymous ทำฝั่ง backend RPC (create_pvp_challenge / accept_pvp_challenge) แล้ว
-export async function requirePvpAccess(): Promise<{ id: string }> {
+export async function requirePvpAccess(): Promise<{ id: string; isAnonymous: boolean }> {
   const user = await getUser();
   if (!user) redirect("/login");
-  return user;
+  return { id: user.id, isAnonymous: user.is_anonymous === true };
 }
 
 export type PvpPetPick = {
