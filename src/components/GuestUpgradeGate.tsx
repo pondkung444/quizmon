@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { X } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
@@ -29,10 +30,18 @@ export function isManualLinkingDisabled(err: AuthError | null): boolean {
   return m.includes("manual linking") || m.includes("linking is disabled") || m.includes("identity linking");
 }
 
-// Milestone hard-gate (state a): guest (anonymous) ที่ Qmon วิวัฒนาการถึงระยะ 2 แล้ว และยังไม่เริ่ม
-// ผูกไอดีเลย — เต็มจอ ปิด/ข้ามไม่ได้ เสนอ 2 ทาง: ผูกด้วย Google (ไม่ต้องรอเมล) หรืออีเมล + โรงเรียน
-// เรนเดอร์จาก src/app/layout.tsx เมื่อ is_anonymous && ยังไม่มี new_email && activePetStage >= 2
-export default function GuestUpgradeGate({ petName }: { petName: string }) {
+// โมดัลผูกไอดีของ guest (anonymous) — เสนอ 2 ทาง: Google (ไม่ต้องรอเมล) หรืออีเมล + โรงเรียน
+// ใช้ 2 แบบ:
+//   - hard gate: เรนเดอร์จาก layout เมื่อ is_anonymous && ไม่มี new_email && activePetStage >= 2
+//     (ไม่ส่ง `dismissible` -> ปิดไม่ได้)
+//   - สมัครใจจากเมนูตั้งค่า: ส่ง `dismissible` เข้ามา -> มีปุ่ม X / "ยังไม่ผูกตอนนี้" ปิดได้
+export default function GuestUpgradeGate({
+  petName,
+  dismissible,
+}: {
+  petName: string;
+  dismissible?: () => void;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -120,19 +129,49 @@ export default function GuestUpgradeGate({ petName }: { petName: string }) {
 
     track("guest_link_email_submitted");
     setLoading(null);
-    // layout จะ re-render เป็น banner "รอยืนยันอีเมล" (ไม่บล็อก) เพราะ user.new_email มีค่าแล้ว
+    // เข้าทางสมัครใจ (settings) -> ปิดโมดัลเอง; layout จะโชว์ banner "รอยืนยันอีเมล" ต่อ
+    // (hard gate จะสลับเป็น banner อัตโนมัติเพราะ user.new_email มีค่าแล้ว)
+    dismissible?.();
     router.refresh();
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 p-6 backdrop-blur-sm">
-      <div className="my-auto flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold bg-card p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-black/80 p-6 backdrop-blur-sm"
+      onClick={dismissible ? () => dismissible() : undefined}
+    >
+      <div
+        className="relative my-auto flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold bg-card p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {dismissible && (
+          <button
+            type="button"
+            onClick={() => dismissible()}
+            aria-label="ปิด"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-text3 transition active:scale-95"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
         <div className="flex flex-col items-center gap-2 text-center">
           <span className="text-4xl">✨</span>
-          <h2 className="text-lg font-bold text-gold-hi">{mon} พร้อมวิวัฒนาการแล้ว!</h2>
-          <p className="text-sm text-text2">
-            ผูกไอดีไว้เพื่อเก็บ {mon} เป็นของเธอตลอดไป และเล่นต่อได้ทุกเครื่อง
-          </p>
+          {dismissible ? (
+            <>
+              <h2 className="text-lg font-bold text-gold-hi">ผูกไอดีเก็บ Qmon ไว้</h2>
+              <p className="text-sm text-text2">
+                ผูกอีเมลหรือ Google ไว้ เก็บ Qmon และความคืบหน้าทั้งหมดไว้ได้ตลอด เล่นต่อได้ทุกเครื่อง
+                — ไม่ผูกตอนนี้ก็ได้
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold text-gold-hi">{mon} พร้อมวิวัฒนาการแล้ว!</h2>
+              <p className="text-sm text-text2">
+                ผูกไอดีไว้เพื่อเก็บ {mon} เป็นของเธอตลอดไป และเล่นต่อได้ทุกเครื่อง
+              </p>
+            </>
+          )}
         </div>
 
         {/* ทางที่ 1 — Google (แนะนำ ไม่ต้องรอเมล) */}
@@ -203,6 +242,16 @@ export default function GuestUpgradeGate({ petName }: { petName: string }) {
             ยืนยันในอีเมลแล้วค่อยตั้งรหัสผ่าน — เล่นต่อได้ระหว่างรอ
           </p>
         </form>
+
+        {dismissible && (
+          <button
+            type="button"
+            onClick={() => dismissible()}
+            className="text-center text-xs font-medium text-text3 active:opacity-70"
+          >
+            ยังไม่ผูกตอนนี้
+          </button>
+        )}
       </div>
     </div>
   );

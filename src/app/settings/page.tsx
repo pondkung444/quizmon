@@ -4,11 +4,13 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions";
 import NotificationSettings from "@/components/settings/NotificationSettings";
 import FeedbackRow from "@/components/settings/FeedbackRow";
+import GuestLinkAccountRow from "@/components/settings/GuestLinkAccountRow";
 import packageJson from "../../../package.json";
 
 export default async function SettingsPage() {
   const user = await getUser();
   const supabase = await createClient();
+  const isAnonymous = user?.is_anonymous === true;
 
   // push_preferences ควรมีเสมอ (backfill + trigger handle_new_user ครอบคลุมแล้ว)
   // แต่กัน edge case ไว้ด้วยค่า default ปลอดภัยถ้าหาไม่เจอจริงๆ
@@ -46,13 +48,22 @@ export default async function SettingsPage() {
 
       <section className="rounded-2xl border border-gold-dim bg-card p-4">
         <h2 className="mb-1 text-sm font-bold text-gold-hi">บัญชี</h2>
-        <Link
-          href="/login/reset-password"
-          className="flex w-full items-center justify-between py-3 text-sm text-text active:opacity-70"
-        >
-          เปลี่ยนรหัสผ่าน
-          <ChevronRight className="h-4 w-4 text-text3" />
-        </Link>
+        {isAnonymous ? (
+          <>
+            <GuestLinkAccountRow />
+            <p className="pb-2 text-xs text-text3">
+              ตอนนี้เล่นแบบยังไม่ผูกไอดี — ผูกไว้เพื่อกันข้อมูลหายและเล่นต่อได้ทุกเครื่อง
+            </p>
+          </>
+        ) : (
+          <Link
+            href="/login/reset-password"
+            className="flex w-full items-center justify-between py-3 text-sm text-text active:opacity-70"
+          >
+            เปลี่ยนรหัสผ่าน
+            <ChevronRight className="h-4 w-4 text-text3" />
+          </Link>
+        )}
         <div className="my-1 border-t border-border" />
         <form action={signOut}>
           <button type="submit" className="w-full py-3 text-left text-sm font-medium text-red active:opacity-70">
