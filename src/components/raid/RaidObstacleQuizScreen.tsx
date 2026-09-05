@@ -6,6 +6,7 @@ import type { RaidStatKey } from "@/lib/raid/stats";
 import { submitRaidObstacleAnswer, type SubmitRaidObstacleAnswerResult } from "@/app/raid/actions";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
+import { QuestionImage } from "@/components/QuizClient";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -38,7 +39,7 @@ export default function RaidObstacleQuizScreen({
   displayNeed: number;
   displayRoll: number;
   isGuaranteedPass: boolean;
-  question: { id: number; questionText: string; choices: string[] };
+  question: { id: number; questionText: string; choices: string[]; imageUrl: string | null };
 }) {
   const router = useRouter();
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
@@ -110,6 +111,8 @@ export default function RaidObstacleQuizScreen({
         </div>
 
         <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{question.questionText}</h2>
+
+        {question.imageUrl && <QuestionImage key={question.id} src={question.imageUrl} />}
 
         <div className="flex flex-col gap-3">
           {question.choices.map((choiceText, choiceIndex) => {

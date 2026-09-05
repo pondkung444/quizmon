@@ -6,6 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import { startRaidBoss, answerRaidBoss } from "@/app/raid/actions";
 import RaidScene from "@/components/raid/RaidScene";
 import { getSpriteAspectRatio } from "@/lib/raid/spriteGroundOffsets";
+import { QuestionImage } from "@/components/QuizClient";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -51,6 +52,7 @@ type BossQuestionView = {
   questionId: number;
   questionText: string;
   choices: string[];
+  imageUrl: string | null;
   answered: boolean;
   isCorrect: boolean | null;
 };
@@ -375,6 +377,12 @@ export default function RaidBossScreen({
             </div>
 
             <h2 className="mt-5 font-sarabun text-xl font-bold leading-relaxed text-text">{sheetQuestion.questionText}</h2>
+
+            {sheetQuestion.imageUrl && (
+              <div className="mt-4">
+                <QuestionImage key={sheetQuestion.questionId} src={sheetQuestion.imageUrl} />
+              </div>
+            )}
 
             <div className="mt-4 flex flex-col gap-3">
               {sheetQuestion.choices.map((choiceText, choiceIndex) => {

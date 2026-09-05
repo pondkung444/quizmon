@@ -52,7 +52,7 @@ const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 // รูปประกอบโจทย์ — วางไว้ระหว่างตัวคำถามกับตัวเลือก รับได้ทั้ง data URI (ค่าปัจจุบัน) และ external
 // URL (เช่น Supabase Storage ในอนาคต) เลยใช้ <img> ธรรมดา ไม่ผ่าน next/image (ไม่ต้องตั้ง
 // remotePatterns / ไม่ optimize data URI อยู่แล้ว) ถ้าโหลดรูปไม่ขึ้นให้ซ่อนไปเงียบๆ ไม่ให้หน้าพัง
-function QuestionImage({ src }: { src: string }) {
+export function QuestionImage({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) return null;
   return (

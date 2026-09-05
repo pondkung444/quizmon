@@ -90,7 +90,7 @@ export type RaidView =
       displayNeed: number;
       displayRoll: number;
       isGuaranteedPass: boolean;
-      question: { id: number; questionText: string; choices: string[] };
+      question: { id: number; questionText: string; choices: string[]; imageUrl: string | null };
     }
   | {
       phase: "boss";
@@ -110,6 +110,7 @@ export type RaidView =
         questionId: number;
         questionText: string;
         choices: string[];
+        imageUrl: string | null;
         answered: boolean;
         isCorrect: boolean | null;
       }[];
@@ -470,7 +471,7 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
     const admin = createAdminClient();
     const { data: question } = await admin
       .from("questions")
-      .select("id, question_text, choices")
+      .select("id, question_text, choices, image_url")
       .eq("id", step.quiz_question_id)
       .single();
     if (!question) return null;
@@ -493,7 +494,12 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
         Math.round((step.roll_threshold ?? 0) * 100),
         step.roll_passed ?? false
       ),
-      question: { id: question.id, questionText: question.question_text, choices: question.choices },
+      question: {
+        id: question.id,
+        questionText: question.question_text,
+        choices: question.choices,
+        imageUrl: question.image_url,
+      },
     };
   }
 
@@ -504,14 +510,16 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
       .eq("run_id", run.id)
       .order("seq", { ascending: true });
 
-    let questionMap = new Map<number, { question_text: string; choices: string[] }>();
+    let questionMap = new Map<number, { question_text: string; choices: string[]; image_url: string | null }>();
     if (bossQuestions && bossQuestions.length > 0) {
       const admin = createAdminClient();
       const { data: qs } = await admin
         .from("questions")
-        .select("id, question_text, choices")
+        .select("id, question_text, choices, image_url")
         .in("id", bossQuestions.map((b) => b.question_id));
-      questionMap = new Map((qs ?? []).map((q) => [q.id, { question_text: q.question_text, choices: q.choices }]));
+      questionMap = new Map(
+        (qs ?? []).map((q) => [q.id, { question_text: q.question_text, choices: q.choices, image_url: q.image_url }])
+      );
     }
 
     return {
@@ -532,6 +540,7 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
         questionId: b.question_id,
         questionText: questionMap.get(b.question_id)?.question_text ?? "",
         choices: questionMap.get(b.question_id)?.choices ?? [],
+        imageUrl: questionMap.get(b.question_id)?.image_url ?? null,
         answered: b.answered_at !== null,
         isCorrect: b.is_correct,
       })),
