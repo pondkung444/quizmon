@@ -63,15 +63,20 @@ export default function AcceptChallengeClient({
         <div className="mt-2">
           <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
-        {selectedPet && (
-          <PvpGearLoadout
-            petId={selectedPet.id}
-            baseStats={selectedPet.stats}
-            items={items}
-            setItems={setItems}
-            locked={locked}
-          />
-        )}
+        {selectedPet &&
+          (selectedPet.stage === 4 ? (
+            <PvpGearLoadout
+              petId={selectedPet.id}
+              baseStats={selectedPet.stats}
+              items={items}
+              setItems={setItems}
+              locked={locked}
+            />
+          ) : (
+            <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-text3">
+              อุปกรณ์มีผลเฉพาะ Qmon ระดับสูงสุด (ระยะ 4) เท่านั้น
+            </p>
+          ))}
       </section>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}

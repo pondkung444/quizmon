@@ -30,12 +30,15 @@ export type PvpPetPick = {
   speciesName: string;
   imagePath: string;
   subline: string;
+  stage: number; // ประลองได้ทุกระยะ (ไม่จำกัดแค่ stage 4 อีกต่อไป) — ใช้ตัดสินว่าใส่อุปกรณ์มีผลจริงไหม (stage 4 เท่านั้น)
   stats: PvpPetStats;
   statTotal: number;
   matchCount: number; // จำนวนแมตช์ PvP ทั้งหมด (all-time) ที่ Qmon ตัวนี้เคยลงสนาม — ใช้ตัดสิน badge "ใช้บ่อย"
 };
 
-// Qmon ที่ประลองได้ — stage 4 เท่านั้น (ไม่กรอง is_active — stage 4 ทุกตัว is_active=false)
+// Qmon ที่ประลองได้ — ทุก stage (ไม่กรอง is_active — stage 4 ทุกตัว is_active=false, stage 1-3 อาจ active ก็ได้)
+// stage < 4 ใช้ stat คงที่ {50,50,50,50,50} ตอนดวลจริง (คำนวณฝั่ง accept_pvp_challenge RPC) — ตัวเลขจริงที่ query
+// มานี้ใช้แค่โชว์พรีวิวก่อนเลือกเท่านั้น
 export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> {
   const admin = createAdminClient();
   const { data } = await admin
@@ -44,7 +47,6 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
       "id, nickname, stage, subline, personality, stat_hp, stat_atk, stat_def, stat_spd, stat_foc, hatched_at, egg_types(sprite_prefix, name_th)"
     )
     .eq("user_id", userId)
-    .eq("stage", 4)
     .order("hatched_at", { ascending: false });
 
   const rows = data ?? [];
@@ -70,8 +72,11 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
     const egg = (Array.isArray(row.egg_types) ? row.egg_types[0] : row.egg_types) as
       | { sprite_prefix: string; name_th: string }
       | null;
+    const stage = row.stage as number;
     const line = parsePetLine(row.subline);
-    if (!egg || !line || !row.personality) continue;
+    if (!egg) continue;
+    if (stage >= 3 && !line) continue; // stage 3-4 ต้องมี subline (mirror getSpeciesName/getPetImagePath)
+    if (stage === 4 && !row.personality) continue; // stage 4 ต้องมี personality ด้วย
     try {
       const stats = parsePvpStats({
         hp: row.stat_hp,
@@ -85,13 +90,14 @@ export async function getPvpEligiblePets(userId: string): Promise<PvpPetPick[]> 
         nickname: row.nickname,
         speciesName: getSpeciesName(
           egg.sprite_prefix,
-          4,
+          stage,
           line,
-          row.personality as Personality,
+          row.personality as Personality | null,
           egg.name_th
         ),
-        imagePath: getPetImagePath(egg.sprite_prefix, 4, line as Subline, row.personality as Personality),
+        imagePath: getPetImagePath(egg.sprite_prefix, stage, line as Subline | null, row.personality as Personality | null),
         subline: row.subline as string,
+        stage,
         stats,
         statTotal: stats.hp + stats.atk + stats.def + stats.spd + stats.foc,
         matchCount: matchCounts.get(row.id) ?? 0,

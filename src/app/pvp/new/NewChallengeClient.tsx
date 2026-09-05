@@ -169,20 +169,25 @@ export default function NewChallengeClient({
       </section>
 
       <section className="mt-6">
-        <h2 className="text-sm font-bold text-text2">เลือก Qmon (ระดับสูงสุด)</h2>
+        <h2 className="text-sm font-bold text-text2">เลือก Qmon</h2>
         <p className="mt-1 text-xs text-text3">อีกฝ่ายจะไม่เห็นว่าคุณเลือกตัวไหนจนกว่าจะเริ่มดวล</p>
         <div className="mt-2">
           <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
-        {selectedPet && (
-          <PvpGearLoadout
-            petId={selectedPet.id}
-            baseStats={selectedPet.stats}
-            items={items}
-            setItems={setItems}
-            locked={locked}
-          />
-        )}
+        {selectedPet &&
+          (selectedPet.stage === 4 ? (
+            <PvpGearLoadout
+              petId={selectedPet.id}
+              baseStats={selectedPet.stats}
+              items={items}
+              setItems={setItems}
+              locked={locked}
+            />
+          ) : (
+            <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-text3">
+              อุปกรณ์มีผลเฉพาะ Qmon ระดับสูงสุด (ระยะ 4) เท่านั้น
+            </p>
+          ))}
       </section>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
