@@ -23,7 +23,7 @@ export default async function NewPvpChallengePage() {
     getPvpGearLockedPetIds(user.id),
   ]);
 
-  // ไม่มี Qmon stage 4 -> กลับหน้าบ้าน (ประลองไม่ได้อยู่ดี)
+  // ไม่มี Qmon เลยสักตัว -> กลับหน้าบ้าน (ประลองไม่ได้อยู่ดี)
   if (pets.length === 0) redirect("/pet");
 
   return (
