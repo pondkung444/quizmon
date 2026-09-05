@@ -32,6 +32,12 @@ export const metadata: Metadata = {
   description: "ตอบถูกทุกข้อ มอนของคุณโตทุกครั้ง",
 };
 
+// layout อ่าน user + user_metadata (is_anonymous / guest_pw_pending) ต่อ request — ต้อง render
+// แบบ dynamic เสมอ ห้ามติด static cache. จริง ๆ cookies()/headers() ด้านล่างก็บังคับ dynamic อยู่แล้ว
+// แต่ประกาศไว้ให้ชัด: Supabase เตือนตรง ๆ ว่า Next.js static rendering เคยทำ user metadata
+// แคชข้ามผู้ใช้ในเคสจริง (docs: auth-anonymous "Use Dynamic Rendering with Next.js")
+export const dynamic = "force-dynamic";
+
 // viewport-fit=cover เปิดใช้งาน env(safe-area-inset-*) สำหรับ fixed-position elements
 // ที่ชิดขอบจอ (จำเป็นสำหรับ Capacitor WebView ที่ไม่มี browser chrome เผื่อ notch/home indicator)
 export const viewport: Viewport = {
