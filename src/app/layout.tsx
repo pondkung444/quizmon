@@ -4,9 +4,10 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
-import GuestUpgradeGate from "@/components/GuestUpgradeGate";
+import GuestUpgradeGate, { GUEST_PW_PENDING_META } from "@/components/GuestUpgradeGate";
 import GuestConfirmEmailBanner from "@/components/GuestConfirmEmailBanner";
 import GuestSchoolPrompt from "@/components/GuestSchoolPrompt";
+import GuestSetPasswordPrompt from "@/components/GuestSetPasswordPrompt";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import NativeAppSetup from "@/components/NativeAppSetup";
 import OfflineScreen from "@/components/OfflineScreen";
@@ -56,12 +57,15 @@ export default async function RootLayout({
   let hasUnreadEncouragements = false;
   let pvpBadgeCount = 0;
   let profileSchool: string | null = null;
-  // guest (anonymous). สถานะการผูกไอดี 3 ระดับ (เช็คจาก is_anonymous + new_email):
+  // guest (anonymous). สถานะการผูกไอดี (เช็คจาก is_anonymous + new_email + metadata flag):
   //   a) ยังไม่ผูก (anon, ไม่มี new_email) + pet ระยะ >= 2  -> full-screen block (GuestUpgradeGate)
   //   b) กรอกอีเมลแล้วรอกดลิงก์ยืนยัน (anon, มี new_email)  -> banner ไม่บล็อก (GuestConfirmEmailBanner)
-  //   c) ผูกสำเร็จ (is_anonymous=false)                       -> ไม่มี gate
+  //   c) ยืนยันอีเมลแล้วแต่ยังไม่ตั้งรหัสผ่าน (!anon, guest_pw_pending) -> GuestSetPasswordPrompt (ไม่บล็อก)
+  //   d) ผูกสำเร็จ (is_anonymous=false, ไม่มี flag)          -> ไม่มี gate
   const isAnonymous = user?.is_anonymous === true;
   const guestPendingEmail = (user?.new_email ?? "").trim();
+  const guestNeedsPassword =
+    !isAnonymous && user?.user_metadata?.[GUEST_PW_PENDING_META] === true;
   if (user) {
     const [{ data: pet }, unreadCount, { data: profile }, badgeCount] = await Promise.all([
       supabase.from("pets").select("stage, subline, nickname").eq("user_id", user.id).eq("is_active", true).maybeSingle(),
@@ -97,7 +101,10 @@ export default async function RootLayout({
         {isAnonymous && guestPendingEmail && (
           <GuestConfirmEmailBanner pendingEmail={guestPendingEmail} />
         )}
-        {user && !isAnonymous && !profileSchool && <GuestSchoolPrompt userId={user.id} />}
+        {guestNeedsPassword && <GuestSetPasswordPrompt />}
+        {user && !isAnonymous && !guestNeedsPassword && !profileSchool && (
+          <GuestSchoolPrompt userId={user.id} />
+        )}
       </body>
     </html>
   );
