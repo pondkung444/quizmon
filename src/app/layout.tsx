@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import GuestUpgradeGate from "@/components/GuestUpgradeGate";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import NativeAppSetup from "@/components/NativeAppSetup";
 import OfflineScreen from "@/components/OfflineScreen";
@@ -49,17 +50,21 @@ export default async function RootLayout({
 
   let activePetStage: number | null = null;
   let activePetSubline: string | null = null;
+  let activePetName: string | null = null;
   let hasUnreadEncouragements = false;
   let pvpBadgeCount = 0;
+  // guest (anonymous) ที่ Qmon วิวัฒนาการถึงระยะ 2 แล้ว ต้องผูกไอดีก่อนถึงจะเล่นต่อได้
+  const isAnonymous = user?.is_anonymous === true;
   if (user) {
     const [{ data: pet }, unreadCount, { data: profile }, badgeCount] = await Promise.all([
-      supabase.from("pets").select("stage, subline").eq("user_id", user.id).eq("is_active", true).maybeSingle(),
+      supabase.from("pets").select("stage, subline, nickname").eq("user_id", user.id).eq("is_active", true).maybeSingle(),
       getUnreadEncouragementCount(supabase),
       supabase.from("profiles").select("username, grade_level").eq("id", user.id).single(),
       getPvpBadgeCount(supabase, user.id),
     ]);
     activePetStage = pet?.stage ?? null;
     activePetSubline = pet?.subline ?? null;
+    activePetName = pet?.nickname ?? null;
     hasUnreadEncouragements = unreadCount > 0;
     pvpBadgeCount = badgeCount;
 
@@ -78,6 +83,9 @@ export default async function RootLayout({
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}
         <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
+        {isAnonymous && activePetStage !== null && activePetStage >= 2 && (
+          <GuestUpgradeGate petName={activePetName ?? ""} />
+        )}
       </body>
     </html>
   );

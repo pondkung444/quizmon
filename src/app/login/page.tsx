@@ -491,6 +491,13 @@ export default function LoginPage() {
             />
           </button>
         </div>
+
+        <Link
+          href="/guest"
+          className="mt-4 block rounded-full border border-indigo-dim bg-track py-2 text-center text-sm font-medium text-indigo-hi transition hover:opacity-90"
+        >
+          เล่นเลยแบบไม่ต้องสมัคร
+        </Link>
       </div>
     </main>
   );

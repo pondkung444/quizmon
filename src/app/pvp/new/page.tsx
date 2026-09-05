@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NewPvpChallengePage() {
   const user = await requirePvpAccess();
+  if (user.isAnonymous) redirect("/pvp");
   const supabase = await createClient();
   const [friends, pets, ticketBalance, gearItems, lockedPetIds] = await Promise.all([
     getChallengeableFriends(user.id),
