@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { X } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
@@ -174,16 +175,29 @@ export default function GuestUpgradeGate({
           )}
         </div>
 
-        {/* ทางที่ 1 — Google (แนะนำ ไม่ต้องรอเมล) */}
-        <button
-          type="button"
-          onClick={handleGoogle}
-          disabled={loading !== null}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
-        >
-          {loading === "google" ? "กำลังพาไป Google..." : "ผูกไอดีด้วย Google"}
-        </button>
-        <p className="-mt-2 text-center text-[11px] text-text3">เร็วที่สุด — ผูกเสร็จเล่นต่อได้เลย</p>
+        {/* ทางที่ 1 — Google (แนะนำ ไม่ต้องรอเมล) — ใช้ปุ่มแบรนด์ Google เหมือนหน้า /login */}
+        <div className="flex flex-col items-center gap-1.5">
+          <p className="text-sm font-bold text-gold-hi">ผูกไอดีด้วย Google</p>
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={loading !== null}
+            aria-label="ผูกไอดีด้วย Google"
+            className="relative mx-auto h-10 transition hover:opacity-90 active:scale-95 disabled:opacity-50"
+            style={{ aspectRatio: "4.5 / 1" }}
+          >
+            <Image
+              src="/brand/google-sign-in.png"
+              alt="ผูกไอดีด้วย Google"
+              fill
+              className="object-contain"
+              sizes="180px"
+            />
+          </button>
+          <p className="text-[11px] text-text3">
+            {loading === "google" ? "กำลังพาไป Google..." : "เร็วที่สุด — ผูกเสร็จเล่นต่อได้เลย"}
+          </p>
+        </div>
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
