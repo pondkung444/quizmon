@@ -26,6 +26,7 @@ import PendingPersonalityCard from "@/components/PendingPersonalityCard";
 import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
+import BgmMuteButton from "@/components/audio/BgmMuteButton";
 
 export default async function PetPage({
   searchParams,
@@ -272,6 +273,10 @@ export default async function PetPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+      {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
+          มุมบน เพราะ StickyActionBanner ของ PetCard กิน sticky top-0 เต็มความกว้าง ชนทั้งสองมุมบน
+          ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}
+      <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
       {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
