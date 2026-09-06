@@ -9,6 +9,7 @@ import GuestConfirmEmailBanner from "@/components/GuestConfirmEmailBanner";
 import GuestSchoolPrompt from "@/components/GuestSchoolPrompt";
 import GuestSetPasswordPrompt from "@/components/GuestSetPasswordPrompt";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
+import SeenAuthFlag from "@/components/SeenAuthFlag";
 import NativeAppSetup from "@/components/NativeAppSetup";
 import SoundProvider from "@/components/SoundProvider";
 import OfflineScreen from "@/components/OfflineScreen";
@@ -101,6 +102,7 @@ export default async function RootLayout({
         <SoundProvider />
         <OfflineScreen />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
+        <SeenAuthFlag authed={!!user && !isAnonymous} />
         {children}
         <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
         {isAnonymous && !guestPendingEmail && activePetStage !== null && activePetStage >= 2 && (

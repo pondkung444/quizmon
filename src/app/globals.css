@@ -75,6 +75,35 @@ body {
   animation: pet-bob 2.8s ease-in-out infinite;
 }
 
+/* /login State A hero egg — slow, gentle bob (±9px) */
+@keyframes landing-egg-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+
+.animate-landing-egg-bob {
+  animation: landing-egg-bob 3.4s ease-in-out infinite;
+}
+
+/* /login State B auth sheet slide-up */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 260ms ease-out;
+}
+
 /* idle animation: egg (stage 1), wobble instead of bob */
 @keyframes egg-wobble {
   0%,
@@ -350,6 +379,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
+  .animate-landing-egg-bob,
+  .animate-sheet-up,
   .animate-egg-wobble,
   .animate-pet-tap,
   .animate-card-bob,
