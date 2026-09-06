@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Crown, Medal } from "lucide-react";
 import { markAchievementsCelebrated } from "@/app/achievements/actions";
+import { useSfx } from "@/lib/audio/useSfx";
 import type { AchievementTier } from "@/components/AchievementCard";
 
 export type CelebrationItem = {
@@ -29,6 +30,16 @@ const TIER_GLOW: Record<AchievementTier, { ringClass: string; textClass: string;
 export default function AchievementCelebrationModal({ items }: { items: CelebrationItem[] }) {
   const [open, setOpen] = useState(items.length > 0);
   const [closing, setClosing] = useState(false);
+  const sfx = useSfx();
+  const fanfareSfxRef = useRef(false);
+
+  // เสียงฉลองครั้งเดียวตอนโมดัลเปิดพร้อมรายการ (ref กัน re-run / StrictMode double-invoke)
+  useEffect(() => {
+    if (items.length > 0 && !fanfareSfxRef.current) {
+      fanfareSfxRef.current = true;
+      sfx("reward_fanfare");
+    }
+  }, [items.length, sfx]);
 
   if (!open || items.length === 0) return null;
 

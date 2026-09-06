@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -14,6 +14,7 @@ import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
+import { useSfx } from "@/lib/audio/useSfx";
 import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
@@ -103,6 +104,8 @@ export default function PetCard({
   raidTicketCount: number;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
+  const evolveSfxRef = useRef(false);
   const [expanded, setExpanded] = useState(false);
   const [tapPulse, setTapPulse] = useState(0);
   const [showTopicStats, setShowTopicStats] = useState(false);
@@ -113,9 +116,14 @@ export default function PetCard({
 
   useEffect(() => {
     if (!justEvolved) return;
+    // ยิงเสียงฉลองครั้งเดียว (ref กัน effect re-run / StrictMode double-invoke)
+    if (!evolveSfxRef.current) {
+      evolveSfxRef.current = true;
+      sfx("reward_fanfare");
+    }
     const timer = setTimeout(() => router.replace("/pet"), EVOLVE_ANIMATION_MS);
     return () => clearTimeout(timer);
-  }, [justEvolved, router]);
+  }, [justEvolved, router, sfx]);
 
   const isMaxStage = stage === 4;
   const cappedToday = expToday >= dailyCap;

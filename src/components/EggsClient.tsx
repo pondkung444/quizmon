@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
 import { track } from "@/lib/analytics";
+import { useSfx } from "@/lib/audio/useSfx";
 import HatchNamingModal from "@/components/HatchNamingModal";
 import { requestPushPermissionWithContext } from "@/lib/push/pushClient";
 
@@ -33,6 +34,7 @@ export default function EggsClient({
   hasActivePet: boolean;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [isPending, startTransition] = useTransition();
   const [hatchingId, setHatchingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -54,6 +56,8 @@ export default function EggsClient({
         await hatchEgg(eggId, nickname);
         const egg = eggs.find((e) => e.id === eggId);
         if (egg) track("egg_selected", { egg_type_id: egg.eggTypeId });
+        // common = เสียงได้ของปกติ · tier อื่น (rare/legendary/epic) = fanfare
+        sfx(egg && egg.tier !== "common" ? "reward_fanfare" : "reward_normal");
         // ขอ push permission แบบมี context (หลัง hatch สำเร็จ ไม่ใช่ทันทีตอนเปิดแอป)
         // no-op ถ้าเคย grant/denied ไปแล้ว จะไม่โผล่ prompt ซ้ำ — ไม่ block การ navigate
         requestPushPermissionWithContext();
