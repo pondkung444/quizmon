@@ -8,6 +8,7 @@ import { claimRaidReward } from "@/app/raid/actions";
 import { getPetImagePath } from "@/lib/petImage";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
+import { useSfx } from "@/lib/audio/useSfx";
 
 const STAT_LABEL_TH: Record<string, string> = { hp: "HP", atk: "ATK", def: "DEF", spd: "SPD", foc: "FOC" };
 const SLOT_LABEL_TH: Record<string, string> = { head: "หัว", body: "ตัว", feet: "เท้า" };
@@ -41,6 +42,10 @@ export default function RaidRewardScreen({
   gearItem: RaidGearItemView | null;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
+  const winSfxRef = useRef(false);
+  const rewardSfxRef = useRef(false);
+  const eggSfxRef = useRef(false);
   const claimedRef = useRef(false);
   const [claimedGear, setClaimedGear] = useState<RaidGearItemView | null>(gearItem);
   const [isClaiming, setIsClaiming] = useState(gearItem === null);
@@ -55,22 +60,37 @@ export default function RaidRewardScreen({
   // router.refresh() หลัง claim สำเร็จ เพราะ getActiveRaidRun() กรองเฉพาะ status='in_progress'
   // เท่านั้น refresh แล้วจอนี้จะหายวับไปเป็นจอ predeparture ทันทีก่อนผู้เล่นได้เห็นของที่ได้เลย
   // (เจอบั๊กจริงตอนทดสอบ) ใช้ผลจาก claimRaidReward() อัปเดต state ในนี้ตรงๆ แทน
+  // ฉลองชนะบอส — ยิงครั้งเดียวตอน mount (ref กัน effect re-run / StrictMode)
+  useEffect(() => {
+    if (outcome !== "win" || winSfxRef.current) return;
+    winSfxRef.current = true;
+    sfx("challenge_boss_win");
+  }, [outcome, sfx]);
+
   useEffect(() => {
     if (claimedGear !== null || claimedRef.current) return;
     claimedRef.current = true;
     claimRaidReward(runId)
       .then((result) => {
         setClaimedGear(result);
+        if (!rewardSfxRef.current) {
+          rewardSfxRef.current = true;
+          sfx("reward_normal");
+        }
         if (result.eggAwarded && result.eggNameTh && result.eggSpritePrefix) {
           setEggResult({ nameTh: result.eggNameTh, spritePrefix: result.eggSpritePrefix });
           setShowEggModal(true);
+          if (!eggSfxRef.current) {
+            eggSfxRef.current = true;
+            sfx("reward_fanfare");
+          }
         }
       })
       .catch((err) => {
         setErrorMessage(err instanceof Error ? err.message : "รับของไม่สำเร็จ");
       })
       .finally(() => setIsClaiming(false));
-  }, [claimedGear, runId]);
+  }, [claimedGear, runId, sfx]);
 
   const copy = OUTCOME_COPY[outcome];
 

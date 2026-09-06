@@ -7,6 +7,7 @@ import { startRaidBoss, answerRaidBoss } from "@/app/raid/actions";
 import RaidScene from "@/components/raid/RaidScene";
 import { getSpriteAspectRatio } from "@/lib/raid/spriteGroundOffsets";
 import { QuestionImage } from "@/components/QuizClient";
+import { useSfx } from "@/lib/audio/useSfx";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -93,6 +94,7 @@ export default function RaidBossScreen({
   questions: BossQuestionView[];
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const startedRef = useRef(false);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -187,6 +189,7 @@ export default function RaidBossScreen({
         explanation: res.explanation,
       };
       setResult(localResult);
+      sfx(localResult.isCorrect ? "answer_correct" : "answer_wrong");
       // รอสั้นๆ ให้เห็นไฮไลต์ถูก/ผิดก่อน แล้วสไลด์ปิดกลับไปโหมดฉากอัตโนมัติ ไม่ต้องมีปุ่ม "ดูผล" แยก
       setTimeout(() => {
         setLocalAnswers((prev) => ({ ...prev, [seq]: localResult }));

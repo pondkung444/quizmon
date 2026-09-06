@@ -7,6 +7,7 @@ import { submitRaidObstacleAnswer, type SubmitRaidObstacleAnswerResult } from "@
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
 import { QuestionImage } from "@/components/QuizClient";
+import { useSfx } from "@/lib/audio/useSfx";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -42,6 +43,7 @@ export default function RaidObstacleQuizScreen({
   question: { id: number; questionText: string; choices: string[]; imageUrl: string | null };
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [result, setResult] = useState<SubmitRaidObstacleAnswerResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,6 +58,7 @@ export default function RaidObstacleQuizScreen({
     try {
       const res = await submitRaidObstacleAnswer(runId, choiceIndex);
       setResult(res);
+      sfx(res.isCorrect ? "answer_correct" : "answer_wrong");
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ตอบคำถามไม่สำเร็จ");
       setSelectedChoice(null);

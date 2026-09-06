@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { DungeonInfo, DungeonRunDetail } from "@/lib/dungeon";
@@ -10,6 +10,7 @@ import { RAID_TICKET_NAME_TH, RAID_TICKET_ICON_PATH } from "@/lib/raid/labels";
 import { getPetImagePath } from "@/lib/petImage";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import DungeonScene from "@/components/dungeon/DungeonScene";
+import { useSfx } from "@/lib/audio/useSfx";
 
 type ModalStage = "none" | "ticket" | "egg" | "meter";
 
@@ -27,6 +28,9 @@ export default function ClaimScreen({
   pityMeter: number;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
+  const ticketSfxRef = useRef(false);
+  const eggSfxRef = useRef(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<ClaimDungeonRunResult | null>(null);
@@ -34,8 +38,21 @@ export default function ClaimScreen({
   // กันเคส timeout ปลดล็อกปุ่มแล้วผู้เล่นกดซ้ำ จน request เก่าที่ยังค้างอยู่กลับมาเปิด modal ทับของใหม่
   const claimAttemptRef = useRef(0);
 
+  // เสียง popup รางวัล — ref กันยิงซ้ำ (modalStage อาจ set ค่าเดิม/effect re-run)
+  useEffect(() => {
+    if (modalStage === "ticket" && !ticketSfxRef.current) {
+      ticketSfxRef.current = true;
+      sfx("reward_normal");
+    }
+    if (modalStage === "egg" && !eggSfxRef.current) {
+      eggSfxRef.current = true;
+      sfx("reward_fanfare");
+    }
+  }, [modalStage, sfx]);
+
   async function handleClaim() {
     if (isClaiming) return;
+    sfx("adventure_claim");
     const attemptId = ++claimAttemptRef.current;
     setIsClaiming(true);
     setErrorMessage(null);
