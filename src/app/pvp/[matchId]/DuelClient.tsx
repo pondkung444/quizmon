@@ -360,17 +360,18 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     });
   }, [view.status, view.myExpAward, view.matchId]);
 
-  // เสียงจบแมตช์ — ไฟล์เดียว ปรับ playbackRate/volume ตามผล (ชนะ/แพ้/เสมอ) ยิงครั้งเดียว
+  // เสียงจบแมตช์ — reuse ไฟล์ Boss Raid result_win/result_lose ตรงๆ ยิงครั้งเดียว
+  // เสมอ (iWon === null) -> ใช้เสียงชนะแต่เบาลง (Pond เคาะ: ไม่ใช้เสียงแพ้ ไม่สังเคราะห์เสียงกลาง)
   // 'abandoned' ไม่ยิง (พักแมตช์ ไม่มีผลกับสถิติ)
   useEffect(() => {
     if (view.status !== "finished" || matchEndSfxRef.current) return;
     matchEndSfxRef.current = true;
-    if (view.iWon === true) {
-      sfx("pvp_match_end", { playbackRate: 1, volume: 0.6 });
-    } else if (view.iWon === false) {
-      sfx("pvp_match_end", { playbackRate: 0.84, volume: 0.4 });
+    if (view.iWon === false) {
+      sfx("pvp_lose");
+    } else if (view.iWon === true) {
+      sfx("pvp_win");
     } else {
-      sfx("pvp_match_end", { playbackRate: 0.94, volume: 0.45 });
+      sfx("pvp_win", { volume: 0.4 });
     }
   }, [view.status, view.iWon, sfx]);
 
