@@ -114,6 +114,10 @@ class AppAudio {
   private fadeTimers = new WeakMap<HTMLAudioElement, ReturnType<typeof setInterval>>();
   private listeners = new Set<() => void>();
 
+  // จำว่า track ไหนถูก "หยุดชั่วคราวเพราะแอปถูกพับไป" (background) เพื่อกลับมาเล่นต่อตอนกลับเข้าแอป
+  private bgLastBgm: Exclude<AppBgmState, null> | null = null;
+  private ctxSuspendedByBg = false;
+
   // สำหรับ useSyncExternalStore ใน SoundSettings (และปุ่มเสียงอื่นในอนาคต)
   subscribe(cb: () => void): () => void {
     this.listeners.add(cb);
@@ -144,6 +148,76 @@ class AppAudio {
 
     for (const key of Object.keys(BGM_SRC) as (keyof typeof BGM_SRC)[]) {
       this.bgmEls[key] = this.makeBgm(BGM_SRC[key]);
+    }
+
+    // มือถือ (โดยเฉพาะ iOS Safari) จะเลี้ยงหน้าเว็บที่กำลังเล่นเสียงไว้เบื้องหลังเหมือน media player
+    // ถ้าไม่สั่ง pause เองตอนแอปถูกพับ -> BGM ดังต่อหลังล็อกจอ/สลับแอป. จับ visibilitychange + pagehide
+    // (setup ครั้งเดียวใน init; ไม่มี dispose() -> อยู่ตลอดอายุหน้า ตอน unload หน้า listener หายเอง)
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
+    window.addEventListener("pagehide", this.handlePageHide);
+    window.addEventListener("pageshow", this.handlePageShow);
+  }
+
+  // ---- background / foreground (มือถือ) ----
+
+  private handleVisibilityChange = () => {
+    if (document.hidden) this.pauseForBackground();
+    else this.resumeFromBackground();
+  };
+
+  // pagehide: อาจไม่กลับมา (สลับเว็บ/ปิดแท็บ) — pause อย่างเดียวพอ. ถ้ากลับมาจาก bfcache
+  // visibilitychange หรือ pageshow(persisted) จะสั่ง resume ให้เอง
+  private handlePageHide = () => {
+    this.pauseForBackground();
+  };
+
+  private handlePageShow = (e: PageTransitionEvent) => {
+    if (e.persisted) this.resumeFromBackground();
+  };
+
+  private pauseForBackground() {
+    // จำ track ที่ควรกำลังเล่นอยู่ก่อนพับ (เช็คจาก desiredBgm ไม่ใช่แค่ el.paused เพราะอาจ fade ค้าง)
+    const active = this.desiredBgm;
+    const activeEl = active ? this.bgmEls[active] : undefined;
+    if (activeEl && !activeEl.paused) this.bgLastBgm = active;
+
+    for (const el of this.allBgmEls()) {
+      if (el.paused) continue;
+      this.cancelFade(el); // หยุด fade ที่ค้าง — กลับมาค่อย snap ไป target
+      el.pause(); // คง currentTime ไว้ เล่นต่อจากจุดเดิม
+    }
+    if (this.ctx && this.ctx.state === "running") {
+      this.ctxSuspendedByBg = true;
+      void this.ctx.suspend();
+    }
+  }
+
+  private resumeFromBackground() {
+    if (this.ctxSuspendedByBg && this.ctx && this.ctx.state === "suspended") {
+      void this.ctx.resume();
+    }
+    this.ctxSuspendedByBg = false;
+
+    const last = this.bgLastBgm;
+    this.bgLastBgm = null;
+    if (!last) return;
+
+    // เช็ค state สดตอนนี้ (ผู้ใช้อาจกดปิด BGM/master ระหว่างที่พับอยู่ หรือเปลี่ยนหน้าไปแล้ว)
+    const canResume =
+      this.unlocked &&
+      this.isEnabled() &&
+      this.isBgmEnabled() &&
+      this.desiredBgm === last;
+
+    if (canResume) {
+      const el = this.bgmEls[last];
+      if (el && el.paused) {
+        el.volume = this.bgmVolume; // snap ไป target (เผื่อ fade ค้างตอนพับ) — เงียบพอไม่สะดุด
+        void el.play().catch(() => {});
+      }
+    } else {
+      // state เปลี่ยนระหว่างพับ — sync ให้ตรงกับที่ควรเป็นตอนนี้
+      this.applyBgm();
     }
   }
 
