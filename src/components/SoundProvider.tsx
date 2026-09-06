@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { appAudio } from "@/lib/audio/appAudio";
-import { bgmForPath } from "@/lib/audio/bgmForPath";
+import { zoneForPath } from "@/lib/audio/bgmForPath";
 
 const INTRO_SEEN_KEY = "qm_sound_intro_seen";
 const INTRO_TEXT = "🔊 เปิดเสียงแล้ว ปิดได้ที่ตั้งค่า";
@@ -39,8 +39,8 @@ export default function SoundProvider() {
 
     const unlock = () => {
       appAudio.unlock();
-      // เริ่ม BGM ตามหน้าปัจจุบัน (appAudio no-op เองถ้าเสียงถูกปิด)
-      appAudio.setBgm(bgmForPath(window.location.pathname));
+      // เข้าโซนตามหน้าปัจจุบัน (appAudio no-op เองถ้าเสียงถูกปิด / โซนไม่เปลี่ยน)
+      appAudio.enterZone(zoneForPath(window.location.pathname));
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
     };
@@ -53,9 +53,9 @@ export default function SoundProvider() {
     };
   }, []);
 
-  // เปลี่ยนหน้า -> อัปเดต BGM (fade/cut จัดการใน appAudio)
+  // เปลี่ยนหน้า -> แจ้งโซนปัจจุบัน (appAudio จะ no-op ถ้าโซนไม่เปลี่ยน — เพลง general เล่นต่อไม่สะดุด)
   useEffect(() => {
-    appAudio.setBgm(bgmForPath(pathname));
+    appAudio.enterZone(zoneForPath(pathname));
   }, [pathname]);
 
   // auto-dismiss toast
