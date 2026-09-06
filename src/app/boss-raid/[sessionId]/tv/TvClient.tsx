@@ -184,7 +184,7 @@ export default function TvClient({
     // — วิธีเดียวกับ RaidBossScreen.tsx กล่องฉากเป็น 16:9 letterbox กลางจอ กว้างไม่เกิน 1600px และ
     // ไม่บังคับให้สูงเกิน viewport (177.78vh = 100vh * 16/9)
     <main className="fixed inset-0 z-50 grid place-items-center overflow-hidden bg-black">
-      <div className="relative aspect-video w-[min(1600px,177.78vh)] max-w-full overflow-hidden">
+      <div className="relative aspect-video w-[min(1600px,177.78vh,100vw)] max-w-full overflow-hidden">
         <Image src={BG_SRC} alt="" fill priority sizes="100vw" className="object-cover object-center" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/30" />
 
