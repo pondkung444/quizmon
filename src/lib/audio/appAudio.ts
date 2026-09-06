@@ -31,8 +31,11 @@ export type AppSfxName =
   | "challenge_boss_win"
   | "adventure_depart"
   | "adventure_claim"
+  // PvP #12/#13 — ใช้ไฟล์ SFX ของ Boss Raid ที่ shipped แล้วซ้ำ (Pond ยังไม่ทำไฟล์เฉพาะ)
+  // อ้างอิงแบบอ่านอย่างเดียว ไม่แตะ tvAudio.ts / ไฟล์ asset ของ boss-raid
   | "pvp_card"
-  | "pvp_match_end";
+  | "pvp_win"
+  | "pvp_lose";
 
 export type AppBgmState = "home" | "challenge" | null;
 
@@ -48,8 +51,10 @@ const SFX_FILES: Record<AppSfxName, string> = {
   challenge_boss_win: "/sfx/sfx_challenge_boss_win.mp3",
   adventure_depart: "/sfx/sfx_adventure_depart.mp3",
   adventure_claim: "/sfx/sfx_adventure_claim.mp3",
-  pvp_card: "/sfx/sfx_pvp_card.mp3",
-  pvp_match_end: "/sfx/sfx_pvp_match_end.mp3",
+  // reuse ไฟล์ Boss Raid เดิม (มีใน public/sfx/ อยู่แล้ว) — ไม่ต้อง source ไฟล์ใหม่
+  pvp_card: "/sfx/sfx_hit_crit.mp3",
+  pvp_win: "/sfx/sfx_result_win.mp3",
+  pvp_lose: "/sfx/sfx_result_lose.mp3",
 };
 
 const BGM_HOME_SRC = "/sfx/bgm_home_loop.mp3";
