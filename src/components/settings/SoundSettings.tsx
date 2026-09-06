@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import Toggle from "@/components/Toggle";
 import { appAudio } from "@/lib/audio/appAudio";
-import { bgmForPath } from "@/lib/audio/bgmForPath";
+import { zoneForPath } from "@/lib/audio/bgmForPath";
 
 export default function SoundSettings() {
   const pathname = usePathname();
@@ -31,14 +31,14 @@ export default function SoundSettings() {
   function handleMasterChange(next: boolean) {
     // ปุ่มนี้เป็น user gesture จริง — unlock AudioContext ไปเลยถ้ายังไม่เคย
     if (next && !appAudio.isUnlocked()) appAudio.unlock();
+    if (next) appAudio.enterZone(zoneForPath(pathname));
     appAudio.setEnabled(next);
-    if (next) appAudio.setBgm(bgmForPath(pathname));
   }
 
   function handleBgmChange(next: boolean) {
     if (next && !appAudio.isUnlocked()) appAudio.unlock();
+    if (next) appAudio.enterZone(zoneForPath(pathname));
     appAudio.setBgmEnabled(next);
-    if (next) appAudio.setBgm(bgmForPath(pathname));
   }
 
   return (

@@ -16,7 +16,7 @@
 //   - volume เริ่มต้นเบา (กันเผลอเปิดลำโพงดังอยู่)
 //   - BGM-2 (challenge) fade in/out — BGM-1 (home) ตัดตรง
 //
-// singleton ระดับโมดูล: SoundProvider เรียก init()/unlock()/setBgm(); component เรียก sfx() ผ่าน
+// singleton ระดับโมดูล: SoundProvider เรียก init()/unlock()/enterZone(); component เรียก sfx() ผ่าน
 // useSfx() ก่อน unlock() ทุก method เป็น no-op (autoplay policy)
 
 export type AppSfxName =
@@ -37,10 +37,22 @@ export type AppSfxName =
   | "pvp_win"
   | "pvp_lose";
 
-export type AppBgmState = "home" | "challenge" | "quiz" | null;
+// โซนของแอป (แทน mapping route -> track เดิม) — SoundProvider ส่งมาแค่ตอนโซน "เปลี่ยน"
+//   general   = ทุกหน้าทั่วไป (รวม /pet /quiz /adventure /pvp ฯลฯ) — playlist สุ่มต่อเนื่อง 3 เพลง
+//   challenge = /raid/* — bgm_challenge_loop วนซ้ำ, เบากว่า default 10%
+//   silent    = /boss-raid/* (จอมือถือนักเรียน ไม่ใช่ /tv) — เงียบสนิท
+export type BgmZone = "general" | "challenge" | "silent";
 
-// challenge/quiz = fade เข้า-ออก · home = ตัดตรง (hard cut)
-const BGM_FADE_STATES = new Set<AppBgmState>(["challenge", "quiz"]);
+// pool เพลงโซน general — เล่นทีละเพลงจนจบ (loop=false) แล้วสุ่มเพลงถัดไป "ไม่ซ้ำเพลงที่เพิ่งจบ"
+const GENERAL_TRACKS = ["home", "quiz", "home2"] as const;
+type GeneralTrack = (typeof GENERAL_TRACKS)[number];
+type BgmTrack = GeneralTrack | "challenge";
+
+// challenge = fade เข้า-ออก · general tracks = ตัดตรง (hard cut ระหว่างเพลงใน pool ได้)
+const BGM_FADE_STATES = new Set<BgmTrack>(["challenge"]);
+
+// challenge เบากว่าเพลงทั่วไป 10% (คูณบน getBgmVolume() ไม่ใช่ค่าที่เก็บแยก)
+const CHALLENGE_VOLUME_FACTOR = 0.9;
 
 const SFX_FILES: Record<AppSfxName, string> = {
   answer_correct: "/sfx/sfx_answer_correct.mp3",
@@ -60,10 +72,11 @@ const SFX_FILES: Record<AppSfxName, string> = {
   pvp_lose: "/sfx/sfx_result_lose.mp3",
 };
 
-const BGM_SRC: Record<Exclude<AppBgmState, null>, string> = {
+const BGM_SRC: Record<BgmTrack, string> = {
   home: "/sfx/bgm_home_loop.mp3",
-  challenge: "/sfx/bgm_challenge_loop.mp3",
   quiz: "/sfx/bgm_quiz_loop.mp3",
+  home2: "/sfx/bgm_home2_loop.mp3",
+  challenge: "/sfx/bgm_challenge_loop.mp3",
 };
 
 const STORAGE_KEY = "qm_sound_enabled"; // master (SFX + BGM)
@@ -109,13 +122,14 @@ class AppAudio {
   private bgmEnabled = true; // BGM เท่านั้น
   private bgmVolume = BGM_VOLUME_DEFAULT;
 
-  private bgmEls: Partial<Record<Exclude<AppBgmState, null>, HTMLAudioElement>> = {};
-  private desiredBgm: AppBgmState = null;
+  private bgmEls: Partial<Record<BgmTrack, HTMLAudioElement>> = {};
+  private zone: BgmZone | null = null; // null = ยังไม่เข้าโซนไหน (ก่อน SoundProvider เรียก enterZone)
+  private generalCurrent: GeneralTrack | null = null; // เพลง general ที่กำลัง/ควรเล่นอยู่
   private fadeTimers = new WeakMap<HTMLAudioElement, ReturnType<typeof setInterval>>();
   private listeners = new Set<() => void>();
 
   // จำว่า track ไหนถูก "หยุดชั่วคราวเพราะแอปถูกพับไป" (background) เพื่อกลับมาเล่นต่อตอนกลับเข้าแอป
-  private bgLastBgm: Exclude<AppBgmState, null> | null = null;
+  private bgLastBgm: BgmTrack | null = null;
   private ctxSuspendedByBg = false;
 
   // สำหรับ useSyncExternalStore ใน SoundSettings (และปุ่มเสียงอื่นในอนาคต)
@@ -146,9 +160,13 @@ class AppAudio {
       void this.preloadSfx();
     }
 
-    for (const key of Object.keys(BGM_SRC) as (keyof typeof BGM_SRC)[]) {
-      this.bgmEls[key] = this.makeBgm(BGM_SRC[key]);
+    for (const t of GENERAL_TRACKS) {
+      // loop=false — เล่นจบเพลงแล้ว event "ended" จะสุ่มเพลงถัดไป (ดู handleGeneralEnded)
+      const el = this.makeBgm(BGM_SRC[t], false);
+      el.addEventListener("ended", () => this.handleGeneralEnded(t));
+      this.bgmEls[t] = el;
     }
+    this.bgmEls.challenge = this.makeBgm(BGM_SRC.challenge, true);
 
     // มือถือ (โดยเฉพาะ iOS Safari) จะเลี้ยงหน้าเว็บที่กำลังเล่นเสียงไว้เบื้องหลังเหมือน media player
     // ถ้าไม่สั่ง pause เองตอนแอปถูกพับ -> BGM ดังต่อหลังล็อกจอ/สลับแอป. จับ visibilitychange + pagehide
@@ -176,8 +194,8 @@ class AppAudio {
   };
 
   private pauseForBackground() {
-    // จำ track ที่ควรกำลังเล่นอยู่ก่อนพับ (เช็คจาก desiredBgm ไม่ใช่แค่ el.paused เพราะอาจ fade ค้าง)
-    const active = this.desiredBgm;
+    // จำ track ที่ควรกำลังเล่นอยู่ก่อนพับ (เช็คจาก activeTrack ไม่ใช่แค่ el.paused เพราะอาจ fade ค้าง)
+    const active = this.activeTrack;
     const activeEl = active ? this.bgmEls[active] : undefined;
     if (activeEl && !activeEl.paused) this.bgLastBgm = active;
 
@@ -207,12 +225,12 @@ class AppAudio {
       this.unlocked &&
       this.isEnabled() &&
       this.isBgmEnabled() &&
-      this.desiredBgm === last;
+      this.activeTrack === last;
 
     if (canResume) {
       const el = this.bgmEls[last];
       if (el && el.paused) {
-        el.volume = this.bgmVolume; // snap ไป target (เผื่อ fade ค้างตอนพับ) — เงียบพอไม่สะดุด
+        el.volume = this.trackTargetVolume(last); // snap ไป target (เผื่อ fade ค้างตอนพับ)
         void el.play().catch(() => {});
       }
     } else {
@@ -221,9 +239,9 @@ class AppAudio {
     }
   }
 
-  private makeBgm(src: string): HTMLAudioElement {
+  private makeBgm(src: string, loop: boolean): HTMLAudioElement {
     const el = new Audio(src);
-    el.loop = true;
+    el.loop = loop;
     el.preload = "auto";
     el.volume = this.bgmVolume;
     return el;
@@ -311,14 +329,15 @@ class AppAudio {
       // private mode
     }
     // ใช้กับ track ที่กำลังเล่นอยู่ทันที (ยกเลิก fade ที่ค้างอยู่ด้วย ไม่งั้นมันจะ target ค่าเก่า)
-    const el = this.desiredBgm ? this.bgmEls[this.desiredBgm] : undefined;
-    if (el && !el.paused) {
+    const active = this.activeTrack;
+    const el = active ? this.bgmEls[active] : undefined;
+    if (active && el && !el.paused) {
       const t = this.fadeTimers.get(el);
       if (t) {
         clearInterval(t);
         this.fadeTimers.delete(el);
       }
-      el.volume = v;
+      el.volume = this.trackTargetVolume(active);
     }
     this.emit();
   }
@@ -344,9 +363,51 @@ class AppAudio {
     node.start(0);
   }
 
-  setBgm(state: AppBgmState) {
-    if (this.desiredBgm === state) return;
-    this.desiredBgm = state;
+  // เรียกโดย SoundProvider เมื่อ "โซนเปลี่ยน" เท่านั้น (เทียบ zone เดิม/ใหม่ทุกครั้งที่ pathname เปลี่ยน)
+  // no-op ถ้าโซนไม่เปลี่ยน แม้ route ภายในโซนจะเปลี่ยน -> เพลง general เล่นต่อไม่สะดุดตอนสลับหน้าทั่วไป
+  enterZone(zone: BgmZone) {
+    if (this.zone === zone) return;
+    this.zone = zone;
+    if (zone === "general") {
+      // fresh start เสมอ (เข้าแอปครั้งแรก หรือกลับจาก challenge/silent) — ไม่ resume ตำแหน่งเดิม
+      this.startGeneralPlayback();
+    } else {
+      // challenge / silent — หยุดเพลง general (ไม่จำตำแหน่ง)
+      this.stopGeneralPlayback();
+    }
+    this.applyBgm();
+  }
+
+  // track ที่ "ควร" กำลังเล่นตามโซนปัจจุบัน (ยังไม่คิดเรื่อง mute/unlock — นั่นเป็นหน้าที่ applyBgm)
+  private get activeTrack(): BgmTrack | null {
+    if (this.zone === "challenge") return "challenge";
+    if (this.zone === "general") return this.generalCurrent;
+    return null; // silent / ยังไม่เข้าโซน
+  }
+
+  private trackTargetVolume(track: BgmTrack): number {
+    return track === "challenge" ? this.bgmVolume * CHALLENGE_VOLUME_FACTOR : this.bgmVolume;
+  }
+
+  // สุ่มเพลงจาก pool ทั้ง 3 (ไม่มีเพลง "แรก" ที่บังคับ) — ใช้ตอน fresh start
+  private startGeneralPlayback() {
+    this.generalCurrent =
+      GENERAL_TRACKS[Math.floor(Math.random() * GENERAL_TRACKS.length)];
+    const el = this.bgmEls[this.generalCurrent];
+    if (el) el.currentTime = 0;
+  }
+
+  private stopGeneralPlayback() {
+    this.generalCurrent = null;
+  }
+
+  // event "ended" ของเพลง general — สุ่มเพลงถัดไป "ไม่ซ้ำเพลงที่เพิ่งจบ" แล้วเล่นต่อทันที (hard cut)
+  private handleGeneralEnded(finished: GeneralTrack) {
+    if (this.zone !== "general") return; // กันเคส race: เพลงจบพอดีตอนเพิ่งนำทางเข้า challenge/silent
+    const others = GENERAL_TRACKS.filter((t) => t !== finished);
+    this.generalCurrent = others[Math.floor(Math.random() * others.length)];
+    const el = this.bgmEls[this.generalCurrent];
+    if (el) el.currentTime = 0;
     this.applyBgm();
   }
 
@@ -406,11 +467,10 @@ class AppAudio {
 
   private applyBgm() {
     if (!this.unlocked || !this.enabled || !this.bgmEnabled) return;
-    const want = this.desiredBgm;
-    const target = this.bgmVolume;
+    const want = this.activeTrack;
 
-    // หยุด track อื่นที่ไม่ใช่ track ที่ต้องการ (fade ออกถ้าเป็นชนิด fade, ไม่งั้นตัดตรง)
-    for (const key of Object.keys(BGM_SRC) as (keyof typeof BGM_SRC)[]) {
+    // หยุด track อื่นที่ไม่ใช่ track ที่ต้องการ (fade ออกถ้าเป็น challenge, ไม่งั้นตัดตรง)
+    for (const key of Object.keys(BGM_SRC) as BgmTrack[]) {
       if (key === want) continue;
       const el = this.bgmEls[key];
       if (el) this.stopBgmEl(el, BGM_FADE_STATES.has(key));
@@ -419,16 +479,18 @@ class AppAudio {
     if (want === null) return;
     const el = this.bgmEls[want];
     if (!el) return;
+    const target = this.trackTargetVolume(want);
 
     if (BGM_FADE_STATES.has(want)) {
       this.cancelFade(el);
       if (el.paused) {
         el.volume = 0;
+        el.currentTime = 0;
         void el.play().catch(() => {});
       }
       this.bgmFadeTo(el, target, BGM_FADE_MS);
     } else {
-      // home — ตัดตรง (hard cut)
+      // general track — ตัดตรง (hard cut)
       this.cancelFade(el);
       el.volume = target;
       if (el.paused) void el.play().catch(() => {});

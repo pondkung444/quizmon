@@ -1,20 +1,14 @@
-import type { AppBgmState } from "@/lib/audio/appAudio";
+import type { BgmZone } from "@/lib/audio/appAudio";
 
-// pathname -> BGM ที่ต้องการ. ใช้ร่วมกันระหว่าง SoundProvider (ตั้ง BGM ตามหน้า) กับ
-// SoundSettings / ปุ่ม mute (รู้ว่าหน้านี้ควรเล่น BGM อะไรตอนเปิดสวิตช์กลับ)
+// pathname -> "โซนเสียง" (ไม่ใช่ track เจาะจงอีกต่อไป). appAudio เป็นเจ้าของ logic เลือกเพลงในโซน
+// general เอง. ใช้ร่วมกันระหว่าง SoundProvider (สั่ง enterZone ตามหน้า) กับ SoundSettings / ปุ่ม mute
 //
-// /boss-raid มีระบบเสียงแยก (tvAudio.ts) — ไม่แตะที่นี่ (startsWith("/raid") เป็น false อยู่แล้ว)
-export function bgmForPath(pathname: string | null): AppBgmState {
-  if (!pathname) return null;
-  if (
-    pathname.startsWith("/pet") ||
-    pathname.startsWith("/collection") ||
-    pathname.startsWith("/social") ||
-    pathname.startsWith("/hall-of-fame")
-  ) {
-    return "home";
-  }
+//   challenge = /raid/*        — bgm_challenge_loop วนซ้ำ (เบากว่าปกติ 10%)
+//   silent    = /boss-raid/*   — จอมือถือนักเรียน เงียบสนิท (จอทีวี /tv เป็นระบบเสียงแยก tvAudio.ts)
+//   general   = ที่เหลือทั้งหมด — playlist สุ่มต่อเนื่อง (รวม /pet /quiz /adventure /pvp/* ฯลฯ)
+export function zoneForPath(pathname: string | null): BgmZone {
+  if (!pathname) return "general";
+  if (pathname.startsWith("/boss-raid")) return "silent";
   if (pathname.startsWith("/raid")) return "challenge";
-  if (pathname.startsWith("/quiz")) return "quiz";
-  return null;
+  return "general";
 }

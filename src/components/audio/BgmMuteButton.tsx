@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { Music, VolumeX } from "lucide-react";
 import { appAudio } from "@/lib/audio/appAudio";
-import { bgmForPath } from "@/lib/audio/bgmForPath";
+import { zoneForPath } from "@/lib/audio/bgmForPath";
 
 // ปุ่มเปิด/ปิด "เพลงพื้นหลัง (BGM)" อย่างเดียว — ไม่แตะ master toggle / SFX
 // วางบนหน้าควิซ + หน้าท้าทาย (ดู sound-system handoff). sync สดกับ Settings ผ่าน appAudio.subscribe()
@@ -26,8 +26,8 @@ export default function BgmMuteButton({ className = "" }: { className?: string }
   function toggle() {
     const next = !bgmOn;
     if (next && !appAudio.isUnlocked()) appAudio.unlock();
-    appAudio.setBgmEnabled(next);
-    if (next) appAudio.setBgm(bgmForPath(pathname));
+    if (next) appAudio.enterZone(zoneForPath(pathname));
+    appAudio.setBgmEnabled(next); // applyBgm() ภายในจะเล่น track ของโซนปัจจุบันต่อ
   }
 
   return (
