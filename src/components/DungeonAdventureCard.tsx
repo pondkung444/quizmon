@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { DungeonCardState } from "@/lib/dungeon";
 import { useDungeonProgress, formatCountdown } from "@/hooks/useDungeonProgress";
+import { useSfx } from "@/lib/audio/useSfx";
 
 // ตำแหน่งแกน X ของมอนบนภาพฉาก — map ความคืบหน้า 0-100% ไปเป็น 8%-88% เพราะซุ้มประตูปลายทาง
 // ในภาพอยู่ที่ ~86-97% เท่านั้น ไม่ใช่ริมขวาสุดเป๊ะ (ใช้ค่าเดียวกับจอ B ใน /adventure)
@@ -16,6 +17,7 @@ function travelXPercent(progressPercent: number): number {
 
 // การ์ดผจญภัยหน้า /pet — 4 สถานะ วางไว้ใต้บล็อก CTA หลัก (มิชชัน/ปุ่มฝึก Qmon) เสมอ ไม่อยู่เหนือ
 export default function DungeonAdventureCard({ state }: { state: DungeonCardState }) {
+  const sfx = useSfx();
   if (state.status === "invite") {
     return (
       <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-4 text-center">
@@ -34,6 +36,7 @@ export default function DungeonAdventureCard({ state }: { state: DungeonCardStat
     return (
       <Link
         href="/adventure"
+        onClick={() => sfx("tap")}
         className="flex w-full max-w-xs flex-col items-center gap-0.5 rounded-2xl border-2 border-gold py-3 text-center transition active:scale-95"
       >
         <span className="text-lg font-bold text-gold-hi">ส่งไปผจญภัย</span>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { DungeonCardState } from "@/lib/dungeon";
 import { useDungeonProgress, formatCountdown } from "@/hooks/useDungeonProgress";
+import { useSfx } from "@/lib/audio/useSfx";
 
 // แถบด่วนติดบนสุดเมื่อเลื่อนผ่าน (11 ส.ค. 2026 — เปิดระบบท้าทายให้เล่นจริง) วางระหว่างการ์ด
 // weekly leaderboard กับ nameplate ใน PetCard.tsx — 2 ชิปเท่ากัน ไม่มีสถานะล็อกแล้ว (allowlist
@@ -14,11 +15,13 @@ export default function StickyActionBanner({
   dungeonCard: DungeonCardState;
   raidTicketCount: number;
 }) {
+  const sfx = useSfx();
   return (
     <div className="sticky top-0 z-10 flex w-full gap-2 rounded-xl border border-gold-dim bg-card p-2 shadow-md">
       <AdventureChip state={dungeonCard} />
       <Link
         href="/raid"
+        onClick={() => sfx("tap")}
         className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-track px-3 py-2 transition active:scale-95"
       >
         <span className="text-xl" aria-hidden>
@@ -34,6 +37,7 @@ export default function StickyActionBanner({
 }
 
 function AdventureChip({ state }: { state: DungeonCardState }) {
+  const sfx = useSfx();
   if (state.status === "traveling" || state.status === "claimable") {
     return <AdventureChipActive state={state} />;
   }
@@ -43,6 +47,7 @@ function AdventureChip({ state }: { state: DungeonCardState }) {
   return (
     <Link
       href="/adventure"
+      onClick={() => sfx("tap")}
       className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-track px-3 py-2 transition active:scale-95"
     >
       <span className="text-xl" aria-hidden>

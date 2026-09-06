@@ -10,6 +10,7 @@ import { startDungeonRun } from "@/app/dungeon/actions";
 import { RAID_TICKET_NAME_TH } from "@/lib/raid/labels";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import DungeonScene from "@/components/dungeon/DungeonScene";
+import { useSfx } from "@/lib/audio/useSfx";
 
 // รางวัลไข่ของดันเจี้ยนนี้เป็น tier "rare" เสมอใน v1 — ไข่ฤทธิ์ธาร (egg4) เป็นไข่ tier rare ใบเดียว
 // ที่มีอยู่ตอนนี้ ใช้สไปรต์ stage1 เดียวกับที่ WeeklyRewardCelebration/EggChoiceModal ใช้โชว์ไข่
@@ -30,6 +31,7 @@ export default function PreDeparture({
   preselectedPetId?: string | null;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [selectedPetId, setSelectedPetId] = useState<string | null>(
     preselectedPetId ?? pets[0]?.id ?? null
   );
@@ -47,6 +49,7 @@ export default function PreDeparture({
     setErrorMessage(null);
     try {
       await startDungeonRun(selectedPetId, dungeon.id);
+      sfx("adventure_depart");
       router.refresh();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ออกเดินทางไม่สำเร็จ");

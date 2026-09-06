@@ -6,6 +6,7 @@ import type { RaidPathOption } from "@/lib/raid";
 import { chooseRaidPath, type ChooseRaidPathResult } from "@/app/raid/actions";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
+import { useSfx } from "@/lib/audio/useSfx";
 
 const STAT_LABEL_TH: Record<string, string> = { hp: "พลังชีวิต (HP)", atk: "พลังโจมตี (ATK)", def: "พลังป้องกัน (DEF)", spd: "ความเร็ว (SPD)", foc: "โฟกัส (FOC)" };
 const COLOR_LABEL_TH: Record<string, string> = { green: "ง่าย", yellow: "ปานกลาง", red: "ยาก" };
@@ -53,6 +54,9 @@ export default function RaidPathScreen({
   options: RaidPathOption[];
 }) {
   const router = useRouter();
+  const sfx = useSfx();
+  const pathRevealSfxRef = useRef(false);
+  const rollResultSfxRef = useRef(false);
   const [isChoosing, setIsChoosing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<ChooseRaidPathResult | null>(null);
@@ -69,6 +73,13 @@ export default function RaidPathScreen({
     };
   }, []);
 
+  // เสียงผล "ผ่าน/ไม่ผ่าน" ตอนเลขหยุดหมุน — ref กันยิงซ้ำ (effect re-run / StrictMode)
+  useEffect(() => {
+    if (rollPhase !== "settled" || !result || rollResultSfxRef.current) return;
+    rollResultSfxRef.current = true;
+    sfx(result.rollPassed ? "obstacle_pass" : "obstacle_fail");
+  }, [rollPhase, result, sfx]);
+
   async function handleChoose(side: "a" | "b") {
     if (isChoosing || result) return;
     setIsChoosing(true);
@@ -77,6 +88,10 @@ export default function RaidPathScreen({
       const res = await chooseRaidPath(runId, side);
       setResult(res);
       setRollPhase("revealed");
+      if (!pathRevealSfxRef.current) {
+        pathRevealSfxRef.current = true;
+        sfx("path_reveal");
+      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "เลือกทางไม่สำเร็จ");
     } finally {

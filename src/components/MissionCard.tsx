@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { TodayMissionResult } from "@/lib/missions";
 import type { Subline } from "@/lib/evolution";
 import { SUBJECT_LABEL } from "@/lib/labels";
+import { useSfx } from "@/lib/audio/useSfx";
 
 // ข้อความ Qmon — personalized อิงจาก subline ของสัตว์ (ธีมบุคลิก ไม่ใช่วิชาของภารกิจเอง) ตาม
 // design doc Phase 4 exploration ใช้ frame ชวนผจญภัยแยกต่างหาก ไม่ขึ้นกับ subline — โชว์เหมือนกัน
@@ -31,6 +32,7 @@ export default function MissionCard({
   subline: Subline | null;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
 
   // null เมื่อยังไม่มี user/pet หรือ getOrCreateTodayMission พังกลางทาง (ดู pet/page.tsx —
   // จับ error ไว้ไม่ให้ทั้งหน้าพัง) ไม่แสดงอะไรเลยดีกว่าแสดงข้อมูลผิด — หน้าตกลงไปเป็นเหมือนก่อนมี
@@ -56,6 +58,7 @@ export default function MissionCard({
   const started = answeredCount > 0;
 
   function goToMission() {
+    sfx("tap");
     // hard navigation แทน router.push() — router.push() เคย serve หน้า /quiz แบบ client cache เก่า
     // (ไม่มี ?mission=) ทำให้เด้งไปหน้าเลือกวิชาแทนที่จะเข้าคำถามทันทีตาม design intent
     // (ดู handoff-mission-start-stale-select-2026-08-16.md) — จุดนี้เป็น context switch เต็มหน้าอยู่แล้ว

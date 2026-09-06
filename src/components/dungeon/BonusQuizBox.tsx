@@ -7,6 +7,7 @@ import {
   applyDungeonBonus,
   type BonusQuestion,
 } from "@/app/dungeon/actions";
+import { useSfx } from "@/lib/audio/useSfx";
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
@@ -26,6 +27,7 @@ export default function BonusQuizBox({
   initialBonusMinutesSaved: number;
   onApplied: (result: { endsAt: string; bonusMinutesSaved: number }) => void;
 }) {
+  const sfx = useSfx();
   const [phase, setPhase] = useState<Phase>(initialBonusQuizUsed ? "done" : "idle");
   const [questions, setQuestions] = useState<BonusQuestion[]>([]);
   const [index, setIndex] = useState(0);
@@ -64,6 +66,7 @@ export default function BonusQuizBox({
         questionId: question.id,
         choiceIndex,
       });
+      sfx(isCorrect ? "answer_correct" : "answer_wrong");
       const nextCorrectCount = correctCount + (isCorrect ? 1 : 0);
       setCorrectCount(nextCorrectCount);
 
