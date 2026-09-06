@@ -37,7 +37,10 @@ export type AppSfxName =
   | "pvp_win"
   | "pvp_lose";
 
-export type AppBgmState = "home" | "challenge" | null;
+export type AppBgmState = "home" | "challenge" | "quiz" | null;
+
+// challenge/quiz = fade เข้า-ออก · home = ตัดตรง (hard cut)
+const BGM_FADE_STATES = new Set<AppBgmState>(["challenge", "quiz"]);
 
 const SFX_FILES: Record<AppSfxName, string> = {
   answer_correct: "/sfx/sfx_answer_correct.mp3",
@@ -57,25 +60,42 @@ const SFX_FILES: Record<AppSfxName, string> = {
   pvp_lose: "/sfx/sfx_result_lose.mp3",
 };
 
-const BGM_HOME_SRC = "/sfx/bgm_home_loop.mp3";
-const BGM_CHALLENGE_SRC = "/sfx/bgm_challenge_loop.mp3";
+const BGM_SRC: Record<Exclude<AppBgmState, null>, string> = {
+  home: "/sfx/bgm_home_loop.mp3",
+  challenge: "/sfx/bgm_challenge_loop.mp3",
+  quiz: "/sfx/bgm_quiz_loop.mp3",
+};
 
-const STORAGE_KEY = "qm_sound_enabled";
+const STORAGE_KEY = "qm_sound_enabled"; // master (SFX + BGM)
+const BGM_ENABLED_KEY = "qm_bgm_enabled"; // BGM เท่านั้น (แยกจาก master)
+const BGM_VOLUME_KEY = "qm_bgm_volume"; // 0–1
 
 // เบาโดยตั้งใจ (กันเผลอเปิดลำโพงดัง) — SFX เด่นกว่า BGM เล็กน้อย
 const SFX_VOLUME = 0.55;
-const BGM_VOLUME = 0.2;
+const BGM_VOLUME_DEFAULT = 0.2;
 const BGM_FADE_MS = 900;
 
 type SfxOptions = { playbackRate?: number; volume?: number };
 
-function readEnabled(): boolean {
+function readBoolFlag(key: string): boolean {
   if (typeof window === "undefined") return false;
   try {
     // ไม่มีคีย์ = เปิด (default ON) — ปิดต่อเมื่อเก็บ "0" ไว้ชัดเจน
-    return window.localStorage.getItem(STORAGE_KEY) !== "0";
+    return window.localStorage.getItem(key) !== "0";
   } catch {
     return true;
+  }
+}
+
+function readBgmVolume(): number {
+  if (typeof window === "undefined") return BGM_VOLUME_DEFAULT;
+  try {
+    const raw = window.localStorage.getItem(BGM_VOLUME_KEY);
+    if (raw == null) return BGM_VOLUME_DEFAULT;
+    const v = parseFloat(raw);
+    return Number.isFinite(v) && v >= 0 && v <= 1 ? v : BGM_VOLUME_DEFAULT;
+  } catch {
+    return BGM_VOLUME_DEFAULT;
   }
 }
 
@@ -85,10 +105,11 @@ class AppAudio {
   private buffers = new Map<AppSfxName, AudioBuffer>();
   private inited = false;
   private unlocked = false;
-  private enabled = true;
+  private enabled = true; // master
+  private bgmEnabled = true; // BGM เท่านั้น
+  private bgmVolume = BGM_VOLUME_DEFAULT;
 
-  private bgmHome: HTMLAudioElement | null = null;
-  private bgmChallenge: HTMLAudioElement | null = null;
+  private bgmEls: Partial<Record<Exclude<AppBgmState, null>, HTMLAudioElement>> = {};
   private desiredBgm: AppBgmState = null;
   private fadeTimers = new WeakMap<HTMLAudioElement, ReturnType<typeof setInterval>>();
   private listeners = new Set<() => void>();
@@ -106,7 +127,9 @@ class AppAudio {
   init() {
     if (this.inited || typeof window === "undefined") return;
     this.inited = true;
-    this.enabled = readEnabled();
+    this.enabled = readBoolFlag(STORAGE_KEY);
+    this.bgmEnabled = readBoolFlag(BGM_ENABLED_KEY);
+    this.bgmVolume = readBgmVolume();
 
     const Ctor: typeof AudioContext | undefined =
       window.AudioContext ??
@@ -119,15 +142,16 @@ class AppAudio {
       void this.preloadSfx();
     }
 
-    this.bgmHome = this.makeBgm(BGM_HOME_SRC);
-    this.bgmChallenge = this.makeBgm(BGM_CHALLENGE_SRC);
+    for (const key of Object.keys(BGM_SRC) as (keyof typeof BGM_SRC)[]) {
+      this.bgmEls[key] = this.makeBgm(BGM_SRC[key]);
+    }
   }
 
   private makeBgm(src: string): HTMLAudioElement {
     const el = new Audio(src);
     el.loop = true;
     el.preload = "auto";
-    el.volume = BGM_VOLUME;
+    el.volume = this.bgmVolume;
     return el;
   }
 
@@ -175,6 +199,52 @@ class AppAudio {
       this.stopAllBgm();
     } else {
       this.applyBgm();
+    }
+    this.emit();
+  }
+
+  // ---- BGM-only controls (แยกจาก master; master ยังชนะเสมอ) ----
+
+  isBgmEnabled() {
+    return this.bgmEnabled;
+  }
+
+  setBgmEnabled(next: boolean) {
+    this.bgmEnabled = next;
+    try {
+      window.localStorage.setItem(BGM_ENABLED_KEY, next ? "1" : "0");
+    } catch {
+      // private mode — session นี้ยังทำงานตาม this.bgmEnabled
+    }
+    if (!next) {
+      this.stopAllBgm();
+    } else {
+      this.applyBgm();
+    }
+    this.emit();
+  }
+
+  getBgmVolume() {
+    return this.bgmVolume;
+  }
+
+  setBgmVolume(next: number) {
+    const v = Math.max(0, Math.min(1, Number.isFinite(next) ? next : BGM_VOLUME_DEFAULT));
+    this.bgmVolume = v;
+    try {
+      window.localStorage.setItem(BGM_VOLUME_KEY, String(v));
+    } catch {
+      // private mode
+    }
+    // ใช้กับ track ที่กำลังเล่นอยู่ทันที (ยกเลิก fade ที่ค้างอยู่ด้วย ไม่งั้นมันจะ target ค่าเก่า)
+    const el = this.desiredBgm ? this.bgmEls[this.desiredBgm] : undefined;
+    if (el && !el.paused) {
+      const t = this.fadeTimers.get(el);
+      if (t) {
+        clearInterval(t);
+        this.fadeTimers.delete(el);
+      }
+      el.volume = v;
     }
     this.emit();
   }
@@ -232,65 +302,62 @@ class AppAudio {
     this.fadeTimers.set(el, timer);
   }
 
-  private stopAllBgm() {
-    for (const el of [this.bgmHome, this.bgmChallenge]) {
-      if (!el) continue;
-      const existing = this.fadeTimers.get(el);
-      if (existing) {
-        clearInterval(existing);
-        this.fadeTimers.delete(el);
-      }
-      if (!el.paused) {
-        el.pause();
-        el.currentTime = 0;
-      }
+  private allBgmEls(): HTMLAudioElement[] {
+    return Object.values(this.bgmEls).filter((el): el is HTMLAudioElement => !!el);
+  }
+
+  private cancelFade(el: HTMLAudioElement) {
+    const t = this.fadeTimers.get(el);
+    if (t) {
+      clearInterval(t);
+      this.fadeTimers.delete(el);
     }
   }
 
+  private stopBgmEl(el: HTMLAudioElement, fade: boolean) {
+    if (fade && !el.paused) {
+      this.bgmFadeTo(el, 0, BGM_FADE_MS); // fade ออกแล้ว pause เองตอนถึง 0
+      return;
+    }
+    this.cancelFade(el);
+    if (!el.paused) {
+      el.pause();
+      el.currentTime = 0;
+    }
+  }
+
+  private stopAllBgm() {
+    for (const el of this.allBgmEls()) this.stopBgmEl(el, false);
+  }
+
   private applyBgm() {
-    if (!this.unlocked || !this.enabled) return;
+    if (!this.unlocked || !this.enabled || !this.bgmEnabled) return;
     const want = this.desiredBgm;
-    const homeEl = this.bgmHome;
-    const challengeEl = this.bgmChallenge;
+    const target = this.bgmVolume;
 
-    if (want === null) {
-      if (homeEl && !homeEl.paused) {
-        homeEl.pause();
-        homeEl.currentTime = 0;
-      }
-      if (challengeEl && !challengeEl.paused) {
-        // challenge ออกแบบ fade เข้า-ออก
-        this.bgmFadeTo(challengeEl, 0, BGM_FADE_MS);
-      }
-      return;
+    // หยุด track อื่นที่ไม่ใช่ track ที่ต้องการ (fade ออกถ้าเป็นชนิด fade, ไม่งั้นตัดตรง)
+    for (const key of Object.keys(BGM_SRC) as (keyof typeof BGM_SRC)[]) {
+      if (key === want) continue;
+      const el = this.bgmEls[key];
+      if (el) this.stopBgmEl(el, BGM_FADE_STATES.has(key));
     }
 
-    if (want === "home") {
-      // BGM-1 ตัดตรง (hard cut)
-      if (challengeEl && !challengeEl.paused) this.bgmFadeTo(challengeEl, 0, BGM_FADE_MS);
-      if (homeEl && homeEl.paused) {
-        homeEl.volume = BGM_VOLUME;
-        void homeEl.play().catch(() => {});
-      }
-      return;
-    }
+    if (want === null) return;
+    const el = this.bgmEls[want];
+    if (!el) return;
 
-    // want === "challenge" — BGM-2 fade in
-    if (homeEl && !homeEl.paused) {
-      homeEl.pause();
-      homeEl.currentTime = 0;
-    }
-    if (challengeEl) {
-      const timer = this.fadeTimers.get(challengeEl);
-      if (timer) {
-        clearInterval(timer);
-        this.fadeTimers.delete(challengeEl);
+    if (BGM_FADE_STATES.has(want)) {
+      this.cancelFade(el);
+      if (el.paused) {
+        el.volume = 0;
+        void el.play().catch(() => {});
       }
-      if (challengeEl.paused) {
-        challengeEl.volume = 0;
-        void challengeEl.play().catch(() => {});
-      }
-      this.bgmFadeTo(challengeEl, BGM_VOLUME, BGM_FADE_MS);
+      this.bgmFadeTo(el, target, BGM_FADE_MS);
+    } else {
+      // home — ตัดตรง (hard cut)
+      this.cancelFade(el);
+      el.volume = target;
+      if (el.paused) void el.play().catch(() => {});
     }
   }
 }
