@@ -2,27 +2,12 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import { appAudio, type AppBgmState } from "@/lib/audio/appAudio";
+import { appAudio } from "@/lib/audio/appAudio";
+import { bgmForPath } from "@/lib/audio/bgmForPath";
 
 const INTRO_SEEN_KEY = "qm_sound_intro_seen";
 const INTRO_TEXT = "🔊 เปิดเสียงแล้ว ปิดได้ที่ตั้งค่า";
 const INTRO_AUTO_DISMISS_MS = 6000;
-
-// map pathname -> BGM ที่ต้องการ (ดู sound-system-phase-2 handoff §C.3)
-function bgmForPath(pathname: string | null): AppBgmState {
-  if (!pathname) return null;
-  if (
-    pathname.startsWith("/pet") ||
-    pathname.startsWith("/collection") ||
-    pathname.startsWith("/social") ||
-    pathname.startsWith("/hall-of-fame")
-  ) {
-    return "home";
-  }
-  // เฉพาะระบบท้าทาย (raid) — ไม่ชนกับ /boss-raid เพราะ startsWith("/raid") เป็น false
-  if (pathname.startsWith("/raid")) return "challenge";
-  return null;
-}
 
 const noopSubscribe = () => () => {};
 function readIntroPending(): boolean {

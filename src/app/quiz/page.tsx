@@ -5,6 +5,7 @@ import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evol
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
 import { getGradeBand } from "@/lib/gradeBand";
 import QuizClient from "@/components/QuizClient";
+import BgmMuteButton from "@/components/audio/BgmMuteButton";
 
 export default async function QuizPage({
   searchParams,
@@ -76,6 +77,8 @@ export default async function QuizPage({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 p-6">
+      {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมบนซ้าย (มุมบนขวาเป็นปุ่มออกจากรอบของ QuizClient) */}
+      <BgmMuteButton className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[70]" />
       <QuizClient
         personalityKey={personalityKey}
         petAvatarPath={petAvatarPath}

@@ -6,11 +6,12 @@ import RaidPathScreen from "@/components/raid/RaidPathScreen";
 import RaidObstacleQuizScreen from "@/components/raid/RaidObstacleQuizScreen";
 import RaidBossScreen from "@/components/raid/RaidBossScreen";
 import RaidRewardScreen from "@/components/raid/RaidRewardScreen";
+import BgmMuteButton from "@/components/audio/BgmMuteButton";
 
 // จุดกระจายจอตาม phase ที่ page.tsx (server) เตรียมมาให้ — เหมือน AdventureClient.tsx ของ
 // ผจญภัย ทุกจอเรียก server action แล้ว router.refresh() เพื่อให้ server คำนวณ phase ถัดไปให้เสมอ
 // (ไม่เก็บ state ข้าม step ไว้ฝั่ง client) เพื่อให้ resume หลังปิดแอปกลางรอบตรงกับตอนเล่นสดเป๊ะ
-export default function RaidClient({ view }: { view: RaidView }) {
+function RaidPhaseScreen({ view }: { view: RaidView }) {
   if (view.phase === "predeparture") return <RaidPreDeparture {...view} />;
   // key ด้วย runId+stepIndex+phase — router.refresh() เปลี่ยนแค่ props ไม่ remount component เดิม
   // ถ้าไม่ key ตรงนี้ local state ของสเต็ปก่อนหน้า (เช่น reveal ใน RaidPathScreen) จะค้างข้ามสเต็ป
@@ -24,4 +25,15 @@ export default function RaidClient({ view }: { view: RaidView }) {
     return <RaidBossScreen key={`${view.runId}-${answeredCount}`} {...view} />;
   }
   return <RaidRewardScreen key={view.runId} {...view} />;
+}
+
+export default function RaidClient({ view }: { view: RaidView }) {
+  return (
+    <>
+      <RaidPhaseScreen view={view} />
+      {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — mount จุดเดียวครอบทุก phase ของ raid
+          มุมล่างขวา เหนือแถบเมนูล่าง (จอบอสเป็น fixed inset-0 z-50 -> z-[70] อยู่บนสุดได้) */}
+      <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
+    </>
+  );
 }
