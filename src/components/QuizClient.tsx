@@ -29,6 +29,7 @@ import { usePersonalityMessage, MESSAGE_DISPLAY_MS } from "@/hooks/usePersonalit
 import type { PersonalityKey } from "@/lib/personality";
 import type { PersonalityEventKey } from "@/lib/personalityMessages";
 import { track } from "@/lib/analytics";
+import { useSfx } from "@/lib/audio/useSfx";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
 import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
@@ -137,6 +138,7 @@ export default function QuizClient({
   gradeLevel?: string | null;
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<QuizMode | null>(null);
   // โหมดเลือกบทฝึกฝน — topicFilter ไม่ null ตลอดที่อยู่ในรอบที่เริ่มจากการเลือกบท (ใช้ทั้งแนบ
@@ -305,6 +307,7 @@ export default function QuizClient({
     const currentSummary = summary;
     startTransition(async () => {
       const claimResult = await finalizeMissionSummary(currentMissionInfo.missionId, foodType);
+      sfx("reward_normal");
       const missionCorrectCount = claimResult
         ? claimResult.correctCount
         : currentMissionInfo.answeredCountBefore + answers.filter((a) => a.isCorrect).length;
@@ -322,6 +325,7 @@ export default function QuizClient({
   }
 
   function handleSelectMode(nextMode: QuizMode) {
+    sfx("tap");
     resetRoundState();
     setMode(nextMode);
     setPhase("loading");
@@ -475,6 +479,7 @@ export default function QuizClient({
     if (result || isPending) return;
     const current = questions[index];
     const isCorrect = choiceIndex === current.correctIndex;
+    sfx(isCorrect ? "answer_correct" : "answer_wrong");
     // handleSelectChoice ถูกเรียกจาก onClick เท่านั้น (ไม่มีทางถูกเรียกระหว่าง render) —
     // eslint-disable-next-line react-hooks/purity
     const timeUsedMs = Date.now() - questionShownAtRef.current;
@@ -535,6 +540,7 @@ export default function QuizClient({
   }
 
   function handleNext() {
+    sfx("tap");
     const isLastQuestion = index + 1 >= questions.length;
 
     if (!isLastQuestion) {

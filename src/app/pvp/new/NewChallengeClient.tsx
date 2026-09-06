@@ -7,6 +7,7 @@ import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
 import type { RaidGearItemFull } from "@/lib/raid";
 import { resolvePetDisplay } from "@/components/social/petSummary";
 import { createPvpChallenge } from "../actions";
+import { useSfx } from "@/lib/audio/useSfx";
 import PvpPetPicker from "../PvpPetPicker";
 import PvpGearLoadout from "../PvpGearLoadout";
 
@@ -42,6 +43,7 @@ export default function NewChallengeClient({
   lockedPetIds: string[];
 }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [friendId, setFriendId] = useState<string | null>(friends[0]?.userId ?? null);
   const [petId, setPetId] = useState<string | null>(pets[0]?.id ?? null);
   const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
@@ -67,6 +69,7 @@ export default function NewChallengeClient({
 
   const submit = () => {
     if (!friendId || !petId) return;
+    sfx("tap");
     setError(null);
     startTransition(async () => {
       const res = await createPvpChallenge(friendId, petId);

@@ -10,6 +10,7 @@ import GuestSchoolPrompt from "@/components/GuestSchoolPrompt";
 import GuestSetPasswordPrompt from "@/components/GuestSetPasswordPrompt";
 import AnalyticsTracker from "@/components/AnalyticsTracker";
 import NativeAppSetup from "@/components/NativeAppSetup";
+import SoundProvider from "@/components/SoundProvider";
 import OfflineScreen from "@/components/OfflineScreen";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
@@ -97,6 +98,7 @@ export default async function RootLayout({
     <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-text">
         <NativeAppSetup />
+        <SoundProvider />
         <OfflineScreen />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         {children}

@@ -19,6 +19,7 @@ import {
 } from "../actions";
 import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
 import PersonalityDecisionModal from "@/components/PersonalityDecisionModal";
+import { useSfx } from "@/lib/audio/useSfx";
 
 // accent ต่อ "บทบาทในแมตช์" (ไม่ใช่ต่อผู้ชม) — ทั้งสองฝั่งเห็นสีเดียวกันเสมอ
 //   player_a = ผู้ท้า (challenger) -> แดง
@@ -175,11 +176,13 @@ function PetSide({
 
 export default function DuelClient({ view }: { view: PvpMatchView }) {
   const router = useRouter();
+  const sfx = useSfx();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<PvpSubmitResult | null>(null);
   const submittedRef = useRef(false);
   const resultRef = useRef<PvpSubmitResult | null>(null);
+  const matchEndSfxRef = useRef(false);
 
   // กติกาย่อ: โชว์เต็ม 3 ครั้งแรกที่เข้าจอเลือกการ์ด แล้วยุบเหลือปุ่ม "?" (นับต่อเครื่อง)
   const rulesSeenEnough = useSyncExternalStore(
@@ -328,13 +331,14 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       }
       resultRef.current = r.data;
       setResult(r.data);
+      sfx(r.data.is_correct ? "answer_correct" : "answer_wrong");
       holdRef.current = true;
       window.setTimeout(() => {
         holdRef.current = false;
         router.refresh();
       }, 2200);
     },
-    [view.matchId, view.activeCard, view.activeQuestion, router]
+    [view.matchId, view.activeCard, view.activeQuestion, router, sfx]
   );
 
   useEffect(() => {
@@ -356,6 +360,20 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     });
   }, [view.status, view.myExpAward, view.matchId]);
 
+  // เสียงจบแมตช์ — ไฟล์เดียว ปรับ playbackRate/volume ตามผล (ชนะ/แพ้/เสมอ) ยิงครั้งเดียว
+  // 'abandoned' ไม่ยิง (พักแมตช์ ไม่มีผลกับสถิติ)
+  useEffect(() => {
+    if (view.status !== "finished" || matchEndSfxRef.current) return;
+    matchEndSfxRef.current = true;
+    if (view.iWon === true) {
+      sfx("pvp_match_end", { playbackRate: 1, volume: 0.6 });
+    } else if (view.iWon === false) {
+      sfx("pvp_match_end", { playbackRate: 0.84, volume: 0.4 });
+    } else {
+      sfx("pvp_match_end", { playbackRate: 0.94, volume: 0.45 });
+    }
+  }, [view.status, view.iWon, sfx]);
+
   const doAssign = async (cardId: string) => {
     setBusy(true);
     setError(null);
@@ -365,6 +383,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       setError(r.message);
       return;
     }
+    sfx("pvp_card");
     refresh();
   };
 
