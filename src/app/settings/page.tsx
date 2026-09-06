@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions";
 import NotificationSettings from "@/components/settings/NotificationSettings";
+import SoundSettings from "@/components/settings/SoundSettings";
 import FeedbackRow from "@/components/settings/FeedbackRow";
 import GuestLinkAccountRow from "@/components/settings/GuestLinkAccountRow";
 import packageJson from "../../../package.json";
@@ -45,6 +46,8 @@ export default async function SettingsPage() {
           social_enabled: prefs?.social_enabled ?? true,
         }}
       />
+
+      <SoundSettings />
 
       <section className="rounded-2xl border border-gold-dim bg-card p-4">
         <h2 className="mb-1 text-sm font-bold text-gold-hi">บัญชี</h2>
