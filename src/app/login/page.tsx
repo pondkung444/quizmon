@@ -59,6 +59,9 @@ export default function LoginPage() {
   const [gradeLevel, setGradeLevel] = useState("");
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
+  // lock ปุ่ม Google ระหว่างรอ redirect ไป Google — กันกดรัวจนหมุน PKCE code_verifier ใหม่ทับ
+  // ของเดิม (ทำให้ callback exchange ล้มเหลว โดยเฉพาะ in-app browser ที่ redirect ช้า)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(() => readInitialFlash().error);
   const [message, setMessage] = useState<string | null>(() => readInitialFlash().message);
   const [showResend, setShowResend] = useState(false);
@@ -255,26 +258,44 @@ export default function LoginPage() {
   // เลยต้องเปิด consent screen ผ่าน system browser (@capacitor/browser) แล้วรับ callback
   // กลับเข้าแอปผ่าน custom URL scheme deep link แทน (ดู listener ใน useEffect ด้านบน)
   async function handleGoogleLogin() {
-    if (Capacitor.isNativePlatform()) {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: NATIVE_OAUTH_CALLBACK_URL,
-          skipBrowserRedirect: true,
-        },
-      });
-      if (error || !data?.url) {
-        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+    if (isGoogleLoading) return; // กันกดซ้ำระหว่างรอ redirect
+    setIsGoogleLoading(true);
+    setError(null);
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: NATIVE_OAUTH_CALLBACK_URL,
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error || !data?.url) {
+          setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+          setIsGoogleLoading(false);
+          return;
+        }
+        await Browser.open({ url: data.url });
+        // system browser เปิดแล้ว — ปลด lock เผื่อผู้ใช้กดยกเลิกกลับเข้าแอป
+        // (เคสสำเร็จ deep-link listener ด้านบนจัดการต่อเอง)
+        setIsGoogleLoading(false);
         return;
       }
-      await Browser.open({ url: data.url });
-      return;
-    }
 
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/login/callback` },
-    });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/login/callback` },
+      });
+      // ถ้าสำเร็จ หน้าถูก unload ไป Google แล้ว — ถึงตรงนี้แบบมี error แปลว่ายังไม่ redirect
+      if (error) {
+        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+        setIsGoogleLoading(false);
+      }
+    } catch {
+      setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+      setIsGoogleLoading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -570,16 +591,28 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="relative mx-auto h-10 rounded transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+          disabled={isGoogleLoading}
+          aria-busy={isGoogleLoading}
+          className="relative mx-auto flex h-10 items-center justify-center rounded transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
           style={{ aspectRatio: "4.5 / 1" }}
         >
-          <Image
-            src="/brand/google-sign-in.png"
-            alt={mode === "login" ? "เข้าสู่ระบบด้วย Google" : "สมัครสมาชิกด้วย Google"}
-            fill
-            className="object-contain"
-            sizes="180px"
-          />
+          {isGoogleLoading ? (
+            <span className="flex items-center gap-2 text-sm font-medium text-text2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              กำลังเชื่อมต่อ...
+            </span>
+          ) : (
+            <Image
+              src="/brand/google-sign-in.png"
+              alt={mode === "login" ? "เข้าสู่ระบบด้วย Google" : "สมัครสมาชิกด้วย Google"}
+              fill
+              className="object-contain"
+              sizes="180px"
+            />
+          )}
         </button>
 
         <p className="text-center text-xs text-text3">
