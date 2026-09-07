@@ -21,6 +21,11 @@ import {
   type BossRaidSummary,
 } from "../actions";
 import { getPetImagePath } from "@/lib/petImage";
+import {
+  toParticipantDisplayMap,
+  type ParticipantDisplay,
+  type ParticipantDisplayRow,
+} from "@/lib/bossRaid/participantDisplay";
 import BossRaidGame from "./BossRaidGame";
 import BossRaidLoadout from "./BossRaidLoadout";
 
@@ -63,6 +68,26 @@ export default function LobbyClient({
 
   const s = session ?? initialSession;
   const myParticipant = participants.find((p) => p.user_id === userId) ?? null;
+
+  // ชื่อ + Qmon ตัวจริงของผู้เล่นแต่ละคน — pets/profiles เป็น RLS select-own-row เท่านั้น
+  // ต้องผ่าน SECURITY DEFINER RPC get_boss_raid_participant_display (สโคป is_boss_raid_member)
+  // เหมือนที่จอทีวีใช้ (src/lib/bossRaid/participantDisplay.ts)
+  const [roster, setRoster] = useState<Map<string, ParticipantDisplay>>(new Map());
+  const participantKey = participants.map((p) => p.id).join(",");
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+    void supabase
+      .rpc("get_boss_raid_participant_display", { p_session_id: sessionId })
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        setRoster(toParticipantDisplayMap(data as ParticipantDisplayRow[]));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, participantKey]);
+
   const joinPath = `/boss-raid/join?code=${s.join_code}`;
   const [origin] = useState(() =>
     typeof window === "undefined" ? "" : window.location.origin
@@ -80,7 +105,7 @@ export default function LobbyClient({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
+    <main className="mx-auto max-w-2xl px-4 pt-8 pb-24">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-text2">รหัสห้อง</p>
@@ -212,19 +237,30 @@ export default function LobbyClient({
           ผู้เล่นในห้อง <span className="text-text3">({participants.length})</span>
         </h2>
         <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {participants.map((p) => (
-            <li
-              key={p.id}
-              className="rounded-xl border border-border bg-card px-3 py-2 text-center text-sm"
-            >
-              <span className="block truncate font-mono text-xs text-text3">
-                {p.user_id.slice(0, 8)}
-              </span>
-              <span className="text-text2">
-                รวมสเตตัส {Object.values(p.stat_snapshot ?? {}).reduce((a, b) => a + (b || 0), 0)}
-              </span>
-            </li>
-          ))}
+          {participants.map((p) => {
+            const disp = roster.get(p.id);
+            const name = disp?.name?.trim() || p.user_id.slice(0, 8);
+            return (
+              <li
+                key={p.id}
+                className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-3 py-2 text-center text-sm"
+              >
+                {disp?.sprite && (
+                  <Image
+                    src={disp.sprite}
+                    alt={name}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-contain"
+                  />
+                )}
+                <span className="block max-w-full truncate font-medium text-text">{name}</span>
+                <span className="text-xs text-text2">
+                  รวมสเตตัส {Object.values(p.stat_snapshot ?? {}).reduce((a, b) => a + (b || 0), 0)}
+                </span>
+              </li>
+            );
+          })}
           {participants.length === 0 && (
             <li className="col-span-full rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-text3">
               รอผู้เล่นเข้าห้อง…
