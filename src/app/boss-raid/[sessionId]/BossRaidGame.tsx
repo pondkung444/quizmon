@@ -51,6 +51,18 @@ type ChosenResult = {
   event_active?: boolean;
 };
 
+// submit_boss_raid_event_answer (meteor / ฝนดาวตก)
+type MeteorResult = {
+  event_active: boolean;
+  already_answered?: boolean;
+  is_correct: boolean | null;
+  won?: boolean;
+  bonus_damage?: number;
+  boss_hp?: number;
+  status?: "in_progress" | "ended";
+  result?: "win" | "lose" | null;
+};
+
 type Phase = "loading" | "answering" | "submitting" | "result" | "error" | "ended";
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
@@ -92,12 +104,34 @@ export default function BossRaidGame({
 
   const cw = activeEvent?.type === "chosen_warrior" ? activeEvent : null;
   const amChosen = cw?.chosen_participant_id === participantId;
-  const frozen = !!cw && !amChosen;
 
   const [cwResult, setCwResult] = useState<ChosenResult | null>(null);
   const [cwBusy, setCwBusy] = useState(false);
   const cwSubmittedRef = useRef(false);
   const prevCwRef = useRef<string | null>(null);
+
+  // ===== meteor (ฝนดาวตก) — คำถามโบนัสทั้งห้อง, คนแรกที่ตอบถูกได้ +15 =====
+  // backend freeze คำถามปกติไว้ตลอดช่วง event (submit_boss_raid_answer / get_next_boss_raid_question
+  // คืน frozen:true; question_started_at ถูกดันไป +15 วิ ตอน event เริ่ม) — จอนี้แค่โชว์ข้อโบนัส
+  const meteorEv = activeEvent?.type === "meteor" ? activeEvent : null;
+  const [meteorNow, setMeteorNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!meteorEv) return;
+    const t = window.setInterval(() => setMeteorNow(Date.now()), 250);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meteorEv?.expires_at]);
+  const meteorActive = !!meteorEv && tsMs(meteorEv.expires_at) > meteorNow;
+  const meteorRemain = meteorEv
+    ? Math.max(0, Math.ceil((tsMs(meteorEv.expires_at) - meteorNow) / 1000))
+    : 0;
+  const [meteorResult, setMeteorResult] = useState<MeteorResult | null>(null);
+  const [meteorBusy, setMeteorBusy] = useState(false);
+  const meteorSubmittedRef = useRef(false);
+  const prevMeteorActiveRef = useRef(false);
+  const prevMeteorKeyRef = useRef<string | null>(null);
+
+  const frozen = (!!cw && !amChosen) || meteorActive;
 
   // บัฟดาเมจ passive (จุดอ่อนเผย / บอสโกรธ) — banner นับถอยหลังเอง (expires_at ผ่านไปเงียบๆ ไม่มี realtime)
   const timedBuff =
@@ -221,6 +255,53 @@ export default function BossRaidGame({
     },
     [participantId, supabase]
   );
+
+  const submitMeteor = useCallback(
+    async (answerIndex: number) => {
+      if (meteorSubmittedRef.current) return;
+      meteorSubmittedRef.current = true;
+      setMeteorBusy(true);
+      try {
+        const { data, error: err } = await supabase.rpc("submit_boss_raid_event_answer", {
+          p_participant_id: participantId,
+          p_answer: String(answerIndex),
+        });
+        if (err) throw new Error(err.message);
+        setMeteorResult(data as MeteorResult);
+      } catch (e) {
+        meteorSubmittedRef.current = false;
+        setMeteorBusy(false);
+        setError(e instanceof Error ? e.message : "ส่งคำตอบไม่สำเร็จ");
+      }
+    },
+    [participantId, supabase]
+  );
+
+  // meteor เริ่มใหม่ (expires_at เปลี่ยน) -> reset state; หมดเวลา -> resume คำถามปกติ
+  //   (backend คืน frozen จนถึง expires_at แล้ว unfreeze เอง; question_started_at ถูกดัน +15 วิ
+  //    ตอน event เริ่ม -> loadQuestion ได้เวลาที่เหลือคืน)
+  useEffect(() => {
+    const wasActive = prevMeteorActiveRef.current;
+    prevMeteorActiveRef.current = meteorActive;
+    const key = meteorEv?.expires_at ?? null;
+    const prevKey = prevMeteorKeyRef.current;
+    prevMeteorKeyRef.current = key;
+    if (key === prevKey && wasActive === meteorActive) return;
+    const t = window.setTimeout(() => {
+      if (key !== prevKey) {
+        meteorSubmittedRef.current = false;
+        setMeteorResult(null);
+        setMeteorBusy(false);
+      }
+      if (wasActive && !meteorActive) {
+        // กัน auto-submit ยิงคำตอบ null ให้ข้อเก่า (deadline ที่โชว์ยังเป็นของเดิม ก่อน server ดัน +15)
+        submittedRef.current = true;
+        setPhase("loading");
+        void loadQuestion();
+      }
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [meteorEv?.expires_at, meteorActive, loadQuestion]);
 
   // โหลดข้อแรก / resume ตอน mount
   useEffect(() => {
@@ -418,8 +499,56 @@ export default function BossRaidGame({
         </div>
       )}
 
-      {/* ===== flow ปกติ (ซ่อนตอนมี event นักรบถูกเลือก) ===== */}
-      {!cw && (
+      {/* ===== event: ฝนดาวตก (meteor) — คำถามโบนัสทั้งห้อง ===== */}
+      {!cw && meteorActive && meteorEv && (
+        <div className="rounded-xl border-2 border-gold bg-amber/10 p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-gold-hi">☄️ ฝนดาวตก!</p>
+            <span className="rounded-full bg-track px-2 py-0.5 text-xs font-bold text-text2">
+              {meteorRemain} วิ
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs text-text3">คนแรกที่ตอบถูกได้โบนัส −15 HP บอส</p>
+
+          {meteorResult ? (
+            <div className="py-6 text-center">
+              {meteorResult.won ? (
+                <p className="text-xl font-bold text-gold-hi">ตอบถูก! ได้โบนัส +15</p>
+              ) : meteorResult.event_active === false ? (
+                <p className="text-lg font-bold text-text2">อีเวนต์จบไปแล้ว</p>
+              ) : meteorResult.is_correct === false ? (
+                <p className="text-xl font-bold text-text2">ตอบผิด</p>
+              ) : (
+                <p className="text-xl font-bold text-text2">ตอบแล้ว รอผล</p>
+              )}
+              <p className="mt-3 text-xs text-text3">กำลังกลับสู่คำถามปกติ…</p>
+            </div>
+          ) : (
+            <>
+              <p className="mt-3 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
+                {meteorEv.question_text}
+              </p>
+              <div className="mt-4 grid gap-2">
+                {meteorEv.choices.map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={meteorBusy}
+                    onClick={() => void submitMeteor(i)}
+                    className="rounded-xl border border-gold-dim bg-track px-4 py-3 text-left text-sm text-text transition active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+          {error && <p className="mt-2 text-center text-sm text-red">{error}</p>}
+        </div>
+      )}
+
+      {/* ===== flow ปกติ (ซ่อนตอนมี event นักรบถูกเลือก / ฝนดาวตก) ===== */}
+      {!cw && !meteorActive && (
         <>
           {phase === "loading" && (
             <p className="py-8 text-center text-sm text-text3">กำลังโหลดคำถาม…</p>

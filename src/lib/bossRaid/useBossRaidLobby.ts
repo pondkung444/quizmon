@@ -24,6 +24,7 @@ export type LobbySession = {
     timer_seconds?: number;
     reward_egg_type_id?: string | null;
     reward_top_n?: number | null;
+    boss_key?: string;
   };
   teacher_id: string;
   boss_hp?: number | null;

@@ -28,6 +28,10 @@ import {
 } from "@/lib/bossRaid/participantDisplay";
 import BossRaidGame from "./BossRaidGame";
 import BossRaidLoadout from "./BossRaidLoadout";
+import {
+  BOSS_RAID_BOSS_OPTIONS,
+  DEFAULT_BOSS_RAID_BOSS_KEY,
+} from "@/lib/bossRaidBosses";
 
 type ChapterRow = {
   id: number;
@@ -529,6 +533,9 @@ function ConfigPanel({
     (config.difficulty as BossRaidConfig["difficulty"]) ?? "medium"
   );
   const [timer, setTimer] = useState<number>(config.timer_seconds ?? 30);
+  const [bossKey, setBossKey] = useState<string>(
+    config.boss_key ?? DEFAULT_BOSS_RAID_BOSS_KEY
+  );
   const [rewardEggs, setRewardEggs] = useState<RewardEggRow[]>([]);
   const [rewardEggTypeId, setRewardEggTypeId] = useState<string | null>(
     config.reward_egg_type_id ?? null
@@ -581,6 +588,7 @@ function ConfigPanel({
           timer_seconds: timer,
           reward_egg_type_id: rewardEggTypeId,
           reward_top_n: rewardEggTypeId ? rewardTopN : null,
+          boss_key: bossKey,
         });
         setSaved(true);
       } catch (e) {
@@ -610,6 +618,25 @@ function ConfigPanel({
           </button>
         ))}
       </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-text2">บอส:</span>
+        {BOSS_RAID_BOSS_OPTIONS.map((b) => (
+          <button
+            key={b.key}
+            type="button"
+            onClick={() => setBossKey(b.key)}
+            className={`rounded-full border px-3 py-1 text-sm transition ${
+              bossKey === b.key
+                ? "border-gold bg-amber text-track"
+                : "border-border bg-track text-text2"
+            }`}
+          >
+            {b.nameTh}
+          </button>
+        ))}
+      </div>
+      <p className="mt-1 text-xs text-text3">หน้าตาบอสเท่านั้น — ไม่มีผลต่อความยากหรือพลัง</p>
 
       <label className="mt-3 flex items-center gap-2 text-sm text-text2">
         เวลาต่อข้อ (วินาที):
