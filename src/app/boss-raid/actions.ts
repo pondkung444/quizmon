@@ -7,6 +7,11 @@ import {
   type EligibleRaidPet,
   type RaidGearItemFull,
 } from "@/lib/raid";
+import {
+  BOSS_RAID_BOSSES,
+  DEFAULT_BOSS_RAID_BOSS_KEY,
+  type BossRaidBossKey,
+} from "@/lib/bossRaidBosses";
 
 // Classroom Boss Raid — Phase 0.1 server actions
 // เขียนทุกอย่างผ่าน RPC security definer (create/join) — client ไม่ insert boss_raid_* ตรง
@@ -28,6 +33,8 @@ export type BossRaidConfig = {
   // สไลซ์ 1.2 — รางวัลไข่ Top-N เมื่อชนะบอส (null = ไม่แจกรางวัลรอบนี้)
   reward_egg_type_id: string | null;
   reward_top_n: number | null;
+  // สายพันธุ์บอส (cosmetic) — ดู src/lib/bossRaidBosses.ts; undefined = "ridge_mist"
+  boss_key?: string;
 };
 
 // ชนิดไข่ที่ครูเลือกแจกได้ — dynamic query (ห้าม hardcode id, legendary ถูกกรองด้วย tier)
@@ -39,6 +46,7 @@ const DEFAULT_CONFIG: BossRaidConfig = {
   timer_seconds: 30,
   reward_egg_type_id: null,
   reward_top_n: 5,
+  boss_key: DEFAULT_BOSS_RAID_BOSS_KEY,
 };
 
 export async function createBossRaidSession(): Promise<{ sessionId: string; joinCode: string }> {
@@ -68,6 +76,12 @@ export async function updateBossRaidConfig(sessionId: string, config: BossRaidCo
       ? Math.min(50, Math.max(1, Math.round(config.reward_top_n)))
       : null;
 
+  const bossKey: BossRaidBossKey = (
+    config.boss_key && config.boss_key in BOSS_RAID_BOSSES
+      ? config.boss_key
+      : DEFAULT_BOSS_RAID_BOSS_KEY
+  ) as BossRaidBossKey;
+
   let rewardEggTypeId: string | null = null;
   if (config.reward_egg_type_id) {
     const { data: egg } = await supabase
@@ -90,6 +104,7 @@ export async function updateBossRaidConfig(sessionId: string, config: BossRaidCo
         timer_seconds: timer,
         reward_egg_type_id: rewardEggTypeId,
         reward_top_n: rewardEggTypeId ? rewardTopN : null,
+        boss_key: bossKey,
       },
     })
     .eq("id", sessionId);

@@ -52,6 +52,7 @@ export type TvSession = {
     timer_seconds?: number;
     reward_egg_type_id?: string | null;
     reward_top_n?: number | null;
+    boss_key?: string;
   };
   boss_hp: number | null;
   boss_hp_max: number | null;

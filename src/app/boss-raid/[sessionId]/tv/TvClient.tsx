@@ -10,6 +10,7 @@ import {
 import type { ParticipantDisplay } from "@/lib/bossRaid/participantDisplay";
 import { liveBossRaidEvent } from "@/lib/bossRaid/activeEvent";
 import { tvAudio } from "@/lib/bossRaid/tvAudio";
+import { resolveBossRaidBoss } from "@/lib/bossRaidBosses";
 
 // จอทีวี Boss Raid — layout/พฤติกรรมอ้างจาก mockup v9 (docs/boss-raid-mockups/boss-raid-tv-screen-mockup-v9.html)
 // ทุกตำแหน่งคุมด้วยโค้ดเป็น % ของกล่องฉาก 16:9 ไม่ผูกกับพิกเซลในภาพพื้นหลัง
@@ -19,9 +20,8 @@ const BG_SRC = "/raid/boss_raid_scene_open_field.webp";
 // ⚠️ DRAFT — ตัดพื้นขาวด้วย automated threshold ยังไม่ production-grade (§2.4 ของ handoff + ชื่อไฟล์)
 // ห้าม promote เป็น asset จริงจนกว่าปอนด์จะส่งไฟล์ตัดขอบที่ผ่านตาจริง
 const CRYSTAL_SRC = "/raid/boss_raid_crystal_DRAFT_autocut.png";
-// schema ยังไม่มี field เลือกสายพันธุ์บอส (start_boss_raid_game ไม่เคยเซ็ต boss identity) — ใช้ตัวเดียวคงที่
-const BOSS_SRC = "/raid/boss_ridge_mist.png";
-const BOSS_ASPECT = 1024 / 1536; // boss_ridge_mist.png — ตรงกับ SPRITE_ASPECT_RATIO ใน spriteGroundOffsets.ts
+// สายพันธุ์บอส (cosmetic) มาจาก config.boss_key ที่ครูเลือกตอนตั้งค่าห้อง — ดู src/lib/bossRaidBosses.ts
+// (sprite/สัดส่วน resolve ในตัว component จาก s.config.boss_key)
 
 // Qmon ของ top-5 มาจาก roster (get_boss_raid_participant_display -> resolveParticipantSprite ผ่าน
 // petImage.ts) — อันนี้เป็นแค่ fallback ต่อ "ช่องอันดับ" เผื่อ resolve ไม่ได้ (pet ต่ำกว่า stage 3
@@ -115,6 +115,9 @@ export default function TvClient({
   });
 
   const s = session ?? initialSession;
+  const boss = resolveBossRaidBoss(s.config?.boss_key);
+  const BOSS_SRC = boss.sprite;
+  const BOSS_ASPECT = boss.spriteAspect;
   const [now, setNow] = useState(() => Date.now());
   const [soundOn, setSoundOn] = useState(false);
 
