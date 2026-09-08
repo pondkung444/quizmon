@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Kanit, Sarabun } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
@@ -103,6 +104,7 @@ export default async function RootLayout({
         <OfflineScreen />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         <SeenAuthFlag authed={!!user && !isAnonymous} />
+        <Analytics />
         {children}
         <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
         {isAnonymous && !guestPendingEmail && activePetStage !== null && activePetStage >= 2 && (
