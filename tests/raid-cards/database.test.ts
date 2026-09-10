@@ -128,6 +128,8 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
       grant usage,select on all sequences in schema public to service_role;
     `);
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910044259_raid_card_learning.sql",import.meta.url),"utf8"));
+    await db.exec("alter table questions add column branch text");
+    await db.exec(readFileSync(new URL("../../supabase/migrations/20260910114449_raid_card_question_mix.sql",import.meta.url),"utf8"));
     await as("authenticated");
     const learningRun=(await start())!;
     await assert.rejects(db.query("select * from raid_card_questions"),/permission denied/);
