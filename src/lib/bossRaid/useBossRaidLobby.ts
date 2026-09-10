@@ -34,7 +34,7 @@ export type LobbySession = {
   current_tier?: "light" | "medium" | "heavy" | null;
   wrong_count_total?: number | null;
   active_event?: BossRaidActiveEvent;
-  result?: "win" | "lose" | null;
+  result?: "win" | "lose" | "incomplete" | null;
 };
 
 export type LobbyParticipant = {

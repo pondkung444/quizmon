@@ -16,6 +16,7 @@ import {
   getBossRaidRewards,
   getBossRaidSummary,
   dismissBossRaidEvent,
+  endBossRaidSession,
   type BossRaidConfig,
   type BossRaidRewardRow,
   type BossRaidSummary,
@@ -222,6 +223,8 @@ export default function LobbyClient({
         <DismissEventButton sessionId={sessionId} chosenName={s.active_event.chosen_name} />
       )}
 
+      {isTeacher && s.status === "in_progress" && <EndRaidButton sessionId={sessionId} />}
+
       {s.status === "in_progress" && myParticipant && (
         <BossRaidGame
           participantId={myParticipant.id}
@@ -283,13 +286,70 @@ function fmtDuration(sec: number | null): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function EndRaidButton({ sessionId }: { sessionId: string }) {
+  const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <section className="mt-4 rounded-2xl border border-gold-dim bg-card p-4">
+      <p className="text-sm font-bold text-gold-hi">จบรอบนี้</p>
+      <p className="mt-0.5 text-xs text-text3">
+        นักเรียนทุกคนจะเห็นหน้าสรุปผลทันที — ใช้เมื่อหมดเวลาเรียนหรืออยากพักบอสไว้ก่อน
+      </p>
+      {!confirming ? (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="mt-3 w-full rounded-xl border border-gold-dim bg-track py-2.5 text-sm font-bold text-gold-hi transition active:scale-95"
+        >
+          จบรอบ
+        </button>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <p className="text-center text-xs text-text2">จบรอบนี้เลยไหม?</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => setConfirming(false)}
+              className="flex-1 rounded-xl border border-border bg-track py-2.5 text-sm font-bold text-text2 disabled:opacity-50"
+            >
+              ยกเลิก
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  setError(null);
+                  try {
+                    await endBossRaidSession(sessionId);
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "จบรอบไม่สำเร็จ");
+                    setConfirming(false);
+                  }
+                })
+              }
+              className="flex-1 rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-track disabled:opacity-50"
+            >
+              {pending ? "กำลังจบรอบ…" : "จบรอบเลย"}
+            </button>
+          </div>
+        </div>
+      )}
+      {error && <p className="mt-2 text-center text-xs text-red">{error}</p>}
+    </section>
+  );
+}
+
 function EndScreen({
   sessionId,
   result,
   myParticipantId,
 }: {
   sessionId: string;
-  result: "win" | "lose" | null;
+  result: "win" | "lose" | "incomplete" | null;
   myParticipantId: string | null;
 }) {
   const [rewards, setRewards] = useState<BossRaidRewardRow[] | null>(null);
@@ -342,9 +402,22 @@ function EndScreen({
 
   return (
     <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-8 text-center">
-      <p className={`text-4xl font-bold ${result === "win" ? "text-gold-hi" : "text-red"}`}>
-        {result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะ 💀"}
+      <p
+        className={`text-4xl font-bold ${
+          result === "win" ? "text-gold-hi" : result === "lose" ? "text-red" : "text-gold-hi"
+        }`}
+      >
+        {result === "win"
+          ? "ห้องชนะ! 🎉"
+          : result === "lose"
+            ? "บอสชนะรอบนี้ 💫"
+            : "รอบนี้จบแล้ว 🌤️"}
       </p>
+      {result !== "win" && result !== "lose" && (
+        <p className="mt-2 text-sm text-text2">
+          ทั้งห้องเก็บความรู้ไปได้เยอะเลย — ไว้มาลุยบอสต่อกันรอบหน้า!
+        </p>
+      )}
 
       {/* สถิติส่วนตัว */}
       {myRank && (

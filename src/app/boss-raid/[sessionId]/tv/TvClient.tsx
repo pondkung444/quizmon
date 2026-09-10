@@ -482,8 +482,17 @@ export default function TvClient({
                 s.result === "win" ? "text-gold-hi" : "text-white"
               }`}
             >
-              {s.result === "win" ? "ห้องชนะ! 🎉" : "บอสชนะรอบนี้ 💫"}
+              {s.result === "win"
+                ? "ห้องชนะ! 🎉"
+                : s.result === "lose"
+                  ? "บอสชนะรอบนี้ 💫"
+                  : "รอบนี้จบแล้ว 🌤️"}
             </div>
+            {s.result === "incomplete" && (
+              <div className="max-w-[72%] text-[clamp(11px,1.3vw,17px)] text-white/80">
+                ทั้งห้องเก็บความรู้ไปได้เยอะเลย — ไว้มาลุยบอสต่อกันรอบหน้า!
+              </div>
+            )}
 
             {/* แถบสถิติรวมทีม */}
             {summary && (
