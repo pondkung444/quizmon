@@ -12,6 +12,19 @@ const PROFILES: Record<string, Stats> = {
   trained: { hp: 85, atk: 90, def: 85, spd: 90, foc: 80 },
 };
 const KEY = "quizmon-raid-card-preview-learning-r1";
+
+// Alternate illustrated/plain questions so the preview exercises both layouts.
+function multiplicationImage(boxes: number, perBox: number): string {
+  const groups = Array.from({ length: boxes }, (_, i) => {
+    const x = (i % 4) * 100 + 10, y = Math.floor(i / 4) * 70 + 10;
+    const dots = Array.from({ length: perBox }, (_, j) =>
+      `<circle cx="${x + 18 + (j % 3) * 25}" cy="${y + 18 + Math.floor(j / 3) * 24}" r="6" fill="#345575"/>`
+    ).join("");
+    return `<rect x="${x}" y="${y}" width="90" height="60" rx="6" fill="#fff" stroke="#345575"/>${dots}`;
+  }).join("");
+  return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 ${Math.ceil(boxes / 4) * 70 + 10}">${groups}</svg>`)}`;
+}
+
 export default function RaidCardPreview() {
   const [boss, setBoss] = useState<BossId>("ridge_mist");
   const [profile, setProfile] = useState("attack");
@@ -51,7 +64,7 @@ export default function RaidCardPreview() {
     if(lock.current || question) return;
     const a=battle.turn+3,b=battle.turn%5+2,correct=a*b,key=battle.turn%4;
     const choices=[correct+2,correct-1,correct+b,correct-3].map(String);choices[key]=String(correct);
-    const q:RaidCardQuestion={revision:battle.log.length+1,cardId:card,text: `มีของ ${a} กล่อง กล่องละ ${b} ชิ้น รวมทั้งหมดกี่ชิ้น?`,choices,imageUrl:null,subject:"math",category:"โจทย์ตัวอย่าง · การคูณ"};
+    const q:RaidCardQuestion={revision:battle.log.length+1,cardId:card,text: `มีของ ${a} กล่อง กล่องละ ${b} ชิ้น รวมทั้งหมดกี่ชิ้น?`,choices,imageUrl:battle.turn%2===1?multiplicationImage(a,b):null,subject:"math",category:"โจทย์ตัวอย่าง · การคูณ"};
     setQuestion(q);setAnswerKey(key);setFeedback(null);save(battle,profile,best,q,key);
   }
   async function answer(index:number) {
