@@ -12,7 +12,8 @@
     "verify:question-factory-storage": "node --experimental-strip-types scripts/verify-question-factory-storage.mjs",
     "verify:question-factory-asset-validation": "node --experimental-strip-types scripts/verify-question-factory-asset-validation.mjs",
     "verify:question-factory-office-projection": "node --experimental-strip-types scripts/verify-question-factory-office-projection.mjs",
-    "verify:question-factory-operational-health": "node --experimental-strip-types scripts/verify-question-factory-operational-health.mjs"
+    "verify:question-factory-operational-health": "node --experimental-strip-types scripts/verify-question-factory-operational-health.mjs",
+    "test:raid": "node --experimental-strip-types --test tests/raid-cards/*.test.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -34,6 +35,8 @@
     "recharts": "^3.9.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

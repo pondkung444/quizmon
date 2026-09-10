@@ -1,3 +1,4 @@
+import { readCardBattle, type CardBattleView } from "@/lib/raid/cards/server";
 import { redirect } from "next/navigation";
 import { getUser, type createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,6 +10,7 @@ import { computeRollDisplay, type RaidStatKey, type RaidStatRecord } from "@/lib
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type RaidTypeInfo = {
+  slug: string;
   id: string;
   nameTh: string;
   descriptionTh: string | null;
@@ -52,8 +54,10 @@ export type RaidPathOption = {
 };
 
 export type RaidView =
+  | CardBattleView
   | {
       phase: "predeparture";
+      cardMode?: boolean;
       raidType: RaidTypeInfo;
       pets: EligibleRaidPet[];
       ticketCount: number;
@@ -137,7 +141,7 @@ export async function getActiveRaidType(supabase: SupabaseServerClient): Promise
   const { data } = await supabase
     .from("raid_types")
     .select(
-      "id, name_th, description_th, background_path, obstacle_count, boss_threshold_pct, boss_question_count, boss_pass_count, boss_name_th"
+      "id, slug, name_th, description_th, background_path, obstacle_count, boss_threshold_pct, boss_question_count, boss_pass_count, boss_name_th"
     )
     .eq("is_active", true)
     .order("sort_order", { ascending: true })
@@ -147,6 +151,7 @@ export async function getActiveRaidType(supabase: SupabaseServerClient): Promise
   if (!data) return null;
   return {
     id: data.id,
+    slug: data.slug,
     nameTh: data.name_th,
     descriptionTh: data.description_th,
     backgroundPath: data.background_path,
@@ -166,7 +171,7 @@ export async function getRaidTypeBySlug(
   const { data } = await supabase
     .from("raid_types")
     .select(
-      "id, name_th, description_th, background_path, obstacle_count, boss_threshold_pct, boss_question_count, boss_pass_count, boss_name_th"
+      "id, slug, name_th, description_th, background_path, obstacle_count, boss_threshold_pct, boss_question_count, boss_pass_count, boss_name_th"
     )
     .eq("slug", slug)
     .eq("is_active", true)
@@ -175,6 +180,7 @@ export async function getRaidTypeBySlug(
   if (!data) return null;
   return {
     id: data.id,
+    slug: data.slug,
     nameTh: data.name_th,
     descriptionTh: data.description_th,
     backgroundPath: data.background_path,
@@ -386,6 +392,7 @@ export async function getActiveRaidRun(supabase: SupabaseServerClient, userId: s
     .maybeSingle<RunRow>();
 
   if (!run) return null;
+  if (run.phase === "card_battle" || run.phase === "card_reward") return readCardBattle(run.id, userId);
 
   const { data: raidType } = await supabase
     .from("raid_types")

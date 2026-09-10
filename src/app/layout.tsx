@@ -57,9 +57,12 @@ export default async function RootLayout({
 }>) {
   // เผื่อสำหรับ AnalyticsTracker เท่านั้น (props ของ event session_start) — layout persist ข้าม
   // client-side navigation ปกติ ไม่ได้ query ใหม่ทุกหน้า แค่ตอน full page load เท่านั้น
+  const pathname = (await headers()).get("x-pathname") ?? "";
+  if (process.env.NODE_ENV === "development" && process.env.RAID_CARD_PREVIEW === "true" && pathname === "/raid/preview") {
+    return <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}><body>{children}</body></html>;
+  }
   const supabase = await createClient();
   const user = await getUser();
-  const pathname = (await headers()).get("x-pathname") ?? "";
 
   let activePetStage: number | null = null;
   let activePetSubline: string | null = null;

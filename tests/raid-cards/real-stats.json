@@ -1,0 +1,1124 @@
+{
+  "eggs": [
+    {
+      "id": "egg_common_01",
+      "profile": {
+        "caps": {
+          "hp": 90,
+          "atk": 115,
+          "def": 85,
+          "foc": 95,
+          "spd": 115
+        },
+        "growth": "early_bloomer",
+        "archetype": "attacker_fast",
+        "base_offset": 10,
+        "rate_multiplier": 1.3
+      }
+    },
+    {
+      "id": "egg_common_02",
+      "profile": {
+        "caps": {
+          "hp": 115,
+          "atk": 90,
+          "def": 110,
+          "foc": 95,
+          "spd": 90
+        },
+        "growth": "late_bloomer",
+        "archetype": "tank_precise",
+        "base_offset": 0,
+        "rate_multiplier": 0.85
+      }
+    },
+    {
+      "id": "egg_legendary_01",
+      "profile": {
+        "caps": {
+          "hp": 100,
+          "atk": 100,
+          "def": 100,
+          "foc": 100,
+          "spd": 100
+        },
+        "growth": "steady_bloomer",
+        "archetype": "balanced_all",
+        "base_offset": 5,
+        "rate_multiplier": 1
+      }
+    },
+    {
+      "id": "egg_rare_01",
+      "profile": {
+        "caps": {
+          "hp": 110,
+          "atk": 95,
+          "def": 120,
+          "foc": 100,
+          "spd": 75
+        },
+        "growth": "steady_bloomer",
+        "archetype": "tank_precise",
+        "base_offset": 5,
+        "rate_multiplier": 1
+      }
+    },
+    {
+      "id": "egg_epic_01",
+      "profile": {
+        "caps": {
+          "hp": 80,
+          "atk": 100,
+          "def": 80,
+          "foc": 120,
+          "spd": 120
+        },
+        "growth": "early_bloomer",
+        "archetype": "striker_precise",
+        "base_offset": 5,
+        "rate_multiplier": 1.1
+      }
+    }
+  ],
+  "pets": [
+    {
+      "hp": 5,
+      "atk": 90,
+      "def": 9,
+      "egg": "egg_common_02",
+      "foc": 61,
+      "spd": 39
+    },
+    {
+      "hp": 67,
+      "atk": 18,
+      "def": 49,
+      "egg": "egg_common_02",
+      "foc": 31,
+      "spd": 27
+    },
+    {
+      "hp": 90,
+      "atk": 31,
+      "def": 74,
+      "egg": "egg_common_01",
+      "foc": 66,
+      "spd": 67
+    },
+    {
+      "hp": 107,
+      "atk": 22,
+      "def": 57,
+      "egg": "egg_rare_01",
+      "foc": 64,
+      "spd": 65
+    },
+    {
+      "hp": 90,
+      "atk": 31,
+      "def": 67,
+      "egg": "egg_common_01",
+      "foc": 80,
+      "spd": 65
+    },
+    {
+      "hp": 37,
+      "atk": 31,
+      "def": 60,
+      "egg": "egg_common_02",
+      "foc": 45,
+      "spd": 41
+    },
+    {
+      "hp": 83,
+      "atk": 2,
+      "def": 7,
+      "egg": "egg_common_02",
+      "foc": 42,
+      "spd": 90
+    },
+    {
+      "hp": 105,
+      "atk": 30,
+      "def": 73,
+      "egg": "egg_rare_01",
+      "foc": 64,
+      "spd": 72
+    },
+    {
+      "hp": 52,
+      "atk": 27,
+      "def": 35,
+      "egg": "egg_common_02",
+      "foc": 53,
+      "spd": 34
+    },
+    {
+      "hp": 75,
+      "atk": 8,
+      "def": 22,
+      "egg": "egg_common_02",
+      "foc": 42,
+      "spd": 39
+    },
+    {
+      "hp": 110,
+      "atk": 13,
+      "def": 30,
+      "egg": "egg_rare_01",
+      "foc": 58,
+      "spd": 57
+    },
+    {
+      "hp": 80,
+      "atk": 9,
+      "def": 17,
+      "egg": "egg_epic_01",
+      "foc": 50,
+      "spd": 49
+    },
+    {
+      "hp": 77,
+      "atk": 36,
+      "def": 98,
+      "egg": "egg_rare_01",
+      "foc": 49,
+      "spd": 45
+    },
+    {
+      "hp": null,
+      "atk": null,
+      "def": null,
+      "egg": "egg_rare_01",
+      "foc": null,
+      "spd": null
+    },
+    {
+      "hp": 105,
+      "atk": 14,
+      "def": 32,
+      "egg": "egg_rare_01",
+      "foc": 50,
+      "spd": 41
+    },
+    {
+      "hp": 90,
+      "atk": 14,
+      "def": 20,
+      "egg": "egg_common_01",
+      "foc": 66,
+      "spd": 65
+    },
+    {
+      "hp": 90,
+      "atk": 16,
+      "def": 27,
+      "egg": "egg_common_01",
+      "foc": 79,
+      "spd": 67
+    },
+    {
+      "hp": null,
+      "atk": null,
+      "def": null,
+      "egg": "egg_rare_01",
+      "foc": null,
+      "spd": null
+    },
+    {
+      "hp": 90,
+      "atk": 20,
+      "def": 37,
+      "egg": "egg_common_01",
+      "foc": 79,
+      "spd": 73
+    },
+    {
+      "hp": 20,
+      "atk": 115,
+      "def": 30,
+      "egg": "egg_common_01",
+      "foc": 95,
+      "spd": 70
+    },
+    {
+      "hp": 90,
+      "atk": 35,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 68,
+      "spd": 62
+    },
+    {
+      "hp": 71,
+      "atk": 39,
+      "def": 82,
+      "egg": "egg_common_02",
+      "foc": 41,
+      "spd": 58
+    },
+    {
+      "hp": 36,
+      "atk": 21,
+      "def": 39,
+      "egg": "egg_common_02",
+      "foc": 52,
+      "spd": 37
+    },
+    {
+      "hp": 80,
+      "atk": 10,
+      "def": 19,
+      "egg": "egg_epic_01",
+      "foc": 56,
+      "spd": 67
+    },
+    {
+      "hp": 110,
+      "atk": 21,
+      "def": 35,
+      "egg": "egg_rare_01",
+      "foc": 71,
+      "spd": 75
+    },
+    {
+      "hp": 90,
+      "atk": 12,
+      "def": 17,
+      "egg": "egg_common_01",
+      "foc": 69,
+      "spd": 65
+    },
+    {
+      "hp": 100,
+      "atk": 10,
+      "def": 18,
+      "egg": "egg_legendary_01",
+      "foc": 65,
+      "spd": 72
+    },
+    {
+      "hp": 100,
+      "atk": 100,
+      "def": 100,
+      "egg": "egg_legendary_01",
+      "foc": 48,
+      "spd": 100
+    },
+    {
+      "hp": 90,
+      "atk": 18,
+      "def": 35,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 115
+    },
+    {
+      "hp": 49,
+      "atk": 84,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 52
+    },
+    {
+      "hp": 90,
+      "atk": 35,
+      "def": 78,
+      "egg": "egg_common_01",
+      "foc": 63,
+      "spd": 62
+    },
+    {
+      "hp": 100,
+      "atk": 19,
+      "def": 44,
+      "egg": "egg_legendary_01",
+      "foc": 63,
+      "spd": 100
+    },
+    {
+      "hp": 37,
+      "atk": 40,
+      "def": 75,
+      "egg": "egg_common_02",
+      "foc": 45,
+      "spd": 37
+    },
+    {
+      "hp": 19,
+      "atk": 115,
+      "def": 29,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 78
+    },
+    {
+      "hp": 39,
+      "atk": 115,
+      "def": 69,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 62
+    },
+    {
+      "hp": 2,
+      "atk": 86,
+      "def": 5,
+      "egg": "egg_common_02",
+      "foc": 63,
+      "spd": 37
+    },
+    {
+      "hp": 107,
+      "atk": 18,
+      "def": 49,
+      "egg": "egg_common_02",
+      "foc": 46,
+      "spd": 90
+    },
+    {
+      "hp": 37,
+      "atk": 90,
+      "def": 70,
+      "egg": "egg_rare_01",
+      "foc": 69,
+      "spd": 51
+    },
+    {
+      "hp": 90,
+      "atk": 39,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 89
+    },
+    {
+      "hp": 100,
+      "atk": 10,
+      "def": 19,
+      "egg": "egg_legendary_01",
+      "foc": 61,
+      "spd": 67
+    },
+    {
+      "hp": 90,
+      "atk": 33,
+      "def": 70,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 85
+    },
+    {
+      "hp": 80,
+      "atk": 9,
+      "def": 16,
+      "egg": "egg_epic_01",
+      "foc": 62,
+      "spd": 54
+    },
+    {
+      "hp": 31,
+      "atk": 50,
+      "def": 63,
+      "egg": "egg_common_02",
+      "foc": 72,
+      "spd": 44
+    },
+    {
+      "hp": null,
+      "atk": null,
+      "def": null,
+      "egg": "egg_legendary_01",
+      "foc": null,
+      "spd": null
+    },
+    {
+      "hp": 90,
+      "atk": 30,
+      "def": 64,
+      "egg": "egg_common_01",
+      "foc": 63,
+      "spd": 115
+    },
+    {
+      "hp": 39,
+      "atk": 21,
+      "def": 65,
+      "egg": "egg_common_02",
+      "foc": 42,
+      "spd": 29
+    },
+    {
+      "hp": 21,
+      "atk": 115,
+      "def": 32,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 54
+    },
+    {
+      "hp": 80,
+      "atk": 10,
+      "def": 20,
+      "egg": "egg_epic_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 33,
+      "atk": 115,
+      "def": 57,
+      "egg": "egg_common_01",
+      "foc": 95,
+      "spd": 86
+    },
+    {
+      "hp": 100,
+      "atk": 14,
+      "def": 31,
+      "egg": "egg_legendary_01",
+      "foc": 55,
+      "spd": 55
+    },
+    {
+      "hp": 19,
+      "atk": 115,
+      "def": 27,
+      "egg": "egg_common_01",
+      "foc": 75,
+      "spd": 52
+    },
+    {
+      "hp": 80,
+      "atk": 48,
+      "def": 67,
+      "egg": "egg_epic_01",
+      "foc": 104,
+      "spd": 89
+    },
+    {
+      "hp": 71,
+      "atk": 69,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 84,
+      "spd": 76
+    },
+    {
+      "hp": 80,
+      "atk": 7,
+      "def": 11,
+      "egg": "egg_epic_01",
+      "foc": 64,
+      "spd": 53
+    },
+    {
+      "hp": 80,
+      "atk": 21,
+      "def": 53,
+      "egg": "egg_epic_01",
+      "foc": 60,
+      "spd": 62
+    },
+    {
+      "hp": 111,
+      "atk": 1,
+      "def": 2,
+      "egg": "egg_common_02",
+      "foc": 37,
+      "spd": 34
+    },
+    {
+      "hp": 110,
+      "atk": 14,
+      "def": 32,
+      "egg": "egg_rare_01",
+      "foc": 57,
+      "spd": 55
+    },
+    {
+      "hp": 90,
+      "atk": 16,
+      "def": 28,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 90,
+      "atk": 42,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 26,
+      "atk": 10,
+      "def": 10,
+      "egg": "egg_common_01",
+      "foc": 51,
+      "spd": 13
+    },
+    {
+      "hp": 56,
+      "atk": 25,
+      "def": 69,
+      "egg": "egg_common_02",
+      "foc": 41,
+      "spd": 32
+    },
+    {
+      "hp": 58,
+      "atk": 76,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 66,
+      "spd": 67
+    },
+    {
+      "hp": 90,
+      "atk": 27,
+      "def": 57,
+      "egg": "egg_common_01",
+      "foc": 56,
+      "spd": 51
+    },
+    {
+      "hp": 70,
+      "atk": 5,
+      "def": 16,
+      "egg": "egg_common_02",
+      "foc": 48,
+      "spd": 34
+    },
+    {
+      "hp": 90,
+      "atk": 67,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 82
+    },
+    {
+      "hp": 45,
+      "atk": 103,
+      "def": 80,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 73
+    },
+    {
+      "hp": 86,
+      "atk": 83,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 107
+    },
+    {
+      "hp": 58,
+      "atk": 36,
+      "def": 46,
+      "egg": "egg_legendary_01",
+      "foc": 72,
+      "spd": 49
+    },
+    {
+      "hp": 80,
+      "atk": 13,
+      "def": 28,
+      "egg": "egg_epic_01",
+      "foc": 68,
+      "spd": 49
+    },
+    {
+      "hp": 102,
+      "atk": 12,
+      "def": 27,
+      "egg": "egg_rare_01",
+      "foc": 63,
+      "spd": 55
+    },
+    {
+      "hp": 90,
+      "atk": 43,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 65,
+      "spd": 49
+    },
+    {
+      "hp": 110,
+      "atk": 9,
+      "def": 16,
+      "egg": "egg_rare_01",
+      "foc": 65,
+      "spd": 75
+    },
+    {
+      "hp": 9,
+      "atk": 95,
+      "def": 13,
+      "egg": "egg_rare_01",
+      "foc": 72,
+      "spd": 47
+    },
+    {
+      "hp": 90,
+      "atk": 20,
+      "def": 37,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 115
+    },
+    {
+      "hp": 110,
+      "atk": 10,
+      "def": 19,
+      "egg": "egg_rare_01",
+      "foc": 64,
+      "spd": 63
+    },
+    {
+      "hp": 36,
+      "atk": 74,
+      "def": 67,
+      "egg": "egg_rare_01",
+      "foc": 65,
+      "spd": 43
+    },
+    {
+      "hp": 41,
+      "atk": 54,
+      "def": 72,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 61
+    },
+    {
+      "hp": 69,
+      "atk": 58,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 62
+    },
+    {
+      "hp": 20,
+      "atk": 115,
+      "def": 30,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 62
+    },
+    {
+      "hp": 102,
+      "atk": 3,
+      "def": 9,
+      "egg": "egg_common_02",
+      "foc": 36,
+      "spd": 34
+    },
+    {
+      "hp": 90,
+      "atk": 28,
+      "def": 63,
+      "egg": "egg_common_01",
+      "foc": 57,
+      "spd": 65
+    },
+    {
+      "hp": 49,
+      "atk": 29,
+      "def": 61,
+      "egg": "egg_common_02",
+      "foc": 39,
+      "spd": 39
+    },
+    {
+      "hp": 110,
+      "atk": 18,
+      "def": 43,
+      "egg": "egg_rare_01",
+      "foc": 55,
+      "spd": 55
+    },
+    {
+      "hp": 69,
+      "atk": 66,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 76
+    },
+    {
+      "hp": 14,
+      "atk": 87,
+      "def": 24,
+      "egg": "egg_rare_01",
+      "foc": 72,
+      "spd": 41
+    },
+    {
+      "hp": 16,
+      "atk": 54,
+      "def": 32,
+      "egg": "egg_common_02",
+      "foc": 48,
+      "spd": 37
+    },
+    {
+      "hp": 90,
+      "atk": 60,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 65,
+      "spd": 65
+    },
+    {
+      "hp": 34,
+      "atk": 52,
+      "def": 68,
+      "egg": "egg_common_02",
+      "foc": 43,
+      "spd": 53
+    },
+    {
+      "hp": 90,
+      "atk": 28,
+      "def": 63,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 85
+    },
+    {
+      "hp": 85,
+      "atk": 7,
+      "def": 21,
+      "egg": "egg_common_02",
+      "foc": 40,
+      "spd": 37
+    },
+    {
+      "hp": 90,
+      "atk": 31,
+      "def": 67,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 84
+    },
+    {
+      "hp": 90,
+      "atk": 25,
+      "def": 56,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 88
+    },
+    {
+      "hp": 90,
+      "atk": 23,
+      "def": 49,
+      "egg": "egg_common_01",
+      "foc": 64,
+      "spd": 115
+    },
+    {
+      "hp": 42,
+      "atk": 36,
+      "def": 68,
+      "egg": "egg_common_02",
+      "foc": 41,
+      "spd": 41
+    },
+    {
+      "hp": 46,
+      "atk": 101,
+      "def": 83,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 91
+    },
+    {
+      "hp": 47,
+      "atk": 25,
+      "def": 52,
+      "egg": "egg_common_02",
+      "foc": 39,
+      "spd": 32
+    },
+    {
+      "hp": 50,
+      "atk": 50,
+      "def": 50,
+      "egg": "egg_common_02",
+      "foc": 35,
+      "spd": 4
+    },
+    {
+      "hp": 65,
+      "atk": 20,
+      "def": 60,
+      "egg": "egg_common_02",
+      "foc": 37,
+      "spd": 32
+    },
+    {
+      "hp": 88,
+      "atk": 3,
+      "def": 9,
+      "egg": "egg_common_02",
+      "foc": 39,
+      "spd": 34
+    },
+    {
+      "hp": 2,
+      "atk": 90,
+      "def": 5,
+      "egg": "egg_common_02",
+      "foc": 44,
+      "spd": 26
+    },
+    {
+      "hp": 65,
+      "atk": 19,
+      "def": 53,
+      "egg": "egg_common_02",
+      "foc": 37,
+      "spd": 34
+    },
+    {
+      "hp": 90,
+      "atk": 52,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 63,
+      "spd": 59
+    },
+    {
+      "hp": 28,
+      "atk": 55,
+      "def": 56,
+      "egg": "egg_common_02",
+      "foc": 53,
+      "spd": 31
+    },
+    {
+      "hp": 90,
+      "atk": 44,
+      "def": 81,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 75,
+      "atk": 15,
+      "def": 44,
+      "egg": "egg_common_02",
+      "foc": 41,
+      "spd": 34
+    },
+    {
+      "hp": 90,
+      "atk": 36,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 62
+    },
+    {
+      "hp": 90,
+      "atk": 54,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 67,
+      "spd": 78
+    },
+    {
+      "hp": 90,
+      "atk": 16,
+      "def": 27,
+      "egg": "egg_common_01",
+      "foc": 65,
+      "spd": 76
+    },
+    {
+      "hp": 27,
+      "atk": 44,
+      "def": 54,
+      "egg": "egg_common_02",
+      "foc": 57,
+      "spd": 32
+    },
+    {
+      "hp": 49,
+      "atk": 97,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 16,
+      "atk": 10,
+      "def": 19,
+      "egg": "egg_common_02",
+      "foc": 40,
+      "spd": 14
+    },
+    {
+      "hp": 4,
+      "atk": 90,
+      "def": 8,
+      "egg": "egg_common_02",
+      "foc": 50,
+      "spd": 34
+    },
+    {
+      "hp": 76,
+      "atk": 72,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 67
+    },
+    {
+      "hp": 59,
+      "atk": 76,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 78
+    },
+    {
+      "hp": 46,
+      "atk": 43,
+      "def": 77,
+      "egg": "egg_rare_01",
+      "foc": 60,
+      "spd": 54
+    },
+    {
+      "hp": 90,
+      "atk": 46,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 62
+    },
+    {
+      "hp": 63,
+      "atk": 83,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 70
+    },
+    {
+      "hp": 74,
+      "atk": 15,
+      "def": 46,
+      "egg": "egg_common_02",
+      "foc": 33,
+      "spd": 27
+    },
+    {
+      "hp": 39,
+      "atk": 115,
+      "def": 69,
+      "egg": "egg_common_01",
+      "foc": 95,
+      "spd": 73
+    },
+    {
+      "hp": 80,
+      "atk": 55,
+      "def": 80,
+      "egg": "egg_epic_01",
+      "foc": 56,
+      "spd": 60
+    },
+    {
+      "hp": 53,
+      "atk": 91,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 95,
+      "spd": 59
+    },
+    {
+      "hp": 21,
+      "atk": 64,
+      "def": 43,
+      "egg": "egg_common_02",
+      "foc": 71,
+      "spd": 46
+    },
+    {
+      "hp": 90,
+      "atk": 24,
+      "def": 53,
+      "egg": "egg_common_01",
+      "foc": 71,
+      "spd": 59
+    },
+    {
+      "hp": 90,
+      "atk": 24,
+      "def": 47,
+      "egg": "egg_common_01",
+      "foc": 70,
+      "spd": 115
+    },
+    {
+      "hp": 90,
+      "atk": 31,
+      "def": 67,
+      "egg": "egg_common_01",
+      "foc": 67,
+      "spd": 56
+    },
+    {
+      "hp": 77,
+      "atk": 63,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 84,
+      "spd": 82
+    },
+    {
+      "hp": 36,
+      "atk": 86,
+      "def": 66,
+      "egg": "egg_epic_01",
+      "foc": 86,
+      "spd": 56
+    },
+    {
+      "hp": 74,
+      "atk": 70,
+      "def": 85,
+      "egg": "egg_common_01",
+      "foc": 78,
+      "spd": 79
+    }
+  ],
+  "raids": [
+    {
+      "slug": "ridge_mist",
+      "threshold": 45
+    },
+    {
+      "slug": "ridge_gale",
+      "threshold": 60
+    },
+    {
+      "slug": "ridge_storm",
+      "threshold": 75
+    }
+  ]
+}

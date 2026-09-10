@@ -1,3 +1,4 @@
+import { cardRaidsEnabled } from "@/lib/raid/cards/server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -46,7 +47,7 @@ export default async function RaidLevelPage({
 
   return (
     <RaidClient
-      view={{ phase: "predeparture", raidType, pets, ticketCount, preselectedPetId, gearItems }}
+      view={{ phase: "predeparture", cardMode: cardRaidsEnabled(), raidType, pets, ticketCount, preselectedPetId, gearItems }}
     />
   );
 }

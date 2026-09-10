@@ -1,0 +1,2064 @@
+{
+  "validPets": 125,
+  "excluded": 3,
+  "seeds": 30,
+  "summary": [
+    {
+      "key": "ridge_mist|none|below|0.4",
+      "n": 960,
+      "winPct": 0,
+      "turns": 16.9,
+      "reasons": {
+        "stats": 82,
+        "hp": 469,
+        "timeout": 409
+      }
+    },
+    {
+      "key": "ridge_mist|none|below|0.6",
+      "n": 960,
+      "winPct": 0,
+      "turns": 16.4,
+      "reasons": {
+        "stats": 206,
+        "hp": 379,
+        "timeout": 375
+      }
+    },
+    {
+      "key": "ridge_mist|none|below|0.8",
+      "n": 960,
+      "winPct": 0,
+      "turns": 15.7,
+      "reasons": {
+        "stats": 366,
+        "hp": 265,
+        "timeout": 329
+      }
+    },
+    {
+      "key": "ridge_mist|none|below|1",
+      "n": 960,
+      "winPct": 0,
+      "turns": 14.3,
+      "reasons": {
+        "stats": 599,
+        "hp": 112,
+        "timeout": 249
+      }
+    },
+    {
+      "key": "ridge_gale|none|below|0.4",
+      "n": 2070,
+      "winPct": 0,
+      "turns": 15.3,
+      "reasons": {
+        "hp": 1779,
+        "stats": 51,
+        "timeout": 240
+      }
+    },
+    {
+      "key": "ridge_gale|none|below|0.6",
+      "n": 2070,
+      "winPct": 0,
+      "turns": 15.5,
+      "reasons": {
+        "hp": 1525,
+        "stats": 193,
+        "timeout": 352
+      }
+    },
+    {
+      "key": "ridge_gale|none|below|0.8",
+      "n": 2070,
+      "winPct": 0,
+      "turns": 15.8,
+      "reasons": {
+        "hp": 1164,
+        "stats": 400,
+        "timeout": 506
+      }
+    },
+    {
+      "key": "ridge_gale|none|below|1",
+      "n": 2070,
+      "winPct": 0,
+      "turns": 15.4,
+      "reasons": {
+        "stats": 800,
+        "hp": 756,
+        "timeout": 514
+      }
+    },
+    {
+      "key": "ridge_storm|none|below|0.4",
+      "n": 3420,
+      "winPct": 0,
+      "turns": 14.7,
+      "reasons": {
+        "hp": 3095,
+        "timeout": 303,
+        "stats": 22
+      }
+    },
+    {
+      "key": "ridge_storm|none|below|0.6",
+      "n": 3420,
+      "winPct": 0,
+      "turns": 15.4,
+      "reasons": {
+        "hp": 2754,
+        "timeout": 521,
+        "stats": 145
+      }
+    },
+    {
+      "key": "ridge_storm|none|below|0.8",
+      "n": 3420,
+      "winPct": 0,
+      "turns": 15.8,
+      "reasons": {
+        "hp": 2338,
+        "timeout": 744,
+        "stats": 338
+      }
+    },
+    {
+      "key": "ridge_storm|none|below|1",
+      "n": 3420,
+      "winPct": 0,
+      "turns": 15.8,
+      "reasons": {
+        "hp": 1972,
+        "timeout": 819,
+        "stats": 629
+      }
+    },
+    {
+      "key": "ridge_mist|q1|below|0.4",
+      "n": 570,
+      "winPct": 0,
+      "turns": 15.7,
+      "reasons": {
+        "stats": 70,
+        "hp": 284,
+        "timeout": 216
+      }
+    },
+    {
+      "key": "ridge_mist|q1|below|0.6",
+      "n": 570,
+      "winPct": 0,
+      "turns": 15.1,
+      "reasons": {
+        "stats": 166,
+        "hp": 218,
+        "timeout": 186
+      }
+    },
+    {
+      "key": "ridge_mist|q1|below|0.8",
+      "n": 570,
+      "winPct": 0,
+      "turns": 14.2,
+      "reasons": {
+        "stats": 281,
+        "hp": 140,
+        "timeout": 149
+      }
+    },
+    {
+      "key": "ridge_mist|q1|below|1",
+      "n": 570,
+      "winPct": 0,
+      "turns": 12.6,
+      "reasons": {
+        "stats": 403,
+        "hp": 73,
+        "timeout": 94
+      }
+    },
+    {
+      "key": "ridge_gale|q1|below|0.4",
+      "n": 1680,
+      "winPct": 0,
+      "turns": 15.6,
+      "reasons": {
+        "hp": 1446,
+        "stats": 28,
+        "timeout": 206
+      }
+    },
+    {
+      "key": "ridge_gale|q1|below|0.6",
+      "n": 1680,
+      "winPct": 0,
+      "turns": 15.9,
+      "reasons": {
+        "hp": 1208,
+        "stats": 149,
+        "timeout": 323
+      }
+    },
+    {
+      "key": "ridge_gale|q1|below|0.8",
+      "n": 1680,
+      "winPct": 0,
+      "turns": 16.1,
+      "reasons": {
+        "hp": 870,
+        "stats": 366,
+        "timeout": 444
+      }
+    },
+    {
+      "key": "ridge_gale|q1|below|1",
+      "n": 1680,
+      "winPct": 0,
+      "turns": 15.4,
+      "reasons": {
+        "stats": 797,
+        "hp": 519,
+        "timeout": 364
+      }
+    },
+    {
+      "key": "ridge_storm|q1|below|0.4",
+      "n": 3120,
+      "winPct": 0,
+      "turns": 14.9,
+      "reasons": {
+        "hp": 2817,
+        "timeout": 287,
+        "stats": 16
+      }
+    },
+    {
+      "key": "ridge_storm|q1|below|0.6",
+      "n": 3120,
+      "winPct": 0,
+      "turns": 15.6,
+      "reasons": {
+        "hp": 2482,
+        "timeout": 541,
+        "stats": 97
+      }
+    },
+    {
+      "key": "ridge_storm|q1|below|0.8",
+      "n": 3120,
+      "winPct": 0,
+      "turns": 16.1,
+      "reasons": {
+        "hp": 2102,
+        "timeout": 748,
+        "stats": 270
+      }
+    },
+    {
+      "key": "ridge_storm|q1|below|1",
+      "n": 3120,
+      "winPct": 0,
+      "turns": 16.1,
+      "reasons": {
+        "hp": 1723,
+        "stats": 635,
+        "timeout": 762
+      }
+    },
+    {
+      "key": "ridge_mist|q3|at+0..5|0.4",
+      "n": 330,
+      "winPct": 1.5,
+      "turns": 15.4,
+      "reasons": {
+        "hp": 112,
+        "learning": 85,
+        "win": 5,
+        "timeout": 128
+      }
+    },
+    {
+      "key": "ridge_mist|q3|at+0..5|0.6",
+      "n": 330,
+      "winPct": 29.4,
+      "turns": 14.5,
+      "reasons": {
+        "win": 97,
+        "learning": 65,
+        "hp": 57,
+        "timeout": 111
+      }
+    },
+    {
+      "key": "ridge_mist|q3|at+0..5|0.8",
+      "n": 330,
+      "winPct": 72.1,
+      "turns": 12.8,
+      "reasons": {
+        "win": 238,
+        "learning": 19,
+        "hp": 9,
+        "timeout": 64
+      }
+    },
+    {
+      "key": "ridge_mist|q3|at+0..5|1",
+      "n": 330,
+      "winPct": 95.2,
+      "turns": 10.5,
+      "reasons": {
+        "win": 314,
+        "timeout": 15,
+        "hp": 1
+      }
+    },
+    {
+      "key": "ridge_gale|q3|below|0.4",
+      "n": 1140,
+      "winPct": 0,
+      "turns": 15.5,
+      "reasons": {
+        "hp": 958,
+        "stats": 82,
+        "timeout": 100
+      }
+    },
+    {
+      "key": "ridge_gale|q3|below|0.6",
+      "n": 1140,
+      "winPct": 0,
+      "turns": 15.5,
+      "reasons": {
+        "hp": 739,
+        "stats": 232,
+        "timeout": 169
+      }
+    },
+    {
+      "key": "ridge_gale|q3|below|0.8",
+      "n": 1140,
+      "winPct": 0,
+      "turns": 15.2,
+      "reasons": {
+        "hp": 439,
+        "stats": 498,
+        "timeout": 203
+      }
+    },
+    {
+      "key": "ridge_gale|q3|below|1",
+      "n": 1140,
+      "winPct": 0,
+      "turns": 13.5,
+      "reasons": {
+        "stats": 823,
+        "hp": 163,
+        "timeout": 154
+      }
+    },
+    {
+      "key": "ridge_storm|q3|below|0.4",
+      "n": 2580,
+      "winPct": 0,
+      "turns": 15.4,
+      "reasons": {
+        "hp": 2311,
+        "timeout": 255,
+        "stats": 14
+      }
+    },
+    {
+      "key": "ridge_storm|q3|below|0.6",
+      "n": 2580,
+      "winPct": 0,
+      "turns": 16.1,
+      "reasons": {
+        "hp": 2011,
+        "timeout": 474,
+        "stats": 95
+      }
+    },
+    {
+      "key": "ridge_storm|q3|below|0.8",
+      "n": 2580,
+      "winPct": 0,
+      "turns": 16.5,
+      "reasons": {
+        "hp": 1671,
+        "timeout": 633,
+        "stats": 276
+      }
+    },
+    {
+      "key": "ridge_storm|q3|below|1",
+      "n": 2580,
+      "winPct": 0,
+      "turns": 16.4,
+      "reasons": {
+        "hp": 1281,
+        "stats": 648,
+        "timeout": 651
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+5..15|0.4",
+      "n": 810,
+      "winPct": 3.5,
+      "turns": 16,
+      "reasons": {
+        "hp": 133,
+        "learning": 408,
+        "win": 28,
+        "timeout": 241
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+5..15|0.6",
+      "n": 810,
+      "winPct": 46.8,
+      "turns": 13.7,
+      "reasons": {
+        "win": 379,
+        "hp": 39,
+        "learning": 291,
+        "timeout": 101
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+5..15|0.8",
+      "n": 810,
+      "winPct": 90.9,
+      "turns": 11.2,
+      "reasons": {
+        "win": 736,
+        "learning": 46,
+        "hp": 2,
+        "timeout": 26
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+5..15|1",
+      "n": 810,
+      "winPct": 99.9,
+      "turns": 8.5,
+      "reasons": {
+        "win": 809,
+        "timeout": 1
+      }
+    },
+    {
+      "key": "ridge_gale|q4|below|0.4",
+      "n": 1020,
+      "winPct": 0,
+      "turns": 15.6,
+      "reasons": {
+        "hp": 773,
+        "stats": 107,
+        "timeout": 140
+      }
+    },
+    {
+      "key": "ridge_gale|q4|below|0.6",
+      "n": 1020,
+      "winPct": 0,
+      "turns": 15.3,
+      "reasons": {
+        "hp": 575,
+        "stats": 295,
+        "timeout": 150
+      }
+    },
+    {
+      "key": "ridge_gale|q4|below|0.8",
+      "n": 1020,
+      "winPct": 0,
+      "turns": 14.6,
+      "reasons": {
+        "hp": 302,
+        "stats": 549,
+        "timeout": 169
+      }
+    },
+    {
+      "key": "ridge_gale|q4|below|1",
+      "n": 1020,
+      "winPct": 0,
+      "turns": 12.7,
+      "reasons": {
+        "stats": 774,
+        "hp": 122,
+        "timeout": 124
+      }
+    },
+    {
+      "key": "ridge_storm|q4|below|0.4",
+      "n": 2280,
+      "winPct": 0,
+      "turns": 15.4,
+      "reasons": {
+        "hp": 2038,
+        "timeout": 225,
+        "stats": 17
+      }
+    },
+    {
+      "key": "ridge_storm|q4|below|0.6",
+      "n": 2280,
+      "winPct": 0,
+      "turns": 16.1,
+      "reasons": {
+        "hp": 1767,
+        "timeout": 391,
+        "stats": 122
+      }
+    },
+    {
+      "key": "ridge_storm|q4|below|0.8",
+      "n": 2280,
+      "winPct": 0,
+      "turns": 16.5,
+      "reasons": {
+        "hp": 1458,
+        "timeout": 504,
+        "stats": 318
+      }
+    },
+    {
+      "key": "ridge_storm|q4|below|1",
+      "n": 2280,
+      "winPct": 0,
+      "turns": 16.2,
+      "reasons": {
+        "hp": 1098,
+        "stats": 616,
+        "timeout": 566
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+5..15|0.4",
+      "n": 720,
+      "winPct": 2.2,
+      "turns": 16.8,
+      "reasons": {
+        "learning": 348,
+        "timeout": 227,
+        "hp": 129,
+        "win": 16
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+5..15|0.6",
+      "n": 720,
+      "winPct": 46.7,
+      "turns": 14.5,
+      "reasons": {
+        "win": 336,
+        "learning": 232,
+        "timeout": 113,
+        "hp": 39
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+5..15|0.8",
+      "n": 720,
+      "winPct": 90.3,
+      "turns": 12,
+      "reasons": {
+        "win": 650,
+        "learning": 38,
+        "timeout": 30,
+        "hp": 2
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+5..15|1",
+      "n": 720,
+      "winPct": 99.9,
+      "turns": 9.1,
+      "reasons": {
+        "win": 719,
+        "timeout": 1
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+15|0.4",
+      "n": 1680,
+      "winPct": 4.9,
+      "turns": 14.6,
+      "reasons": {
+        "learning": 1081,
+        "timeout": 469,
+        "win": 83,
+        "hp": 47
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+15|0.6",
+      "n": 1680,
+      "winPct": 43,
+      "turns": 12.5,
+      "reasons": {
+        "win": 723,
+        "learning": 691,
+        "timeout": 256,
+        "hp": 10
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+15|0.8",
+      "n": 1680,
+      "winPct": 86,
+      "turns": 10.2,
+      "reasons": {
+        "win": 1445,
+        "learning": 160,
+        "timeout": 74,
+        "hp": 1
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+15|1",
+      "n": 1680,
+      "winPct": 100,
+      "turns": 7.7,
+      "reasons": {
+        "win": 1680
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+5..15|0.4",
+      "n": 1110,
+      "winPct": 1.8,
+      "turns": 17.2,
+      "reasons": {
+        "timeout": 363,
+        "learning": 435,
+        "hp": 292,
+        "win": 20
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+5..15|0.6",
+      "n": 1110,
+      "winPct": 37,
+      "turns": 15.4,
+      "reasons": {
+        "learning": 335,
+        "win": 411,
+        "timeout": 273,
+        "hp": 91
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+5..15|0.8",
+      "n": 1110,
+      "winPct": 79.5,
+      "turns": 13.3,
+      "reasons": {
+        "win": 883,
+        "timeout": 155,
+        "learning": 53,
+        "hp": 19
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+5..15|1",
+      "n": 1110,
+      "winPct": 97.5,
+      "turns": 10.6,
+      "reasons": {
+        "win": 1082,
+        "timeout": 28
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+15|0.4",
+      "n": 2070,
+      "winPct": 5.8,
+      "turns": 13.9,
+      "reasons": {
+        "learning": 1445,
+        "timeout": 411,
+        "win": 120,
+        "hp": 94
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+15|0.6",
+      "n": 2070,
+      "winPct": 46.6,
+      "turns": 11.6,
+      "reasons": {
+        "learning": 916,
+        "win": 964,
+        "timeout": 165,
+        "hp": 25
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+15|0.8",
+      "n": 2070,
+      "winPct": 88.6,
+      "turns": 9.2,
+      "reasons": {
+        "win": 1834,
+        "learning": 209,
+        "timeout": 27
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+15|1",
+      "n": 2070,
+      "winPct": 100,
+      "turns": 6.9,
+      "reasons": {
+        "win": 2070
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+5..15|0.4",
+      "n": 1050,
+      "winPct": 1.7,
+      "turns": 17.3,
+      "reasons": {
+        "learning": 377,
+        "timeout": 396,
+        "win": 18,
+        "hp": 259
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+5..15|0.6",
+      "n": 1050,
+      "winPct": 37.7,
+      "turns": 15.5,
+      "reasons": {
+        "learning": 291,
+        "win": 396,
+        "timeout": 295,
+        "hp": 68
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+5..15|0.8",
+      "n": 1050,
+      "winPct": 83.7,
+      "turns": 13.4,
+      "reasons": {
+        "win": 879,
+        "timeout": 116,
+        "learning": 47,
+        "hp": 8
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+5..15|1",
+      "n": 1050,
+      "winPct": 97.5,
+      "turns": 10.7,
+      "reasons": {
+        "win": 1024,
+        "timeout": 26
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+15|0.4",
+      "n": 2610,
+      "winPct": 6,
+      "turns": 13.3,
+      "reasons": {
+        "learning": 1977,
+        "timeout": 420,
+        "win": 157,
+        "hp": 56
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+15|0.6",
+      "n": 2610,
+      "winPct": 47.3,
+      "turns": 11,
+      "reasons": {
+        "win": 1234,
+        "learning": 1229,
+        "timeout": 131,
+        "hp": 16
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+15|0.8",
+      "n": 2610,
+      "winPct": 88.4,
+      "turns": 8.7,
+      "reasons": {
+        "win": 2308,
+        "learning": 271,
+        "timeout": 31
+      }
+    },
+    {
+      "key": "ridge_mist|q3|above+15|1",
+      "n": 2610,
+      "winPct": 100,
+      "turns": 6.5,
+      "reasons": {
+        "win": 2610
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+5..15|0.4",
+      "n": 960,
+      "winPct": 1.5,
+      "turns": 16.7,
+      "reasons": {
+        "learning": 389,
+        "timeout": 304,
+        "hp": 253,
+        "win": 14
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+5..15|0.6",
+      "n": 960,
+      "winPct": 44.2,
+      "turns": 14.6,
+      "reasons": {
+        "learning": 281,
+        "win": 424,
+        "timeout": 180,
+        "hp": 75
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+5..15|0.8",
+      "n": 960,
+      "winPct": 89.6,
+      "turns": 12.4,
+      "reasons": {
+        "win": 860,
+        "learning": 52,
+        "timeout": 48
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+5..15|1",
+      "n": 960,
+      "winPct": 100,
+      "turns": 9.5,
+      "reasons": {
+        "win": 960
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+15|0.4",
+      "n": 2730,
+      "winPct": 6.5,
+      "turns": 12.8,
+      "reasons": {
+        "learning": 2181,
+        "timeout": 314,
+        "win": 177,
+        "hp": 58
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+15|0.6",
+      "n": 2730,
+      "winPct": 47.7,
+      "turns": 10.4,
+      "reasons": {
+        "learning": 1354,
+        "win": 1301,
+        "timeout": 62,
+        "hp": 13
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+15|0.8",
+      "n": 2730,
+      "winPct": 88.8,
+      "turns": 8.1,
+      "reasons": {
+        "win": 2425,
+        "learning": 301,
+        "timeout": 4
+      }
+    },
+    {
+      "key": "ridge_mist|q4|above+15|1",
+      "n": 2730,
+      "winPct": 100,
+      "turns": 6.2,
+      "reasons": {
+        "win": 2730
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+15|0.4",
+      "n": 1470,
+      "winPct": 4.1,
+      "turns": 14.8,
+      "reasons": {
+        "learning": 1071,
+        "timeout": 213,
+        "hp": 126,
+        "win": 60
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+15|0.6",
+      "n": 1470,
+      "winPct": 44.3,
+      "turns": 11.6,
+      "reasons": {
+        "win": 651,
+        "learning": 761,
+        "timeout": 49,
+        "hp": 9
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+15|0.8",
+      "n": 1470,
+      "winPct": 90.8,
+      "turns": 9.2,
+      "reasons": {
+        "win": 1335,
+        "learning": 133,
+        "timeout": 2
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+15|1",
+      "n": 1470,
+      "winPct": 100,
+      "turns": 6.6,
+      "reasons": {
+        "win": 1470
+      }
+    },
+    {
+      "key": "ridge_storm|q4|at+0..5|0.4",
+      "n": 690,
+      "winPct": 0.7,
+      "turns": 18.2,
+      "reasons": {
+        "hp": 405,
+        "timeout": 243,
+        "learning": 37,
+        "win": 5
+      }
+    },
+    {
+      "key": "ridge_storm|q4|at+0..5|0.6",
+      "n": 690,
+      "winPct": 20,
+      "turns": 18,
+      "reasons": {
+        "timeout": 287,
+        "hp": 233,
+        "win": 138,
+        "learning": 32
+      }
+    },
+    {
+      "key": "ridge_storm|q4|at+0..5|0.8",
+      "n": 690,
+      "winPct": 54.2,
+      "turns": 16.9,
+      "reasons": {
+        "timeout": 252,
+        "win": 374,
+        "hp": 62,
+        "learning": 2
+      }
+    },
+    {
+      "key": "ridge_storm|q4|at+0..5|1",
+      "n": 690,
+      "winPct": 83.2,
+      "turns": 14,
+      "reasons": {
+        "win": 574,
+        "timeout": 109,
+        "hp": 7
+      }
+    },
+    {
+      "key": "ridge_gale|none|at+0..5|0.4",
+      "n": 240,
+      "winPct": 0.8,
+      "turns": 17.5,
+      "reasons": {
+        "timeout": 125,
+        "hp": 86,
+        "learning": 27,
+        "win": 2
+      }
+    },
+    {
+      "key": "ridge_gale|none|at+0..5|0.6",
+      "n": 240,
+      "winPct": 19.6,
+      "turns": 16.9,
+      "reasons": {
+        "timeout": 124,
+        "win": 47,
+        "hp": 39,
+        "learning": 30
+      }
+    },
+    {
+      "key": "ridge_gale|none|at+0..5|0.8",
+      "n": 240,
+      "winPct": 56.7,
+      "turns": 15.9,
+      "reasons": {
+        "timeout": 90,
+        "win": 136,
+        "hp": 8,
+        "learning": 6
+      }
+    },
+    {
+      "key": "ridge_gale|none|at+0..5|1",
+      "n": 240,
+      "winPct": 81.3,
+      "turns": 13.9,
+      "reasons": {
+        "win": 195,
+        "timeout": 45
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+15|0.4",
+      "n": 1170,
+      "winPct": 4.2,
+      "turns": 14.7,
+      "reasons": {
+        "learning": 860,
+        "timeout": 163,
+        "hp": 98,
+        "win": 49
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+15|0.6",
+      "n": 1170,
+      "winPct": 44.4,
+      "turns": 11.7,
+      "reasons": {
+        "learning": 603,
+        "win": 520,
+        "timeout": 40,
+        "hp": 7
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+15|0.8",
+      "n": 1170,
+      "winPct": 90.7,
+      "turns": 9.1,
+      "reasons": {
+        "win": 1061,
+        "learning": 108,
+        "timeout": 1
+      }
+    },
+    {
+      "key": "ridge_gale|q3|above+15|1",
+      "n": 1170,
+      "winPct": 100,
+      "turns": 6.6,
+      "reasons": {
+        "win": 1170
+      }
+    },
+    {
+      "key": "ridge_storm|q3|at+0..5|0.4",
+      "n": 570,
+      "winPct": 0.5,
+      "turns": 18.3,
+      "reasons": {
+        "timeout": 182,
+        "hp": 352,
+        "learning": 33,
+        "win": 3
+      }
+    },
+    {
+      "key": "ridge_storm|q3|at+0..5|0.6",
+      "n": 570,
+      "winPct": 20.7,
+      "turns": 18.2,
+      "reasons": {
+        "timeout": 233,
+        "hp": 182,
+        "win": 118,
+        "learning": 37
+      }
+    },
+    {
+      "key": "ridge_storm|q3|at+0..5|0.8",
+      "n": 570,
+      "winPct": 59.3,
+      "turns": 16.8,
+      "reasons": {
+        "win": 338,
+        "timeout": 195,
+        "hp": 33,
+        "learning": 4
+      }
+    },
+    {
+      "key": "ridge_storm|q3|at+0..5|1",
+      "n": 570,
+      "winPct": 90.4,
+      "turns": 13.5,
+      "reasons": {
+        "win": 515,
+        "timeout": 53,
+        "hp": 2
+      }
+    },
+    {
+      "key": "ridge_mist|q1|at+0..5|0.4",
+      "n": 390,
+      "winPct": 1,
+      "turns": 18.1,
+      "reasons": {
+        "learning": 77,
+        "hp": 119,
+        "timeout": 190,
+        "win": 4
+      }
+    },
+    {
+      "key": "ridge_mist|q1|at+0..5|0.6",
+      "n": 390,
+      "winPct": 33.8,
+      "turns": 17,
+      "reasons": {
+        "learning": 55,
+        "hp": 55,
+        "win": 132,
+        "timeout": 148
+      }
+    },
+    {
+      "key": "ridge_mist|q1|at+0..5|0.8",
+      "n": 390,
+      "winPct": 75.4,
+      "turns": 15.3,
+      "reasons": {
+        "win": 294,
+        "hp": 15,
+        "learning": 5,
+        "timeout": 76
+      }
+    },
+    {
+      "key": "ridge_mist|q1|at+0..5|1",
+      "n": 390,
+      "winPct": 93.3,
+      "turns": 12.5,
+      "reasons": {
+        "win": 364,
+        "timeout": 24,
+        "hp": 2
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+5..15|0.4",
+      "n": 750,
+      "winPct": 0.5,
+      "turns": 17.7,
+      "reasons": {
+        "hp": 394,
+        "timeout": 210,
+        "learning": 142,
+        "win": 4
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+5..15|0.6",
+      "n": 750,
+      "winPct": 37.7,
+      "turns": 16.2,
+      "reasons": {
+        "hp": 118,
+        "win": 283,
+        "timeout": 179,
+        "learning": 170
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+5..15|0.8",
+      "n": 750,
+      "winPct": 84.1,
+      "turns": 13.6,
+      "reasons": {
+        "win": 631,
+        "timeout": 92,
+        "learning": 21,
+        "hp": 6
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+5..15|1",
+      "n": 750,
+      "winPct": 99.2,
+      "turns": 10,
+      "reasons": {
+        "win": 744,
+        "timeout": 6
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+5..15|0.4",
+      "n": 840,
+      "winPct": 1.5,
+      "turns": 17.6,
+      "reasons": {
+        "timeout": 474,
+        "hp": 131,
+        "learning": 222,
+        "win": 13
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+5..15|0.6",
+      "n": 840,
+      "winPct": 27,
+      "turns": 16.4,
+      "reasons": {
+        "timeout": 408,
+        "win": 227,
+        "learning": 165,
+        "hp": 40
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+5..15|0.8",
+      "n": 840,
+      "winPct": 60,
+      "turns": 14.8,
+      "reasons": {
+        "timeout": 289,
+        "win": 504,
+        "hp": 6,
+        "learning": 41
+      }
+    },
+    {
+      "key": "ridge_mist|none|above+5..15|1",
+      "n": 840,
+      "winPct": 85.6,
+      "turns": 12.8,
+      "reasons": {
+        "win": 719,
+        "timeout": 121
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+5..15|0.4",
+      "n": 720,
+      "winPct": 1.3,
+      "turns": 17.6,
+      "reasons": {
+        "timeout": 419,
+        "hp": 139,
+        "learning": 153,
+        "win": 9
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+5..15|0.6",
+      "n": 720,
+      "winPct": 24.7,
+      "turns": 16.5,
+      "reasons": {
+        "timeout": 348,
+        "win": 178,
+        "learning": 127,
+        "hp": 67
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+5..15|0.8",
+      "n": 720,
+      "winPct": 74.2,
+      "turns": 14.8,
+      "reasons": {
+        "timeout": 160,
+        "win": 534,
+        "hp": 4,
+        "learning": 22
+      }
+    },
+    {
+      "key": "ridge_mist|q1|above+5..15|1",
+      "n": 720,
+      "winPct": 98.2,
+      "turns": 12.2,
+      "reasons": {
+        "win": 707,
+        "timeout": 12,
+        "hp": 1
+      }
+    },
+    {
+      "key": "ridge_gale|q3|at+0..5|0.4",
+      "n": 480,
+      "winPct": 0.8,
+      "turns": 18.1,
+      "reasons": {
+        "timeout": 184,
+        "hp": 237,
+        "learning": 55,
+        "win": 4
+      }
+    },
+    {
+      "key": "ridge_gale|q3|at+0..5|0.6",
+      "n": 480,
+      "winPct": 23.1,
+      "turns": 17.6,
+      "reasons": {
+        "timeout": 204,
+        "learning": 47,
+        "win": 111,
+        "hp": 118
+      }
+    },
+    {
+      "key": "ridge_gale|q3|at+0..5|0.8",
+      "n": 480,
+      "winPct": 67.1,
+      "turns": 16.2,
+      "reasons": {
+        "win": 322,
+        "timeout": 128,
+        "hp": 25,
+        "learning": 5
+      }
+    },
+    {
+      "key": "ridge_gale|q3|at+0..5|1",
+      "n": 480,
+      "winPct": 95.2,
+      "turns": 13.6,
+      "reasons": {
+        "win": 457,
+        "timeout": 23
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+5..15|0.4",
+      "n": 960,
+      "winPct": 1.7,
+      "turns": 16.7,
+      "reasons": {
+        "timeout": 302,
+        "learning": 393,
+        "hp": 249,
+        "win": 16
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+5..15|0.6",
+      "n": 960,
+      "winPct": 42.1,
+      "turns": 14.8,
+      "reasons": {
+        "timeout": 207,
+        "learning": 282,
+        "win": 404,
+        "hp": 67
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+5..15|0.8",
+      "n": 960,
+      "winPct": 86.9,
+      "turns": 12.6,
+      "reasons": {
+        "win": 834,
+        "timeout": 70,
+        "learning": 53,
+        "hp": 3
+      }
+    },
+    {
+      "key": "ridge_gale|q4|above+5..15|1",
+      "n": 960,
+      "winPct": 99.5,
+      "turns": 9.7,
+      "reasons": {
+        "win": 955,
+        "timeout": 5
+      }
+    },
+    {
+      "key": "ridge_mist|none|at+0..5|0.4",
+      "n": 270,
+      "winPct": 1.5,
+      "turns": 16,
+      "reasons": {
+        "timeout": 99,
+        "hp": 117,
+        "learning": 50,
+        "win": 4
+      }
+    },
+    {
+      "key": "ridge_mist|none|at+0..5|0.6",
+      "n": 270,
+      "winPct": 25.2,
+      "turns": 15,
+      "reasons": {
+        "timeout": 95,
+        "win": 68,
+        "hp": 61,
+        "learning": 46
+      }
+    },
+    {
+      "key": "ridge_mist|none|at+0..5|0.8",
+      "n": 270,
+      "winPct": 61.9,
+      "turns": 13.8,
+      "reasons": {
+        "timeout": 75,
+        "win": 167,
+        "hp": 16,
+        "learning": 12
+      }
+    },
+    {
+      "key": "ridge_mist|none|at+0..5|1",
+      "n": 270,
+      "winPct": 87,
+      "turns": 11.9,
+      "reasons": {
+        "win": 235,
+        "timeout": 32,
+        "hp": 3
+      }
+    },
+    {
+      "key": "ridge_gale|q4|at+0..5|0.4",
+      "n": 300,
+      "winPct": 1,
+      "turns": 17.7,
+      "reasons": {
+        "timeout": 82,
+        "learning": 54,
+        "hp": 161,
+        "win": 3
+      }
+    },
+    {
+      "key": "ridge_gale|q4|at+0..5|0.6",
+      "n": 300,
+      "winPct": 35.7,
+      "turns": 16.9,
+      "reasons": {
+        "win": 107,
+        "timeout": 76,
+        "hp": 71,
+        "learning": 46
+      }
+    },
+    {
+      "key": "ridge_gale|q4|at+0..5|0.8",
+      "n": 300,
+      "winPct": 83.3,
+      "turns": 15.1,
+      "reasons": {
+        "win": 250,
+        "timeout": 36,
+        "hp": 9,
+        "learning": 5
+      }
+    },
+    {
+      "key": "ridge_gale|q4|at+0..5|1",
+      "n": 300,
+      "winPct": 99.3,
+      "turns": 12.1,
+      "reasons": {
+        "win": 298,
+        "timeout": 2
+      }
+    },
+    {
+      "key": "ridge_gale|q1|at+0..5|0.4",
+      "n": 390,
+      "winPct": 2.1,
+      "turns": 15.9,
+      "reasons": {
+        "hp": 220,
+        "timeout": 97,
+        "learning": 65,
+        "win": 8
+      }
+    },
+    {
+      "key": "ridge_gale|q1|at+0..5|0.6",
+      "n": 390,
+      "winPct": 29.2,
+      "turns": 15.2,
+      "reasons": {
+        "win": 114,
+        "timeout": 111,
+        "hp": 96,
+        "learning": 69
+      }
+    },
+    {
+      "key": "ridge_gale|q1|at+0..5|0.8",
+      "n": 390,
+      "winPct": 75.6,
+      "turns": 13.7,
+      "reasons": {
+        "win": 295,
+        "timeout": 55,
+        "hp": 24,
+        "learning": 16
+      }
+    },
+    {
+      "key": "ridge_gale|q1|at+0..5|1",
+      "n": 390,
+      "winPct": 96.9,
+      "turns": 10.9,
+      "reasons": {
+        "win": 378,
+        "timeout": 12
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+15|0.4",
+      "n": 330,
+      "winPct": 3.9,
+      "turns": 14,
+      "reasons": {
+        "timeout": 17,
+        "learning": 244,
+        "win": 13,
+        "hp": 56
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+15|0.6",
+      "n": 330,
+      "winPct": 43.6,
+      "turns": 11,
+      "reasons": {
+        "learning": 173,
+        "win": 144,
+        "hp": 10,
+        "timeout": 3
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+15|0.8",
+      "n": 330,
+      "winPct": 89.1,
+      "turns": 8.4,
+      "reasons": {
+        "win": 294,
+        "learning": 36
+      }
+    },
+    {
+      "key": "ridge_gale|none|above+15|1",
+      "n": 330,
+      "winPct": 100,
+      "turns": 6,
+      "reasons": {
+        "win": 330
+      }
+    },
+    {
+      "key": "ridge_storm|none|above+5..15|0.4",
+      "n": 60,
+      "winPct": 0,
+      "turns": 18.4,
+      "reasons": {
+        "learning": 17,
+        "timeout": 27,
+        "hp": 16
+      }
+    },
+    {
+      "key": "ridge_storm|none|above+5..15|0.6",
+      "n": 60,
+      "winPct": 45,
+      "turns": 15.9,
+      "reasons": {
+        "learning": 19,
+        "win": 27,
+        "timeout": 11,
+        "hp": 3
+      }
+    },
+    {
+      "key": "ridge_storm|none|above+5..15|0.8",
+      "n": 60,
+      "winPct": 93.3,
+      "turns": 12.8,
+      "reasons": {
+        "win": 56,
+        "learning": 2,
+        "timeout": 2
+      }
+    },
+    {
+      "key": "ridge_storm|none|above+5..15|1",
+      "n": 60,
+      "winPct": 100,
+      "turns": 9.2,
+      "reasons": {
+        "win": 60
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+15|0.4",
+      "n": 630,
+      "winPct": 4.4,
+      "turns": 14.4,
+      "reasons": {
+        "timeout": 52,
+        "learning": 472,
+        "win": 28,
+        "hp": 78
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+15|0.6",
+      "n": 630,
+      "winPct": 43.7,
+      "turns": 11.3,
+      "reasons": {
+        "learning": 333,
+        "win": 275,
+        "timeout": 17,
+        "hp": 5
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+15|0.8",
+      "n": 630,
+      "winPct": 89.5,
+      "turns": 8.7,
+      "reasons": {
+        "win": 564,
+        "learning": 65,
+        "timeout": 1
+      }
+    },
+    {
+      "key": "ridge_gale|q1|above+15|1",
+      "n": 630,
+      "winPct": 100,
+      "turns": 6.3,
+      "reasons": {
+        "win": 630
+      }
+    },
+    {
+      "key": "ridge_storm|q1|above+5..15|0.4",
+      "n": 300,
+      "winPct": 0.3,
+      "turns": 17,
+      "reasons": {
+        "learning": 43,
+        "timeout": 75,
+        "hp": 181,
+        "win": 1
+      }
+    },
+    {
+      "key": "ridge_storm|q1|above+5..15|0.6",
+      "n": 300,
+      "winPct": 40,
+      "turns": 15.6,
+      "reasons": {
+        "learning": 53,
+        "win": 120,
+        "timeout": 48,
+        "hp": 79
+      }
+    },
+    {
+      "key": "ridge_storm|q1|above+5..15|0.8",
+      "n": 300,
+      "winPct": 89,
+      "turns": 13.2,
+      "reasons": {
+        "win": 267,
+        "learning": 9,
+        "hp": 16,
+        "timeout": 8
+      }
+    },
+    {
+      "key": "ridge_storm|q1|above+5..15|1",
+      "n": 300,
+      "winPct": 100,
+      "turns": 9.3,
+      "reasons": {
+        "win": 300
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+5..15|0.4",
+      "n": 570,
+      "winPct": 0.2,
+      "turns": 17.4,
+      "reasons": {
+        "learning": 112,
+        "timeout": 145,
+        "hp": 312,
+        "win": 1
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+5..15|0.6",
+      "n": 570,
+      "winPct": 42.6,
+      "turns": 15.7,
+      "reasons": {
+        "learning": 124,
+        "win": 243,
+        "timeout": 102,
+        "hp": 101
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+5..15|0.8",
+      "n": 570,
+      "winPct": 89.3,
+      "turns": 13,
+      "reasons": {
+        "win": 509,
+        "learning": 13,
+        "timeout": 39,
+        "hp": 9
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+5..15|1",
+      "n": 570,
+      "winPct": 98.8,
+      "turns": 9.4,
+      "reasons": {
+        "win": 563,
+        "timeout": 7
+      }
+    },
+    {
+      "key": "ridge_mist|q4|at+0..5|0.4",
+      "n": 120,
+      "winPct": 3.3,
+      "turns": 14.5,
+      "reasons": {
+        "hp": 47,
+        "learning": 30,
+        "win": 4,
+        "timeout": 39
+      }
+    },
+    {
+      "key": "ridge_mist|q4|at+0..5|0.6",
+      "n": 120,
+      "winPct": 36.7,
+      "turns": 14,
+      "reasons": {
+        "win": 44,
+        "learning": 23,
+        "hp": 27,
+        "timeout": 26
+      }
+    },
+    {
+      "key": "ridge_mist|q4|at+0..5|0.8",
+      "n": 120,
+      "winPct": 85.8,
+      "turns": 11.9,
+      "reasons": {
+        "win": 103,
+        "learning": 9,
+        "hp": 2,
+        "timeout": 6
+      }
+    },
+    {
+      "key": "ridge_mist|q4|at+0..5|1",
+      "n": 120,
+      "winPct": 100,
+      "turns": 9,
+      "reasons": {
+        "win": 120
+      }
+    },
+    {
+      "key": "ridge_storm|q1|at+0..5|0.4",
+      "n": 330,
+      "winPct": 0,
+      "turns": 17.5,
+      "reasons": {
+        "hp": 242,
+        "timeout": 60,
+        "learning": 28
+      }
+    },
+    {
+      "key": "ridge_storm|q1|at+0..5|0.6",
+      "n": 330,
+      "winPct": 30.3,
+      "turns": 17.2,
+      "reasons": {
+        "timeout": 88,
+        "hp": 105,
+        "win": 100,
+        "learning": 37
+      }
+    },
+    {
+      "key": "ridge_storm|q1|at+0..5|0.8",
+      "n": 330,
+      "winPct": 76.7,
+      "turns": 14.9,
+      "reasons": {
+        "timeout": 65,
+        "win": 253,
+        "hp": 6,
+        "learning": 6
+      }
+    },
+    {
+      "key": "ridge_storm|q1|at+0..5|1",
+      "n": 330,
+      "winPct": 90.3,
+      "turns": 11.4,
+      "reasons": {
+        "win": 298,
+        "timeout": 32
+      }
+    },
+    {
+      "key": "ridge_storm|none|at+0..5|0.4",
+      "n": 270,
+      "winPct": 0.4,
+      "turns": 16,
+      "reasons": {
+        "hp": 208,
+        "learning": 23,
+        "timeout": 38,
+        "win": 1
+      }
+    },
+    {
+      "key": "ridge_storm|none|at+0..5|0.6",
+      "n": 270,
+      "winPct": 30,
+      "turns": 15.9,
+      "reasons": {
+        "hp": 125,
+        "win": 81,
+        "learning": 18,
+        "timeout": 46
+      }
+    },
+    {
+      "key": "ridge_storm|none|at+0..5|0.8",
+      "n": 270,
+      "winPct": 80.4,
+      "turns": 14.1,
+      "reasons": {
+        "win": 217,
+        "hp": 31,
+        "timeout": 19,
+        "learning": 3
+      }
+    },
+    {
+      "key": "ridge_storm|none|at+0..5|1",
+      "n": 270,
+      "winPct": 98.9,
+      "turns": 10.5,
+      "reasons": {
+        "win": 267,
+        "timeout": 3
+      }
+    },
+    {
+      "key": "ridge_mist|q3|below|0.4",
+      "n": 90,
+      "winPct": 0,
+      "turns": 12.9,
+      "reasons": {
+        "hp": 83,
+        "stats": 7
+      }
+    },
+    {
+      "key": "ridge_mist|q3|below|0.6",
+      "n": 90,
+      "winPct": 0,
+      "turns": 12.2,
+      "reasons": {
+        "hp": 74,
+        "stats": 16
+      }
+    },
+    {
+      "key": "ridge_mist|q3|below|0.8",
+      "n": 90,
+      "winPct": 0,
+      "turns": 11.5,
+      "reasons": {
+        "hp": 57,
+        "stats": 33
+      }
+    },
+    {
+      "key": "ridge_mist|q3|below|1",
+      "n": 90,
+      "winPct": 0,
+      "turns": 10.3,
+      "reasons": {
+        "hp": 18,
+        "stats": 72
+      }
+    },
+    {
+      "key": "ridge_mist|q4|below|0.4",
+      "n": 90,
+      "winPct": 0,
+      "turns": 13.3,
+      "reasons": {
+        "hp": 81,
+        "stats": 9
+      }
+    },
+    {
+      "key": "ridge_mist|q4|below|0.6",
+      "n": 90,
+      "winPct": 0,
+      "turns": 12.8,
+      "reasons": {
+        "hp": 68,
+        "stats": 22
+      }
+    },
+    {
+      "key": "ridge_mist|q4|below|0.8",
+      "n": 90,
+      "winPct": 0,
+      "turns": 11.6,
+      "reasons": {
+        "hp": 44,
+        "stats": 46
+      }
+    },
+    {
+      "key": "ridge_mist|q4|below|1",
+      "n": 90,
+      "winPct": 0,
+      "turns": 9.9,
+      "reasons": {
+        "stats": 83,
+        "hp": 7
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+15|0.4",
+      "n": 30,
+      "winPct": 0,
+      "turns": 18.3,
+      "reasons": {
+        "learning": 11,
+        "timeout": 6,
+        "hp": 13
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+15|0.6",
+      "n": 30,
+      "winPct": 36.7,
+      "turns": 15.1,
+      "reasons": {
+        "win": 11,
+        "learning": 13,
+        "hp": 1,
+        "timeout": 5
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+15|0.8",
+      "n": 30,
+      "winPct": 93.3,
+      "turns": 11.9,
+      "reasons": {
+        "win": 28,
+        "learning": 2
+      }
+    },
+    {
+      "key": "ridge_storm|q3|above+15|1",
+      "n": 30,
+      "winPct": 100,
+      "turns": 8.3,
+      "reasons": {
+        "win": 30
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+15|0.4",
+      "n": 30,
+      "winPct": 0,
+      "turns": 17.7,
+      "reasons": {
+        "learning": 14,
+        "timeout": 4,
+        "hp": 12
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+15|0.6",
+      "n": 30,
+      "winPct": 46.7,
+      "turns": 14.4,
+      "reasons": {
+        "win": 14,
+        "learning": 12,
+        "timeout": 4
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+15|0.8",
+      "n": 30,
+      "winPct": 93.3,
+      "turns": 11.4,
+      "reasons": {
+        "win": 28,
+        "learning": 2
+      }
+    },
+    {
+      "key": "ridge_storm|q4|above+15|1",
+      "n": 30,
+      "winPct": 100,
+      "turns": 8.1,
+      "reasons": {
+        "win": 30
+      }
+    }
+  ]
+}

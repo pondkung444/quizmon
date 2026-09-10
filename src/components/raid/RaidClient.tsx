@@ -1,4 +1,5 @@
 "use client";
+import RaidCardBattle from "@/components/raid/RaidCardBattle";
 
 import type { RaidView } from "@/lib/raid";
 import RaidPreDeparture from "@/components/raid/RaidPreDeparture";
@@ -12,6 +13,7 @@ import BgmMuteButton from "@/components/audio/BgmMuteButton";
 // ผจญภัย ทุกจอเรียก server action แล้ว router.refresh() เพื่อให้ server คำนวณ phase ถัดไปให้เสมอ
 // (ไม่เก็บ state ข้าม step ไว้ฝั่ง client) เพื่อให้ resume หลังปิดแอปกลางรอบตรงกับตอนเล่นสดเป๊ะ
 function RaidPhaseScreen({ view }: { view: RaidView }) {
+  if (view.phase === "card_battle") return <RaidCardBattle key={view.runId} view={view} />;
   if (view.phase === "predeparture") return <RaidPreDeparture {...view} />;
   // key ด้วย runId+stepIndex+phase — router.refresh() เปลี่ยนแค่ props ไม่ remount component เดิม
   // ถ้าไม่ key ตรงนี้ local state ของสเต็ปก่อนหน้า (เช่น reveal ใน RaidPathScreen) จะค้างข้ามสเต็ป
@@ -33,7 +35,7 @@ export default function RaidClient({ view }: { view: RaidView }) {
       <RaidPhaseScreen view={view} />
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — mount จุดเดียวครอบทุก phase ของ raid
           มุมล่างขวา เหนือแถบเมนูล่าง (จอบอสเป็น fixed inset-0 z-50 -> z-[70] อยู่บนสุดได้) */}
-      <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
+      <BgmMuteButton className={view.phase === "card_battle" ? "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-[70]" : "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]"} />
     </>
   );
 }

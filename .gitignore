@@ -55,3 +55,8 @@ keystore.properties
 
 # Boss Raid mockup reference files (large base64-embedded HTML, kept locally only)
 docs/boss-raid-mockups/
+
+# Local Raid verification outputs
+/.cache/
+/test-results/
+/playwright-report/

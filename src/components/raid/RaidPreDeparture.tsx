@@ -9,6 +9,7 @@ import { startRaidRun } from "@/app/raid/actions";
 import AdventureHeader from "@/components/dungeon/AdventureHeader";
 import RaidScene from "@/components/raid/RaidScene";
 import RaidGearLoadout from "@/components/raid/RaidGearLoadout";
+import RaidCardReadiness from "@/components/raid/RaidCardReadiness";
 import { RAID_MOUNTAIN_NAME_TH, RAID_GEAR_SLOT_ANATOMY_TH } from "@/lib/raid/labels";
 
 const SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
@@ -22,12 +23,14 @@ function rawStatSum(pet: EligibleRaidPet): number {
 // สภาพ "แพ้เพราะเงื่อนไขที่ไม่รู้มาก่อน" แต่ยุบเป็น expand แทนบล็อกเปิดค้าง (§2.8 ในดอคใหม่)
 export default function RaidPreDeparture({
   raidType,
+  cardMode = false,
   pets,
   ticketCount,
   preselectedPetId,
   gearItems,
 }: {
   raidType: RaidTypeInfo;
+  cardMode?: boolean;
   pets: EligibleRaidPet[];
   ticketCount: number;
   preselectedPetId?: string | null;
@@ -172,11 +175,13 @@ export default function RaidPreDeparture({
             rawStats={selectedPet.rawStats}
             caps={selectedPet.caps}
             thresholdPct={raidType.bossThresholdPct}
+            showReadiness={!cardMode}
             items={items}
             setItems={setItems}
           />
         )}
 
+        {cardMode && selectedPet && <RaidCardReadiness slug={raidType.slug} pet={selectedPet} items={items} />}
         <section className="w-full max-w-xs rounded-xl border border-border bg-card p-3 text-center">
           <p className="text-sm font-bold text-text">ผ่านหรือไม่ผ่าน ก็ได้อุปกรณ์ติดมือกลับมาเสมอ</p>
         </section>
@@ -189,14 +194,13 @@ export default function RaidPreDeparture({
           onClick={handleDepartClick}
           className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
         >
-          {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีกุญแจท้าทาย" : "ใช้กุญแจเริ่มท้าทาย"}
+          {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีกุญแจท้าทาย" : cardMode ? "ใช้กุญแจเข้าสู้บอส" : "ใช้กุญแจเริ่มท้าทาย"}
         </button>
 
         <details className="w-full max-w-xs text-center">
           <summary className="cursor-pointer text-xs text-text3 underline">ดูกติกาบอส</summary>
           <p className="mt-2 text-sm text-text">
-            ต้องตอบคำถามให้ถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ
-            และสถิติรวมของ Qmon ต้องถึงเกณฑ์ด่านนี้ — พลาดข้อไหนก็ไปต่อได้เสมอ ไม่มีทางตัน
+            {cardMode ? "เข้าบอสทันที • อ่านท่าบอส เลือกการ์ด แล้วตอบคำถามเพื่อออกท่า ต้องลดเลือดบอสให้หมดใน 20 เทิร์น stat รวมถึงเกณฑ์ด่าน และตอบถูกอย่างน้อย 60% กลับบ้านแล้วเล่นต่อได้ จบรอบมีอุปกรณ์เสมอ" : <>ต้องตอบถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ และสถิติรวมต้องถึงเกณฑ์ด่านนี้</>}
           </p>
         </details>
       </div>
