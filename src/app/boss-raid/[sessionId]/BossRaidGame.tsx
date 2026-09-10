@@ -36,6 +36,9 @@ type AnswerResult = {
   result?: "win" | "lose" | null;
   frozen?: boolean;
   combo_burst?: boolean;
+  // Item 4a — ตอบผิดติดกัน 3 -> พักคูลดาวน์ 30 วิ (ค่าติดมากับผลข้อที่ 3, และมากับ submit ที่ถูกบล็อก)
+  cooldown?: boolean;
+  cooldown_until?: string | null;
 };
 
 type ChosenResult = {
@@ -63,7 +66,7 @@ type MeteorResult = {
   result?: "win" | "lose" | null;
 };
 
-type Phase = "loading" | "answering" | "submitting" | "result" | "error" | "ended";
+type Phase = "loading" | "answering" | "submitting" | "result" | "error" | "ended" | "cooldown";
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
 const STAT_TH: Record<string, string> = {
@@ -101,6 +104,8 @@ export default function BossRaidGame({
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nowTs, setNowTs] = useState(() => Date.now());
+  // Item 4a — คูลดาวน์รายคน (ตอบผิดติดกัน 3 -> พัก 30 วิ)
+  const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
 
   const cw = activeEvent?.type === "chosen_warrior" ? activeEvent : null;
   const amChosen = cw?.chosen_participant_id === participantId;
@@ -165,9 +170,18 @@ export default function BossRaidGame({
         p_participant_id: participantId,
       });
       if (err) throw new Error(err.message);
-      const d = data as (QState & { frozen?: boolean; chosen_warrior?: boolean }) | null;
+      const d = data as
+        | (QState & { frozen?: boolean; chosen_warrior?: boolean; cooldown?: boolean; cooldown_until?: string })
+        | null;
       // event "นักรบถูกเลือก" กำลังทำงาน — จอถูกคุมด้วย activeEvent prop แทน ไม่ต้อง setQ
       if (d?.frozen || d?.chosen_warrior) {
+        loadingRef.current = false;
+        return;
+      }
+      // Item 4a — กำลังพักคูลดาวน์: โชว์จอ "พักหายใจ" จนหมดเวลา
+      if (d?.cooldown) {
+        setCooldownUntil(d.cooldown_until ?? null);
+        setPhase("cooldown");
         loadingRef.current = false;
         return;
       }
@@ -210,10 +224,23 @@ export default function BossRaidGame({
           setPhase("answering");
           return;
         }
+        // Item 4a — ส่งระหว่างพักคูลดาวน์ (auto-submit ค้าง) — ยังไม่บันทึก โชว์จอพัก
+        if (res.cooldown) {
+          submittedRef.current = false;
+          setCooldownUntil(res.cooldown_until ?? null);
+          setPhase("cooldown");
+          return;
+        }
         setResult(res);
         setPhase("result");
         if (res.status === "ended") {
           window.setTimeout(() => setPhase("ended"), 1800);
+        } else if (res.cooldown_until) {
+          // ตอบผิดข้อที่ 3 — โชว์ผลแป๊บนึงแล้วเข้าจอพัก
+          window.setTimeout(() => {
+            setCooldownUntil(res.cooldown_until ?? null);
+            setPhase("cooldown");
+          }, 1800);
         } else {
           window.setTimeout(() => void loadQuestion(), 1800);
         }
@@ -316,7 +343,8 @@ export default function BossRaidGame({
     if (
       phaseRef.current === "result" ||
       phaseRef.current === "submitting" ||
-      phaseRef.current === "ended"
+      phaseRef.current === "ended" ||
+      phaseRef.current === "cooldown"
     )
       return;
     const sameQ = (currentQuestionId ?? null) === (qRef.current?.question_id ?? null);
@@ -349,6 +377,26 @@ export default function BossRaidGame({
     const t = window.setInterval(() => setNowTs(Date.now()), 200);
     return () => window.clearInterval(t);
   }, [phase, frozen]);
+
+  // Item 4a — นับถอยหลังคูลดาวน์ แล้วขอข้อใหม่เมื่อครบ
+  const cooldownRemain =
+    phase === "cooldown" && cooldownUntil
+      ? Math.max(0, Math.ceil((new Date(cooldownUntil).getTime() - nowTs) / 1000))
+      : 0;
+  useEffect(() => {
+    if (phase !== "cooldown") return;
+    const tick = window.setInterval(() => setNowTs(Date.now()), 500);
+    return () => window.clearInterval(tick);
+  }, [phase]);
+  useEffect(() => {
+    if (phase !== "cooldown") return;
+    if (cooldownUntil && new Date(cooldownUntil).getTime() - nowTs > 0) return;
+    const t = window.setTimeout(() => {
+      setCooldownUntil(null);
+      void loadQuestion();
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [phase, cooldownUntil, nowTs, loadQuestion]);
 
   const deadlineMs = q ? new Date(q.deadline).getTime() : 0;
   const remainMs = Math.max(0, deadlineMs - nowTs);
@@ -556,6 +604,16 @@ export default function BossRaidGame({
 
           {phase === "ended" && (
             <p className="py-8 text-center text-lg font-bold text-text2">เกมจบแล้ว</p>
+          )}
+
+          {phase === "cooldown" && (
+            <div className="rounded-xl border border-gold-dim bg-track p-6 text-center">
+              <p className="text-lg font-bold text-gold-hi">🌿 พักหายใจสักครู่</p>
+              <p className="mt-2 text-sm text-text2">
+                ค่อย ๆ อ่านโจทย์รอบหน้านะ — เดี๋ยวได้ไปต่อใน{" "}
+                <span className="font-bold text-text">{cooldownRemain}</span> วิ
+              </p>
+            </div>
           )}
 
           {phase === "error" && (
