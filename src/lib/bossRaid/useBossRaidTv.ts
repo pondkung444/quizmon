@@ -125,9 +125,9 @@ type State = {
 };
 
 const TICKER_MAX = 6;
-// bonus_damage ของฝนดาวตกเป็นค่าคงที่ (c_bonus_damage ใน submit_boss_raid_event_answer) — ไม่ broadcast
-// ผ่าน realtime (อยู่ใน return value ของ RPC ที่เห็นแค่คนตอบเอง) TV เดาจากค่าคงที่นี้ตรงๆ
-// ถ้าค่าคงที่ฝั่ง DB เปลี่ยนในอนาคต ต้องแก้ตรงนี้คู่กัน
+// bonus_damage ของฝนดาวตก = 3.5% ของ boss_hp_max (ขั้นต่ำ 15) คำนวณใน submit_boss_raid_event_answer
+// และเขียนลง active_event.bonus_damage พร้อม winner_participant_id -> TV อ่านค่าจริงจากตรงนั้น
+// ค่านี้เป็น fallback เผื่อ event เก่า (ก่อน migration 20260910180000) ที่ยังไม่มี field
 const METEOR_BONUS_DAMAGE = 15;
 
 export function useBossRaidTv(
@@ -300,10 +300,11 @@ export function useBossRaidTv(
             !(prevEvent?.type === "meteor" && prevEvent.winner_participant_id)
           ) {
             const winnerId = nextEvent.winner_participant_id;
-            setSpotlight({ participantId: winnerId, bonusDamage: METEOR_BONUS_DAMAGE });
+            const bonus = nextEvent.bonus_damage ?? METEOR_BONUS_DAMAGE;
+            setSpotlight({ participantId: winnerId, bonusDamage: bonus });
             later(() => setSpotlight(null), 2600);
             const name = rosterRef.current.get(winnerId)?.name ?? "ผู้เล่น";
-            pushTicker(`⭐ ${name} คว้าโบนัสฝนดาวตกไปก่อน! +${METEOR_BONUS_DAMAGE}`, true);
+            pushTicker(`⭐ ${name} คว้าโบนัสฝนดาวตกไปก่อน! −${bonus} HP บอส`, true);
           }
 
           // เสียงเปลี่ยนระดับบอส (tier) — เฉพาะตอนค่าเปลี่ยนจริงจาก UPDATE สด

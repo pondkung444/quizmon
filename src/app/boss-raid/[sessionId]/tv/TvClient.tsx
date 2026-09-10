@@ -417,7 +417,7 @@ export default function TvClient({
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-[rgba(10,8,26,.55)]">
             <div className="text-[clamp(16px,2.6vw,32px)] font-extrabold text-gold-hi drop-shadow-lg">☄️ ฝนดาวตก!</div>
             <div className="mt-[.6vw] text-[clamp(11px,1.2vw,15px)] text-white">
-              รีบตอบที่มือถือ — คนแรกที่ตอบถูกได้โบนัส +15
+              รีบตอบที่มือถือ — คนแรกที่ตอบถูกได้โบนัสก้อนใหญ่ใส่บอส
             </div>
             <div className="mt-[.8vw] text-[clamp(24px,4vw,48px)] font-extrabold text-white">{meteorRemain}</div>
           </div>
@@ -469,7 +469,7 @@ export default function TvClient({
               {roster.get(spotlight.participantId)?.name ?? "ผู้เล่น"}
             </div>
             <div className="mt-[.4vw] text-[clamp(10px,1.05vw,14px)] text-white">
-              คว้าโบนัสฝนดาวตกไปก่อน! +{spotlight.bonusDamage}
+              คว้าโบนัสฝนดาวตกไปก่อน! −{spotlight.bonusDamage} HP บอส
             </div>
           </div>
         )}

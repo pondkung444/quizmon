@@ -13,6 +13,8 @@ export type BossRaidActiveEvent =
       choices: string[];
       expires_at: string;
       winner_participant_id: string | null;
+      // เขียนพร้อม winner_participant_id ตอนมีคนคว้าโบนัส (3.5% ของ boss_hp_max, ขั้นต่ำ 15)
+      bonus_damage?: number;
     }
   | {
       // Phase 2 — ไม่มี expires_at (จบด้วยคนที่ถูกเลือกตอบ / ครูกดข้าม)

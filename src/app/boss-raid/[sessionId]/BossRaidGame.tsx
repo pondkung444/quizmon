@@ -508,12 +508,14 @@ export default function BossRaidGame({
               {meteorRemain} วิ
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-text3">คนแรกที่ตอบถูกได้โบนัส −15 HP บอส</p>
+          <p className="mt-0.5 text-xs text-text3">คนแรกที่ตอบถูกได้โบนัสก้อนใหญ่ใส่บอส</p>
 
           {meteorResult ? (
             <div className="py-6 text-center">
               {meteorResult.won ? (
-                <p className="text-xl font-bold text-gold-hi">ตอบถูก! ได้โบนัส +15</p>
+                <p className="text-xl font-bold text-gold-hi">
+                  ตอบถูก! บอสเสียเลือด −{meteorResult.bonus_damage ?? 15}
+                </p>
               ) : meteorResult.event_active === false ? (
                 <p className="text-lg font-bold text-text2">อีเวนต์จบไปแล้ว</p>
               ) : meteorResult.is_correct === false ? (
