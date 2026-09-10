@@ -76,7 +76,7 @@ export default async function QuizPage({
   const petDailyCapped = petExpTodaySoFar >= DAILY_EXP_CAP;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 p-6">
+    <main className="quiz-shell mx-auto flex min-h-screen w-full flex-col gap-6">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมบนซ้าย (มุมบนขวาเป็นปุ่มออกจากรอบของ QuizClient) */}
       <BgmMuteButton className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[70]" />
       <QuizClient
