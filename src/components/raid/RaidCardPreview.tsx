@@ -11,7 +11,7 @@ const PROFILES: Record<string, Stats> = {
   defense: { hp: 90, atk: 65, def: 95, spd: 55, foc: 70 },
   trained: { hp: 85, atk: 90, def: 85, spd: 90, foc: 80 },
 };
-const KEY = "quizmon-raid-card-preview-learning-r1";
+const KEY = "quizmon-raid-card-preview-learning-r3";
 
 // Alternate illustrated/plain questions so the preview exercises both layouts.
 function multiplicationImage(boxes: number, perBox: number): string {
@@ -28,7 +28,7 @@ function multiplicationImage(boxes: number, perBox: number): string {
 export default function RaidCardPreview() {
   const [boss, setBoss] = useState<BossId>("ridge_mist");
   const [profile, setProfile] = useState("attack");
-  const [battle, setBattle] = useState(() => createBattle("ridge_mist", PROFILES.attack, () => 0.35));
+  const [battle, setBattle] = useState<Battle>(() => createBattle("ridge_mist", PROFILES.attack, () => 0.35));
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [animateTurn, setAnimateTurn] = useState(0);
@@ -42,7 +42,7 @@ export default function RaidCardPreview() {
     const frame = requestAnimationFrame(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || "null");
-      if (saved?.battle?.version === 2 && saved.battle.bossId in BOSSES && saved.profile in PROFILES) {
+      if (saved?.battle?.version === 3 && saved.battle.bossId in BOSSES && saved.profile in PROFILES) {
         setBattle(saved.battle as Battle); setBoss(saved.battle.bossId); setProfile(saved.profile); setBest(saved.best || 0); setQuestion(saved.question??null); setAnswerKey(saved.answerKey??null); setFeedback(saved.feedback??null);
       }
     } catch { /* A preview can always start fresh. */ }

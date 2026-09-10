@@ -1,5 +1,5 @@
 import {readFileSync,writeFileSync,mkdirSync} from "node:fs";
-import {BOSSES,CARDS,STAT_REQUIREMENTS,createBattle,resolveTurn,checkPreview,incomingDamage,statPercent,type Battle,type CardId,type BossId,type Stats} from "../../src/lib/raid/cards/engine.ts";
+import {BOSSES,CARDS,STAT_REQUIREMENTS,createBattle,resolveTurn,checkPreview,incomingDamage,statPercent,type Battle,type CardId,type BossId,type Stats} from "../../src/lib/raid/cards/engineV2.ts";
 const data=JSON.parse(readFileSync(new URL("./real-stats.json",import.meta.url),"utf8"));
 function rng(seed:number) {let n=seed;return ()=>{n=(Math.imul(n,1664525)+1013904223)>>>0;return n/4294967296;};}
 export function policy(b:Battle):CardId {

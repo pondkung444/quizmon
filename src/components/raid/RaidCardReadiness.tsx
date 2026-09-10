@@ -1,9 +1,7 @@
 import type { EligibleRaidPet, RaidGearItemFull } from "@/lib/raid";
 import { effectiveStat, type EquippedGearForStats } from "@/lib/raid/stats";
-import { BOSSES, CARDS, createBattle, checkPreview, isBossId, STAT_REQUIREMENTS, statPercent, type CardId, type Stats, type Stat } from "@/lib/raid/cards/engine";
+import { BOSSES, createBattle, checkPreview, isBossId, QUESTION_LIMITS, type Stats, type Stat } from "@/lib/raid/cards/engine";
 
-const EXAMPLES: CardId[] = ["burst", "counter", "dodge", "pierce", "mend"];
-const formatChance = (chance: number) => chance === 100 ? "แน่นอน" : chance === 0 ? "พื้นฐาน" : `${chance}%`;
 
 export default function RaidCardReadiness({ slug, pet, items }: { slug: string; pet: EligibleRaidPet; items: RaidGearItemFull[] }) {
   if (!isBossId(slug)) return null;
@@ -14,17 +12,10 @@ export default function RaidCardReadiness({ slug, pet, items }: { slug: string; 
   const equipped = createBattle(slug,stats,()=>0.5);
   const base = createBattle(slug,baseStats,()=>0.5);
   return <section className="w-full max-w-xs rounded-xl border border-sky-300/30 bg-sky-950/30 p-3">
-    <h2 className="text-sm font-bold text-text">ชุดนี้รับมือบอสอย่างไร?</h2>
+    <h2 className="text-sm font-bold text-text">ท้าทายสั้น ๆ ไม่เกิน {QUESTION_LIMITS[slug]} ข้อ</h2>
     <p className="mt-1 text-xs text-text2">เลือดเริ่มต้น {equipped.hpMax} · บอส {BOSSES[slug].hp}</p>
-    <p className="mt-2 text-sm text-text">stat รวม {statPercent(stats).toFixed(1)}% / เกณฑ์ {STAT_REQUIREMENTS[slug]}% · ต้องตอบถูกอย่างน้อย 60%</p>
-    {statPercent(stats)<STAT_REQUIREMENTS[slug] && <p className="mt-2 text-xs text-amber-200">ชุดนี้ยังไม่ถึงเกณฑ์ชนะ เข้าไปฝึกและรับอุปกรณ์ได้ แต่ต้องเพิ่ม stat ก่อนพิชิตด่าน</p>}
-    <p className="mt-2 text-xs text-text3">โอกาสผลพิเศษเมื่อตอบถูก: ไม่ใส่ของ → ชุดปัจจุบัน</p>
-    <ul className="mt-2 space-y-2 text-xs">
-      {EXAMPLES.map(id => <li key={id} className="flex justify-between gap-2">
-        <span>{CARDS[id].name} · {CARDS[id].stat?.toUpperCase()}</span>
-        <strong className="shrink-0 text-sky-200">{formatChance(checkPreview(base,id).chance)} → {formatChance(checkPreview(equipped,id).chance)}</strong>
-      </li>)}
-    </ul>
-    <p className="mt-3 text-xs text-text3">ตัวอย่างช่วงแรกของบอส • ช่วงท้ายเกณฑ์สูงขึ้น ใส่ของเพิ่มได้ถึงเพดานเดิม และอุปกรณ์ไม่เพิ่ม FOC</p>
+    <p className="mt-2 text-sm text-text">เลือกตีแรงหรือตีพร้อมฟื้นเลือด ตอบถูกแล้วลุ้นพลังมอน จบรอบได้ของรางวัล</p>
+    <p className="mt-2 text-xs text-text3">ลุ้นคริติคอลเมื่อตอบถูก: ไม่ใส่ของ {checkPreview(base,"strike").chance}% → ชุดนี้ {checkPreview(equipped,"strike").chance}%</p>
+    <p className="mt-3 text-xs text-text3">อุปกรณ์ช่วยให้มอนแข็งแรงขึ้น ทุกชุดมีโอกาสชนะ ไม่ต้องจำท่าบอสหรือสะสมพลังการ์ด</p>
   </section>;
 }

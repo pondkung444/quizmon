@@ -200,7 +200,7 @@ export default function RaidPreDeparture({
         <details className="w-full max-w-xs text-center">
           <summary className="cursor-pointer text-xs text-text3 underline">ดูกติกาบอส</summary>
           <p className="mt-2 text-sm text-text">
-            {cardMode ? "เข้าบอสทันที • อ่านท่าบอส เลือกการ์ด แล้วตอบคำถามเพื่อออกท่า ต้องลดเลือดบอสให้หมดใน 20 เทิร์น stat รวมถึงเกณฑ์ด่าน และตอบถูกอย่างน้อย 60% กลับบ้านแล้วเล่นต่อได้ จบรอบมีอุปกรณ์เสมอ" : <>ต้องตอบถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ และสถิติรวมต้องถึงเกณฑ์ด่านนี้</>}
+            {cardMode ? "เลือกตีแรงหรือตีพร้อมฟื้นเลือด แล้วตอบคำถามลุ้นพลังมอน จบใน 5–8 ข้อตามด่าน บอสล้มก่อนจบได้ทันที กลับบ้านแล้วเล่นต่อได้ จบรอบมีอุปกรณ์เสมอ" : <>ต้องตอบถูกอย่างน้อย {raidType.bossPassCount} ใน {raidType.bossQuestionCount} ข้อ และสถิติรวมต้องถึงเกณฑ์ด่านนี้</>}
           </p>
         </details>
       </div>

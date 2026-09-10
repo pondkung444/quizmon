@@ -46,7 +46,7 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
     battle = data.state as Battle;
     revision = data.revision as number;
   }
-  if (battle.version !== 2) throw new Error("รอบนี้ใช้กติกาคนละรุ่น กรุณาอัปเดตหน้าเกม");
+  if (battle.version !== 2 && battle.version !== 3) throw new Error("รอบนี้ใช้กติกาคนละรุ่น กรุณาอัปเดตหน้าเกม");
   const { data: best, error: bestError } = await admin.from("raid_card_battles")
     .select("progress").eq("user_id", userId).eq("raid_type_id", run.raid_type_id)
     .neq("run_id", runId).not("finished_at", "is", null).order("progress", { ascending: false }).limit(1);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BOSSES, CARDS, MAX_TURNS, createBattle, checkPreview, resolveTurn, incomingDamage, rewardScore, type CardId, type BossId, type Battle } from "../../src/lib/raid/cards/engine.ts";
+import { BOSSES, CARDS, MAX_TURNS, createBattle, checkPreview, resolveTurn, incomingDamage, rewardScore, type CardId, type BossId, type Battle } from "../../src/lib/raid/cards/engineV2.ts";
 
 function rng(seed: number) { return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
 const stats = { hp: 80, atk: 80, def: 80, spd: 80, foc: 80 };

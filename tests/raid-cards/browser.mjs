@@ -9,16 +9,14 @@ const page = await context.newPage();
 const errors = [];
 page.on("pageerror", error => errors.push(error.message));
 await mkdir(".cache/raid-screenshots", { recursive: true });
-const read = () => page.evaluate(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1") || "null")?.battle);
+const read = () => page.evaluate(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle);
 async function turn(card, correct = true) {
   const before = await read();
-  if (card === "strike") await page.getByRole("button", { name: "โจมตี", exact: true }).click();
-  else if (card === "guard") await page.getByRole("button", { name: "ตั้งหลัก +พลัง" }).click();
-  else await page.locator(`[data-card="${card}"]`).click();
+  await page.locator(`[data-card="${card}"]`).click();
   await page.getByTestId("play-card").click();
   await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).waitFor();
   assert.deepEqual(await read(),before,"choosing a card must not resolve combat");
-  const question=await page.evaluate(()=>JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1")).question);
+  const question=await page.evaluate(()=>JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3")).question);
   if(before.log.length===0) {
     await page.reload();
     await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).waitFor();
@@ -30,39 +28,42 @@ async function turn(card, correct = true) {
   const chosen=correct?right:(right+1)%question.choices.length;
   await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).getByRole("button").nth(chosen).click();
   await page.getByTestId("answer-card").click();
-  await page.waitForFunction(count => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1") || "null")?.battle.log.length === count + 1, before.log.length);
+  await page.waitForFunction(count => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle.log.length === count + 1, before.log.length);
   await page.getByRole("button",{name:"เข้าใจแล้ว ไปต่อ"}).click();
   return read();
 }
 try {
   await page.goto("http://127.0.0.1:3108/raid/preview");
-  await page.getByRole("button", {name:"โจมตี", exact:true}).waitFor();
+  await page.locator('[data-card="strike"]').waitFor();
   await page.getByLabel("เลือกชุดทดลอง").selectOption("trained");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1") || "null")?.profile === "trained");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.profile === "trained");
   await page.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0));
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: ".cache/raid-screenshots/mobile-start.png" });
   const after = await turn("strike");
-  assert.ok(after.bossHp < 240 && after.log.length === 1);
+  assert.ok(after.bossHp < 200 && after.log.length === 1);
   await page.reload();
-  await page.getByRole("button", {name:"โจมตี", exact:true}).waitFor();
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1") || "null")?.battle.log.length === 1);
+  await page.locator('[data-card="strike"]').waitFor();
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle.log.length === 1);
   assert.deepEqual(await read(),after);
   let state = after;
   while (!state.outcome) state = await turn("strike");
   assert.equal(state.outcome,"win");
+  assert.ok(state.log.length <= 5);
   await page.getByRole("heading",{name:"ทำได้แล้ว!"}).waitFor();
   await page.screenshot({ path: ".cache/raid-screenshots/mobile-win.png" });
   for (const boss of ["ridge_gale","ridge_storm"]) {
     await page.getByLabel("เลือกบอสทดลอง").selectOption(boss);
-    await page.waitForFunction(id => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r1") || "null")?.battle.bossId === id,boss);
+    await page.waitForFunction(id => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle.bossId === id,boss);
     await page.waitForFunction(() => [...document.images].every(i => i.complete && i.naturalWidth > 0));
   }
   await page.getByLabel("เลือกชุดทดลอง").selectOption("starter");
   state = await read();
-  while (!state.outcome) state=await turn("guard",false);
+  while (!state.outcome) state=await turn("mend",false);
   assert.equal(state.outcome,"defeat");
-  assert.equal(state.bossHp,430);
+  assert.ok(state.bossHp > 0 && state.bossHp < 430);
+  assert.equal(state.log.length,8);
+  assert.equal(state.energy,0);
   await page.getByRole("region",{name:"ผลการต่อสู้"}).waitFor();
   await page.screenshot({ path: ".cache/raid-screenshots/mobile-defeat.png" });
   await page.getByLabel("เลือกชุดทดลอง").selectOption("trained");

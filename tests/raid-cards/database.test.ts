@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
-import { createBattle, resolveTurn, type Battle } from "../../src/lib/raid/cards/engine.ts";
+import { createBattle, resolveTurn, type Battle } from "../../src/lib/raid/cards/engineV2.ts";
+import { createBattle as createShortBattle, resolveTurn as resolveShortTurn, QUESTION_LIMITS, type Battle as AnyBattle } from "../../src/lib/raid/cards/engine.ts";
 
 // Run the actual migration and existing production start/reward functions against PostgreSQL.
 // Only the surrounding schema/data is reduced; no reward or permission RPC is mocked.
@@ -130,6 +131,7 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910044259_raid_card_learning.sql",import.meta.url),"utf8"));
     await db.exec("alter table questions add column branch text");
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910114449_raid_card_question_mix.sql",import.meta.url),"utf8"));
+    await db.exec(readFileSync(new URL("../../supabase/migrations/20260910155157_raid_short_rounds_v3.sql",import.meta.url),"utf8"));
     await as("authenticated");
     const learningRun=(await start())!;
     await assert.rejects(db.query("select * from raid_card_questions"),/permission denied/);
@@ -153,5 +155,37 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
     assert.equal(await scalar("select count(distinct question_id)::text as value from raid_card_questions"),String(learning.log.length));
     await as("authenticated");
     await db.query("select * from claim_raid_card_reward($1)",[learningRun]);
+    // Version 3: real SQL accepts zero-energy cards, short-round completion and rewards.
+    await as("service_role");
+    await db.query("insert into raid_tickets(user_id,zone_id) select $1,$2 from generate_series(1,10)",[user,mist]);
+    await db.exec("update pets set stat_hp=0,stat_atk=0,stat_def=0,stat_spd=0,stat_foc=0");
+    for (const [boss,type] of [["ridge_mist",mist],["ridge_gale",gale],["ridge_storm",storm]] as const) {
+      for (const correct of [true,false]) {
+        await as("authenticated");
+        const shortRun=(await start(type))!;
+        await as("service_role");
+        const snapshot=(await db.query<{stat_snapshot:Battle["stats"]}>("select stat_snapshot from raid_runs where id=$1",[shortRun])).rows[0].stat_snapshot;
+        let short:AnyBattle=createShortBattle(boss,snapshot,()=>0.5);
+        let shortRev=(await db.query<{value:{revision:number}}>("select commit_raid_card_turn($1,$2,0,$3) as value",[shortRun,user,JSON.stringify(short)])).rows[0].value.revision;
+        await assert.rejects(db.query("select prepare_raid_card_question($1,$2,$3,'guard')",[shortRun,user,shortRev]),/Card not in hand/);
+        while(!short.outcome) {
+          await db.query("select prepare_raid_card_question($1,$2,$3,'mend')",[shortRun,user,shortRev]);
+          const next=resolveShortTurn(short,"mend",()=>0.99,correct);
+          if(short.log.length===0) await assert.rejects(db.query("select commit_raid_card_state($1,$2,$3,$4)",[shortRun,user,shortRev,JSON.stringify({...next,version:2})]),/Ruleset mismatch/);
+          const result=await db.query<{value:{revision:number}}>("select answer_raid_card_question($1,$2,$3,$4,$5) as value",[shortRun,user,shortRev,correct?0:1,JSON.stringify(next)]);
+          const retry=await db.query("select answer_raid_card_question($1,$2,$3,$4,$5) as value",[shortRun,user,shortRev,correct?0:1,JSON.stringify(next)]);
+          assert.deepEqual(result.rows,retry.rows);
+          short=next;shortRev=result.rows[0].value.revision;
+        }
+        assert.ok(short.log.length<=QUESTION_LIMITS[boss]);
+        assert.equal(short.outcome,correct?"win":"defeat");
+        if(!correct) assert.equal(short.log.length,QUESTION_LIMITS[boss]);
+        assert.equal(await scalar("select phase as value from raid_runs where id=$1",[shortRun]),"card_reward");
+        await as("authenticated");
+        const reward=await db.query("select * from claim_raid_card_reward($1)",[shortRun]);
+        assert.deepEqual((await db.query("select * from claim_raid_card_reward($1)",[shortRun])).rows,reward.rows);
+        assert.equal(reward.rows.length,1);
+      }
+    }
   } finally { await db.close(); }
 });
