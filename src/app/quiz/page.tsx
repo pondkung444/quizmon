@@ -75,7 +75,7 @@ export default async function QuizPage({
   const petDailyCapped = petExpTodaySoFar >= DAILY_EXP_CAP;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col gap-6 p-6">
+    <main className="quiz-shell mx-auto flex min-h-screen w-full flex-col gap-6">
       <QuizClient
         personalityKey={personalityKey}
         petAvatarPath={petAvatarPath}

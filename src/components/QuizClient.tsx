@@ -32,6 +32,8 @@ import { track } from "@/lib/analytics";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
 import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
+import QuizJourney from "@/components/quiz/QuizJourney";
+import QuestionImage from "@/components/quiz/QuizQuestionImage";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -48,25 +50,6 @@ const QUIZ_EVENT_PRIORITY: Partial<Record<PersonalityEventKey, number>> = {
 };
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
-
-// รูปประกอบโจทย์ — วางไว้ระหว่างตัวคำถามกับตัวเลือก รับได้ทั้ง data URI (ค่าปัจจุบัน) และ external
-// URL (เช่น Supabase Storage ในอนาคต) เลยใช้ <img> ธรรมดา ไม่ผ่าน next/image (ไม่ต้องตั้ง
-// remotePatterns / ไม่ optimize data URI อยู่แล้ว) ถ้าโหลดรูปไม่ขึ้นให้ซ่อนไปเงียบๆ ไม่ให้หน้าพัง
-function QuestionImage({ src }: { src: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return null;
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt="รูปประกอบโจทย์"
-        onError={() => setFailed(true)}
-        className="mx-auto max-h-[45vh] w-full object-contain"
-      />
-    </div>
-  );
-}
 
 const MODES: { id: QuizMode; label: string; emoji: string }[] = [
   { id: "math", label: "คณิตศาสตร์", emoji: "🧮" },
@@ -137,6 +120,8 @@ export default function QuizClient({
   gradeLevel?: string | null;
 }) {
   const router = useRouter();
+  const nextLock = useRef(false);
+  const [arrived, setArrived] = useState(false);
   const [phase, setPhase] = useState<Phase>("select");
   const [mode, setMode] = useState<QuizMode | null>(null);
   // โหมดเลือกบทฝึกฝน — topicFilter ไม่ null ตลอดที่อยู่ในรอบที่เริ่มจากการเลือกบท (ใช้ทั้งแนบ
@@ -216,6 +201,8 @@ export default function QuizClient({
   }, []);
 
   function resetRoundState() {
+    nextLock.current = false;
+    setArrived(false);
     setIndex(0);
     setSelectedChoice(null);
     setResult(null);
@@ -494,6 +481,7 @@ export default function QuizClient({
     else if (newCombo === 5) queuePersonalityEvent("combo5");
     else if (newCombo === 8) queuePersonalityEvent("combo8");
 
+    nextLock.current = false;
     setSelectedChoice(choiceIndex);
     setCombo(newCombo);
     setResult({
@@ -535,6 +523,9 @@ export default function QuizClient({
   }
 
   function handleNext() {
+    if (!result || nextLock.current) return;
+    nextLock.current = true;
+    setErrorMessage(null);
     const isLastQuestion = index + 1 >= questions.length;
 
     if (!isLastQuestion) {
@@ -548,12 +539,16 @@ export default function QuizClient({
         category: nextQuestion.category,
       });
       setIndex((i) => i + 1);
+      window.scrollTo({ top: 0, behavior: "instant" });
       setSelectedChoice(null);
       setResult(null);
       return;
     }
 
+    setArrived(true);
+    window.scrollTo({ top: 0, behavior: "instant" });
     startTransition(async () => {
+      try {
       const submissions = await Promise.all(pendingSubmissionsRef.current);
       const anyFailed = submissions.some((s) => !s.ok);
       if (anyFailed) {
@@ -577,6 +572,9 @@ export default function QuizClient({
       } else {
         setPhase("summary");
         runPostRoundEvents(finishResult);
+      }
+      } catch {
+        setErrorMessage("ยืนยันผลรอบนี้ไม่สำเร็จ กลับไปตรวจผลที่หน้าน้องนะ");
       }
     });
   }
@@ -657,20 +655,17 @@ export default function QuizClient({
   if (phase === "playing") {
     const current = questions[index];
     const isLastQuestion = index + 1 >= questions.length;
-    // โหมดภารกิจ: progress/เลขข้อนับรวมทั้งภารกิจ (รวมข้อที่ตอบไปแล้วก่อนรอบนี้ ถ้ากลับมาทำต่อ)
-    // ไม่ใช่แค่รอบปัจจุบัน ต่างจากโหมดฝึกปกติที่นับแค่ในรอบ 5 ข้อนี้
-    const progress = missionInfo
-      ? ((missionInfo.answeredCountBefore + index + 1) / missionInfo.targetCount) * 100
-      : ((index + 1) / questions.length) * 100;
+    const journeyTotal = missionInfo?.targetCount ?? questions.length;
+    const journeyCompleted = (missionInfo?.answeredCountBefore ?? 0) + index + (arrived ? 1 : 0);
 
     return (
-      <div className="flex flex-col gap-5">
+      <div className="quiz-play flex flex-col gap-4">
         <div className="flex justify-end">
           <button
             type="button"
             onClick={() => setShowExitConfirm(true)}
             aria-label="ออกจากรอบทำโจทย์"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-lg text-text3 transition active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-border text-lg text-text2 transition active:scale-95"
           >
             ✕
           </button>
@@ -701,27 +696,13 @@ export default function QuizClient({
           </div>
         )}
 
-        <div>
-          {missionInfo ? (
-            <p className="text-sm font-medium text-text3">
-              ภารกิจวันนี้: {missionInfo.category} — ข้อ {missionInfo.answeredCountBefore + index + 1} จาก{" "}
-              {missionInfo.targetCount}
-            </p>
-          ) : (
-            <div className="flex items-center justify-between text-sm font-medium text-text3">
-              <span>ข้อที่ {index + 1}/{questions.length}</span>
-              <span>{current.category}</span>
-            </div>
-          )}
-          <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-track">
-            <div
-              className="h-full rounded-full bg-amber transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+        <QuizJourney completed={journeyCompleted} total={journeyTotal} avatar={petAvatarPath} />
+        <div className="quiz-question-card flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text2">
+          <span className="quiz-question-label">{missionInfo ? "ภารกิจวันนี้" : "ฝึกฝน"} · ข้อ {(missionInfo?.answeredCountBefore ?? 0) + index + 1}/{journeyTotal}</span>
+          <span>{current.category}</span>
         </div>
-
-        <h2 className="font-sarabun text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
+        <h2 className="font-sarabun text-lg sm:text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
         {current.image_url && <QuestionImage key={current.id} src={current.image_url} />}
 
@@ -733,7 +714,7 @@ export default function QuizClient({
 
             let style = "border-border bg-card hover:border-gold-dim";
             if (isCorrectChoice) {
-              style = "border-gold bg-amber/10";
+              style = "border-emerald-400 bg-emerald-400/10";
             } else if (isWrongSelected) {
               style = "border-red bg-red/10";
             } else if (isSelected) {
@@ -752,7 +733,9 @@ export default function QuizClient({
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                   {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
                 </span>
-                {choiceText}
+                <span className="min-w-0 flex-1 break-words">{choiceText}</span>
+                {isCorrectChoice && <span aria-label="คำตอบที่ถูกต้อง" className="text-emerald-300">✓</span>}
+                {isWrongSelected && <span aria-label="คำตอบที่เลือกยังไม่ถูก" className="text-red">×</span>}
               </button>
             );
           })}
@@ -760,12 +743,13 @@ export default function QuizClient({
 
         {result && (
           <div
+            role="status"
             className={`rounded-2xl border p-4 text-center ${
-              result.correct ? "border-gold-dim bg-amber/10 text-gold-hi" : "border-red bg-red/10 text-red"
+              result.correct ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : "border-border bg-track/40 text-text"
             }`}
           >
             {result.correct ? (
-              <p className="font-sarabun animate-bounce text-lg font-bold">
+              <p className="font-sarabun text-lg font-bold">
                 ถูกต้อง! 🎉 ได้ +{result.expEarned} EXP
               </p>
             ) : (
@@ -774,22 +758,24 @@ export default function QuizClient({
                 <p className="font-sarabun text-sm">
                   เฉลย: {THAI_LETTERS[result.correctIndex]}. {current.choices[result.correctIndex]}
                 </p>
-                {result.explanation && <p className="font-sarabun text-sm">{result.explanation}</p>}
+
               </div>
             )}
+            {result.explanation && <p className="mt-3 text-left font-sarabun text-sm leading-relaxed text-text2">{result.explanation}</p>}
           </div>
         )}
-
+        {errorMessage && <div role="alert" className="text-sm text-amber"><p>{errorMessage}</p><button type="button" onClick={() => router.push("/pet")} className="mt-2 min-h-11 underline">กลับไปหา Qmon</button></div>}
         {result && (
           <button
             type="button"
             onClick={handleNext}
-            disabled={isPending}
+            disabled={isPending || arrived}
             className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
           >
-            {isPending ? "กำลังบันทึก..." : isLastQuestion ? "ดูสรุปผล" : "ข้อต่อไป"}
+            {isPending ? "ถึงปลายทางแล้ว · กำลังบันทึก..." : isLastQuestion ? "ถึงปลายทาง · ดูสรุป" : "ไปต่อ →"}
           </button>
         )}
+        </div>
       </div>
     );
   }
@@ -797,6 +783,7 @@ export default function QuizClient({
   if (phase === "chooseFood" && missionInfo) {
     return (
       <div className="flex flex-col gap-6 text-center">
+        <QuizJourney completed={missionInfo?.targetCount ?? questions.length} total={missionInfo?.targetCount ?? questions.length} avatar={petAvatarPath} />
         <div className="flex justify-center">
           <SpeechBubble
             message={personalityMessage}
