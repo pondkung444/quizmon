@@ -161,8 +161,10 @@ export type BossRaidRankRow = {
   rank: number;
 };
 
+export type BossRaidResult = "win" | "lose" | "incomplete";
+
 export type BossRaidSummary = {
-  result: "win" | "lose" | null;
+  result: BossRaidResult | null;
   team: BossRaidSummaryTeam;
   ranking: BossRaidRankRow[];
 };
@@ -174,7 +176,7 @@ export async function getBossRaidSummary(sessionId: string): Promise<BossRaidSum
   const { data, error } = await supabase.rpc("get_boss_raid_summary", { p_session_id: sessionId });
   if (error || !data) throw new Error(error?.message ?? "ดึงสรุปผลไม่สำเร็จ");
   const d = data as {
-    result: "win" | "lose" | null;
+    result: BossRaidResult | null;
     team: {
       duration_seconds: number | null;
       total_answers: number;
@@ -278,6 +280,14 @@ export async function selectBossRaidPet(
 export async function dismissBossRaidEvent(sessionId: string): Promise<void> {
   const { supabase } = await requireUser();
   const { error } = await supabase.rpc("dismiss_boss_raid_event", { p_session_id: sessionId });
+  if (error) throw new Error(error.message);
+}
+
+// Item 1 — ครู/เจ้าของห้องกดจบ raid ระหว่างเล่น (teacher-only เช็คใน RPC)
+// resolve result ชัดเจน: boss_hp<=0 -> win, crystal_hp<=0 -> lose, else -> incomplete
+export async function endBossRaidSession(sessionId: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("end_boss_raid_session", { p_session_id: sessionId });
   if (error) throw new Error(error.message);
 }
 

@@ -62,7 +62,7 @@ export type TvSession = {
   wrong_count_total: number | null;
   correct_streak_current: number | null;
   active_event: TvActiveEvent;
-  result: "win" | "lose" | null;
+  result: "win" | "lose" | "incomplete" | null;
 };
 
 export type TvRankedParticipant = { id: string; total_damage: number; joined_at: string };
@@ -313,8 +313,10 @@ export function useBossRaidTv(
           prevTierRef.current = merged.current_tier;
 
           // เสียงผลจบเกม — เฉพาะตอน result เพิ่งถูกเซ็ต (win/lose) ไม่ใช่ตอน resync
+          // 'incomplete' (ครูกดจบ / cron) = ไม่มีสติงเกอร์ ตามหลัก no-punishment
           if (merged.result && merged.result !== prevResultRef.current) {
-            tvAudio.sfx(merged.result === "win" ? "result_win" : "result_lose");
+            if (merged.result === "win") tvAudio.sfx("result_win");
+            else if (merged.result === "lose") tvAudio.sfx("result_lose");
           }
           prevResultRef.current = merged.result;
 
