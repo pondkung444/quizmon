@@ -104,8 +104,8 @@
 @media (max-width:700px) and (min-height:600px) {
   .answering .layout { height:100dvh; padding: max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
   .answering .controls { flex:1; min-height:0; display:flex; flex-direction:column; }
-  .answering .learning { flex:1; min-height:0; display:flex; flex-direction:column; padding:12px; }
-  .questionScroll { flex:1; }
+  .answering .learning { flex:0 1 auto; min-height:0; display:flex; flex-direction:column; padding:12px; }
+  .questionScroll { flex:0 1 auto; }
   .answerDock { flex-shrink:0; max-height:60%; overflow:auto; }
 }
 .explanation { font-size:15px; line-height:1.75; padding:12px; background:#143447; margin-bottom:16px; white-space:pre-wrap; }
