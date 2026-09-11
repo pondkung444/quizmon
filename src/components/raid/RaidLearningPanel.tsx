@@ -15,20 +15,38 @@ export default function RaidLearningPanel({question,feedback,busy,shortRound=fal
     try { await onAnswer(index); }
     finally { answerLock.current = false; }
   }
-  return <section className={styles.learning} aria-label={feedback?"เฉลยคำถาม":"คำถามเพื่อใช้การ์ด"}>
+  if (feedback) {
+    return <section className={`${styles.learning} ${styles.feedbackPanel}`} aria-label="เฉลยคำถาม">
+      <div className={styles.feedbackBody}>
+        <div role="status">
+          <span className={styles.eyebrow}>บันทึกคำตอบแล้ว</span>
+          <h2>{feedback.correct ? "ตอบถูก! มอนลงมือเต็มพลัง" : "ยังไม่ถูก มาทบทวนกัน"}</h2>
+        </div>
+        <p className={styles.correctSolution}>คำตอบที่ถูก: {question.choices[feedback.correctIndex]}</p>
+        {feedback.explanation && <p className={styles.explanation}>{feedback.explanation}</p>}
+        <details className={styles.originalQuestion}>
+          <summary>ดูโจทย์อีกครั้ง</summary>
+          <p className={styles.questionText}>{question.text}</p>
+          {question.imageUrl && <QuizQuestionImage key={question.revision} src={question.imageUrl}/>}
+        </details>
+      </div>
+      <div className={styles.continueBar}>
+        <button className={styles.primary} onClick={onContinue}>เข้าใจแล้ว ไปต่อ</button>
+      </div>
+    </section>;
+  }
+  return <section className={styles.learning} aria-label="คำถามเพื่อใช้การ์ด">
     <div className={styles.questionScroll}>
     <span className={styles.eyebrow}>{question.category} · {(shortRound ? QUICK_CARDS[question.cardId] ?? CARDS[question.cardId] : CARDS[question.cardId]).name}</span>
-    <h2>{feedback ? feedback.correct ? "ตอบถูก! มอนลงมือเต็มพลัง" : "ยังไม่ถูก มาทบทวนกัน" : "ใช้ความรู้ส่งพลังให้มอน"}</h2>
+    <h2>ใช้ความรู้ส่งพลังให้มอน</h2>
     <p className={styles.questionText}>{question.text}</p>
     {question.imageUrl && <QuizQuestionImage key={question.revision} src={question.imageUrl}/>}
     </div>
     <div className={styles.answerDock}>
-    <div className={styles.answers}>{question.choices.map((choice,index)=><button key={index} data-testid="answer-card" disabled={busy || !!feedback} aria-pressed={selected===index} onClick={()=>void submit(index)} className={feedback?.correctIndex===index ? styles.correctAnswer : selected===index ? styles.selectedAnswer : ""}>
-      <span>{["ก","ข","ค","ง"][index] ?? index+1}</span>{choice}{feedback?.correctIndex===index ? " ✓" : ""}
+    <div className={styles.answers}>{question.choices.map((choice,index)=><button key={index} data-testid="answer-card" disabled={busy} aria-pressed={selected===index} onClick={()=>void submit(index)} className={selected===index ? styles.selectedAnswer : ""}>
+      <span>{["ก","ข","ค","ง"][index] ?? index+1}</span>{choice}
     </button>)}</div>
-    {feedback ? <><p className={styles.explanation}>{feedback.explanation || `คำตอบที่ถูกคือ ${question.choices[feedback.correctIndex]}`}</p><button className={styles.primary} onClick={onContinue}>เข้าใจแล้ว ไปต่อ</button></> : <>
       <p className={styles.finePrint} role="status">{busy ? "กำลังตรวจคำตอบ…" : "แตะคำตอบเพื่อลงมือได้เลย"}</p>
-    </>}
     </div>
   </section>;
 }

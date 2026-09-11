@@ -27,7 +27,12 @@ async function turn(card, correct = true) {
   const chosen=correct?right:(right+1)%question.choices.length;
   await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).getByRole("button").nth(chosen).click();
   await page.waitForFunction(count => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle.log.length === count + 1, before.log.length);
-  await page.getByRole("button",{name:"เข้าใจแล้ว ไปต่อ"}).click();
+  const continueButton = page.getByRole("button",{name:"เข้าใจแล้ว ไปต่อ"});
+  await continueButton.waitFor();
+  const continueBox = await continueButton.boundingBox();
+  assert.ok(continueBox && continueBox.y >= 0 && continueBox.y + continueBox.height <= page.viewportSize().height,
+    "Continue must be visible without scrolling after answering");
+  await continueButton.click();
   return read();
 }
 try {

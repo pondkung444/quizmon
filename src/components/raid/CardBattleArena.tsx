@@ -42,7 +42,7 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
   function play() { if (selection && !busy) { onPlay(selection); setSelected(null); } }
 
   return (
-    <main className={`${styles.shell} ${question || feedback ? styles.answering : ""}`} style={{ "--battle-accent": boss.accent } as CSSProperties}>
+    <main className={`${styles.shell} ${question || feedback ? styles.answering : ""} ${feedback ? styles.reviewing : ""}`} style={{ "--battle-accent": boss.accent } as CSSProperties}>
       <div className={styles.world}>
         <Image src={`/raid/boss_scene_${b.bossId}.webp`} alt="" fill priority sizes="100vw" className={styles.backdrop} />
         <div className={styles.worldShade} />

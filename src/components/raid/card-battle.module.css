@@ -109,3 +109,17 @@
   .answerDock { flex-shrink:0; max-height:60%; overflow:auto; }
 }
 .explanation { font-size:15px; line-height:1.75; padding:12px; background:#143447; margin-bottom:16px; white-space:pre-wrap; }
+
+/* Feedback has one reading region and a separate, always-visible next action. */
+.reviewing { overflow:hidden; }
+.reviewing .layout { height:100dvh; min-height:0; padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
+.reviewing .header { flex-shrink:0; }
+.reviewing .controls { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; }
+.reviewing .feedbackPanel { flex:1; min-height:0; display:flex; flex-direction:column; overflow:hidden; padding:12px; }
+.feedbackBody { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; overflow-wrap:anywhere; }
+.reviewing .explanation { max-height:none; overflow:visible; }
+.correctSolution { border-left:3px solid #89dbb1; padding:10px 12px; margin:12px 0; color:#d7f6e4; background:#204b3d; font-size:16px; }
+.originalQuestion summary { min-height:44px; display:flex; align-items:center; cursor:pointer; color:#bfd7ef; text-decoration:underline; }
+.continueBar { flex-shrink:0; padding-top:12px; border-top:1px solid #afcceb33; background:#101e30; }
+.continueBar .primary { min-height:48px; margin:0; }
+@media (max-width:700px) { .continueBar { padding-right:56px; } }
