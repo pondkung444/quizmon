@@ -52,7 +52,14 @@ export async function claimRaidCardReward(runId: string): Promise<ClaimRaidRewar
   const { client } = await identity(runId);
   const { data, error } = await client.rpc("claim_raid_card_reward", { p_run_id: runId }).single();
   if (error || !data) throw new Error("ยังรับรางวัลไม่สำเร็จ ลองใหม่ได้โดยไม่เสียของ");
+  // The claim completes the run. Revalidating here replaces the mounted battle
+  // with predeparture before the player can read the reward dialog.
+  return mapRaidReward(data);
+}
+
+export async function acknowledgeRaidCardReward(runId: string): Promise<void> {
+  await identity(runId);
+  // Refresh inventory and available runs only after explicit acknowledgement.
   revalidatePath("/raid", "layout");
   revalidatePath("/pet");
-  return mapRaidReward(data);
 }

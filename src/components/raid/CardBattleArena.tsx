@@ -34,11 +34,15 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
     if (quick) return `ลุ้นคริติคอล ${c.chance}%`;
     return c.chance === 100 ? "ผ่านแน่นอน" : c.chance === 0 ? "ใช้ผลพื้นฐาน" : `ลุ้นผลพิเศษ ${c.chance}%`;
   };
-  function choose(id: CardId) { if (!busy) setSelected(id); }
+  function choose(id: CardId) {
+    if (busy) return;
+    if (quick) { onPlay(id); setSelected(null); }
+    else setSelected(id);
+  }
   function play() { if (selection && !busy) { onPlay(selection); setSelected(null); } }
 
   return (
-    <main className={styles.shell} style={{ "--battle-accent": boss.accent } as CSSProperties}>
+    <main className={`${styles.shell} ${question || feedback ? styles.answering : ""}`} style={{ "--battle-accent": boss.accent } as CSSProperties}>
       <div className={styles.world}>
         <Image src={`/raid/boss_scene_${b.bossId}.webp`} alt="" fill priority sizes="100vw" className={styles.backdrop} />
         <div className={styles.worldShade} />
@@ -126,9 +130,9 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
                 {card && preview ? <><div><strong>{card.name}</strong>{!quick && <span>{card.stat?.toUpperCase()} {preview.value} {selection !== "guard" && selection !== "strike" ? `/ เกณฑ์ ${preview.dc}` : ""}</span>}</div><p>{card.description}</p><small>{chanceText(selection!)} • {card.success}</small></> :
                   <p className={styles.prompt}>{busy ? "กำลังลงมือและบันทึกผล..." : quick ? "เลือกได้ทั้งสองใบ ไม่ต้องสะสมพลัง" : "แตะการ์ดเพื่อดูผลก่อนใช้ • ใบที่ยังไม่ใช้เก็บไว้รอบหน้าได้"}</p>}
               </div>
-              <button className={styles.primary} data-testid="play-card" disabled={busy || !selection || !preview?.affordable} onClick={play}>
+              {!quick && <button className={styles.primary} data-testid="play-card" disabled={busy || !selection || !preview?.affordable} onClick={play}>
                 {busy ? "กำลังเตรียมโจทย์..." : !selection ? "เลือกการ์ดของเธอ" : !preview?.affordable ? "พลังไม่พอ • ลองตั้งหลัก" : `ตอบเพื่อใช้${cardInfo(b,selection).name}`}<ArrowUpRight size={18} />
-              </button>
+              </button>}
               {last && <div className={styles.lastTurn} role="status"><span>เทิร์น {last.turn}</span><p>{last.note} · ทำดาเมจ {last.dealt} / รับ {last.taken}{last.healed ? ` / ฟื้น ${last.healed}` : ""}</p></div>}
             </>
           )}

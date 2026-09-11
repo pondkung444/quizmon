@@ -13,7 +13,6 @@ const read = () => page.evaluate(() => JSON.parse(localStorage.getItem("quizmon-
 async function turn(card, correct = true) {
   const before = await read();
   await page.locator(`[data-card="${card}"]`).click();
-  await page.getByTestId("play-card").click();
   await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).waitFor();
   assert.deepEqual(await read(),before,"choosing a card must not resolve combat");
   const question=await page.evaluate(()=>JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3")).question);
@@ -27,7 +26,6 @@ async function turn(card, correct = true) {
   const right=question.choices.indexOf(String(numbers[0]*numbers[1]));
   const chosen=correct?right:(right+1)%question.choices.length;
   await page.getByRole("region",{name:"คำถามเพื่อใช้การ์ด"}).getByRole("button").nth(chosen).click();
-  await page.getByTestId("answer-card").click();
   await page.waitForFunction(count => JSON.parse(localStorage.getItem("quizmon-raid-card-preview-learning-r3") || "null")?.battle.log.length === count + 1, before.log.length);
   await page.getByRole("button",{name:"เข้าใจแล้ว ไปต่อ"}).click();
   return read();

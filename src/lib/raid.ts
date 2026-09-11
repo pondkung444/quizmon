@@ -199,7 +199,7 @@ export type RaidZoneWithLevels = {
   levels: RaidLevelSummary[];
 };
 
-export const RAID_EPIC_PITY_CAP = 10; // ต้องตรงกับ v_pity_cap ใน RPC claim_raid_reward() เสมอ — แก้ 2 ที่คู่กัน
+export { RAID_EPIC_PITY_CAP } from "./raid/rewardConstants";
 
 export type RaidLevelSummary = {
   id: string;

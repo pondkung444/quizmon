@@ -54,6 +54,18 @@
 @media(prefers-reduced-motion:reduce) { .shell * { animation:none!important; transition:none!important; }.damageFloat,.petDamage,.healFloat { display:none; } }
 .rewardOverlay { margin:0; max-width:none; max-height:none; width:100%; height:100%; border:0; }
 .rewardOverlay::backdrop { background:#040a13e8; }
+.pityProgress { margin:16px 0; padding:12px; border:1px solid #bca0e855; border-radius:12px; background:#9074b918; }
+.pityProgress progress { width:100%; height:10px; accent-color:#c4a2ef; }
+.rewardOverlay { padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
+.rewardPanel { max-height:100%; overflow-y:auto; }
+@media (max-width:430px) {
+  .rewardPanel { padding:18px; }
+  .rewardPanel h2 { font-size:21px; }
+  .rewardIcon { width:84px; height:84px; margin:10px auto; }
+  .eggReward { margin:10px 0; }
+  .pityProgress { margin:10px 0; padding:10px; }
+  .rewardPanel .primary { min-height:44px; }
+}
 @media(max-width:480px) {
   .stage { height:300px; }
   .bossSprite { height:195px; bottom:82px; }
@@ -76,4 +88,24 @@
 .answers button>span { color:#9cc5ee; }
 .answers .selectedAnswer { border-color:#c8e7ff; background:#345575; }
 .answers .correctAnswer { border-color:#89dbb1; background:#204b3d; opacity:1; }
+
+/* Answering gets the viewport; the arena returns after the explanation. */
+.answering .stage,.answering .requirements,.answering .journal,.answering .footer { display:none; }
+.answering .layout { min-height:100%; display:flex; flex-direction:column; gap:10px; }
+.answering .controls { min-width:0; }
+.answering .learning h2 { font-size:16px; margin:4px 0 8px; }
+.questionScroll { min-height:0; overflow:auto; overscroll-behavior:contain; }
+.answerDock { min-width:0; }
+.answering .questionText { font-size:17px; line-height:1.5; margin-bottom:10px; }
+.answering .answers { gap:6px; margin:10px 0 6px; }
+.answering .answers button { min-height:44px; padding:9px 12px; line-height:1.4; }
+.answering .learning :global(.quiz-image-fit) { max-height:23dvh; }
+.answering .explanation { max-height:18dvh; overflow:auto; }
+@media (max-width:700px) and (min-height:600px) {
+  .answering .layout { height:100dvh; padding: max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
+  .answering .controls { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .answering .learning { flex:1; min-height:0; display:flex; flex-direction:column; padding:12px; }
+  .questionScroll { flex:1; }
+  .answerDock { flex-shrink:0; max-height:60%; overflow:auto; }
+}
 .explanation { font-size:15px; line-height:1.75; padding:12px; background:#143447; margin-bottom:16px; white-space:pre-wrap; }
