@@ -42,6 +42,10 @@ export async function updateSession(request: NextRequest) {
   const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
   // หน้าเริ่มเล่นแบบไม่สมัคร (guest) — เข้าได้โดยยังไม่มี session
   const isGuestPage = request.nextUrl.pathname.startsWith("/guest");
+  // ผู้ปกครอง — landing (/guardian) ต้องเข้าได้ก่อนล็อกอิน (ปุ่ม Sign in with Google) และ
+  // /guardian/callback ต้องรับ redirect กลับจาก Google ได้ก่อนที่ exchange code จะเซ็ต cookie สำเร็จ
+  // ส่วนการเช็คสิทธิ์จริง (allowlist / มีแถว guardians) ทำใน getGuardianAccess() ที่ตัวหน้าเอง
+  const isGuardianPage = request.nextUrl.pathname.startsWith("/guardian");
 
   if (
     !user &&
@@ -50,6 +54,7 @@ export async function updateSession(request: NextRequest) {
     !isCronRoute &&
     !isPrivacyPage &&
     !isGuestPage &&
+    !isGuardianPage &&
     request.nextUrl.pathname !== "/"
   ) {
     const url = request.nextUrl.clone();

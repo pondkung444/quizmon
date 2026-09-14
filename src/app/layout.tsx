@@ -95,7 +95,13 @@ export default async function RootLayout({
 
     // บังคับให้กรอก complete-profile ให้เสร็จก่อนเข้าหน้าอื่นในแอป (กันเคส Google OAuth
     // signup ที่ profile ยังไม่ครบแล้วหนีไปหน้าอื่นได้เฉยๆ โดยไม่ผ่านฟอร์ม)
-    if (!pathname.startsWith("/login") && (!profile?.username || !profile?.grade_level)) {
+    // ยกเว้น /guardian — บัญชีผู้ปกครองไม่มีแถว profiles เลย (handle_new_user() แยกเส้นทางไป
+    // public.guardians แทน) เช็คนี้จึง false positive ทุกครั้งถ้าไม่กันพาธนี้ไว้
+    if (
+      !pathname.startsWith("/login") &&
+      !pathname.startsWith("/guardian") &&
+      (!profile?.username || !profile?.grade_level)
+    ) {
       redirect("/login/complete-profile");
     }
   }
@@ -111,7 +117,9 @@ export default async function RootLayout({
         <Analytics />
         <SpeedInsights />
         {children}
-        <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
+        {!pathname.startsWith("/guardian") && (
+          <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
+        )}
         {isAnonymous && !guestPendingEmail && activePetStage !== null && activePetStage >= 2 && (
           <GuestUpgradeGate petName={activePetName ?? ""} />
         )}
@@ -119,9 +127,11 @@ export default async function RootLayout({
           <GuestConfirmEmailBanner pendingEmail={guestPendingEmail} />
         )}
         {guestNeedsPassword && <GuestSetPasswordPrompt />}
-        {user && !isAnonymous && !guestNeedsPassword && !profileSchool && (
-          <GuestSchoolPrompt userId={user.id} />
-        )}
+        {user &&
+          !isAnonymous &&
+          !guestNeedsPassword &&
+          !profileSchool &&
+          !pathname.startsWith("/guardian") && <GuestSchoolPrompt userId={user.id} />}
       </body>
     </html>
   );
