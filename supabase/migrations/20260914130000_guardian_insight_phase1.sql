@@ -221,10 +221,9 @@ begin
         with answered as (
           select count(*) as c
           from public.quiz_attempts qa
-          join public.questions q on q.id = qa.question_id::bigint
+          join public.questions q on q.id = qa.question_id
           where qa.user_id = p_student_id
             and qa.source is null
-            and qa.question_id ~ '^\d+$' -- question_id เป็น text บางแถวเก่าไม่ใช่ตัวเลขล้วน (ดู petCalendar.ts) กันคำสั่ง cast พังทั้ง query
             and qa.created_at >= (v_week_start::timestamp at time zone 'Asia/Bangkok')
             and qa.created_at < ((v_week_start + 7)::timestamp at time zone 'Asia/Bangkok')
             and q.subject = gg.subject
@@ -300,10 +299,9 @@ begin
       else 'ยังต้องฝึก'
     end as tier
   from public.quiz_attempts qa
-  join public.questions q on q.id = qa.question_id::bigint
+  join public.questions q on q.id = qa.question_id
   where qa.user_id = p_student_id
     and qa.source is null
-    and qa.question_id ~ '^\d+$' -- question_id เป็น text บางแถวเก่าไม่ใช่ตัวเลขล้วน (ดู petCalendar.ts) กันคำสั่ง cast พังทั้ง query
     and qa.created_at >= now() - interval '30 days'
   group by q.subject, q.category
   having count(*) >= 10
