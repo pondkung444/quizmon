@@ -318,6 +318,8 @@ comment on function public.guardian_get_categories(uuid) is
 -- ============================================================
 -- 6) guardian_get_qmon_display — Qmon ที่ active ของนักเรียนคนนี้ ทรงเดียวกับ PetDisplayInput
 --    (src/components/social/petSummary.ts) ให้ client เรียก resolvePetDisplay() ต่อได้เลย
+--    pets.stage เป็น smallint จริง (ไม่ใช่ integer) — cast ::integer ให้ตรงกับ RETURNS TABLE
+--    ที่ประกาศไว้ (พบระหว่างเทสจริงกับ ซันซัน↔pond แก้แล้ว live บน prod ไฟล์นี้ sync ตามให้ตรง)
 -- ============================================================
 create or replace function public.guardian_get_qmon_display(p_student_id uuid)
 returns table (
@@ -351,7 +353,7 @@ begin
   end if;
 
   return query
-  select p.nickname, p.stage, p.subline, p.personality, e.sprite_prefix, e.name_th
+  select p.nickname, p.stage::integer, p.subline, p.personality, e.sprite_prefix, e.name_th
   from public.pets p
   join public.egg_types e on e.id = p.egg_type_id
   where p.user_id = p_student_id and p.is_active = true
