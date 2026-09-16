@@ -290,6 +290,12 @@ export default function PetCard({
             ? `อีก ${Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป`
             : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
         </p>
+        <QmonGrowthGuide
+          stage={stage}
+          exp={exp}
+          dailyCap={dailyCap}
+          advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+        />
       </div>
 
       {/* 6. daily training bar */}
@@ -307,13 +313,6 @@ export default function PetCard({
           </p>
         )}
       </div>
-
-      <QmonGrowthGuide
-        stage={stage}
-        exp={exp}
-        dailyCap={dailyCap}
-        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
-      />
 
       {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
 

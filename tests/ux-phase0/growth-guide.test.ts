@@ -15,7 +15,9 @@ const { default: Guide } = await import(`data:text/javascript;base64,${Buffer.fr
 
 test("growth guide separates accumulated EXP from daily training", () => {
   const html = renderToStaticMarkup(createElement(Guide, { stage: 2, exp: 180, dailyCap: 180, advancedActivitiesUnlocked: false }));
-  assert.match(html, /เหลืออีก 720 EXP/);
+  assert.match(html, /<details/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+  assert.doesNotMatch(html, /เป้าหมายต่อไป|เหลืออีก/);
   assert.match(html, /ไม่รีเซ็ตเมื่อขึ้นวันใหม่/);
   assert.match(html, /50 EXP/);
   assert.match(html, /350 EXP/);
@@ -26,7 +28,7 @@ test("growth guide separates accumulated EXP from daily training", () => {
 
 test("full grown Qmon explains collection before using unlocked modes", () => {
   const html = renderToStaticMarkup(createElement(Guide, { stage: 4, exp: 900, dailyCap: 180, advancedActivitiesUnlocked: true }));
-  assert.match(html, /ถึง Stage 4 แล้ว/);
+  assert.match(html, /ดูเส้นทางการเติบโต/);
   assert.match(html, /เก็บ Qmon ตัวนี้เข้าฟาร์ม/);
   assert.match(html, /เลือก Qmon Stage 4 จากฟาร์ม/);
   assert.doesNotMatch(html, /เหลืออีก/);
