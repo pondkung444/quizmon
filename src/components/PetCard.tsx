@@ -151,6 +151,9 @@ export default function PetCard({
     adventureMinutes: "dungeon" in dungeonCard ? dungeonCard.dungeon.durationMinutes : null,
     pvpTurnCount,
     raidTicketCount,
+    advancedActivitiesUnlocked: dungeonCard.status !== "invite" || isMaxStage,
+    expToday,
+    dailyExpCap: dailyCap,
     hasEverAnswered,
     weakTopic: topicStats.needsPractice[0]?.category ?? null,
   });
@@ -183,7 +186,9 @@ export default function PetCard({
 
       {/* 1.6 แถบด่วนผจญภัย/ท้าทาย — sticky ค้างบนสุดตอนเลื่อนผ่าน (11 ส.ค. 2026 เปิดระบบท้าทาย)
           ดู StickyActionBanner.tsx */}
-      <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
+      {(dungeonCard.status !== "invite" || isMaxStage) && (
+        <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
+      )}
 
       {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
           เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ
@@ -249,7 +254,11 @@ export default function PetCard({
         <QmonChatBubble />
       </div>
 
-      <HomeNextAction action={nextAction} learnerState="active_pet" />
+      <HomeNextAction
+        action={nextAction}
+        learnerState="active_pet"
+        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+      />
 
       {/* Hero ด้านบนเป็น CTA หลักเพียงจุดเดียว ส่วน control ที่ต้องทำงานในหน้าเดิม
           (เก็บ Qmon) และ mission chip ที่จบแล้วคงไว้เป็นสถานะรอง ไม่แย่งลำดับการตัดสินใจ */}

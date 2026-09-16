@@ -7,7 +7,15 @@ import { track } from "@/lib/analytics";
 import { uxFunnelProps, type LearnerState } from "@/lib/analyticsContract";
 import type { NextAction } from "@/lib/nextAction";
 
-export default function HomeNextAction({ action, learnerState }: { action: NextAction; learnerState: LearnerState }) {
+export default function HomeNextAction({
+  action,
+  learnerState,
+  advancedActivitiesUnlocked = false,
+}: {
+  action: NextAction;
+  learnerState: LearnerState;
+  advancedActivitiesUnlocked?: boolean;
+}) {
   useEffect(() => {
     track("home_next_action_viewed", uxFunnelProps(learnerState, { activity: action.activity, source: action.id }));
   }, [action.activity, action.id, learnerState]);
@@ -31,8 +39,16 @@ export default function HomeNextAction({ action, learnerState }: { action: NextA
         </summary>
         <nav aria-label="กิจกรรมอื่น" className="grid grid-cols-2 gap-2 pt-2 text-center text-sm">
           <Link className="min-h-11 rounded-xl border border-border p-3" href="/quiz">ฝึก Qmon</Link>
-          <Link className="min-h-11 rounded-xl border border-border p-3" href="/adventure">ผจญภัย</Link>
-          <Link className="min-h-11 rounded-xl border border-border p-3" href="/raid">ท้าทายด่าน</Link>
+          {advancedActivitiesUnlocked ? (
+            <>
+              <Link className="min-h-11 rounded-xl border border-border p-3" href="/adventure">ผจญภัย</Link>
+              <Link className="min-h-11 rounded-xl border border-border p-3" href="/raid">ท้าทายด่าน</Link>
+            </>
+          ) : (
+            <div className="col-span-2 rounded-xl border border-border bg-track/50 p-3 text-text3">
+              🔒 ผจญภัยและท้าทายด่าน — ปลดล็อกเมื่อมี Qmon Stage 4
+            </div>
+          )}
           <Link className="min-h-11 rounded-xl border border-border p-3" href="/pvp">ประลอง</Link>
         </nav>
       </details>

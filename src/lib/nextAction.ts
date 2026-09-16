@@ -3,6 +3,7 @@ export type NextActionId =
   | "collect_evolution"
   | "claim_adventure"
   | "daily_mission"
+  | "train_to_cap"
   | "resume_pvp"
   | "start_adventure"
   | "start_raid"
@@ -26,6 +27,9 @@ export type NextActionState = {
   adventureMinutes?: number | null;
   pvpTurnCount?: number;
   raidTicketCount?: number;
+  advancedActivitiesUnlocked?: boolean;
+  expToday?: number;
+  dailyExpCap?: number;
   hasEverAnswered?: boolean;
   weakTopic?: string | null;
 };
@@ -37,20 +41,35 @@ export function resolveNextAction(state: NextActionState): NextAction {
   if (state.evolutionReady) {
     return { id: "collect_evolution", title: "Qmon โตเต็มที่แล้ว", description: "เก็บเข้าฟาร์มเพื่อเปิดรอบการเลี้ยงตัวถัดไป", cta: "รับการเติบโต", href: "#collect-qmon", activity: "hatch", meta: "พร้อมรับทันที" };
   }
-  if (state.adventureStatus === "claimable") {
-    return { id: "claim_adventure", title: "Qmon กลับจากผจญภัยแล้ว", description: "เปิดผลการเดินทางและรับรางวัลที่รออยู่", cta: "รับผลผจญภัย", href: "/adventure", activity: "adventure", meta: "มีรางวัลรอรับ" };
-  }
   if (state.mission && state.mission.remaining > 0) {
     return { id: "daily_mission", title: "ทำภารกิจวันนี้ต่อ", description: `เหลืออีก ${state.mission.remaining} ข้อ รับโบนัส ${state.mission.bonusExp} EXP`, cta: "เริ่มภารกิจ", href: `/quiz?mission=${state.mission.id}`, activity: "mission", meta: `${state.mission.remaining} ข้อ` };
   }
-  if ((state.pvpTurnCount ?? 0) > 0) {
-    return { id: "resume_pvp", title: "ถึงตาคุณประลองแล้ว", description: `มี ${(state.pvpTurnCount ?? 0)} เกมที่รอการตัดสินใจ`, cta: "เล่นเทิร์นต่อ", href: "/pvp", activity: "pvp", meta: `${state.pvpTurnCount} เกม` };
+  const dailyExpCap = state.dailyExpCap ?? 180;
+  const expToday = Math.max(0, state.expToday ?? 0);
+  if (dailyExpCap > 0 && expToday < dailyExpCap) {
+    const remainingExp = dailyExpCap - expToday;
+    return {
+      id: "train_to_cap",
+      title: "ฝึก Qmon ต่อให้เต็ม",
+      description: `วันนี้ได้ ${expToday}/${dailyExpCap} EXP แล้ว เหลืออีก ${remainingExp} EXP เพื่อให้ Qmon เติบโตเต็มที่`,
+      cta: "ฝึก Qmon ต่อ",
+      href: "/quiz",
+      activity: "practice",
+      meta: `เหลืออีก ${remainingExp} EXP`,
+    };
   }
-  if (state.adventureStatus === "ready") {
+  const advancedActivitiesUnlocked = state.advancedActivitiesUnlocked ?? false;
+  if (advancedActivitiesUnlocked && state.adventureStatus === "claimable") {
+    return { id: "claim_adventure", title: "Qmon กลับจากผจญภัยแล้ว", description: "เปิดผลการเดินทางและรับรางวัลที่รออยู่", cta: "รับผลผจญภัย", href: "/adventure", activity: "adventure", meta: "มีรางวัลรอรับ" };
+  }
+  if (advancedActivitiesUnlocked && state.adventureStatus === "ready") {
     return { id: "start_adventure", title: "ส่ง Qmon ไปผจญภัย", description: "เลือกเส้นทางแล้วกลับมารับของรางวัล", cta: "เลือกการผจญภัย", href: "/adventure", activity: "adventure", meta: state.adventureMinutes ? `ประมาณ ${state.adventureMinutes} นาที` : "เลือกเส้นทางได้" };
   }
-  if ((state.raidTicketCount ?? 0) > 0) {
+  if (advancedActivitiesUnlocked && (state.raidTicketCount ?? 0) > 0) {
     return { id: "start_raid", title: "พร้อมท้าทายด่าน", description: "ใช้กุญแจที่มีเพื่อพา Qmon ลุยด่าน", cta: "เลือกด่าน", href: "/raid", activity: "raid", meta: `มีกุญแจ ${state.raidTicketCount} ดอก` };
+  }
+  if ((state.pvpTurnCount ?? 0) > 0) {
+    return { id: "resume_pvp", title: "ถึงตาคุณประลองแล้ว", description: `มี ${(state.pvpTurnCount ?? 0)} เกมที่รอการตัดสินใจ`, cta: "เล่นเทิร์นต่อ", href: "/pvp", activity: "pvp", meta: `${state.pvpTurnCount} เกม` };
   }
   return {
     id: "practice",
