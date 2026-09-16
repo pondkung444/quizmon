@@ -7,6 +7,7 @@ import { getRanking } from "@/lib/ranking";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
+import type { GuardianEntry, GuardianLinkData } from "@/components/social/GuardianLinkSection";
 import type { FriendsHeaderData } from "@/components/social/FriendsTabHeader";
 import SocialTabsView from "@/components/SocialTabsView";
 import SignOutLink from "@/components/SignOutLink";
@@ -65,6 +66,44 @@ function toPetSummary(row: PetRow): PetSummary | null {
   };
 }
 
+type GuardianLinkStatusRow = {
+  kind: "pending" | "claimed";
+  link_id: string;
+  invite_code: string | null;
+  expires_at: string | null;
+  guardian_id: string | null;
+  guardian_display_name: string | null;
+};
+
+// หัวข้อ "ผู้พิทักษ์" ในแท็บสังคม — gate ด้วย is_guardian_admin ก่อนเสมอ (ชั้น UI ซ้ำกับ RPC layer
+// ตาม pattern "allowlist มี 2 ชั้นเสมอ") คืน null แปลว่าซ่อนหัวข้อทั้งหมด ไม่ใช่แค่ปุ่มว่าง (§7.3)
+async function getGuardianLinkData(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<GuardianLinkData | null> {
+  const { data: isEnabled } = await supabase.rpc("is_guardian_admin", { p_user_id: userId });
+  if (!isEnabled) return null;
+
+  const { data, error } = await supabase.rpc("guardian_get_link_status");
+  if (error) return null;
+
+  const rows = (data ?? []) as GuardianLinkStatusRow[];
+  const pending = rows.find((r) => r.kind === "pending") ?? null;
+  const guardians: GuardianEntry[] = rows
+    .filter((r) => r.kind === "claimed")
+    .map((r) => ({
+      linkId: r.link_id,
+      guardianId: r.guardian_id as string,
+      displayName: r.guardian_display_name,
+    }));
+
+  return {
+    pendingInviteCode: pending?.invite_code ?? null,
+    pendingExpiresAt: pending?.expires_at ?? null,
+    guardians,
+  };
+}
+
 async function getProfileTabData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
@@ -77,6 +116,7 @@ async function getProfileTabData(
     { data: pinnedRows },
     blockedAccounts,
     { data: publicProfileRow },
+    guardianLinkData,
   ] = await Promise.all([
     supabase.from("profiles").select("username, friend_code").eq("id", userId).maybeSingle(),
     supabase
@@ -103,6 +143,7 @@ async function getProfileTabData(
     // กรองจนได้ 0 เสมอ ต้องอ้อมผ่าน get_public_profile (มีอยู่แล้ว ไม่ต้องสร้าง RPC ใหม่) แทน ซึ่ง
     // คืน like_count ให้ทุกกรณีรวมถึงตอน target=ตัวเอง (relationship_status='self')
     supabase.rpc("get_public_profile", { p_target_user_id: userId }).single(),
+    getGuardianLinkData(supabase, userId),
   ]);
   const likeCount = (publicProfileRow as { like_count: number | null } | null)?.like_count ?? 0;
 
@@ -165,6 +206,7 @@ async function getProfileTabData(
     blockedCount: blockedAccounts.length,
     likeCount,
     friendCode: profileRow?.friend_code ?? "",
+    guardianLinkData,
   };
 }
 
