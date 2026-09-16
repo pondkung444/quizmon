@@ -69,9 +69,9 @@ function toPetSummary(row: PetRow): PetSummary | null {
 type GuardianLinkStatusRow = {
   kind: "pending" | "claimed";
   link_id: string;
-  invite_code: string | null;
-  expires_at: string | null;
-  guardian_id: string | null;
+  link_invite_code: string | null;
+  link_expires_at: string | null;
+  linked_guardian_id: string | null;
   guardian_display_name: string | null;
 };
 
@@ -93,13 +93,13 @@ async function getGuardianLinkData(
     .filter((r) => r.kind === "claimed")
     .map((r) => ({
       linkId: r.link_id,
-      guardianId: r.guardian_id as string,
+      guardianId: r.linked_guardian_id as string,
       displayName: r.guardian_display_name,
     }));
 
   return {
-    pendingInviteCode: pending?.invite_code ?? null,
-    pendingExpiresAt: pending?.expires_at ?? null,
+    pendingInviteCode: pending?.link_invite_code ?? null,
+    pendingExpiresAt: pending?.link_expires_at ?? null,
     guardians,
   };
 }
