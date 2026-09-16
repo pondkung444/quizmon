@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Copy, Check, ArrowLeft } from "lucide-react";
@@ -17,6 +17,9 @@ import Toast from "@/components/social/Toast";
 
 export default function AddFriendView({ myFriendCode, invitationCode = "" }: { myFriendCode: string; invitationCode?: string }) {
   const [copied, setCopied] = useState(false);
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const actionLock = useRef(false);
   const [searchMode, setSearchMode] = useState<"name" | "code">(invitationCode ? "code" : "name");
   const [candidates, setCandidates] = useState<SearchFriendCodeResult[]>([]);
   const [input, setInput] = useState(invitationCode);
@@ -40,7 +43,7 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
   }
 
   async function handleShare() {
-    const url = `${window.location.origin}/social/add-friend?code=${encodeURIComponent(myFriendCode)}`;
+    const url = `${window.location.origin}/social/invite?code=${encodeURIComponent(myFriendCode)}`;
     try {
       if (navigator.share) await navigator.share({ title: "มาเป็นเพื่อนใน Qmon", url });
       else { await navigator.clipboard.writeText(url); setToastMessage("คัดลอกลิงก์เพิ่มเพื่อนแล้ว ส่งให้เพื่อนได้เลย"); }
@@ -49,8 +52,19 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
     }
   }
 
+  async function showQr() {
+    if (qrImage) { setQrImage(null); return; }
+    setQrLoading(true);
+    try {
+      const QRCode = await import("qrcode");
+      setQrImage(await QRCode.toDataURL(`${window.location.origin}/social/invite?code=${encodeURIComponent(myFriendCode)}`, { width: 240, margin: 4, errorCorrectionLevel: "M" }));
+    } catch { setErrorMessage("สร้าง QR ไม่สำเร็จ ลองแชร์ลิงก์แทนนะ"); }
+    finally { setQrLoading(false); }
+  }
+
   async function handleSearch() {
-    if (!canSearch) return;
+    if (!canSearch || actionLock.current) return;
+    actionLock.current = true;
     setIsSearching(true);
     setErrorMessage(null);
     setResult(null);
@@ -67,12 +81,14 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ค้นหาไม่สำเร็จ");
     } finally {
+      actionLock.current = false;
       setIsSearching(false);
     }
   }
 
   async function handleSend() {
-    if (!result || !result.found || isSending) return;
+    if (!result || !result.found || actionLock.current) return;
+    actionLock.current = true;
     setIsSending(true);
     setErrorMessage(null);
     try {
@@ -82,6 +98,7 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ส่งคำขอไม่สำเร็จ");
     } finally {
+      actionLock.current = false;
       setIsSending(false);
     }
   }
@@ -94,6 +111,8 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
 
       <div className="order-last rounded-2xl border border-gold-dim bg-card p-4 text-center">
         <button type="button" disabled={!myFriendCode} onClick={handleShare} className="mb-3 min-h-11 w-full rounded-xl bg-amber px-4 text-sm font-bold text-track">แชร์ลิงก์ให้เพื่อน</button>
+        <button type="button" disabled={!myFriendCode || qrLoading} aria-expanded={Boolean(qrImage)} onClick={showQr} className="mb-3 min-h-11 w-full rounded-xl border border-border px-4 text-sm text-text2">{qrLoading ? "กำลังสร้าง QR…" : qrImage ? "ซ่อน QR" : "ให้เพื่อนสแกน QR"}</button>
+        {qrImage && <div className="mb-3"><Image src={qrImage} alt="QR เพิ่มเพื่อนของฉัน" width={240} height={240} unoptimized className="mx-auto max-w-full rounded-xl" /><p className="mt-2 text-xs text-text3">เพื่อนสแกนด้วยกล้องมือถือ แล้วค้นหาและส่งคำขอได้เลย</p></div>}
         <p className="text-xs text-text3">รหัสเพื่อนของฉัน · ใช้เป็นทางสำรอง</p>
         <p className="mt-1 text-2xl font-bold tracking-widest text-gold-hi">{formatFriendCode(myFriendCode)}</p>
         <button

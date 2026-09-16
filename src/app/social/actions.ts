@@ -2,7 +2,7 @@
 
 import { createClient, getUser } from "@/lib/supabase/server";
 import { normalizeFriendCode } from "@/lib/friendCode";
-import { normalizeFriendName } from "@/lib/friendSearch";
+import { friendNamePattern } from "@/lib/friendSearch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PetPreview } from "@/components/social/petSummary";
 import type { EncouragementMessageKey } from "@/lib/encouragementMessages";
@@ -142,7 +142,7 @@ export async function setPinnedMedals(achievementIds: string[]): Promise<{ pinne
 export async function searchFriendName(raw: string): Promise<SearchFriendCodeResult[]> {
   const user = await getUser();
   if (!user) throw new Error("เข้าสู่ระบบก่อนค้นหาเพื่อน");
-  const name = normalizeFriendName(raw);
+  const name = friendNamePattern(raw);
   const { data, error } = await createAdminClient().from("profiles")
     .select("friend_code").ilike("username", name).neq("id", user.id)
     .order("id").limit(10);

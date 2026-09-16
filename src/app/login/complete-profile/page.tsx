@@ -56,7 +56,7 @@ export default function CompleteProfilePage() {
       if (!active) return;
 
       if (profile?.username && profile?.grade_level) {
-        router.replace("/");
+        router.replace("/login/continue");
         return;
       }
 
@@ -98,7 +98,7 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    router.replace("/");
+    router.replace("/login/continue");
   }
 
   if (checking) {

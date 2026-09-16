@@ -42,6 +42,9 @@ export async function updateSession(request: NextRequest) {
   const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
   // หน้าเริ่มเล่นแบบไม่สมัคร (guest) — เข้าได้โดยยังไม่มี session
   const isGuestPage = request.nextUrl.pathname.startsWith("/guest");
+  // Only the invite handoff is public; friend lookup still authenticates server-side.
+  const isFriendInvite = request.nextUrl.pathname === "/social/invite" ||
+    (request.nextUrl.pathname === "/social/add-friend" && /^[A-Za-z0-9]{8}$/.test(request.nextUrl.searchParams.get("code") ?? ""));
   // ผู้ปกครอง — landing (/guardian) ต้องเข้าได้ก่อนล็อกอิน (ปุ่ม Sign in with Google) และ
   // /guardian/callback ต้องรับ redirect กลับจาก Google ได้ก่อนที่ exchange code จะเซ็ต cookie สำเร็จ
   // ส่วนการเช็คสิทธิ์จริง (allowlist / มีแถว guardians) ทำใน getGuardianAccess() ที่ตัวหน้าเอง
@@ -54,6 +57,7 @@ export async function updateSession(request: NextRequest) {
     !isCronRoute &&
     !isPrivacyPage &&
     !isGuestPage &&
+    !isFriendInvite &&
     !isGuardianPage &&
     request.nextUrl.pathname !== "/"
   ) {
