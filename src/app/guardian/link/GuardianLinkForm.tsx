@@ -1,40 +1,44 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function GuardianLinkForm() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [linkedStudentId, setLinkedStudentId] = useState<string | null>(null);
+  const router = useRouter();
   const supabase = createClient();
 
+  // จบ flow: redirect ไป /guardian/[studentId] ทันทีหลัง claim สำเร็จ (เคาะกับปอนด์ 2026-09-16 —
+  // ไม่โชว์หน้า "สำเร็จ" คั่นก่อน) — router.push() อย่างเดียว ห้ามคู่กับ router.refresh() (§Next.js
+  // 16.2.10 canary gotcha ที่ล็อกไว้ใน principles) loading ค้าง true ต่อจนกว่า component จะ unmount
+  // จาก navigation กันกดซ้ำระหว่างรอ
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (loading) return;
     setLoading(true);
     setError(null);
 
-    const { data, error } = await supabase.rpc("guardian_claim_invite_code", {
+    const { data, error: rpcError } = await supabase.rpc("guardian_claim_invite_code", {
       p_invite_code: code.trim(),
     });
 
-    setLoading(false);
-    if (error) {
-      setError(error.message);
+    if (rpcError) {
+      setLoading(false);
+      setError(rpcError.message);
       return;
     }
-    setLinkedStudentId(data?.[0]?.student_id ?? null);
-  }
 
-  if (linkedStudentId) {
-    return (
-      <div className="flex flex-col gap-2 text-center">
-        <p className="text-sm font-semibold text-gold-hi">เชื่อมบัญชีสำเร็จ</p>
-        <p className="text-xs text-text3">student_id: {linkedStudentId}</p>
-      </div>
-    );
+    const studentId = data?.[0]?.student_id;
+    if (!studentId) {
+      setLoading(false);
+      setError("เชื่อมบัญชีไม่สำเร็จ ลองใหม่อีกครั้ง");
+      return;
+    }
+
+    router.push(`/guardian/${studentId}`);
   }
 
   return (

@@ -12,6 +12,7 @@ import SelectPrideQmonSheet from "@/components/social/SelectPrideQmonSheet";
 import SelectMedalsSheet from "@/components/social/SelectMedalsSheet";
 import SelectFavoriteQmonSheet from "@/components/social/SelectFavoriteQmonSheet";
 import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
+import GuardianLinkSection, { type GuardianLinkData } from "@/components/social/GuardianLinkSection";
 import { resolvePetDisplay, type PetSummary } from "@/components/social/petSummary";
 import { formatFriendCode } from "@/lib/friendCode";
 import type { ProfileJourneyStats } from "@/lib/profileJourneyStats";
@@ -40,6 +41,9 @@ export type ProfileTabData = {
   blockedCount: number;
   likeCount: number;
   friendCode: string;
+  // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (ยังไม่ allowlist ใน guardian_admin — §7.3 ของเอกสารออกแบบ:
+  // เด็กที่ไม่ได้อยู่ใน pilot ต้องไม่เห็นหัวข้อนี้แม้แต่น้อย)
+  guardianLinkData: GuardianLinkData | null;
 };
 
 // การ์ด Qmon ที่ภูมิใจ — แถวเดียว (ภาพวงกลม+ชื่อ 2 บรรทัด | radar) ตัดบอก Stage/สาย/บุคลิก/อุปกรณ์
@@ -274,7 +278,12 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
         </button>
       </section>
 
-      {/* 7. ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
+      {/* 7. หัวข้อ "ผู้พิทักษ์" — null คือยังไม่เปิดใช้ฟีเจอร์นี้สำหรับบัญชีนี้ ไม่ render อะไรเลย */}
+      {data.guardianLinkData && (
+        <GuardianLinkSection initialData={data.guardianLinkData} onToast={setToastMessage} />
+      )}
+
+      {/* 8. ลิงก์เล็กๆ ไปหน้าบัญชีที่บล็อก — ยังไม่คุ้มสร้างหน้า "การตั้งค่า" กลางแยกต่างหากเพราะมีแค่
           รายการเดียวตอนนี้ (เอกสารเดิมเขียนเป็น สังคม→โปรไฟล์→แก้ไข→บัญชีที่บล็อก แต่ลัดตรงมาแทน) */}
       <Link
         href="/social/blocked"
