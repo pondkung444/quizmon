@@ -52,6 +52,7 @@ export default function HomeNextAction({
           )}
           <Link className="min-h-11 rounded-xl border border-border p-3" href="/pvp">ประลอง</Link>
         </nav>
+        {advancedActivitiesUnlocked && <p className="mt-2 text-center text-xs leading-5 text-text3">ท้าทายใช้กุญแจ · ผจญภัยเลือกเส้นทางแล้วรอรับผล · อาหารใช้ป้อน Qmon ไม่ใช่ค่าฝึก</p>}
       </details>
     </section>
   );
