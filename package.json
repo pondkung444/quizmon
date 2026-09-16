@@ -15,6 +15,7 @@
     "verify:question-factory-operational-health": "node --experimental-strip-types scripts/verify-question-factory-operational-health.mjs",
     "test:raid": "node --experimental-strip-types --test tests/raid-cards/*.test.ts",
     "test:ux-phase0": "node --experimental-strip-types --test tests/ux-phase0/*.test.ts",
+    "test:ux-phase2": "node --experimental-strip-types --test tests/ux-phase2/*.test.ts",
     "test:ux-phase0:browser": "playwright test --config=playwright.ux-phase0.config.ts"
   },
   "dependencies": {

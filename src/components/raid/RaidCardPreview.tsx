@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BOSSES, createBattle, resolveTurn, damageProgress, type Battle, type BossId, type CardId, type Stats } from "@/lib/raid/cards/engine";
 import type { RaidCardQuestion, RaidCardFeedback } from "@/lib/raid/cards/server";
+import { createLearningFeedback } from "@/lib/learningFeedback";
 import CardBattleArena from "./CardBattleArena";
 
 const PROFILES: Record<string, Stats> = {
@@ -74,7 +75,7 @@ export default function RaidCardPreview() {
       await new Promise(resolve=>setTimeout(resolve,220));
       const correct=index===answerKey;
       const next=resolveTurn(battle,question.cardId,Math.random,correct);
-      const result:RaidCardFeedback={revision:question.revision,correct,correctIndex:answerKey,question,explanation: `จำนวนทั้งหมด = จำนวนกล่อง × จำนวนต่อกล่อง = ${battle.turn+3} × ${battle.turn%5+2} = ${question.choices[answerKey]}`};
+      const result:RaidCardFeedback={revision:question.revision,...createLearningFeedback(index,answerKey,`จำนวนทั้งหมด = จำนวนกล่อง × จำนวนต่อกล่อง = ${battle.turn+3} × ${battle.turn%5+2} = ${question.choices[answerKey]}`),question};
       setBattle(next);setAnimateTurn(next.log.length);setQuestion(null);setAnswerKey(null);setFeedback(result);save(next,profile,best,null,null,result);
     } finally {lock.current=false;setBusy(false);}
   }
