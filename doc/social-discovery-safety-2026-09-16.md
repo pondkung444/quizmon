@@ -1,5 +1,13 @@
 # Phase 4: discovery hardening
 
+## Rollout update — 2026-09-17
+
+- Vercel preview production build for application commit `79221ff` passed.
+- Applied `social_discovery_safety` to Quizmon project `wmndxiuqzrnqbhrznmfg`. Verified anonymous name lookup is denied, authenticated lookup allowed, private-schema access denied and counter RLS enabled.
+- Live database UX transaction verified name lookup → request → accept → block → hidden name/code → unblock without restoring friendship. Rolled back all fixture/relationship/counter changes. This is database-level verification, not browser request/accept testing.
+- Security advisors: private counter RLS without policy is intentional deny-all; authenticated SECURITY DEFINER name RPC is intentional, with identity checks, explicit grants, fixed search path and block filtering. No anonymous execution granted.
+- Application PR #163 is ready for review, not merged. Browser request/accept/block verification, physical QR/OAuth verification and concurrent stress testing still pending. Earlier deployment/pending notes below describe the preparation state before this update.
+
 Changes:
 - Authenticated `search_friend_name` replaces the server service-role nickname query. No friend codes, email, school or phone are returned.
 - Exact case-insensitive nickname equality treats `%`, `_` and backslashes literally. Blocks are filtered in both directions before the 10-result limit.
