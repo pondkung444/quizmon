@@ -27,10 +27,7 @@ export default async function GuardianPlanPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col gap-6 bg-bg p-6 text-text">
       <div className="text-center">
-        <h1 className="text-xl font-bold text-gold-hi">แผนฝึก (ทดสอบ)</h1>
-        <p className="mt-1 text-sm text-text3">
-          หน้าทดสอบ RPC ของ Module C — ไม่ใช่ดีไซน์จริง
-        </p>
+        <h1 className="text-xl font-bold text-gold-hi">แผนฝึก</h1>
       </div>
 
       {students.length === 0 && (
