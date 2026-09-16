@@ -3,6 +3,7 @@ import { randomInt } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
+import { createLearningFeedback, type LearningFeedback } from "@/lib/learningFeedback";
 import { createBattle, isBossId, type Battle, type Stats } from "./engine";
 
 export type CardBattleView = {
@@ -17,7 +18,7 @@ export type CardBattleView = {
   feedback: RaidCardFeedback | null;
 };
 export type RaidCardQuestion = { revision:number; cardId:import("./engine").CardId; text:string; choices:string[]; imageUrl:string|null; subject:string; category:string };
-export type RaidCardFeedback = { revision:number; correct:boolean; correctIndex:number; explanation:string|null; question:RaidCardQuestion };
+export type RaidCardFeedback = LearningFeedback & { revision:number; question:RaidCardQuestion };
 export function cardRaidsEnabled() { return process.env.RAID_CARD_BATTLES_ENABLED !== "false"; }
 export const serverRandom = () => randomInt(0, 1_000_000) / 1_000_000;
 type BattleRow = { revision: number; state: Battle | null };
@@ -61,6 +62,6 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
   ]);
   if(pendingError || answerError) throw new Error("โหลดคำถามไม่สำเร็จ ลองโหลดสถานะล่าสุด");
   const question = pending ? {...pending.question,revision:pending.revision,cardId:pending.card_id} as RaidCardQuestion : null;
-  const feedback = answered ? { revision:answered.revision,correct:answered.answer_index===answered.correct_index,correctIndex:answered.correct_index,explanation:answered.explanation,question:{...answered.question,revision:answered.revision,cardId:answered.card_id} as RaidCardQuestion } : null;
+  const feedback = answered ? { revision:answered.revision,...createLearningFeedback(answered.answer_index,answered.correct_index,answered.explanation),question:{...answered.question,revision:answered.revision,cardId:answered.card_id} as RaidCardQuestion } : null;
   return { phase: "card_battle", runId, revision, battle, petName: pet?.nickname || "Qmon", petImage, bestProgress: best?.[0]?.progress ?? 0,question,feedback };
 }

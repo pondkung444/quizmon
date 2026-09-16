@@ -2,10 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createLearningFeedback, type LearningFeedback } from "@/lib/learningFeedback";
 
-export type SubmitDungeonBonusAnswerResult = {
-  isCorrect: boolean;
-};
+export type SubmitDungeonBonusAnswerResult = LearningFeedback;
 
 // ส่ง Qmon (stage 4, เก็บเข้าฟาร์มแล้ว) ไปผจญภัย — RPC เช็ค ownership/stage/รันค้างเองอยู่แล้ว
 // (unique constraint กันมีรัน in_progress ซ้อนกัน 2 อันของ user เดียว)
@@ -169,12 +168,26 @@ export async function submitDungeonBonusAnswer(input: {
   const admin = createAdminClient();
   const { data: question, error } = await admin
     .from("questions")
-    .select("correct_index")
+    .select("correct_index, explanation")
     .eq("id", input.questionId)
     .single();
   if (error || !question) throw new Error("ไม่พบคำถามนี้");
 
   const isCorrect = input.choiceIndex === question.correct_index;
+
+  const { data: existing } = await admin
+    .from("quiz_attempts")
+    .select("is_correct, choice_index")
+    .eq("user_id", user.id)
+    .eq("question_id", input.questionId)
+    .eq("source", "dungeon_bonus")
+    .eq("dungeon_run_id", input.dungeonRunId)
+    .maybeSingle();
+
+  if (existing) {
+    const selectedIndex = existing.choice_index ?? input.choiceIndex;
+    return createLearningFeedback(selectedIndex, question.correct_index, question.explanation);
+  }
 
   const { error: insertError } = await supabase.from("quiz_attempts").insert({
     user_id: user.id,
@@ -182,8 +195,20 @@ export async function submitDungeonBonusAnswer(input: {
     is_correct: isCorrect,
     source: "dungeon_bonus",
     dungeon_run_id: input.dungeonRunId,
+    choice_index: input.choiceIndex,
   });
+  if (insertError?.code === "23505") {
+    const { data: saved } = await admin
+      .from("quiz_attempts")
+      .select("choice_index")
+      .eq("user_id", user.id)
+      .eq("question_id", input.questionId)
+      .eq("source", "dungeon_bonus")
+      .eq("dungeon_run_id", input.dungeonRunId)
+      .single();
+    return createLearningFeedback(saved?.choice_index ?? input.choiceIndex, question.correct_index, question.explanation);
+  }
   if (insertError) throw new Error(insertError.message);
 
-  return { isCorrect };
+  return createLearningFeedback(input.choiceIndex, question.correct_index, question.explanation);
 }

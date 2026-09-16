@@ -35,6 +35,8 @@ import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
 import QuizJourney from "@/components/quiz/QuizJourney";
 import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
+import MiniReviewRound from "@/components/quiz/MiniReviewRound";
+import { selectMissedQuestions } from "@/lib/learningFeedback";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -82,7 +84,7 @@ const SENIOR_MODES: { id: SeniorBranch; label: string; emoji: string }[] = [
   { id: "biology", label: "ชีวะ", emoji: "🧬" },
 ];
 
-type Phase = "select" | "topicSelect" | "loading" | "playing" | "chooseFood" | "summary";
+type Phase = "select" | "topicSelect" | "loading" | "playing" | "chooseFood" | "summary" | "review";
 
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
@@ -613,6 +615,12 @@ export default function QuizClient({
     router.push(summary?.evolved ? "/pet?evolved=1" : "/pet");
   }
 
+  const missedQuestions = selectMissedQuestions(questions, answers.map((answer) => answer.isCorrect));
+
+  if (phase === "review") {
+    return <MiniReviewRound questions={missedQuestions} onDone={() => setPhase("summary")} />;
+  }
+
   if (phase === "topicSelect" && topicChapters) {
     return (
       <div className="pb-24">
@@ -972,6 +980,14 @@ export default function QuizClient({
           </p>
         )}
       </div>
+
+      {missedQuestions.length > 0 && <div className="rounded-3xl border border-border bg-track/50 p-5 text-left">
+        <p className="font-sarabun text-lg font-bold text-text">แนะนำก่อนจบรอบ</p>
+        <p className="mt-1 text-sm leading-relaxed text-text2">ทบทวนข้อที่พลาด {missedQuestions.length} ข้อ ใช้เวลาไม่นาน และไม่บันทึกคำตอบหรือให้ EXP ซ้ำ</p>
+        <button type="button" onClick={() => setPhase("review")} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-track shadow-lg active:scale-95">
+          ทบทวนสั้น {missedQuestions.length} ข้อ
+        </button>
+      </div>}
 
       <div className="flex flex-col gap-3">
         <button

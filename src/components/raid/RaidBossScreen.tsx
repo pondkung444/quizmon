@@ -190,23 +190,24 @@ export default function RaidBossScreen({
       };
       setResult(localResult);
       sfx(localResult.isCorrect ? "answer_correct" : "answer_wrong");
-      // รอสั้นๆ ให้เห็นไฮไลต์ถูก/ผิดก่อน แล้วสไลด์ปิดกลับไปโหมดฉากอัตโนมัติ ไม่ต้องมีปุ่ม "ดูผล" แยก
-      setTimeout(() => {
-        setLocalAnswers((prev) => ({ ...prev, [seq]: localResult }));
-        setLastCorrect(localResult.isCorrect);
-        setHitKey((k) => k + 1);
-        setSpeechText(pickRandom(localResult.isCorrect ? BOSS_LINES_CORRECT : BOSS_LINES_WRONG));
-        setMode("scene");
-        setSelectedChoice(null);
-        setResult(null);
-        setIsSubmitting(false);
-        setActiveSeq(null);
-      }, 700);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ตอบคำถามไม่สำเร็จ");
       setSelectedChoice(null);
       setIsSubmitting(false);
     }
+  }
+
+  function handleFeedbackContinue() {
+    if (!sheetQuestion || !result) return;
+    setLocalAnswers((prev) => ({ ...prev, [sheetQuestion.seq]: result }));
+    setLastCorrect(result.isCorrect);
+    setHitKey((key) => key + 1);
+    setSpeechText(pickRandom(result.isCorrect ? BOSS_LINES_CORRECT : BOSS_LINES_WRONG));
+    setMode("scene");
+    setSelectedChoice(null);
+    setResult(null);
+    setIsSubmitting(false);
+    setActiveSeq(null);
   }
 
   function handleContinue() {
@@ -391,7 +392,7 @@ export default function RaidBossScreen({
               {sheetQuestion.choices.map((choiceText, choiceIndex) => {
                 const isSelected = selectedChoice === choiceIndex;
                 const isCorrectChoice = result && choiceIndex === result.correctIndex;
-                const isWrongSelected = result && isSelected && !result.isCorrect;
+                const isWrongSelected = Boolean(result && isSelected && !result.isCorrect);
                 let style = "border-border bg-bg hover:border-gold-dim";
                 if (isCorrectChoice) style = "border-gold bg-amber/10";
                 else if (isWrongSelected) style = "border-red bg-red/10";
@@ -403,16 +404,33 @@ export default function RaidBossScreen({
                     type="button"
                     disabled={selectedChoice !== null || isSubmitting}
                     onClick={() => handleSelect(choiceIndex)}
-                    className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-4 text-left font-sarabun text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed ${style}`}
+                    className={`flex items-start gap-3 rounded-2xl border-2 px-4 py-4 text-left font-sarabun text-lg font-medium text-text shadow-sm transition disabled:cursor-not-allowed disabled:opacity-100 ${style}`}
                   >
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
                       {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
                     </span>
-                    <span>{choiceText}</span>
+                    <span className="min-w-0 flex-1 break-words">{choiceText}</span>
+                    {isCorrectChoice && <strong className="shrink-0 text-xs text-gold-hi">คำตอบที่ถูก</strong>}
+                    {isWrongSelected && <strong className="shrink-0 text-xs text-red">คำตอบของเรา</strong>}
                   </button>
                 );
               })}
             </div>
+
+            {result && <div className="mt-4 flex flex-col gap-3" role="status">
+              <p className={`rounded-2xl border p-4 font-bold ${result.isCorrect ? "border-gold bg-amber/10 text-gold-hi" : "border-border bg-track text-text"}`}>
+                {result.isCorrect ? "ตอบถูก — โจมตีบอสเต็มพลัง!" : "รอบนี้ยังไม่ถูก — ดูเหตุผลก่อนลุยต่อ"}
+              </p>
+              {!result.isCorrect && selectedChoice !== null && <p className="rounded-xl border border-red/50 bg-red/10 p-3 text-sm text-text"><strong>คำตอบของเรา:</strong> {sheetQuestion.choices[selectedChoice]}</p>}
+              <p className="rounded-xl border border-gold-dim bg-amber/10 p-3 text-sm text-text"><strong>คำตอบที่ถูก:</strong> {sheetQuestion.choices[result.correctIndex]}</p>
+              <div className="rounded-xl bg-track p-3 text-sm leading-relaxed text-text2">
+                <strong className="text-gold-hi">เหตุผล</strong>
+                <p className="mt-1">{result.explanation || `คำตอบที่ถูกคือ ${sheetQuestion.choices[result.correctIndex]}`}</p>
+              </div>
+              <button type="button" onClick={handleFeedbackContinue} className="min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 text-lg font-bold text-track shadow-lg active:scale-95">
+                ดูผลการโจมตี →
+              </button>
+            </div>}
 
             {errorMessage && <p className="mt-4 text-center text-sm text-red">{errorMessage}</p>}
           </div>
