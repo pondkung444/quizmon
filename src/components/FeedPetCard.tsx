@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { feedPet } from "@/app/pet/actions";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
@@ -27,27 +27,34 @@ export default function FeedPetCard({
   const [selected, setSelected] = useState<"A" | "B" | null>(null);
   const [feeding, setFeeding] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const feedLock = useRef(false);
 
   const quantities: Record<"A" | "B", number> = { A: foodA, B: foodB };
 
   function openSheet() {
     setSelected(null);
     setErrorMessage(null);
+    setSuccessMessage(null);
     setSheetOpen(true);
   }
 
   async function handleConfirm() {
-    if (!selected || feeding || quantities[selected] <= 0) return;
+    if (!selected || feedLock.current || quantities[selected] <= 0) return;
+    feedLock.current = true;
     setFeeding(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
     try {
       const { quantityRemaining } = await feedPet(petId, selected);
       if (selected === "A") setFoodA(quantityRemaining);
       else setFoodB(quantityRemaining);
+      setSuccessMessage(`ป้อน${FOOD_LABEL[selected]}สำเร็จ · เหลือ ${quantityRemaining} ชิ้น`);
       setSelected(null);
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ป้อนอาหารไม่สำเร็จ");
     } finally {
+      feedLock.current = false;
       setFeeding(false);
     }
   }
@@ -65,15 +72,16 @@ export default function FeedPetCard({
       {sheetOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
-          onClick={() => setSheetOpen(false)}
+          onClick={() => !feeding && setSheetOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-t-2xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+            role="dialog" aria-modal="true" aria-labelledby="feed-title"
+            className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-            <h2 className="mb-1 text-sm font-bold text-gold-hi">เลือกอาหารให้ Qmon</h2>
-            <p className="mb-4 text-xs text-text3">อาหารที่ป้อนจะสะสมไว้ตัดสินบุคลิกตอน Qmon โตเต็มที่</p>
+            <h2 id="feed-title" className="mb-1 text-sm font-bold text-gold-hi">เลือกอาหารให้ Qmon</h2>
+            <p className="mb-4 text-xs text-text3">ใช้ครั้งละ 1 ชิ้น อาหารที่ป้อนสะสมไว้ตัดสินบุคลิกตอนโตเต็มที่ ไม่ใช่ EXP จากการฝึก</p>
 
             <div className="grid grid-cols-2 gap-3">
               {(["A", "B"] as const).map((foodType) => {
@@ -84,6 +92,7 @@ export default function FeedPetCard({
                     key={foodType}
                     type="button"
                     disabled={qty <= 0 || feeding}
+                    aria-pressed={isSelected}
                     onClick={() => setSelected(foodType)}
                     className="flex appearance-none flex-col items-center gap-2 bg-transparent transition active:scale-95 disabled:opacity-40"
                   >
@@ -108,12 +117,16 @@ export default function FeedPetCard({
                       {FOOD_LABEL[foodType]}
                     </span>
                     <span className="text-xs text-text3">มี {qty} ชิ้น</span>
+                    {isSelected && <span className="text-xs font-bold text-amber">✓ เลือกแล้ว</span>}
                   </button>
                 );
               })}
             </div>
 
-            {errorMessage && <p className="mt-3 text-xs text-red">{errorMessage}</p>}
+            {selected && <p className="mt-3 text-xs text-text2">ใช้{FOOD_LABEL[selected]} 1 ชิ้น · หลังป้อนเหลือ {Math.max(0, quantities[selected] - 1)} ชิ้น</p>}
+            {successMessage && <p role="status" className="mt-3 text-xs text-amber">{successMessage}</p>}
+            {foodA + foodB === 0 && <p className="mt-3 text-xs text-text3">อาหารหมดแล้ว รับเพิ่มจากภารกิจประจำวัน</p>}
+            {errorMessage && <p role="alert" className="mt-3 text-xs text-red">{errorMessage}</p>}
 
             <button
               type="button"
@@ -121,10 +134,11 @@ export default function FeedPetCard({
               onClick={handleConfirm}
               className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-40"
             >
-              {feeding ? "กำลังป้อน..." : "ยืนยันป้อนอาหาร"}
+              {feeding ? "กำลังป้อน..." : selected ? `ยืนยันป้อน${FOOD_LABEL[selected]} · 1 ชิ้น` : "เลือกอาหารก่อน"}
             </button>
             <button
               type="button"
+              disabled={feeding}
               onClick={() => setSheetOpen(false)}
               className="mt-2 w-full rounded-2xl border border-border py-3 text-sm font-bold text-text2"
             >

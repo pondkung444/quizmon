@@ -324,7 +324,9 @@ export default function PetCard({
 
       {/* 6.65 การ์ดผจญภัย — ใต้บล็อกป้อนอาหาร (ux pass 2026-08) ดู DungeonAdventureCard.tsx
           สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
-      <DungeonAdventureCard state={dungeonCard} />
+      {(dungeonCard.status === "traveling" || dungeonCard.status === "claimable") && (
+        <DungeonAdventureCard state={dungeonCard} />
+      )}
 
       {/* 6.7 ปุ่มเปิดสถิติแยกบท — ขยาย touch target เป็น 44px + ใส่ label (เดิม 32px icon ล้วน
           ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)

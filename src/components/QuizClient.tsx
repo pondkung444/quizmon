@@ -830,7 +830,7 @@ export default function QuizClient({
           <p className="text-6xl">🍚</p>
           <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">เลือกอาหารให้ Qmon</h1>
           <p className="mt-1 text-sm text-text3">
-            ทำภารกิจวันนี้ครบแล้ว! เลือกอาหารที่จะสะสมไว้ตัดสินบุคลิกตอน Qmon โตเต็มที่
+            ทำภารกิจวันนี้ครบแล้ว! เลือกรับอาหาร 1 ชิ้นเข้าคลัง แล้วกลับไปป้อนให้ Qmon ที่หน้าแรก
           </p>
         </div>
 
