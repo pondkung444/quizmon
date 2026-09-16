@@ -333,12 +333,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       setResult(r.data);
       sfx(r.data.is_correct ? "answer_correct" : "answer_wrong");
       holdRef.current = true;
-      window.setTimeout(() => {
-        holdRef.current = false;
-        router.refresh();
-      }, 2200);
     },
-    [view.matchId, view.activeCard, view.activeQuestion, router, sfx]
+    [view.matchId, view.activeCard, view.activeQuestion, sfx]
   );
 
   useEffect(() => {
@@ -554,17 +550,38 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
       {/* ---- ผลตอบล่าสุด ---- */}
       {result && (
-        <div className="mt-4 rounded-2xl border border-gold-dim bg-card p-5 text-center">
+        <div className="mt-4 rounded-2xl border border-gold-dim bg-card p-5">
           {result.is_correct ? (
-            <p className="text-xl font-bold text-gold-hi">ตอบถูก! ไม่เสียเลือด</p>
+            <p className="text-center text-xl font-bold text-gold-hi">ตอบถูก! ไม่เสียเลือด</p>
           ) : (
-            <>
+            <div className="text-center">
               <p className="text-lg font-bold text-text2">ยังไม่ถูก…</p>
               <p className="mt-1 text-2xl font-bold text-red">
                 −{result.damage} {result.crit && <span className="text-amber">คริ ✦</span>}
               </p>
-            </>
+            </div>
           )}
+          {view.activeQuestion && <>
+            <p className="mt-4 whitespace-pre-wrap font-sarabun text-sm font-bold leading-relaxed text-text">{view.activeQuestion.questionText}</p>
+            <div className="mt-3 grid gap-2">
+              {view.activeQuestion.choices.map((choice, choiceIndex) => {
+                const correct = choiceIndex === result.correctIndex;
+                const selected = choiceIndex === result.selectedIndex;
+                const wrong = selected && !correct;
+                const style = correct ? "border-emerald-400 bg-emerald-400/10" : wrong ? "border-red bg-red/10" : "border-border bg-track";
+                return <div key={choiceIndex} className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left font-sarabun text-sm text-text ${style}`}>
+                  <span className="min-w-0 flex-1 break-words">{choice}</span>
+                  {correct && <strong className="shrink-0 text-[10px] text-emerald-200">คำตอบที่ถูก</strong>}
+                  {wrong && <strong className="shrink-0 text-[10px] text-red">คำตอบของเรา</strong>}
+                </div>;
+              })}
+            </div>
+            {result.timed_out && <p className="mt-3 rounded-xl border border-border bg-track p-3 text-sm text-text2">หมดเวลาก่อนเลือกคำตอบ</p>}
+            <div className="mt-3 rounded-xl bg-track p-3 text-sm leading-relaxed text-text2">
+              <strong className="text-gold-hi">เหตุผล</strong>
+              <p className="mt-1">{result.explanation || `คำตอบที่ถูกคือ ${view.activeQuestion.choices[result.correctIndex]}`}</p>
+            </div>
+          </>}
           {result.effect_id && result.effect_triggered && (
             <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-text3">
               <PvpEffectBadge id={result.effect_id} />
@@ -574,7 +591,9 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
               {result.pierce > 0 && result.self_damage === 0 && <span>ทะลุเกราะ</span>}
             </p>
           )}
-          <p className="mt-3 text-xs text-text3">กำลังไปตาต่อไป…</p>
+          <button type="button" onClick={() => { holdRef.current = false; router.refresh(); }} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-track shadow-lg active:scale-95">
+            ไปตาต่อไป →
+          </button>
         </div>
       )}
 

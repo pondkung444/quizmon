@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, getUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { evolvePet, type PetEvolveOutcome } from "@/lib/petEvolution";
 
 async function requireUserId(): Promise<string> {
@@ -183,6 +184,9 @@ export type PvpSubmitResult = {
   exp_b: number | null;
   exp_pet_a: string | null;
   exp_pet_b: string | null;
+  selectedIndex: number;
+  correctIndex: number;
+  explanation: string | null;
 };
 
 // answerIndex = -1 => หมดเวลา (client timer) => นับเป็นตอบผิด
@@ -194,6 +198,13 @@ export async function submitPvpCard(
 ): Promise<PvpActionResult<PvpSubmitResult>> {
   await requireUserId();
   const supabase = await createClient();
+  const admin = createAdminClient();
+  const { data: question } = await admin
+    .from("questions")
+    .select("correct_index, explanation")
+    .eq("id", questionId)
+    .single();
+  if (!question) return { ok: false, message: "โหลดเฉลยของยกนี้ไม่สำเร็จ" };
   const { data, error } = await supabase.rpc("submit_pvp_card", {
     p_match_id: matchId,
     p_card_id: cardId,
@@ -201,5 +212,13 @@ export async function submitPvpCard(
     p_answer_index: answerIndex,
   });
   if (error) return { ok: false, message: error.message };
-  return { ok: true, data: data as PvpSubmitResult };
+  return {
+    ok: true,
+    data: {
+      ...(data as Omit<PvpSubmitResult, "selectedIndex" | "correctIndex" | "explanation">),
+      selectedIndex: answerIndex,
+      correctIndex: question.correct_index,
+      explanation: question.explanation,
+    },
+  };
 }
