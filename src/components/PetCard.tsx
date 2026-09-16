@@ -30,6 +30,7 @@ import DungeonAdventureCard from "@/components/DungeonAdventureCard";
 import type { DungeonCardState } from "@/lib/dungeon";
 import StickyActionBanner from "@/components/StickyActionBanner";
 import HomeNextAction from "@/components/HomeNextAction";
+import QmonGrowthGuide from "@/components/QmonGrowthGuide";
 import { resolveNextAction } from "@/lib/nextAction";
 
 
@@ -306,6 +307,13 @@ export default function PetCard({
           </p>
         )}
       </div>
+
+      <QmonGrowthGuide
+        stage={stage}
+        exp={exp}
+        dailyCap={dailyCap}
+        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+      />
 
       {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
 
