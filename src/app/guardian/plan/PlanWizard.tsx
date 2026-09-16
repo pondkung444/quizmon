@@ -343,7 +343,7 @@ export default function PlanWizard({
 
       {error && <p className="rounded-xl bg-red/10 p-3 text-center text-base text-red">{error}</p>}
 
-      {hasActivePlan ? (
+      {hasActivePlan && !justCreatedPlan ? (
         <>
           {(() => {
             const chapters = plan.filter((r) => r.chapter_key);
