@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { hasUxFunnelContext, isUxFunnelEvent } from "@/lib/analyticsContract";
 
 // Route handler ธรรมดา ไม่ใช่ server action — ตั้งใจ (ดูเหตุผลใน src/lib/analytics.ts +
 // supabase/migrations/014_analytics_events.sql): sendBeacon เรียก server action ไม่ได้ และ
@@ -57,7 +58,9 @@ export async function POST(request: Request) {
     }
 
     // กัน event ที่เกิดขึ้นบนหน้า admin เอง (เช่น admin เปิดดู /admin/analytics) ไม่ให้ปนใน analytics จริง
-    const nonAdminEvents = events.filter((e) => !isAdminEvent(e));
+    const nonAdminEvents = events.filter(
+      (e) => !isAdminEvent(e) && (!isUxFunnelEvent(e.event_name) || hasUxFunnelContext(e.props)),
+    );
     if (nonAdminEvents.length === 0) return NextResponse.json({ ok: true });
 
     // user_id มาจาก session เสมอ ไม่รับจาก client (เข้ากับ RLS "insert own": auth.uid() = user_id)
