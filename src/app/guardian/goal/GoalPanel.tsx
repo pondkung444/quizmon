@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type GoalProgress = {
-  week_start: string;
+  goal_week_start: string;
   has_goal: boolean;
-  level: string | null;
+  goal_level: string | null;
   bucket: string | null;
 };
 
@@ -29,9 +29,9 @@ export default function GoalPanel({
   const [progress, setProgress] = useState<GoalProgress | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [lastSetResult, setLastSetResult] = useState<{
-    week_start: string;
-    level: string;
-    computed_target: number;
+    goal_week_start: string;
+    goal_level: string;
+    goal_computed_target: number;
   } | null>(null);
 
   async function loadProgress() {
@@ -86,11 +86,11 @@ export default function GoalPanel({
           <>
             <p className="mt-2 text-2xl font-bold text-text">{progress.bucket}</p>
             <p className="mt-1 text-xs text-text3">
-              level ที่ตั้งไว้: {progress.level} (ผู้ปกครองเห็นแค่ band นี้ ไม่เห็นตัวเลขจริง — ตาม spec)
+              level ที่ตั้งไว้: {progress.goal_level} (ผู้ปกครองเห็นแค่ band นี้ ไม่เห็นตัวเลขจริง — ตาม spec)
             </p>
           </>
         )}
-        <p className="mt-2 text-xs text-text3">week_start: {progress?.week_start}</p>
+        <p className="mt-2 text-xs text-text3">week_start: {progress?.goal_week_start}</p>
       </div>
 
       <div className="flex gap-2">
