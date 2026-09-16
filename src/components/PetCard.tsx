@@ -32,7 +32,6 @@ import StickyActionBanner from "@/components/StickyActionBanner";
 import HomeNextAction from "@/components/HomeNextAction";
 import { resolveNextAction } from "@/lib/nextAction";
 
-const EVOLVE_ANIMATION_MS = 650;
 
 export default function PetCard({
   petId,
@@ -123,20 +122,21 @@ export default function PetCard({
       evolveSfxRef.current = true;
       sfx("reward_fanfare");
     }
-    const timer = setTimeout(() => router.replace("/pet"), EVOLVE_ANIMATION_MS);
-    return () => clearTimeout(timer);
-  }, [justEvolved, router, sfx]);
+    // Clear the URL marker on mount, before the next CTA navigation begins.
+    // The CSS celebration runs independently; delayed history updates can cancel it.
+    const url = new URL(window.location.href);
+    if (url.pathname === "/pet" && url.searchParams.has("evolved")) {
+      url.searchParams.delete("evolved");
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, [justEvolved, sfx]);
 
   const isMaxStage = stage === 4;
   const cappedToday = expToday >= dailyCap;
   const dailyProgress = Math.min(1, dailyCap > 0 ? expToday / dailyCap : 1);
-  // ภารกิจยังไม่จบ (state 1/2) -> การ์ดภารกิจเป็น CTA หลักแทนปุ่ม "ฝึก Qmon" ไปเต็มๆ ไม่ใช่การ์ด
-  // เสริมซ้อนกับ CTA อีกก้อน (แก้ปัญหาของสำคัญหลุด fold บนมือถือ) — ต้อง hasEverAnswered ด้วย กัน
-  // การ์ดภารกิจโผล่ก่อน user ใหม่ได้ลองตอบสักข้อ (mission ถูกสร้าง lazy โดยไม่เช็คประวัติเลย
-  // ดู getOrCreateTodayMission ใน missions.ts — user วันแรกที่ยังไม่เคยเห็นหน้าคำถามเลยไม่ควรเจอ
-  // ภารกิจเป็น CTA เดียวที่เด้งเข้าคำถามทันทีโดยไม่มีหน้าคั่นเลือกวิชา)
+  // Daily missions lead for every player, including a newly hatched Qmon.
   const missionActive =
-    !!mission && mission.answeredCount < mission.mission.target_count && hasEverAnswered;
+    !!mission && mission.answeredCount < mission.mission.target_count;
 
   const missionRemaining = mission
     ? Math.max(0, mission.mission.target_count - mission.answeredCount)

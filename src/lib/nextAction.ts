@@ -71,13 +71,16 @@ export function resolveNextAction(state: NextActionState): NextAction {
   if ((state.pvpTurnCount ?? 0) > 0) {
     return { id: "resume_pvp", title: "ถึงตาคุณประลองแล้ว", description: `มี ${(state.pvpTurnCount ?? 0)} เกมที่รอการตัดสินใจ`, cta: "เล่นเทิร์นต่อ", href: "/pvp", activity: "pvp", meta: `${state.pvpTurnCount} เกม` };
   }
+  const dailyCapped = dailyExpCap > 0 && expToday >= dailyExpCap;
   return {
     id: "practice",
-    title: state.hasEverAnswered ? "ทบทวนให้แม่นขึ้น" : "เริ่มบทเรียนแรก",
-    description: state.weakTopic ? `หัวข้อแนะนำ: ${state.weakTopic}` : "เลือกวิชาและฝึกสั้น ๆ เพื่อเพิ่มพลังให้ Qmon",
-    cta: state.hasEverAnswered ? "เริ่มทบทวน" : "เริ่มฝึก Qmon",
+    title: dailyCapped ? "Qmon ฝึกเต็มแล้ววันนี้" : state.hasEverAnswered ? "ทบทวนให้แม่นขึ้น" : "เริ่มบทเรียนแรก",
+    description: dailyCapped
+      ? `เก็บครบ ${dailyExpCap}/${dailyExpCap} EXP แล้ว จะทบทวนเพิ่มหรือพักก่อนก็ได้${state.weakTopic ? ` · หัวข้อแนะนำ: ${state.weakTopic}` : ""}`
+      : state.weakTopic ? `หัวข้อแนะนำ: ${state.weakTopic}` : "เลือกวิชาและฝึกสั้น ๆ เพื่อเพิ่มพลังให้ Qmon",
+    cta: dailyCapped ? "ทบทวนเพิ่มเติม" : state.hasEverAnswered ? "เริ่มทบทวน" : "เริ่มฝึก Qmon",
     href: "/quiz",
     activity: "practice",
-    meta: "ประมาณ 3 นาที",
+    meta: dailyCapped ? "ครบเป้าหมายวันนี้ · ทบทวนเพิ่มไม่ให้ EXP" : "ประมาณ 3 นาที",
   };
 }
