@@ -47,6 +47,7 @@ export default function HomeNextAction({
           ) : (
             <div className="col-span-2 rounded-xl border border-border bg-track/50 p-3 text-text3">
               🔒 ผจญภัยและท้าทายด่าน — ปลดล็อกเมื่อมี Qmon Stage 4
+              <p className="mt-2 text-xs leading-5">ทำภารกิจก่อน แล้วฝึก Qmon ให้เต็มทุกวัน ดูเป้าหมาย EXP ในเส้นทางเติบโตด้านล่าง</p>
             </div>
           )}
           <Link className="min-h-11 rounded-xl border border-border p-3" href="/pvp">ประลอง</Link>
