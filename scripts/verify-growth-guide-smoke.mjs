@@ -15,10 +15,11 @@ try {
   await page.getByLabel("รหัสผ่าน", { exact: true }).fill(credentials.password);
   await page.getByRole("button", { name: "เข้าสู่ระบบ", exact: true }).click();
   await page.waitForURL(/\/pet/);
-  const guide = page.getByRole("region", { name: "เส้นทางเติบโตของ Qmon" });
-  await expect(guide).toContainText("เป้าหมายต่อไป: Qmon Stage 4");
-  await expect(guide).toContainText("พลังสะสมของ Qmon ไม่รีเซ็ต");
+  const guide = page.locator('details[aria-label="เส้นทางเติบโตของ Qmon"]');
+  await expect(guide).not.toHaveAttribute("open", "");
+  expect(await guide.evaluate(element => element.getBoundingClientRect().height)).toBeLessThanOrEqual(48);
   await guide.locator("summary").click();
+  await expect(guide).toContainText("พลังสะสมของ Qmon ไม่รีเซ็ต");
   await expect(guide).toContainText("900 EXP");
   await expect(guide).toContainText("ระหว่างนี้ทำภารกิจและฝึก Qmon ต่อได้");
   for (const width of [360, 375, 393, 412, 1440]) {
