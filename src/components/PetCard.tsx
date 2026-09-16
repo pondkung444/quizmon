@@ -29,6 +29,8 @@ import FeedPetCard from "@/components/FeedPetCard";
 import DungeonAdventureCard from "@/components/DungeonAdventureCard";
 import type { DungeonCardState } from "@/lib/dungeon";
 import StickyActionBanner from "@/components/StickyActionBanner";
+import HomeNextAction from "@/components/HomeNextAction";
+import { resolveNextAction } from "@/lib/nextAction";
 
 const EVOLVE_ANIMATION_MS = 650;
 
@@ -36,7 +38,6 @@ export default function PetCard({
   petId,
   stage,
   stageName,
-  stageDescription,
   exp,
   nextThreshold,
   progress,
@@ -67,11 +68,11 @@ export default function PetCard({
   foodB,
   dungeonCard,
   raidTicketCount,
+  pvpTurnCount,
 }: {
   petId: string;
   stage: number;
   stageName: string;
-  stageDescription: string;
   exp: number;
   nextThreshold: number | undefined;
   progress: number;
@@ -102,6 +103,7 @@ export default function PetCard({
   foodB: number;
   dungeonCard: DungeonCardState;
   raidTicketCount: number;
+  pvpTurnCount: number;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -136,26 +138,22 @@ export default function PetCard({
   const missionActive =
     !!mission && mission.answeredCount < mission.mission.target_count && hasEverAnswered;
 
-  // CTA "ฝึก Qmon"/"ฝึกต่อได้" — ใช้ร่วมกันทั้งตอน hasEverAnswered=false (CTA เดียว) และตอนภารกิจ
-  // จบแล้ว/ไม่มี (คู่กับ MissionCard ที่ยุบเป็น chip) กันโค้ด markup ซ้ำสองจุด
-  const practiceCta = cappedToday ? (
-    <div className="flex w-full max-w-xs flex-col items-center gap-1">
-      <Link
-        href="/quiz"
-        className="w-full rounded-2xl border-2 border-gold py-3 text-lg font-bold text-gold-hi transition active:scale-95"
-      >
-        ฝึกต่อได้
-      </Link>
-      <p className="text-xs text-text3">ฝึกเพิ่มได้ แต่วันนี้ไม่ดันระยะแล้ว</p>
-    </div>
-  ) : (
-    <Link
-      href="/quiz"
-      className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
-    >
-      ฝึก Qmon
-    </Link>
-  );
+  const missionRemaining = mission
+    ? Math.max(0, mission.mission.target_count - mission.answeredCount)
+    : 0;
+  const nextAction = resolveNextAction({
+    hasPet: true,
+    evolutionReady: isMaxStage,
+    mission: missionActive && mission
+      ? { id: mission.mission.id, remaining: missionRemaining, bonusExp: mission.mission.bonus_exp }
+      : null,
+    adventureStatus: dungeonCard.status,
+    adventureMinutes: "dungeon" in dungeonCard ? dungeonCard.dungeon.durationMinutes : null,
+    pvpTurnCount,
+    raidTicketCount,
+    hasEverAnswered,
+    weakTopic: topicStats.needsPractice[0]?.category ?? null,
+  });
 
   const hasFullStats =
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
@@ -251,33 +249,15 @@ export default function PetCard({
         <QmonChatBubble />
       </div>
 
-      {/* 4. บล็อกแอ็กชันรวม — การ์ดภารกิจกับ CTA "ฝึก Qmon" เดิมเคยเป็นสองบล็อกซ้อนกัน ทำหน้าที่
-          ซ้ำกัน (ทั้งคู่คือ "จะฝึกอะไรวันนี้") รวมเป็นก้อนเดียวที่สลับตามสถานะภารกิจแทน:
-          - hasEverAnswered=false (ยังไม่เคยตอบคำถามเลยสักข้อในชีวิต) -> ไม่โชว์ MissionCard เลยแม้
-            mission จะไม่ null (mission ถูกสร้าง lazy โดยไม่เช็คประวัติ ดู missions.ts) เหลือแค่ CTA
-            "ฝึก Qmon" อย่างเดียว เพราะ flow นั้นมีหน้าคั่นเลือกวิชาก่อนเห็นคำถามข้อแรกเสมอ ต่างจาก
-            flow ภารกิจที่เด้งเข้าคำถามทันที — user ครั้งแรกในชีวิตไม่ควรเจอ flow ที่ไม่มีหน้าคั่น
-          - ภารกิจยังไม่จบ (missionActive) -> MissionCard คือ CTA หลักไปเลย ไม่โชว์ปุ่ม "ฝึก Qmon" ซ้ำ
-          - ภารกิจจบแล้ว/ไม่มีภารกิจ -> MissionCard ยุบเหลือ chip (หรือไม่โชว์อะไรถ้า mission null)
-            แล้ว CTA "ฝึก Qmon"/"ฝึกต่อได้" เดิมกลับมาเป็นหลักตามเดิม
-          isMaxStage ยังทับทุกกรณีเหมือนเดิม (เก็บสัตว์เข้าสมุดสำคัญกว่าเสมอตอนโตเต็มที่แล้ว)
-          ตำแหน่ง (ux pass 2026-07 รอบ 4): ย้ายขึ้นมาอยู่ต่อจาก avatar ทันที ก่อนแถบวิวัฒนาการ/พลังวันนี้
-          — ข้อมูล production จริงชี้ว่า 92% ของ session สั้นกว่า 30 วิ ไม่กดเริ่มภารกิจเลยสักข้อ แต่ถ้า
-          กดแล้ว 89% เล่นจบ ปัญหาคือปุ่มนี้หลุด fold บนมือถือ ไม่ใช่ engagement ระหว่างเล่น จึงต้องเป็น
-          สิ่งแรกที่เห็นได้โดยไม่ต้อง scroll สำคัญกว่าสถิติวิวัฒนาการ/พลังวันนี้ (ยังอยู่ครบด้านล่าง
-          แค่ไม่ใช่สิ่งแรกที่ต้องเห็นแล้ว) */}
+      <HomeNextAction action={nextAction} learnerState="active_pet" />
+
+      {/* Hero ด้านบนเป็น CTA หลักเพียงจุดเดียว ส่วน control ที่ต้องทำงานในหน้าเดิม
+          (เก็บ Qmon) และ mission chip ที่จบแล้วคงไว้เป็นสถานะรอง ไม่แย่งลำดับการตัดสินใจ */}
       {isMaxStage ? (
-        <CollectPetButton eggChoices={eggChoices} />
-      ) : !hasEverAnswered ? (
-        practiceCta
-      ) : missionActive ? (
+        <div id="collect-qmon" className="w-full scroll-mt-24"><CollectPetButton eggChoices={eggChoices} /></div>
+      ) : !missionActive ? (
         <MissionCard mission={mission} subline={subline} />
-      ) : (
-        <>
-          <MissionCard mission={mission} subline={subline} />
-          {practiceCta}
-        </>
-      )}
+      ) : null}
 
       {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> CTA) ── */}
 

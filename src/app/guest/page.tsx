@@ -7,6 +7,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { checkSignupFields } from "@/app/login/actions";
 import { track } from "@/lib/analytics";
+import { uxFunnelProps } from "@/lib/analyticsContract";
+import { ensureGuestReady } from "./actions";
 
 const GRADE_OPTIONS = ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"];
 
@@ -18,6 +20,7 @@ export default function GuestStartPage() {
   const [gradeLevel, setGradeLevel] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsRecovery, setNeedsRecovery] = useState(false);
 
   const canStart = username.trim().length > 0 && gradeLevel !== "" && !loading;
 
@@ -28,6 +31,7 @@ export default function GuestStartPage() {
     setError(null);
 
     const name = username.trim();
+    track("guest_started", uxFunnelProps("guest_setup"));
 
     const fieldCheck = await checkSignupFields(name, "");
     if (fieldCheck.blocked) {
@@ -46,9 +50,23 @@ export default function GuestStartPage() {
       return;
     }
 
-    track("guest_start", { grade_level: gradeLevel });
-    // trigger handle_new_user() สร้างโปรไฟล์ + ไข่ starter ให้แล้ว — ไปฟักไข่ต่อได้เลย
-    router.replace("/eggs");
+    await finishProvisioning();
+  }
+
+  async function finishProvisioning() {
+    setLoading(true);
+    setError(null);
+    setNeedsRecovery(false);
+    try {
+      const readiness = await ensureGuestReady();
+      track("guest_start", { grade_level: readiness.gradeLevel });
+      track("guest_ready", uxFunnelProps("no_pet", { source: readiness.repaired ? "repair" : "trigger" }));
+      router.replace("/eggs");
+    } catch {
+      setLoading(false);
+      setNeedsRecovery(true);
+      setError("เตรียมไข่ยังไม่สำเร็จ ลองอีกครั้งได้เลย");
+    }
   }
 
   return (
@@ -74,8 +92,9 @@ export default function GuestStartPage() {
 
         <form onSubmit={handleStart} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-text2">ชื่อที่ใช้แสดง</label>
+            <label htmlFor="guest-username" className="text-sm font-medium text-text2">ชื่อที่ใช้แสดง</label>
             <input
+              id="guest-username"
               type="text"
               required
               value={username}
@@ -87,8 +106,9 @@ export default function GuestStartPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-text2">ระดับชั้น</label>
+            <label htmlFor="guest-grade" className="text-sm font-medium text-text2">ระดับชั้น</label>
             <select
+              id="guest-grade"
               required
               value={gradeLevel}
               onChange={(e) => setGradeLevel(e.target.value)}
@@ -105,10 +125,21 @@ export default function GuestStartPage() {
 
           {error && <p className="text-sm text-red animate-speech-pop">{error}</p>}
 
+          {needsRecovery && (
+            <button
+              type="button"
+              onClick={finishProvisioning}
+              disabled={loading}
+              className="min-h-11 rounded-full border border-gold px-4 py-2 text-sm font-bold text-gold-hi disabled:opacity-50"
+            >
+              {loading ? "กำลังลองอีกครั้ง..." : "ลองเตรียมไข่อีกครั้ง"}
+            </button>
+          )}
+
           <button
             type="submit"
             disabled={!canStart}
-            className="rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
+            className="min-h-11 rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "กำลังเตรียมไข่..." : "เริ่มเลย"}
           </button>

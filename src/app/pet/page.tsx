@@ -27,6 +27,9 @@ import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
+import HomeNextAction from "@/components/HomeNextAction";
+import { resolveNextAction } from "@/lib/nextAction";
+import { getPvpBadgeCount } from "@/lib/pvp";
 
 export default async function PetPage({
   searchParams,
@@ -78,6 +81,7 @@ export default async function PetPage({
   let hasEverAnswered = false;
   let unhatchedEggs: EggListItem[] = [];
   let raidTicketCount = 0;
+  let pvpTurnCount = 0;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -98,6 +102,7 @@ export default async function PetPage({
       dungeonCardResult,
       { data: hasAnsweredRows },
       raidTicketCountResult,
+      pvpTurnCountResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -151,6 +156,10 @@ export default async function PetPage({
         console.error("getRaidTicketCount failed:", err);
         return 0;
       }),
+      getPvpBadgeCount(supabase, user.id).catch((err) => {
+        console.error("getPvpBadgeCount failed:", err);
+        return 0;
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -162,6 +171,7 @@ export default async function PetPage({
     dungeonCard = dungeonCardResult;
     hasEverAnswered = (hasAnsweredRows?.length ?? 0) > 0;
     raidTicketCount = raidTicketCountResult;
+    pvpTurnCount = pvpTurnCountResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -287,7 +297,6 @@ export default async function PetPage({
           petId={pet.id}
           stage={stage}
           stageName={stageInfo.name}
-          stageDescription={stageInfo.description}
           exp={exp}
           nextThreshold={nextThreshold}
           progress={progress}
@@ -318,10 +327,12 @@ export default async function PetPage({
           foodB={foodInventory.B}
           dungeonCard={dungeonCard}
           raidTicketCount={raidTicketCount}
+          pvpTurnCount={pvpTurnCount}
         />
         </>
       ) : (
         <div className="flex flex-col gap-4">
+          <HomeNextAction action={resolveNextAction({ hasPet: false })} learnerState="no_pet" />
           <div className="rounded-2xl border border-gold-dim bg-card p-4 text-center">
             <p className="text-sm font-bold text-gold-hi">ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่</p>
             <p className="mt-1 text-xs text-text3">เลือกไข่ที่จะฟักได้เลย</p>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { hatchEgg } from "@/app/eggs/actions";
 import { track } from "@/lib/analytics";
+import { uxFunnelProps } from "@/lib/analyticsContract";
 import { useSfx } from "@/lib/audio/useSfx";
 import HatchNamingModal from "@/components/HatchNamingModal";
 import { requestPushPermissionWithContext } from "@/lib/push/pushClient";
@@ -39,6 +40,14 @@ export default function EggsClient({
   const [hatchingId, setHatchingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [namingEggId, setNamingEggId] = useState<string | null>(null);
+  const trackedStarterEggRef = useRef(false);
+
+  useEffect(() => {
+    const starterEgg = eggs.find((egg) => egg.source === "starter");
+    if (!starterEgg || trackedStarterEggRef.current) return;
+    trackedStarterEggRef.current = true;
+    track("starter_egg_viewed", uxFunnelProps("no_pet", { activity: "hatch" }));
+  }, [eggs]);
 
   function openNamingModal(eggId: string) {
     if (isPending) return;
@@ -55,7 +64,10 @@ export default function EggsClient({
       try {
         await hatchEgg(eggId, nickname);
         const egg = eggs.find((e) => e.id === eggId);
-        if (egg) track("egg_selected", { egg_type_id: egg.eggTypeId });
+        if (egg) {
+          track("egg_selected", { egg_type_id: egg.eggTypeId });
+          track("pet_hatched", uxFunnelProps("active_pet", { activity: "hatch", source: egg.source }));
+        }
         // common = เสียงได้ของปกติ · tier อื่น (rare/legendary/epic) = fanfare
         sfx(egg && egg.tier !== "common" ? "reward_fanfare" : "reward_normal");
         // ขอ push permission แบบมี context (หลัง hatch สำเร็จ ไม่ใช่ทันทีตอนเปิดแอป)
