@@ -16,7 +16,7 @@ export type ArenaProps = {
   onPlay: (card: CardId) => void; onReload: () => void; onExit: () => void;
   onReward: () => void; rewardReady?: boolean; demo?: boolean;
   question?:RaidCardQuestion|null; feedback?:RaidCardFeedback|null;
-  onAnswer?:(index:number)=>void; onContinue?:()=>void;
+  onAnswer?:(index:number)=>void | Promise<void>; onContinue?:()=>void;
 };
 export default function CardBattleArena({ battle: b, petName, petImage, bestProgress, busy, error, animateTurn, onPlay, onReload, onExit, onReward, rewardReady, demo,question,feedback,onAnswer,onContinue }: ArenaProps) {
   const [selected, setSelected] = useState<CardId | null>(null);
@@ -42,7 +42,7 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
   function play() { if (selection && !busy) { onPlay(selection); setSelected(null); } }
 
   return (
-    <main className={`${styles.shell} ${question || feedback ? styles.answering : ""} ${feedback ? styles.reviewing : ""}`} style={{ "--battle-accent": boss.accent } as CSSProperties}>
+    <main className={`${styles.shell} ${demo ? styles.demo : ""} ${question || feedback ? styles.answering : ""} ${feedback ? styles.reviewing : ""}`} style={{ "--battle-accent": boss.accent } as CSSProperties}>
       <div className={styles.world}>
         <Image src={`/raid/boss_scene_${b.bossId}.webp`} alt="" fill priority sizes="100vw" className={styles.backdrop} />
         <div className={styles.worldShade} />
@@ -51,7 +51,7 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
         <header className={styles.header}>
           <button className={styles.back} onClick={onExit} aria-label="กลับบ้านและเก็บรอบไว้เล่นต่อ"><ArrowLeft size={18} /><span>กลับบ้าน</span></button>
           <div className={styles.location}><span>ภูเหนือเมฆ {demo ? "· สนามทดลอง" : ""}</span><strong>{boss.level}</strong></div>
-          <div className={styles.round}><span>{quick ? "ข้อ" : "เทิร์น"}</span><strong>{b.turn}<small> / {limit}</small></strong></div>
+          <div className={styles.round}><span>{quick ? "ข้อ" : "เทิร์น"}</span><strong>{feedback ? last?.turn ?? b.turn : b.turn}<small> / {limit}</small></strong></div>
         </header>
 
         <section className={styles.stage} aria-label="สนามต่อสู้">
@@ -90,7 +90,7 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
         <section className={styles.controls} aria-label={b.outcome ? "ผลการต่อสู้" : "เลือกการ์ดรับมือ"}>
           {error && <div className={styles.error} role="alert">{error}<button onClick={onReload} disabled={busy}>โหลดสถานะล่าสุด</button></div>}
           <p className={styles.requirements}>{quick ? `จบภายใน ${limit} ข้อ · ตอบถูกแล้ว ${b.log.filter(e=>e.answerCorrect!==false).length} ข้อ · จบรอบมีของรางวัล` : `เกณฑ์ชนะ: stat ${statPercent(b.stats).toFixed(1)} / ${STAT_REQUIREMENTS[b.bossId]}% · ตอบถูก ${b.log.filter(e=>e.answerCorrect!==false).length}/${b.log.length} (ต้อง ≥60%)`}</p>
-          {(question || feedback) ? <RaidLearningPanel key={`${(question || feedback!.question).revision}-${!!feedback}`} question={question || feedback!.question} feedback={feedback} busy={busy} shortRound={quick} onAnswer={onAnswer!} onContinue={onContinue!}/> : b.outcome ? (
+          {(question || feedback) ? <RaidLearningPanel key={`${(question || feedback!.question).revision}-${!!feedback}`} question={question || feedback!.question} feedback={feedback} busy={busy} shortRound={quick} turnResult={feedback ? last : null} continueLabel={b.outcome ? "ดูผลการท้าทาย" : "กลับไปเลือกท่าถัดไป"} onAnswer={onAnswer!} onContinue={onContinue!}/> : b.outcome ? (
             <div className={styles.summary}>
               <span className={styles.eyebrow}>{b.outcome === "win" ? "พิชิตผู้พิทักษ์" : "แผนรอบหน้าเริ่มที่นี่"}</span>
               <h2>{b.outcome === "win" ? "ทำได้แล้ว!" : quick ? "จบรอบแล้ว รับรางวัลกัน!" : b.defeatReason === "stats" || b.defeatReason === "learning" ? "ยังไม่ผ่านเกณฑ์ด่าน" : b.turn >= limit && b.hp > 0 ? "ครบเวลาท้าทายแล้ว" : "กลับมาตั้งหลักกัน"}</h2>

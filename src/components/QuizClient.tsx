@@ -886,7 +886,8 @@ export default function QuizClient({
         <div>
           <p className="text-6xl">🎯</p>
           {/* ข้อความ Qmon เชิงความพยายามเสมอ ไม่อิงจำนวนถูก (ห้ามลงโทษ/ตำหนิ ตามหลักดีไซน์) */}
-          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">วันนี้เราฝึกครบแล้ว!</h1>
+          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">ทำภารกิจวันนี้ครบแล้ว!</h1>
+          <p className="mt-2 text-sm text-text2">กลับหน้าแรกเพื่อดูว่าเหลือ EXP อีกเท่าไร ก่อนครบเป้าหมายฝึกวันนี้</p>
         </div>
 
         <div className="rounded-3xl border border-gold-dim bg-card p-6">

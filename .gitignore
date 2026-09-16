@@ -60,3 +60,5 @@ docs/boss-raid-mockups/
 /.cache/
 /test-results/
 /playwright-report/
+/output/**/*auth*.json
+/output/**/*credentials*.json
