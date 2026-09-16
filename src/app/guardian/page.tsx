@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getGuardianAccess } from "@/lib/guardian";
+import { getGuardianAccess, getGuardianStudents } from "@/lib/guardian";
 import GuardianLoginButton from "./GuardianLoginButton";
+import StudentPicker from "@/components/guardian/StudentPicker";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function GuardianPage({
 }) {
   const { error } = await searchParams;
   const access = await getGuardianAccess();
+  const students = access.status === "ok" ? await getGuardianStudents() : [];
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center gap-6 bg-bg p-6 text-text">
@@ -47,12 +49,17 @@ export default async function GuardianPage({
             <p className="text-sm text-text2">
               ยินดีต้อนรับ{access.displayName ? ` ${access.displayName}` : ""}
             </p>
+
+            {students.length > 0 && (
+              <StudentPicker students={students} hrefFor={(id) => `/guardian/${id}`} />
+            )}
+
             <Link
               href="/guardian/link"
               className="rounded-full py-2.5 text-center font-semibold text-track transition hover:opacity-90"
               style={{ background: "linear-gradient(180deg, #f0a05c 0%, var(--color-amber) 100%)" }}
             >
-              เชื่อมบัญชีนักเรียน
+              {students.length > 0 ? "เชื่อมบัญชีนักเรียนเพิ่ม" : "เชื่อมบัญชีนักเรียน"}
             </Link>
           </div>
         )}

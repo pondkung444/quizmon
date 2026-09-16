@@ -1,19 +1,28 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getGuardianAccess } from "@/lib/guardian";
-import { createClient } from "@/lib/supabase/server";
+import { getGuardianAccess, getGuardianStudents } from "@/lib/guardian";
+import StudentPicker from "@/components/guardian/StudentPicker";
 import PlanWizard from "./PlanWizard";
 
 export const dynamic = "force-dynamic";
 
-export default async function GuardianPlanPage() {
+export default async function GuardianPlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ student?: string }>;
+}) {
   const access = await getGuardianAccess();
   if (access.status !== "ok") {
     redirect("/guardian");
   }
 
-  const supabase = await createClient();
-  const { data: students } = await supabase.rpc("guardian_get_students");
-  const student = students?.[0] ?? null;
+  const { student: studentParam } = await searchParams;
+  const students = await getGuardianStudents();
+
+  // 0 คน -> empty state เดิม / 1 คน -> default ให้เลยไม่ต้องเลือก / 2+ คนแต่ยังไม่เลือก -> picker
+  const student = studentParam
+    ? (students.find((s) => s.student_id === studentParam) ?? null)
+    : (students.length === 1 ? students[0] : null);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col gap-6 bg-bg p-6 text-text">
@@ -24,13 +33,23 @@ export default async function GuardianPlanPage() {
         </p>
       </div>
 
-      {!student && (
+      {students.length === 0 && (
         <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-text2">
           ยังไม่มีนักเรียนที่ลิงก์บัญชี — ไปหน้า{" "}
-          <a href="/guardian/link" className="text-gold-hi underline">
+          <Link href="/guardian/link" className="text-gold-hi underline">
             เชื่อมบัญชีนักเรียน
-          </a>{" "}
+          </Link>{" "}
           ก่อน
+        </div>
+      )}
+
+      {students.length > 1 && !student && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <StudentPicker
+            students={students}
+            heading="เลือกนักเรียน"
+            hrefFor={(id) => `/guardian/plan?student=${id}`}
+          />
         </div>
       )}
 

@@ -533,6 +533,31 @@ export async function finishQuizRound(
     }
   }
 
+  // Guardian Module C: เช็ค chapter-pass-gate ของแผนผู้พิทักษ์ (ถ้ามี) ทุกครั้งที่จบรอบจริง —
+  // RPC เองเช็คแล้วว่ามีแผน active ไหม (ไม่มี = คืน 0 แถวเฉยๆ) ไม่ต้อง exists-check ซ้ำที่นี่
+  // best-effort เสมอ: ห้ามให้ side effect ของฟีเจอร์ผู้พิทักษ์ทำให้การจบ quiz รอบจริงพัง —
+  // ไม่ throw ไม่ block ไม่มี UI signal ใดๆ (ยังไม่ทำ UX/reward pass ตอนนี้ตามที่ปอนด์สั่งแยกเฟส)
+  // pattern เดียวกับ tryClaimBonusSilently ใน src/lib/missions.ts (กลืน error เงียบๆ) แต่ log ไว้ด้วย
+  // แบบ getEligiblePets/getEligibleRaidPets (src/lib/dungeon.ts, src/lib/raid.ts) เพื่อยัง debug ได้
+  try {
+    const { error: advanceError } = await supabase.rpc("guardian_advance_plan_if_passed", {
+      p_student_id: user.id,
+    });
+    if (advanceError) {
+      console.error(
+        "finishQuizRound: guardian_advance_plan_if_passed error (non-fatal)",
+        user.id,
+        advanceError
+      );
+    }
+  } catch (err) {
+    console.error(
+      "finishQuizRound: guardian_advance_plan_if_passed threw (non-fatal)",
+      user.id,
+      err
+    );
+  }
+
   return {
     expAddedToPet,
     capped,
