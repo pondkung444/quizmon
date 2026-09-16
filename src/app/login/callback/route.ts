@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         if (!profile?.username || !profile?.grade_level) {
           return NextResponse.redirect(`${origin}/login/complete-profile`);
         }
-        return NextResponse.redirect(`${origin}/pet`);
+        return NextResponse.redirect(`${origin}/login/continue`);
       }
     }
   }

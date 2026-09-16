@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Copy, Check, ArrowLeft } from "lucide-react";
 import {
   searchFriendCode,
+  searchFriendName,
   sendFriendRequest,
   type SearchFriendCodeResult,
 } from "@/app/social/actions";
@@ -14,9 +15,14 @@ import { resolvePetDisplay, type PetPreview } from "@/components/social/petSumma
 import { FRIEND_STATUS_MESSAGE, FRIEND_ACTIONABLE_STATUSES } from "@/components/social/friendActionStatus";
 import Toast from "@/components/social/Toast";
 
-export default function AddFriendView({ myFriendCode }: { myFriendCode: string }) {
+export default function AddFriendView({ myFriendCode, invitationCode = "" }: { myFriendCode: string; invitationCode?: string }) {
   const [copied, setCopied] = useState(false);
-  const [input, setInput] = useState("");
+  const [qrImage, setQrImage] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const actionLock = useRef(false);
+  const [searchMode, setSearchMode] = useState<"name" | "code">(invitationCode ? "code" : "name");
+  const [candidates, setCandidates] = useState<SearchFriendCodeResult[]>([]);
+  const [input, setInput] = useState(invitationCode);
   const [isSearching, setIsSearching] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<SearchFriendCodeResult | null>(null);
@@ -24,7 +30,7 @@ export default function AddFriendView({ myFriendCode }: { myFriendCode: string }
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const normalized = normalizeFriendCode(input);
-  const canSearch = normalized.length === 8 && !isSearching;
+  const canSearch = (searchMode === "code" ? normalized.length === 8 : input.trim().length >= 2) && !isSearching && !isSending;
 
   async function handleCopy() {
     try {
@@ -36,23 +42,53 @@ export default function AddFriendView({ myFriendCode }: { myFriendCode: string }
     }
   }
 
+  async function handleShare() {
+    const url = `${window.location.origin}/social/invite?code=${encodeURIComponent(myFriendCode)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: "มาเป็นเพื่อนใน Qmon", url });
+      else { await navigator.clipboard.writeText(url); setToastMessage("คัดลอกลิงก์เพิ่มเพื่อนแล้ว ส่งให้เพื่อนได้เลย"); }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "AbortError")) setErrorMessage("แชร์ไม่สำเร็จ ลองคัดลอกรหัสแทนนะ");
+    }
+  }
+
+  async function showQr() {
+    if (qrImage) { setQrImage(null); return; }
+    setQrLoading(true);
+    try {
+      const QRCode = await import("qrcode");
+      setQrImage(await QRCode.toDataURL(`${window.location.origin}/social/invite?code=${encodeURIComponent(myFriendCode)}`, { width: 240, margin: 4, errorCorrectionLevel: "M" }));
+    } catch { setErrorMessage("สร้าง QR ไม่สำเร็จ ลองแชร์ลิงก์แทนนะ"); }
+    finally { setQrLoading(false); }
+  }
+
   async function handleSearch() {
-    if (!canSearch) return;
+    if (!canSearch || actionLock.current) return;
+    actionLock.current = true;
     setIsSearching(true);
     setErrorMessage(null);
     setResult(null);
+    setCandidates([]);
     try {
-      const res = await searchFriendCode(normalized);
-      setResult(res);
+      if (searchMode === "name") {
+        const matches = await searchFriendName(input);
+        setCandidates(matches);
+        if (matches.length === 1) setResult(matches[0]);
+        if (matches.length === 0) setResult({ found: false });
+      } else {
+        setResult(await searchFriendCode(normalized));
+      }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ค้นหาไม่สำเร็จ");
     } finally {
+      actionLock.current = false;
       setIsSearching(false);
     }
   }
 
   async function handleSend() {
-    if (!result || !result.found || isSending) return;
+    if (!result || !result.found || actionLock.current) return;
+    actionLock.current = true;
     setIsSending(true);
     setErrorMessage(null);
     try {
@@ -62,6 +98,7 @@ export default function AddFriendView({ myFriendCode }: { myFriendCode: string }
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : "ส่งคำขอไม่สำเร็จ");
     } finally {
+      actionLock.current = false;
       setIsSending(false);
     }
   }
@@ -72,8 +109,11 @@ export default function AddFriendView({ myFriendCode }: { myFriendCode: string }
         <ArrowLeft className="h-4 w-4" /> กลับ
       </Link>
 
-      <div className="rounded-2xl border border-gold-dim bg-card p-6 text-center">
-        <p className="text-xs text-text3">Friend Code ของฉัน</p>
+      <div className="order-last rounded-2xl border border-gold-dim bg-card p-4 text-center">
+        <button type="button" disabled={!myFriendCode} onClick={handleShare} className="mb-3 min-h-11 w-full rounded-xl bg-amber px-4 text-sm font-bold text-track">แชร์ลิงก์ให้เพื่อน</button>
+        <button type="button" disabled={!myFriendCode || qrLoading} aria-expanded={Boolean(qrImage)} onClick={showQr} className="mb-3 min-h-11 w-full rounded-xl border border-border px-4 text-sm text-text2">{qrLoading ? "กำลังสร้าง QR…" : qrImage ? "ซ่อน QR" : "ให้เพื่อนสแกน QR"}</button>
+        {qrImage && <div className="mb-3"><Image src={qrImage} alt="QR เพิ่มเพื่อนของฉัน" width={240} height={240} unoptimized className="mx-auto max-w-full rounded-xl" /><p className="mt-2 text-xs text-text3">เพื่อนสแกนด้วยกล้องมือถือ แล้วค้นหาและส่งคำขอได้เลย</p></div>}
+        <p className="text-xs text-text3">รหัสเพื่อนของฉัน · ใช้เป็นทางสำรอง</p>
         <p className="mt-1 text-2xl font-bold tracking-widest text-gold-hi">{formatFriendCode(myFriendCode)}</p>
         <button
           type="button"
@@ -86,30 +126,43 @@ export default function AddFriendView({ myFriendCode }: { myFriendCode: string }
       </div>
 
       <div className="flex flex-col gap-3">
-        <p className="text-sm font-bold text-gold-hi">เพิ่มเพื่อนด้วย Friend Code</p>
+        <h1 className="text-lg font-bold text-gold-hi">หาเพื่อนของฉัน</h1>
         <div className="flex gap-2">
+          {(["name", "code"] as const).map(mode => <button key={mode} type="button" aria-pressed={searchMode === mode} disabled={isSearching || isSending} onClick={() => { setSearchMode(mode); setInput(""); setResult(null); setCandidates([]); }} className="min-h-11 flex-1 rounded-xl border border-gold-dim px-3 text-sm">{mode === "name" ? "ชื่อเล่น" : "รหัสเพื่อน"}</button>)}
+        </div>
+        <p className="text-xs text-text3">{searchMode === "name" ? "พิมพ์ชื่อเล่นที่เพื่อนใช้ในเกมให้ครบ ชื่อซ้ำได้ ลองดู Qmon ให้ตรงคน" : "กรอกรหัส 8 ตัวจากเพื่อน"}</p>
+        <form onSubmit={e => { e.preventDefault(); void handleSearch(); }} className="flex gap-2">
           <input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="กรอก Friend Code เพื่อน"
-            className="min-h-11 flex-1 rounded-xl border border-gold-dim bg-track px-3 text-sm text-text placeholder:text-text3"
+            onChange={(e) => { setInput(e.target.value); setResult(null); setCandidates([]); }}
+            disabled={isSearching || isSending}
+            aria-label={searchMode === "name" ? "ชื่อเล่นเพื่อน" : "รหัสเพื่อน"}
+            maxLength={searchMode === "name" ? 40 : 20}
+            placeholder={searchMode === "name" ? "ชื่อเล่นเพื่อนในเกม" : "รหัสเพื่อน 8 ตัว"}
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-gold-dim bg-track px-3 text-base text-text placeholder:text-text3"
           />
           <button
-            type="button"
+            type="submit"
             disabled={!canSearch}
-            onClick={handleSearch}
             className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
           >
             {isSearching ? "กำลังค้นหา..." : "ค้นหา"}
           </button>
-        </div>
+        </form>
         {errorMessage && <p className="text-sm text-red">{errorMessage}</p>}
       </div>
+
+      {candidates.length > 1 && <div className="space-y-2" aria-label="ผู้เล่นชื่อเดียวกัน">
+        <p className="text-xs text-text3">พบ {candidates.length} คน เลือกให้ตรงกับเพื่อน ถ้าไม่แน่ใจใช้รหัสเพื่อน</p>
+        {candidates.map(candidate => candidate.found && <button type="button" key={candidate.targetUserId} disabled={isSending} onClick={() => setResult(candidate)} className="flex min-h-11 w-full items-center gap-3 rounded-xl border border-border p-3 text-left">
+          <PetPreviewImage pet={candidate.pet} /><span className="min-w-0 break-words">{candidate.username}<span className="block text-xs text-text3">{candidate.pet?.nickname ?? "ยังไม่ได้ตั้งชื่อ Qmon"}</span></span><span className="ml-auto text-xs text-text3">เลือกคนนี้</span>
+        </button>)}
+      </div>}
 
       {result && (
         <div className="rounded-2xl border border-gold-dim bg-card p-4">
           {!result.found ? (
-            <p className="text-center text-sm text-text3">ไม่พบผู้เล่นที่ใช้ Friend Code นี้</p>
+            <p className="text-center text-sm text-text3">ไม่พบเพื่อน ลองตรวจชื่อเล่นหรือใช้รหัสเพื่อนแทน</p>
           ) : (
             <div className="flex items-center gap-3">
               <Link

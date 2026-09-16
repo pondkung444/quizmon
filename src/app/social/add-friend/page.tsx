@@ -1,10 +1,14 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import SignOutLink from "@/components/SignOutLink";
 import AddFriendView from "@/components/social/AddFriendView";
+import { redirect } from "next/navigation";
 
-export default async function AddFriendPage() {
+export default async function AddFriendPage({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
+  const params = await searchParams;
+  const invitationCode = typeof params.code === "string" && /^[A-Za-z0-9]{8}$/.test(params.code) ? params.code.toUpperCase() : "";
   const user = await getUser();
   if (!user) {
+    if (invitationCode) redirect(`/social/invite?code=${invitationCode}`);
     return (
       <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
         <SignOutLink />
@@ -21,7 +25,7 @@ export default async function AddFriendPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
       <SignOutLink />
-      <AddFriendView myFriendCode={data?.friend_code ?? ""} />
+      <AddFriendView myFriendCode={data?.friend_code ?? ""} invitationCode={invitationCode} />
     </main>
   );
 }

@@ -109,7 +109,7 @@ export default function LoginPage() {
       if (!profile?.username || !profile?.grade_level) {
         router.push("/login/complete-profile");
       } else {
-        router.push("/");
+        router.push("/login/continue");
       }
     });
 
