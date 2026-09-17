@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
@@ -10,6 +10,7 @@ import { createPvpChallenge } from "../actions";
 import { useSfx } from "@/lib/audio/useSfx";
 import PvpPetPicker from "../PvpPetPicker";
 import PvpGearLoadout from "../PvpGearLoadout";
+import PvpExpectations from "../PvpExpectations";
 
 function FriendAvatar({ friend }: { friend: ChallengeableFriend }) {
   const display = friend.pet ? resolvePetDisplay(friend.pet) : null;
@@ -49,6 +50,7 @@ export default function NewChallengeClient({
   const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const actionLock = useRef(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -68,16 +70,20 @@ export default function NewChallengeClient({
   };
 
   const submit = () => {
-    if (!friendId || !petId) return;
+    if (!friendId || !petId || ticketBalance <= 0 || actionLock.current) return;
+    actionLock.current = true;
     sfx("tap");
     setError(null);
     startTransition(async () => {
+      try {
       const res = await createPvpChallenge(friendId, petId);
       if (!res.ok) {
         setError(res.message);
         return;
       }
       router.push("/pvp");
+      } catch { setError("เชื่อมต่อไม่สำเร็จ กลับหน้าประลองเพื่อตรวจคำท้าที่ส่งไว้ก่อนลองใหม่"); }
+      finally { actionLock.current = false; }
     });
   };
 
@@ -90,6 +96,7 @@ export default function NewChallengeClient({
         </span>
       </div>
       <p className="mt-1 text-xs text-text3">ท้า 1 ครั้ง = ใช้ตั๋ว 1 ใบ · ถ้าเพื่อนไม่รับ ได้ตั๋วคืน</p>
+      <PvpExpectations />
       {ticketBalance <= 0 && (
         <p className="mt-3 rounded-xl border border-dashed border-border px-4 py-3 text-center text-xs text-text3">
           🎟️ ตั๋วหมด — พรุ่งนี้ได้อีก 2 หรือไปเล่นท้าทายให้จบอีกรอบ
@@ -105,7 +112,7 @@ export default function NewChallengeClient({
         ) : (
           <>
             <p className="mt-0.5 mb-2 text-[11px] text-text3">เรียงตามที่ท้ากันบ่อย — เลื่อนดูคนอื่นได้</p>
-            <p className="mb-1.5 text-[11px] font-bold text-gold-dim">ท้าบ่อยล่าสุด</p>
+            <p className="mb-1.5 text-[11px] font-bold text-gold-dim">เพื่อนที่ท้าบ่อย</p>
             <div className="mb-3 flex gap-2.5 overflow-x-auto pb-1">
               {friends.map((f) => (
                 <button

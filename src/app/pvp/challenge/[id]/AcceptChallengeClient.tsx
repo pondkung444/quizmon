@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PvpChallengeForAccept, PvpPetPick } from "@/lib/pvp";
 import type { RaidGearItemFull } from "@/lib/raid";
 import { acceptPvpChallenge, declinePvpChallenge } from "../../actions";
 import PvpPetPicker from "../../PvpPetPicker";
 import PvpGearLoadout from "../../PvpGearLoadout";
+import PvpExpectations from "../../PvpExpectations";
 
 export default function AcceptChallengeClient({
   challenge,
@@ -24,42 +25,53 @@ export default function AcceptChallengeClient({
   const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const actionLock = useRef(false);
 
   const selectedPet = pets.find((p) => p.id === petId) ?? null;
   const locked = petId ? lockedPetIds.includes(petId) : false;
 
   const accept = () => {
-    if (!petId) return;
+    if (!petId || actionLock.current) return;
+    actionLock.current = true;
     setError(null);
     startTransition(async () => {
+      try {
       const res = await acceptPvpChallenge(challenge.id, petId);
       if (!res.ok) {
         setError(res.message);
         return;
       }
       router.push(`/pvp/${res.data.matchId}`);
+      } catch { setError("เชื่อมต่อไม่สำเร็จ กลับหน้าประลองเพื่อตรวจสถานะก่อนลองใหม่"); }
+      finally { actionLock.current = false; }
     });
   };
 
   const decline = () => {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setError(null);
     startTransition(async () => {
+      try {
       const res = await declinePvpChallenge(challenge.id);
       if (!res.ok) setError(res.message);
       else router.push("/pvp");
+      } catch { setError("เชื่อมต่อไม่สำเร็จ ตรวจสถานะอีกครั้งก่อนลองใหม่"); }
+      finally { actionLock.current = false; }
     });
   };
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">รับคำท้า</h1>
+      <PvpExpectations />
       <p className="mt-2 text-sm text-text2">
         {challenge.challengerName} ท้าประลอง · ส่ง {challenge.challengerPetName} ลงสนาม
       </p>
 
       <section className="mt-6">
         <h2 className="text-sm font-bold text-text2">เลือก Qmon ของคุณ</h2>
-        <p className="mt-1 text-xs text-text3">เริ่มดวลทันทีเมื่อกดรับ</p>
+        <p className="mt-1 text-xs text-text3">สร้างแมตช์เมื่อกดรับ · เวลาตอบยังไม่เริ่มจนกด “เริ่มตอบ”</p>
         <div className="mt-2">
           <PvpPetPicker pets={pets} selectedId={petId} onSelect={setPetId} />
         </div>
