@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { resolvePetDisplay } from "@/components/social/petSummary";
+import PetAvatarFrame from "@/components/social/PetAvatarFrame";
 import type { FriendListItem } from "@/lib/friends";
 
 function formatFriendsSince(iso: string): string {
@@ -75,9 +76,17 @@ export default function FriendListSection({ friends }: { friends: FriendListItem
                 prefetch={false}
                 className="flex items-center gap-3 rounded-2xl border border-gold-dim bg-card p-3 transition active:scale-95"
               >
-                <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track">
+                <div
+                  className={
+                    friend.equippedFrameTier
+                      ? "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-track"
+                      : "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track"
+                  }
+                >
                   {imagePath && (
-                    <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
+                    <PetAvatarFrame tier={friend.equippedFrameTier} size={44}>
+                      <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
+                    </PetAvatarFrame>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

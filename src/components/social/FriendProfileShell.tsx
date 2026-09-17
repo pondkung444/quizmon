@@ -11,6 +11,7 @@ import LikeButton from "@/components/social/LikeButton";
 import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
 import SendEncouragementSheet from "@/components/social/SendEncouragementSheet";
 import Toast from "@/components/social/Toast";
+import PetAvatarFrame from "@/components/social/PetAvatarFrame";
 import StatRadar from "@/components/StatRadar";
 import RaidGearIcon from "@/components/raid/RaidGearIcon";
 import { RAID_GEAR_SLOT_ANATOMY_TH, RAID_GEAR_QUALITY_COLOR } from "@/lib/raid/labels";
@@ -130,9 +131,17 @@ export default function FriendProfileShell({
       <section className="flex flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4">
         <div className="flex items-center gap-4">
           <div className="flex w-24 flex-none flex-col items-center gap-1 text-center">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track">
+            <div
+              className={
+                profile.equippedFrameTier
+                  ? "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-track"
+                  : "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track"
+              }
+            >
               {imagePath && (
-                <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+                <PetAvatarFrame tier={profile.equippedFrameTier} size={80}>
+                  <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+                </PetAvatarFrame>
               )}
             </div>
             <p className="w-full truncate text-sm font-bold text-text">{profile.pet?.nickname ?? speciesName}</p>

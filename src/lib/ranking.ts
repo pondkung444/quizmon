@@ -13,6 +13,7 @@ export type RankingRow = {
   pet: PetPreview;
   scoreValue: number | null;
   isMe: boolean;
+  equippedFrameTier: string | null;
 };
 
 export type MyRankInfo = { found: false } | { found: true; rank: number; scoreValue: number };
@@ -35,6 +36,7 @@ type RankingRpcRow = {
   egg_name_th: string | null;
   score_value: number | null;
   is_me: boolean;
+  equipped_frame_tier: string | null;
 };
 
 function toPetPreview(row: {
@@ -74,6 +76,7 @@ export async function getRanking(
     pet: toPetPreview(row),
     scoreValue: row.score_value,
     isMe: row.is_me,
+    equippedFrameTier: row.equipped_frame_tier,
   }));
 
   let myRank: MyRankInfo | null = null;

@@ -10,6 +10,7 @@ import { FRIEND_STATUS_MESSAGE, FRIEND_ACTIONABLE_STATUSES } from "@/components/
 import LikeButton from "@/components/social/LikeButton";
 import StatRadar from "@/components/StatRadar";
 import Toast from "@/components/social/Toast";
+import PetAvatarFrame from "@/components/social/PetAvatarFrame";
 import type { PublicProfileResult } from "@/lib/publicProfile";
 
 // สีขอบตามระดับเหรียญ — คัดลอกจาก MyProfileTab.tsx (ตั้งใจไม่ export มาใช้ร่วม เหตุผลเดียวกับที่นั่น)
@@ -67,9 +68,17 @@ export default function PublicProfileView({
           เปิดสเตตัสให้คนทั่วไปเห็นด้วย ตัดสินใจใหม่ พลิก §5.3 เดิม เฉพาะสเตตัส ไม่รวมอุปกรณ์) */}
       <div className="flex items-center gap-4 rounded-2xl border border-gold-dim bg-card p-4">
         <div className="flex w-24 flex-none flex-col items-center gap-1 text-center">
-          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track">
+          <div
+            className={
+              profile.equippedFrameTier
+                ? "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-track"
+                : "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track"
+            }
+          >
             {imagePath && (
-              <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+              <PetAvatarFrame tier={profile.equippedFrameTier} size={80}>
+                <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+              </PetAvatarFrame>
             )}
           </div>
           <p className="w-full truncate text-sm font-bold text-text">{profile.pet?.nickname ?? speciesName}</p>

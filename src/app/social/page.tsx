@@ -126,7 +126,11 @@ async function getProfileTabData(
       )
       .eq("user_id", userId)
       .or("is_active.eq.true,stage.eq.4"),
-    supabase.from("profile_settings").select("pride_pet_id, favorite_pet_ids").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("profile_settings")
+      .select("pride_pet_id, favorite_pet_ids, equipped_frame_id, frame_definitions(tier)")
+      .eq("user_id", userId)
+      .maybeSingle(),
     supabase
       .from("user_achievements")
       .select(
@@ -193,6 +197,9 @@ async function getProfileTabData(
 
   const journeyStats = await getProfileJourneyStats(supabase, userId);
 
+  const frameJoin = settingsRow?.frame_definitions as { tier: string } | { tier: string }[] | null | undefined;
+  const equippedFrameTier = Array.isArray(frameJoin) ? (frameJoin[0]?.tier ?? null) : (frameJoin?.tier ?? null);
+
   return {
     username: profileRow?.username ?? "ผู้เล่น",
     pridePetIdSetting: settingsRow?.pride_pet_id ?? null,
@@ -207,6 +214,7 @@ async function getProfileTabData(
     likeCount,
     friendCode: profileRow?.friend_code ?? "",
     guardianLinkData,
+    equippedFrameTier,
   };
 }
 
