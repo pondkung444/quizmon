@@ -9,6 +9,7 @@ import type { PetEvolveOutcome } from "@/lib/petEvolution";
 import { pvpEstimatedDamage } from "@/lib/pvp/combat";
 import { pvpEffectMeta } from "@/lib/pvp/effects";
 import { usePvpMatch } from "@/lib/pvp/usePvpMatch";
+import { usePvpResync } from "@/lib/pvp/usePvpResync";
 import {
   applyPvpMatchEvolution,
   assignPvpCard,
@@ -179,6 +180,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   const sfx = useSfx();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const actionLock = useRef(false);
   const [result, setResult] = useState<PvpSubmitResult | null>(null);
   const submittedRef = useRef(false);
   const resultRef = useRef<PvpSubmitResult | null>(null);
@@ -209,6 +211,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     router.refresh();
   }, [router]);
   usePvpMatch(view.matchId, refresh);
+  usePvpResync(refresh, view.status === "active");
 
   // ---- hit feedback: จับ hp ที่ขยับระหว่าง render -> ประกาย VS + สั่นตัวที่โดน + เลขลอย ----
   const [hitMine, setHitMine] = useState(false);
@@ -317,6 +320,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       submittedRef.current = true;
       setBusy(true);
       setError(null);
+      try {
       const r = await submitPvpCard(
         view.matchId,
         view.activeCard.id,
@@ -333,8 +337,13 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       setResult(r.data);
       sfx(r.data.is_correct ? "answer_correct" : "answer_wrong");
       holdRef.current = true;
+      } catch {
+        submittedRef.current = false;
+        setError("เชื่อมต่อไม่สำเร็จ กำลังตรวจสถานะจากสนามอีกครั้ง");
+        refresh();
+      } finally { setBusy(false); }
     },
-    [view.matchId, view.activeCard, view.activeQuestion, sfx]
+    [view.matchId, view.activeCard, view.activeQuestion, sfx, refresh]
   );
 
   useEffect(() => {
@@ -372,8 +381,11 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
   }, [view.status, view.iWon, sfx]);
 
   const doAssign = async (cardId: string) => {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setBusy(true);
     setError(null);
+    try {
     const r = await assignPvpCard(view.matchId, cardId);
     setBusy(false);
     if (!r.ok) {
@@ -382,12 +394,17 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
     }
     sfx("pvp_card");
     refresh();
+    } catch { setError("เชื่อมต่อไม่สำเร็จ ตรวจสถานะอีกครั้งก่อนลองใหม่"); refresh(); }
+    finally { actionLock.current = false; setBusy(false); }
   };
 
   // สไลซ์ 5 — ผู้ตอบกด "เริ่มตอบ" หลังเห็น preview การ์ด -> นาฬิกาเริ่มนับจริง ณ ตอนนี้
   const doStart = async () => {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setBusy(true);
     setError(null);
+    try {
     const r = await startPvpAnswer(view.matchId);
     setBusy(false);
     if (!r.ok) {
@@ -395,6 +412,8 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
       return;
     }
     refresh();
+    } catch { setError("เชื่อมต่อไม่สำเร็จ ตรวจสถานะอีกครั้งก่อนเริ่มตอบ"); refresh(); }
+    finally { actionLock.current = false; setBusy(false); }
   };
 
   const glowMine = view.status === "active" && view.myTurn;
@@ -767,7 +786,11 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                 ? `รอ ${view.oppName} เปิดดูการ์ด…`
                 : `รอ ${view.oppName} ตอบโจทย์…`}
           </p>
-          <p className="mt-2 text-xs text-text3">ปิดแอปได้ กลับมาเล่นต่อได้ภายใน 3 วัน</p>
+          <p className="mt-2 text-xs text-text3">ออกจากหน้านี้ได้ กลับมาเล่นต่อจากหน้าประลอง · อย่าพักเกิน 3 วัน</p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <Link href="/pvp" className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 text-xs text-text2">กลับหน้าประลอง</Link>
+            <button type="button" onClick={refresh} className="min-h-11 rounded-xl border border-border px-4 text-xs text-text2">ตรวจสถานะอีกครั้ง</button>
+          </div>
         </div>
       )}
     </main>

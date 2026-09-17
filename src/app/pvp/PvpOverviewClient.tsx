@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
+import { usePvpResync } from "@/lib/pvp/usePvpResync";
+import PvpExpectations from "./PvpExpectations";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -46,19 +48,32 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const actionLock = useRef(false);
+  const refresh = useCallback(() => { if (!actionLock.current) router.refresh(); }, [router]);
+  usePvpResync(refresh);
 
   const respond = (fn: () => Promise<{ ok: boolean; message?: string }>) => {
+    if (actionLock.current) return;
+    actionLock.current = true;
     setError(null);
     startTransition(async () => {
-      const res = await fn();
-      if (!res.ok) setError(res.message ?? "ทำรายการไม่สำเร็จ");
-      else router.refresh();
+      try {
+        const res = await fn();
+        if (!res.ok) setError(res.message ?? "ทำรายการไม่สำเร็จ");
+        else router.refresh();
+      } catch { setError("เชื่อมต่อไม่สำเร็จ ตรวจสถานะอีกครั้งก่อนลองใหม่"); }
+      finally { actionLock.current = false; }
     });
   };
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
+      {overview.yourTurn.length > 0 && <section className="mt-4" aria-label="เกมที่เล่นต่อได้">
+        <h2 className="text-sm font-bold text-gold-hi">ถึงตาคุณ · เล่นต่อ</h2>
+        <div className="mt-2 space-y-2">{overview.yourTurn.map(m => <MatchRow key={m.id} m={m} />)}</div>
+      </section>}
+      <PvpExpectations />
 
       {/* ตั๋ว + รางวัล + ปุ่มท้า */}
       <div className="mt-3 rounded-2xl border border-gold-dim bg-card p-4">
@@ -113,21 +128,6 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
 
-      {/* ถึงตาคุณ — ขึ้นก่อนเสมอ */}
-      <section className="mt-6">
-        <h2 className="text-sm font-bold text-text2">ถึงตาคุณ</h2>
-        <div className="mt-2 space-y-2">
-          {overview.yourTurn.length === 0 && (
-            <p className="rounded-xl border border-dashed border-border px-4 py-4 text-center text-xs text-text3">
-              ยังไม่มีตาที่ต้องเล่น
-            </p>
-          )}
-          {overview.yourTurn.map((m) => (
-            <MatchRow key={m.id} m={m} />
-          ))}
-        </div>
-      </section>
-
       {/* คำท้าที่ถูกท้า */}
       {overview.incoming.length > 0 && (
         <section className="mt-6">
@@ -159,7 +159,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                 <div className="mt-3 flex gap-2">
                   <Link
                     href={`/pvp/challenge/${c.id}`}
-                    className="flex-1 rounded-lg border border-gold bg-amber px-3 py-2 text-center text-sm font-bold text-track active:scale-95"
+                    className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-gold bg-amber px-3 py-2 text-center text-sm font-bold text-track active:scale-95"
                   >
                     รับคำท้า
                   </Link>
@@ -167,7 +167,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                     type="button"
                     disabled={pending}
                     onClick={() => respond(() => declinePvpChallenge(c.id))}
-                    className="rounded-lg border border-border px-3 py-2 text-sm text-text2 active:scale-95 disabled:opacity-50"
+                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-text2 active:scale-95 disabled:opacity-50"
                   >
                     ปฏิเสธ
                   </button>
@@ -202,7 +202,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                     type="button"
                     disabled={pending}
                     onClick={() => respond(() => cancelPvpChallenge(c.id))}
-                    className="text-xs text-text3 underline active:scale-95 disabled:opacity-50"
+                    className="min-h-11 min-w-11 px-3 text-xs text-text3 underline active:scale-95 disabled:opacity-50"
                   >
                     ยกเลิก
                   </button>
