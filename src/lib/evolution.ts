@@ -118,6 +118,14 @@ const SPECIES_NAME_TH: Record<string, EggSpeciesNameSet> = {
       balanced: { base: "นภาวายุ",  personalityNames: { A: "เวคาทะยาน", B: "นิรันตรา" } },
     },
   },
+  egg6: {
+    baby: "ธราน้อย",
+    bySubline: {
+      math:     { base: "ธรามิติ", personalityNames: { A: "ศรทะลวง",   B: "แกนพิทักษ์" } },
+      science:  { base: "ธราธาตุ", personalityNames: { A: "ศิลาคลั่ง", B: "มหาคีรี" } },
+      balanced: { base: "ธราปฐม",  personalityNames: { A: "พรประทาน",  B: "ฌานสถิต" } },
+    },
+  },
 };
 
 // mirror ข้อจำกัดเดียวกับ getPetImagePath (src/lib/petImage.ts): stage 3 ต้องมี subline,
