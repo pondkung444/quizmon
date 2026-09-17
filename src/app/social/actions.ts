@@ -2,8 +2,7 @@
 
 import { createClient, getUser } from "@/lib/supabase/server";
 import { normalizeFriendCode } from "@/lib/friendCode";
-import { friendNamePattern } from "@/lib/friendSearch";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeFriendName } from "@/lib/friendSearch";
 import type { PetPreview } from "@/components/social/petSummary";
 import type { EncouragementMessageKey } from "@/lib/encouragementMessages";
 import { getRanking, type RankingCategory, type RankingData, type RankingScope } from "@/lib/ranking";
@@ -137,19 +136,14 @@ export async function setPinnedMedals(achievementIds: string[]): Promise<{ pinne
   return { pinnedAchievementIds: achievementIds };
 }
 
-// Exact nickname lookup only; never expose a profile directory or private fields.
-// Resolve every candidate through the existing block-aware RPC before returning it.
+// Exact nickname lookup uses authenticated, quota-limited, block-aware RPCs.
 export async function searchFriendName(raw: string): Promise<SearchFriendCodeResult[]> {
   const user = await getUser();
   if (!user) throw new Error("เข้าสู่ระบบก่อนค้นหาเพื่อน");
-  const name = friendNamePattern(raw);
-  const { data, error } = await createAdminClient().from("profiles")
-    .select("friend_code").ilike("username", name).neq("id", user.id)
-    .order("id").limit(10);
-  if (error) throw new Error("ค้นหาไม่สำเร็จ ลองอีกครั้งนะ");
-  const results = await Promise.all((data ?? []).filter(row => row.friend_code)
-    .map(row => searchFriendCode(row.friend_code)));
-  return results.filter(result => result.found);
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("search_friend_name", { p_name: normalizeFriendName(raw) });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row: FriendSearchRow) => mapFriendSearchRow(row)).filter((result: SearchFriendCodeResult) => result.found);
 }
 
 export async function searchFriendCode(code: string): Promise<SearchFriendCodeResult> {
@@ -162,7 +156,10 @@ export async function searchFriendCode(code: string): Promise<SearchFriendCodeRe
     .single();
   if (error || !data) throw new Error(error?.message ?? "ค้นหา Friend Code ไม่สำเร็จ");
 
-  const row = data as {
+  return mapFriendSearchRow(data as FriendSearchRow);
+}
+
+type FriendSearchRow = {
     found: boolean;
     relationship_status: RelationshipStatus | null;
     target_user_id: string | null;
@@ -175,6 +172,7 @@ export async function searchFriendCode(code: string): Promise<SearchFriendCodeRe
     egg_name_th: string | null;
   };
 
+function mapFriendSearchRow(row: FriendSearchRow): SearchFriendCodeResult {
   if (!row.found) return { found: false };
 
   return {
