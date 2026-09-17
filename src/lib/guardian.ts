@@ -36,7 +36,7 @@ export type GuardianStudent = {
   linked_at: string;
 };
 
-// เรียกที่ /guardian (list), /guardian/plan และ /guardian/goal (default/picker) — ใช้ตัวเดียวกัน
+// เรียกที่ /guardian (list) และ layout.tsx ของ /guardian/[studentId] (ครอบทั้ง 3 หน้าย่อย) —
 // ทั้งหมด กันแต่ละหน้า implement การเรียก guardian_get_students() ต่างกันเอง
 //
 // dedupe by student_id: guardian_links ไม่มี unique constraint กัน (guardian_id, student_id)

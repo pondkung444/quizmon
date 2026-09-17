@@ -80,14 +80,12 @@ export default async function GuardianStudentDashboardPage({
 
   if (!student) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center gap-6 bg-bg p-6 text-text">
-        <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-text2">
-          ไม่พบนักเรียนคนนี้ หรือยังไม่ได้ลิงก์บัญชีกับคุณ — กลับไปหน้า{" "}
-          <Link href="/guardian" className="text-gold-hi underline">
-            ผู้พิทักษ์
-          </Link>
-        </div>
-      </main>
+      <div className="rounded-xl border border-border bg-card p-6 text-center text-sm text-text2">
+        ไม่พบนักเรียนคนนี้ หรือยังไม่ได้ลิงก์บัญชีกับคุณ — กลับไปหน้า{" "}
+        <Link href="/guardian" className="text-gold-hi underline">
+          ผู้พิทักษ์
+        </Link>
+      </div>
     );
   }
 
@@ -116,7 +114,7 @@ export default async function GuardianStudentDashboardPage({
   const petImagePath = qmon ? petImagePathFor(qmon) : null;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col gap-5 bg-bg p-6 text-text">
+    <div className="flex flex-col gap-5">
       {/* หัว: ชื่อลูก + Qmon — B5 ในเอกสารออกแบบ: เรื่องคุยที่ไม่ใช่การเรียน ต้นทุนแทบเป็นศูนย์ */}
       <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-track">
@@ -161,7 +159,7 @@ export default async function GuardianStudentDashboardPage({
 
       {/* แถบเป้า — 5-band message เท่านั้น ไม่โชว์ตัวเลขจริง (ตาม spec ที่ล็อกไว้) */}
       <Link
-        href={`/guardian/goal?student=${studentId}`}
+        href={`/guardian/${studentId}/goal`}
         className="rounded-xl border border-border bg-card p-4 transition hover:border-gold"
       >
         <p className="text-sm font-semibold text-gold-hi">เป้าความสม่ำเสมอ</p>
@@ -181,19 +179,19 @@ export default async function GuardianStudentDashboardPage({
       {/* ปุ่ม 2 ปุ่มปิดท้าย — ไปแผนการเรียน / ไปตั้งเป้าหมาย ของนักเรียนคนนี้ */}
       <div className="flex gap-3">
         <Link
-          href={`/guardian/plan?student=${studentId}`}
+          href={`/guardian/${studentId}/plan`}
           className="flex-1 rounded-full border border-gold-hi py-2.5 text-center text-sm font-semibold text-gold-hi transition hover:bg-gold-hi/10"
         >
           ดูแผนการเรียน
         </Link>
         <Link
-          href={`/guardian/goal?student=${studentId}`}
+          href={`/guardian/${studentId}/goal`}
           className="flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-track transition hover:opacity-90"
           style={{ background: "linear-gradient(180deg, #f0a05c 0%, var(--color-amber) 100%)" }}
         >
           ตั้งเป้าหมาย
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

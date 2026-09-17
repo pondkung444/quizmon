@@ -1,10 +1,8 @@
 import Link from "next/link";
 import type { GuardianStudent } from "@/lib/guardian";
 
-// รายชื่อนักเรียนที่ลิงก์กับผู้ปกครองคนนี้ — reuse ที่เดียวกันทั้ง:
-// - หน้า /guardian (landing) แสดงเป็นลิสต์ให้กดเข้า dashboard ของลูกแต่ละคน
-// - หน้า /guardian/plan, /guardian/goal ตอนมี 2+ คนแต่ยังไม่ได้เลือกใครผ่าน ?student=
-// ต้องผ่าน list เดียวกัน ไม่ทำ UI ซ้ำอีกแบบ (ตามที่ระบุใน task)
+// รายชื่อนักเรียนที่ลิงก์กับผู้ปกครองคนนี้ — ใช้ที่หน้า /guardian (landing) แสดงเป็นลิสต์ให้กด
+// เข้า dashboard ของลูกแต่ละคน และใน GuardianShell (student switcher) ตอนมี 2+ คน
 export default function StudentPicker({
   students,
   hrefFor,
