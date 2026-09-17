@@ -665,3 +665,52 @@ body {
 .quiz-image-expanded { display: block; width: 200%; max-width: none; height: auto; }
 @media (min-width: 640px) { .quiz-shell { padding-top: 24px; } .quiz-question-card { padding: 28px; } .quiz-journey { padding-inline: 40px; } .quiz-route { height: 90px; } }
 @media (prefers-reduced-motion: reduce) { .quiz-play *, .quiz-play *::before, .quiz-play *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+/* Guardian: กรอบโปรไฟล์ (frame_definitions) — scoped class ต่อ tier, ใช้ conic-gradient ล้วน
+   ไม่มี artwork จริง (placeholder จนกว่าจะมี image_file) ขนาดปรับด้วย --frame-size ที่ inline style
+   ส่งมาจาก PetAvatarFrame.tsx เพื่อให้ใช้ค่าเดียวกันได้ทั้ง 80px (การ์ดโปรไฟล์) และ 40px (ลิสต์) */
+@keyframes guardian-frame-spin { to { transform: rotate(360deg); } }
+@keyframes guardian-frame-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes guardian-frame-glow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(240, 160, 92, .5), 0 0 14px 4px rgba(216, 90, 48, .3); }
+  50% { box-shadow: 0 0 12px 3px rgba(240, 160, 92, .85), 0 0 22px 8px rgba(216, 90, 48, .5); }
+}
+
+.guardian-frame { position: relative; display: inline-flex; align-items: center; justify-content: center; width: var(--frame-size); height: var(--frame-size); flex: none; }
+.guardian-frame-avatar { position: relative; z-index: 2; width: calc(var(--frame-size) * 0.82); height: calc(var(--frame-size) * 0.82); border-radius: 9999px; overflow: hidden; }
+
+.guardian-frame-basic::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  background: linear-gradient(145deg, #f0cd9a, #b5793a);
+  padding: calc(var(--frame-size) * 0.035);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  z-index: 1;
+}
+
+.guardian-frame-mid::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  background: conic-gradient(from 0deg, #f0a05c, #e8b978, #d85a30, #f0a05c);
+  padding: calc(var(--frame-size) * 0.04);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  z-index: 1;
+  animation: guardian-frame-spin 5s linear infinite;
+}
+
+.guardian-frame-special::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  background: conic-gradient(from 0deg, #ffe08a, #f0a05c, #d85a30, #b5379e, #ffe08a);
+  padding: calc(var(--frame-size) * 0.04);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  z-index: 1;
+  animation: guardian-frame-spin 4s linear infinite;
+}
+.guardian-frame-special { animation: guardian-frame-glow 2s ease-in-out infinite; border-radius: 9999px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .guardian-frame-mid::before,
+  .guardian-frame-special::before,
+  .guardian-frame-special { animation: none; }
+}

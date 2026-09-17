@@ -13,6 +13,8 @@ import SelectMedalsSheet from "@/components/social/SelectMedalsSheet";
 import SelectFavoriteQmonSheet from "@/components/social/SelectFavoriteQmonSheet";
 import JourneyStatsGrid from "@/components/social/JourneyStatsGrid";
 import GuardianLinkSection, { type GuardianLinkData } from "@/components/social/GuardianLinkSection";
+import FramePickerSection from "@/components/social/FramePickerSection";
+import PetAvatarFrame from "@/components/social/PetAvatarFrame";
 import { resolvePetDisplay, type PetSummary } from "@/components/social/petSummary";
 import { formatFriendCode } from "@/lib/friendCode";
 import type { ProfileJourneyStats } from "@/lib/profileJourneyStats";
@@ -44,6 +46,8 @@ export type ProfileTabData = {
   // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (ยังไม่ allowlist ใน guardian_admin — §7.3 ของเอกสารออกแบบ:
   // เด็กที่ไม่ได้อยู่ใน pilot ต้องไม่เห็นหัวข้อนี้แม้แต่น้อย)
   guardianLinkData: GuardianLinkData | null;
+  // กรอบโปรไฟล์ผู้พิทักษ์ (frame_definitions.tier) — null = ยังไม่ได้ปลดล็อก/ใส่กรอบไหนเลย
+  equippedFrameTier: string | null;
 };
 
 // การ์ด Qmon ที่ภูมิใจ — แถวเดียว (ภาพวงกลม+ชื่อ 2 บรรทัด | radar) ตัดบอก Stage/สาย/บุคลิก/อุปกรณ์
@@ -52,17 +56,27 @@ export type ProfileTabData = {
 function PrideQmonRow({
   pet,
   stats,
+  equippedFrameTier,
 }: {
   pet: PetSummary;
   stats: { hp: number; atk: number; def: number; spd: number; foc: number } | null;
+  equippedFrameTier: string | null;
 }) {
   const { imagePath, speciesName } = resolvePetDisplay(pet);
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-gold-dim bg-card p-4">
       <div className="flex w-24 flex-none flex-col items-center gap-1 text-center">
-        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track">
+        <div
+          className={
+            equippedFrameTier
+              ? "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-track"
+              : "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track"
+          }
+        >
           {imagePath && (
-            <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+            <PetAvatarFrame tier={equippedFrameTier} size={80}>
+              <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+            </PetAvatarFrame>
           )}
         </div>
         <p className="w-full truncate text-sm font-bold text-text">{pet.nickname ?? speciesName}</p>
@@ -162,7 +176,7 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
             ยังไม่มี Qmon — ฟักไข่ใบแรกก่อนนะ
           </p>
         ) : (
-          <PrideQmonRow pet={pridePet} stats={prideStats} />
+          <PrideQmonRow pet={pridePet} stats={prideStats} equippedFrameTier={data.equippedFrameTier} />
         )}
       </section>
 
@@ -277,6 +291,9 @@ export default function MyProfileTab({ data }: { data: ProfileTabData }) {
           {friendCodeCopied ? "คัดลอกแล้ว" : "คัดลอก"}
         </button>
       </section>
+
+      {/* 6b. กรอบโปรไฟล์ — self-contained, ไม่ render อะไรเลยถ้ายังไม่เคยปลดล็อกกรอบไหน */}
+      <FramePickerSection />
 
       {/* 7. หัวข้อ "ผู้พิทักษ์" — null คือยังไม่เปิดใช้ฟีเจอร์นี้สำหรับบัญชีนี้ ไม่ render อะไรเลย */}
       {data.guardianLinkData && (

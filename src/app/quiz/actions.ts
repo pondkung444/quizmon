@@ -558,6 +558,28 @@ export async function finishQuizRound(
     );
   }
 
+  // Guardian: เช็คว่าข้ามเป้าความสม่ำเสมอสัปดาห์นี้หรือยัง (แยกจาก plan ด้านบนตาม §5.7 — คนละ
+  // RPC, คนละข้อมูล) ให้กรอบโปรไฟล์ทันทีตอนข้ามเส้นครั้งแรก/ครบ 4 สัปดาห์ (§6.1) RPC เองเช็คว่า
+  // มีเป้าตั้งไว้สัปดาห์นี้ไหม (ไม่มี = no-op เงียบๆ) ไม่ต้อง exists-check ซ้ำที่นี่ — best-effort
+  // เหมือน guardian_advance_plan_if_passed ด้านบนเป๊ะ ห้าม side effect ของฟีเจอร์นี้ทำให้จบ quiz
+  // รอบจริงพัง
+  try {
+    const { error: goalRewardError } = await supabase.rpc("guardian_check_weekly_goal_reward");
+    if (goalRewardError) {
+      console.error(
+        "finishQuizRound: guardian_check_weekly_goal_reward error (non-fatal)",
+        user.id,
+        goalRewardError
+      );
+    }
+  } catch (err) {
+    console.error(
+      "finishQuizRound: guardian_check_weekly_goal_reward threw (non-fatal)",
+      user.id,
+      err
+    );
+  }
+
   return {
     expAddedToPet,
     capped,

@@ -18,6 +18,7 @@ export type PublicProfileResult =
       medals: PublicMedal[];
       likeCount: number;
       likedByMe: boolean;
+      equippedFrameTier: string | null;
     };
 
 // S04 (§5.2) — RPC เดียวจัดการทั้งบล็อก (คืนแบบเดียวกับ "ไม่พบ") และคำนวณ relationship_status
@@ -48,6 +49,7 @@ export async function getPublicProfile(
     medals: PublicMedal[] | null;
     like_count: number | null;
     liked_by_me: boolean | null;
+    equipped_frame_tier: string | null;
   };
 
   if (!row.found) return { found: false };
@@ -83,5 +85,6 @@ export async function getPublicProfile(
     medals: row.medals ?? [],
     likeCount: row.like_count ?? 0,
     likedByMe: row.liked_by_me ?? false,
+    equippedFrameTier: row.equipped_frame_tier ?? null,
   };
 }

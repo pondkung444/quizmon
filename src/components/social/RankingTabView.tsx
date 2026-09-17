@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Flame, CalendarCheck, Trophy, Egg, Crown, ChevronRight } from "lucide-react";
 import { resolvePetDisplay } from "@/components/social/petSummary";
+import PetAvatarFrame from "@/components/social/PetAvatarFrame";
 import { loadRanking } from "@/app/social/actions";
 import type { RankingCategory, RankingData, RankingRow, RankingScope } from "@/lib/ranking";
 
@@ -38,9 +39,17 @@ function RankingRowItem({ row, scope, suffix }: { row: RankingRow; scope: Rankin
       }`}
     >
       <span className="w-7 flex-none text-center text-sm font-bold text-text3">{row.rank ?? "—"}</span>
-      <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track">
+      <div
+        className={
+          row.equippedFrameTier
+            ? "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-track"
+            : "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track"
+        }
+      >
         {imagePath && (
-          <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
+          <PetAvatarFrame tier={row.equippedFrameTier} size={44}>
+            <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
+          </PetAvatarFrame>
         )}
       </div>
       <p className="min-w-0 flex-1 truncate text-sm font-bold text-text">{row.username}</p>

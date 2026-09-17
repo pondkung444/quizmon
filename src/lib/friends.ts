@@ -10,6 +10,7 @@ export type FriendListItem = {
   gradeLevel: string | null;
   friendsSince: string;
   pet: PetPreview;
+  equippedFrameTier: string | null;
 };
 
 export type BlockedAccountItem = {
@@ -46,6 +47,7 @@ type FriendRow = PetPreviewRow & {
   school: string | null;
   grade_level: string | null;
   friends_since: string;
+  equipped_frame_tier: string | null;
 };
 
 // ใช้ RPC เสมอ (ไม่ query profiles ตรง) — RLS ของ profiles เปิดแค่แถวตัวเอง เพื่อนคนอื่นอ่านตรงไม่ได้
@@ -60,6 +62,7 @@ export async function getMyFriends(supabase: SupabaseServerClient): Promise<Frie
     gradeLevel: row.grade_level,
     friendsSince: row.friends_since,
     pet: toPetPreview(row),
+    equippedFrameTier: row.equipped_frame_tier,
   }));
 }
 

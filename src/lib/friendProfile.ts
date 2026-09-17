@@ -28,6 +28,7 @@ export type FriendProfileResult =
       journeyStats: ProfileJourneyStats;
       likeCount: number;
       likedByMe: boolean;
+      equippedFrameTier: string | null;
     };
 
 // S05 เต็มรูปแบบ (เฟส 6) — ต่างจาก get_public_profile (เฟส 5) ตรงที่ RPC เช็คว่าเป็นเพื่อนกันจริงก่อน
@@ -67,6 +68,7 @@ export async function getFriendProfile(
     weekly_champion_count: number | null;
     like_count: number | null;
     liked_by_me: boolean | null;
+    equipped_frame_tier: string | null;
   };
 
   if (!row.found) return { found: false };
@@ -113,5 +115,6 @@ export async function getFriendProfile(
     },
     likeCount: row.like_count ?? 0,
     likedByMe: row.liked_by_me ?? false,
+    equippedFrameTier: row.equipped_frame_tier ?? null,
   };
 }
