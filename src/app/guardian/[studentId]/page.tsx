@@ -1,13 +1,31 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import { getGuardianAccess, getGuardianStudents } from "@/lib/guardian";
 import { createClient } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
-import ChapterList from "./ChapterList";
+import TrendCard from "./overview/TrendCard";
+import InsightCards from "./overview/InsightCards";
+import ChapterCompare from "./overview/ChapterCompare";
+import {
+  accuracyBgClass,
+  accuracyTextClass,
+  subjectLabel,
+  type CategoryRow,
+  type ChapterChange,
+  type CurriculumChapter,
+  type SubjectRow,
+  type TrendDay,
+} from "./overview/shared";
 
 export const dynamic = "force-dynamic";
+
+// เปลี่ยน decision เดิมโดยเจตนา (ปอนด์ยืนยัน 2026-09-19): หน้านี้เคยล็อกไว้ว่า "แถบเป้าโชว์ 5-band เท่านั้น
+// ไม่โชว์ตัวเลขจริง" และ "B2: ห้ามโชว์ % ใช้ tier + จำนวนข้อ" ตอนนี้ Overview ถูกออกแบบใหม่ให้เป็นหน้ารวม
+// สรุปที่มีข้อมูลจริง — โชว์ accuracy % คู่จำนวนข้อ และตัวเลขแต้มดิบของเป้า (เช่น 279 / ~300) กำกับระดับ
+// ภาษาคนเสมอ เพราะระดับอย่างเดียว ("ไปได้ดี") ทำให้ผู้ปกครองประเมินไม่ได้ว่าใกล้/ไกลเป้าแค่ไหน
 
 type QmonDisplay = {
   nickname: string;
@@ -18,38 +36,21 @@ type QmonDisplay = {
   egg_name_th: string;
 };
 
-type WeeklyCalendarDay = {
-  d: string;
-  day_points: number;
-  has_data: boolean;
-  is_today: boolean;
-  is_future: boolean;
+type GoalProgress = { has_goal: boolean; goal_level: string | null; bucket: string | null };
+type GoalPoints = { has_goal: boolean; level: string | null; total_points: number; computed_target: number | null };
+type PlanRow = {
+  framework: string;
+  plan_status: string;
+  chapter: string | null;
+  chapter_status: "pending" | "current" | "passed" | "stuck" | null;
 };
 
-type GoalProgress = {
-  goal_week_start: string;
-  has_goal: boolean;
-  goal_level: string | null;
-  bucket: string | null;
+const LEVEL_LABEL: Record<string, string> = { relaxed: "สบายๆ", steady: "กำลังดี", challenging: "ท้าทาย" };
+const FRAMEWORK_LABEL: Record<string, string> = {
+  school: "ตามที่โรงเรียนสอน",
+  weak_spot: "ซ่อมจุดอ่อน",
+  exam_prep: "เตรียมสอบ",
 };
-
-const DAY_LABEL_TH = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
-
-// ไล่เฉดเดียวกับ expTierClass/expTierTextClass (src/lib/expTier.ts) ที่ใช้ในปฏิทินฝั่งเด็ก
-// (ตามเอกสารออกแบบ: "ใช้ตรรกะและหน้าตาซ้ำได้เลย") แต่ปรับ threshold ใหม่ เพราะ day_points ของ
-// guardian_get_weekly_calendar เพดานอยู่ที่ 50/วัน ไม่ใช่ 180 เหมือน EXP — คง % ratio เดิมไว้
-// (0% / ~33% / ~67% / <100% / 100% ของเพดาน)
-function dayPointsTierClass(points: number): string {
-  if (points <= 0) return "bg-track";
-  if (points < 17) return "bg-indigo-dim";
-  if (points < 33) return "bg-indigo";
-  if (points < 50) return "bg-gold";
-  return "bg-amber shadow-[0_0_10px_2px_var(--color-amber)]";
-}
-
-function dayPointsTextClass(points: number): string {
-  return points < 17 ? "text-text" : "text-track";
-}
 
 function petImagePathFor(qmon: QmonDisplay): string | null {
   try {
@@ -62,6 +63,10 @@ function petImagePathFor(qmon: QmonDisplay): string | null {
   } catch {
     return null;
   }
+}
+
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>{children}</div>;
 }
 
 export default async function GuardianStudentDashboardPage({
@@ -91,12 +96,18 @@ export default async function GuardianStudentDashboardPage({
 
   const supabase = await createClient();
 
-  const [qmonRes, calendarRes, categoriesRes, goalRes] = await Promise.all([
-    supabase.rpc("guardian_get_qmon_display", { p_student_id: studentId }),
-    supabase.rpc("guardian_get_weekly_calendar", { p_student_id: studentId, p_week_start_date: null }),
-    supabase.rpc("guardian_get_categories", { p_student_id: studentId }),
-    supabase.rpc("guardian_get_goal_progress", { p_student_id: studentId }),
-  ]);
+  const [qmonRes, trendRes, categoriesRes, goalRes, pointsRes, changesRes, subjectRes, planRes, chaptersRes] =
+    await Promise.all([
+      supabase.rpc("guardian_get_qmon_display", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_daily_trend", { p_student_id: studentId, p_end_date: null, p_days: 30 }),
+      supabase.rpc("guardian_get_categories", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_goal_progress", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_goal_points", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_chapter_status_changes", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_subject_comparison", { p_student_id: studentId, p_days: 30 }),
+      supabase.rpc("guardian_get_plan", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_available_chapters", { p_student_id: studentId }),
+    ]);
 
   // fire-and-forget ตาม spec ของ guardian_log_insight_view — await เพื่อกันโดน cut off ก่อน
   // เขียนจบ (server component จบ request แล้ว process อาจไม่รอ promise ที่ลอยอยู่ให้)
@@ -107,19 +118,31 @@ export default async function GuardianStudentDashboardPage({
   );
 
   const qmon = (qmonRes.data?.[0] ?? null) as QmonDisplay | null;
-  const calendar = (calendarRes.data ?? []) as WeeklyCalendarDay[];
-  const categories = categoriesRes.data ?? [];
+  const trend = (trendRes.data ?? []) as TrendDay[];
+  const categories = (categoriesRes.data ?? []) as CategoryRow[];
   const goal = (goalRes.data?.[0] ?? null) as GoalProgress | null;
+  const points = (pointsRes.data?.[0] ?? null) as GoalPoints | null;
+  const changes = (changesRes.data ?? []) as ChapterChange[];
+  const subjects = (subjectRes.data ?? []) as SubjectRow[];
+  const plan = (planRes.data ?? []) as PlanRow[];
+  const curriculum = (chaptersRes.data ?? []) as CurriculumChapter[];
 
   const petImagePath = qmon ? petImagePathFor(qmon) : null;
+  const today = trend[trend.length - 1];
+  const hasGoal = !!goal?.has_goal;
+  const target = points?.computed_target ?? null;
+  const goalPct = hasGoal && target ? Math.min(100, Math.round(((points?.total_points ?? 0) / target) * 100)) : 0;
+
+  const planPassed = plan.filter((r) => r.chapter_status === "passed").length;
+  const planCurrent = plan.find((r) => r.chapter_status === "current") ?? plan.find((r) => r.chapter_status !== "passed");
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* หัว: ชื่อลูก + Qmon — B5 ในเอกสารออกแบบ: เรื่องคุยที่ไม่ใช่การเรียน ต้นทุนแทบเป็นศูนย์ */}
-      <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-track">
+    <div className="flex flex-col gap-4">
+      {/* หัว: ชื่อลูก + Qmon */}
+      <Card className="flex items-center gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-track">
           {petImagePath ? (
-            <Image src={petImagePath} alt="" width={56} height={56} />
+            <Image src={petImagePath} alt="" width={48} height={48} />
           ) : (
             <span className="text-xs text-text3">—</span>
           )}
@@ -134,62 +157,130 @@ export default async function GuardianStudentDashboardPage({
             <p className="text-xs text-text3">ยังไม่มี Qmon</p>
           )}
         </div>
-      </div>
+      </Card>
 
-      {/* ปฏิทิน 7 ช่อง — ย่อจากปฏิทินรายเดือนฝั่งเด็ก (PetCalendarClient) มาเป็นรายสัปดาห์ */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <p className="mb-3 text-sm font-semibold text-gold-hi">ภาพรวมสัปดาห์นี้</p>
-        <div className="grid grid-cols-7 gap-1.5">
-          {calendar.map((day, i) => (
-            <div key={day.d} className="flex flex-col items-center gap-1">
-              <span className="text-[10px] text-text3">{DAY_LABEL_TH[i] ?? ""}</span>
-              <div
-                className={`flex aspect-square w-full items-center justify-center rounded-lg text-xs font-medium ${
-                  day.is_future
-                    ? "border border-dashed border-border bg-transparent text-text3 opacity-40"
-                    : `${dayPointsTierClass(day.day_points)} ${dayPointsTextClass(day.day_points)}`
-                } ${day.is_today ? "ring-2 ring-gold-hi" : ""}`}
-              >
-                {day.is_future ? "" : day.day_points}
-              </div>
-            </div>
-          ))}
+      {/* Hero — มือถือ: การ์ดรวม (วันนี้ + ความสม่ำเสมอ) แล้วการ์ดกราฟแยก / ≥768px: การ์ดเดียว 3 คอลัมน์ */}
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[1fr_1fr_1.8fr] md:gap-0 md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-card">
+        <div className="overflow-hidden rounded-xl border border-border bg-card md:contents">
+          <div className="p-4">
+            <p className="text-xs text-text3">วันนี้</p>
+            {today?.has_data ? (
+              <>
+                <p className="mt-1 text-3xl font-bold text-text">
+                  {today.correct_count}
+                  <span className="text-base font-normal text-text2"> / {today.total_count} ข้อถูก</span>
+                </p>
+                <p className={`text-sm font-semibold ${accuracyTextClass(today.accuracy ?? 0)}`}>
+                  ความแม่น {today.accuracy}%
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-text2">วันนี้ยังไม่ได้เริ่มตอบข้อ</p>
+            )}
+          </div>
+
+          <div className="border-t border-border p-4 md:border-l md:border-t-0">
+            <p className="text-xs text-text3">ความสม่ำเสมอสัปดาห์นี้</p>
+            {hasGoal ? (
+              <>
+                <p className="mt-1 text-xl font-bold text-text">{goal?.bucket}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-track">
+                  <div className="h-full rounded-full bg-amber" style={{ width: `${goalPct}%` }} />
+                </div>
+                <p className="mt-1 text-xs text-text2">
+                  {points?.total_points ?? 0} / เป้าหมาย ~{target} แต้ม
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-text2">ยังไม่ได้ตั้งเป้าหมายสัปดาห์นี้</p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-4 md:rounded-none md:border-0 md:border-l md:bg-transparent">
+          <TrendCard studentId={studentId} days30={trend} />
         </div>
       </div>
 
-      {/* แถบเป้า — 5-band message เท่านั้น ไม่โชว์ตัวเลขจริง (ตาม spec ที่ล็อกไว้) */}
-      <Link
-        href={`/guardian/${studentId}/goal`}
-        className="rounded-xl border border-border bg-card p-4 transition hover:border-gold"
-      >
-        <p className="text-sm font-semibold text-gold-hi">เป้าความสม่ำเสมอ</p>
-        {goal?.has_goal ? (
-          <p className="mt-1 text-xl font-bold text-text">{goal.bucket}</p>
-        ) : (
-          <p className="mt-1 text-sm text-text2">ยังไม่ได้ตั้งเป้าหมายสัปดาห์นี้ — แตะเพื่อตั้ง</p>
-        )}
-      </Link>
-
-      {/* จุดอ่อนรายบท — B2: ห้ามโชว์ %, ใช้ tier + จำนวนข้อ, หน้าแรกโชว์ 3 บท + ดูทั้งหมด */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <p className="mb-3 text-sm font-semibold text-gold-hi">จุดที่น่าสนใจรายบท (30 วันล่าสุด)</p>
-        <ChapterList categories={categories} />
+      {/* จุดที่น่าสนใจ + เทียบวิชา */}
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[2fr_1fr]">
+        <Card>
+          <InsightCards changes={changes} />
+        </Card>
+        <Card>
+          <p className="mb-3 text-sm font-semibold text-gold-hi">เทียบวิชา (30 วันล่าสุด)</p>
+          {subjects.length === 0 ? (
+            <p className="text-sm text-text3">ยังไม่มีวิชาที่ข้อมูลพอ (ต้องตอบอย่างน้อย 10 ข้อ)</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {subjects.map((s) => (
+                <div key={`${s.subject}-${s.branch ?? ""}`}>
+                  <div className="mb-1 flex items-baseline justify-between text-sm">
+                    <span className="text-text">{subjectLabel(s.subject, s.branch)}</span>
+                    <span className="text-xs text-text2">
+                      <span className={`font-semibold ${accuracyTextClass(s.accuracy)}`}>{s.accuracy}%</span> ·{" "}
+                      {s.answered_count} ข้อ
+                    </span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-track">
+                    <div className={`h-full rounded-full ${accuracyBgClass(s.accuracy)}`} style={{ width: `${s.accuracy}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* ปุ่ม 2 ปุ่มปิดท้าย — ไปแผนการเรียน / ไปตั้งเป้าหมาย ของนักเรียนคนนี้ */}
-      <div className="flex gap-3">
+      {/* เทียบบท */}
+      <Card>
+        <ChapterCompare categories={categories} curriculum={curriculum} />
+      </Card>
+
+      {/* พรีวิวแผน + เป้าหมาย — กดไปหน้าเต็ม */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Link
           href={`/guardian/${studentId}/plan`}
-          className="flex-1 rounded-full border border-gold-hi py-2.5 text-center text-sm font-semibold text-gold-hi transition hover:bg-gold-hi/10"
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition hover:border-gold"
         >
-          ดูแผนการเรียน
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gold-hi">แผนการเรียน</p>
+            {plan.length === 0 ? (
+              <p className="mt-1 text-sm text-text2">ยังไม่มีแผน — แตะเพื่อสร้าง</p>
+            ) : (
+              <>
+                <p className="mt-1 text-sm text-text">
+                  {FRAMEWORK_LABEL[plan[0].framework] ?? plan[0].framework} · ผ่านแล้ว {planPassed}/{plan.length} บท
+                </p>
+                {planCurrent?.chapter && (
+                  <p className="truncate text-xs text-text2">ตอนนี้: {planCurrent.chapter}</p>
+                )}
+              </>
+            )}
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-text3" />
         </Link>
+
         <Link
           href={`/guardian/${studentId}/goal`}
-          className="flex-1 rounded-full py-2.5 text-center text-sm font-semibold text-track transition hover:opacity-90"
-          style={{ background: "linear-gradient(180deg, #f0a05c 0%, var(--color-amber) 100%)" }}
+          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition hover:border-gold"
         >
-          ตั้งเป้าหมาย
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gold-hi">เป้าความสม่ำเสมอ</p>
+            {hasGoal ? (
+              <>
+                <p className="mt-1 text-sm text-text">
+                  ระดับ{LEVEL_LABEL[goal?.goal_level ?? ""] ?? goal?.goal_level} · {goal?.bucket}
+                </p>
+                <p className="text-xs text-text2">
+                  {points?.total_points ?? 0} / ~{target} แต้ม ({goalPct}%)
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-text2">ยังไม่ได้ตั้งเป้าหมายสัปดาห์นี้ — แตะเพื่อตั้ง</p>
+            )}
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-text3" />
         </Link>
       </div>
     </div>

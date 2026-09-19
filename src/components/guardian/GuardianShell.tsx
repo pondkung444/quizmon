@@ -110,7 +110,13 @@ export default function GuardianShell({
       </header>
 
       <main className="flex-1 pb-20 lg:pb-0">
-        <div className="mx-auto w-full max-w-[420px] p-4 lg:max-w-4xl lg:p-8">{children}</div>
+        <div
+          className={`mx-auto w-full p-4 lg:p-8 ${
+            active === "overview" ? "max-w-[420px] md:max-w-4xl" : "max-w-[420px] lg:max-w-4xl"
+          }`}
+        >
+          {children}
+        </div>
       </main>
 
       {/* Bottom tab — เฉพาะจอแคบกว่า lg เอื้อมนิ้วโป้งง่าย เหมือน pattern แอปฝั่งเด็ก */}

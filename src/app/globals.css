@@ -27,6 +27,9 @@
   --color-indigo: #7089d1;
   --color-indigo-dim: #37456b;
   --color-indigo-hi: #c7d3f2;
+  /* semantic tier colors (guardian overview): good = คล่องแล้ว, warn = กำลังไปได้; ยังต้องฝึก ใช้ --color-red เดิม */
+  --color-good: #4fb583;
+  --color-warn: #e0b13c;
 }
 
 body {
