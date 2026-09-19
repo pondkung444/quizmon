@@ -111,10 +111,17 @@ export default function GuardianShell({
         </form>
       </header>
 
-      <main className="flex-1 pb-20 lg:pb-0">
+      <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+        {/* ความกว้างเนื้อหา: เดิมล็อกที่ max-w-4xl (896px) ทุกหน้า จอกว้างจึงเหลือที่ว่างสองข้างเยอะ —
+            ภาพรวม/รายงานเป็นหน้า data-dense กริดหลายคอลัมน์ ให้กว้างสุด 1440px, แผนฝึกมี 2 กลุ่มวิชาข้างกัน
+            1152px, เป้าหมายเป็นฟอร์มคอลัมน์เดียว คงแคบไว้ (breakpoint ของ nav ยังเป็น lg = 1024px เหมือนเดิม) */}
         <div
           className={`mx-auto w-full p-4 lg:p-8 ${
-            active === "overview" || active === "report" ? "max-w-[420px] md:max-w-4xl" : "max-w-[420px] lg:max-w-4xl"
+            active === "overview" || active === "report"
+              ? "max-w-[420px] md:max-w-5xl lg:max-w-[1440px]"
+              : active === "plan"
+                ? "max-w-[420px] lg:max-w-6xl"
+                : "max-w-[420px] lg:max-w-4xl"
           }`}
         >
           {children}
