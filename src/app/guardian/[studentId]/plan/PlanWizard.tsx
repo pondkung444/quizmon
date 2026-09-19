@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import BottomSheet from "@/components/social/BottomSheet";
-import { accuracyTextClass } from "../overview/shared";
+import { accuracyTextClass, gradeLabel } from "../overview/shared";
 
 type AvailableChapter = {
   chapter_key: string;
@@ -29,6 +29,8 @@ type AvailableChapter = {
   recent_attempts: number;
   recent_accuracy: number | null;
   already_in_active_plan: boolean;
+  grade_level: string | null;
+  grade_order: number;
 };
 
 type PlanRow = {
@@ -106,20 +108,64 @@ function subjectGroupLabel(subject: string | null, branch: string | null): strin
 // (เกณฑ์เดียวกับ "เทียบวิชา" ในภาพรวมที่ต้องตอบอย่างน้อย 10 ข้อ)
 const MIN_ATTEMPTS_FOR_ACCURACY = 10;
 
+// tier เดียวกับ guardian_get_categories: >=80 = "คล่องแล้ว" — บทที่ "ยังต้องฝึก" คือทุกบทที่ไม่ใช่คล่องแล้ว
+// รวมบทที่ข้อมูลยังไม่พอ (ยังไม่รู้ว่าคล่องหรือยัง จึงไม่ตัดทิ้ง)
+function hasEnoughData(ch: AvailableChapter): boolean {
+  return ch.recent_accuracy !== null && ch.recent_attempts >= MIN_ATTEMPTS_FOR_ACCURACY;
+}
+function needsPractice(ch: AvailableChapter): boolean {
+  return !(hasEnoughData(ch) && (ch.recent_accuracy as number) >= 80);
+}
+
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-[36px] shrink-0 rounded-full border px-3 text-sm font-semibold transition ${
+        active ? "border-gold-hi bg-gold-hi/15 text-gold-hi" : "border-border bg-track text-text2"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 function ChapterList({
   chapters,
   selectedKeys,
   onToggle,
   excludeKeys,
   passedKeys,
+  filterable = false,
 }: {
   chapters: AvailableChapter[];
   selectedKeys: string[];
   onToggle: (key: string) => void;
   excludeKeys?: string[];
   passedKeys?: string[];
+  filterable?: boolean;
 }) {
-  const visible = chapters.filter((c) => !excludeKeys?.includes(c.chapter_key));
+  // ตัวกรอง 3 ตัวใช้ร่วมกันแบบ AND (ไม่ exclusive)
+  const [subjectFilter, setSubjectFilter] = useState<string | null>(null);
+  const [gradeFilter, setGradeFilter] = useState<string | null>(null);
+  const [onlyNeedsPractice, setOnlyNeedsPractice] = useState(false);
+
+  const base = chapters.filter((c) => !excludeKeys?.includes(c.chapter_key));
+
+  const subjectOptions = [...new Set(base.map((c) => subjectGroupLabel(c.subject, c.branch)))];
+  const gradeOptions = [...new Map(base.map((c) => [gradeLabel(c.grade_level), c.grade_order])).entries()]
+    .sort((a, b) => a[1] - b[1])
+    .map(([label]) => label);
+
+  const visible = filterable
+    ? base.filter(
+        (c) =>
+          (!subjectFilter || subjectGroupLabel(c.subject, c.branch) === subjectFilter) &&
+          (!gradeFilter || gradeLabel(c.grade_level) === gradeFilter) &&
+          (!onlyNeedsPractice || needsPractice(c))
+      )
+    : base;
 
   const groups = new Map<string, AvailableChapter[]>();
   for (const ch of visible) {
@@ -129,7 +175,59 @@ function ChapterList({
   }
 
   return (
-    <div className="flex max-h-80 flex-col gap-4 overflow-y-auto">
+    <div className="flex flex-col gap-3">
+      {filterable && (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <FilterChip active={!subjectFilter} onClick={() => setSubjectFilter(null)}>
+              ทุกวิชา
+            </FilterChip>
+            {subjectOptions.map((s) => (
+              <FilterChip key={s} active={subjectFilter === s} onClick={() => setSubjectFilter(subjectFilter === s ? null : s)}>
+                {s}
+              </FilterChip>
+            ))}
+          </div>
+          {gradeOptions.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <FilterChip active={!gradeFilter} onClick={() => setGradeFilter(null)}>
+                ทุกระดับชั้น
+              </FilterChip>
+              {gradeOptions.map((g) => (
+                <FilterChip key={g} active={gradeFilter === g} onClick={() => setGradeFilter(gradeFilter === g ? null : g)}>
+                  {g}
+                </FilterChip>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={onlyNeedsPractice}
+            onClick={() => setOnlyNeedsPractice((v) => !v)}
+            className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border bg-track px-3 text-left"
+          >
+            <span className="text-sm font-semibold text-text2">เฉพาะบทที่ยังต้องฝึกเพิ่ม</span>
+            <span
+              className={`flex h-6 w-11 flex-none items-center rounded-full p-0.5 transition ${
+                onlyNeedsPractice ? "bg-gold-hi" : "bg-border"
+              }`}
+            >
+              <span
+                className={`h-5 w-5 rounded-full bg-white transition-transform ${onlyNeedsPractice ? "translate-x-5" : ""}`}
+              />
+            </span>
+          </button>
+          <p className="text-xs text-text3">
+            แสดง {visible.length} จาก {base.length} บท
+            {onlyNeedsPractice ? " · รวมบทที่ยังไม่มีข้อมูลเพียงพอ" : ""}
+          </p>
+        </div>
+      )}
+      {filterable && visible.length === 0 && (
+        <p className="rounded-xl bg-track p-3 text-center text-sm text-text3">ไม่มีบทที่ตรงกับตัวกรองที่เลือก</p>
+      )}
+      <div className="flex max-h-80 flex-col gap-4 overflow-y-auto">
       {[...groups.entries()].map(([groupName, items]) => (
         <div key={groupName}>
           <p className="mb-2 px-1 text-sm font-bold text-text3">{groupName}</p>
@@ -186,6 +284,7 @@ function ChapterList({
           </ul>
         </div>
       ))}
+      </div>
     </div>
   );
 }
@@ -562,6 +661,7 @@ export default function PlanWizard({
                       chapters={available}
                       selectedKeys={addKeys}
                       onToggle={toggleAddChapter}
+                      filterable
                       excludeKeys={allRows.map((c) => c.chapter_key as string)}
                     />
                     <div className="flex gap-2">
