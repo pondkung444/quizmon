@@ -8,6 +8,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import TrendCard from "./overview/TrendCard";
 import InsightCards from "./overview/InsightCards";
+import PlanProgressCard, { type PlanProgress, type PlanRow } from "./overview/PlanProgressCard";
 import {
   accuracyBgClass,
   accuracyTextClass,
@@ -35,32 +36,7 @@ type QmonDisplay = {
 
 type GoalProgress = { has_goal: boolean; goal_level: string | null; bucket: string | null };
 type GoalPoints = { has_goal: boolean; level: string | null; total_points: number; computed_target: number | null };
-type PlanRow = {
-  framework: string;
-  plan_status: string;
-  chapter_key: string | null;
-  subject: string | null;
-  branch: string | null;
-  chapter: string | null;
-  chapter_status: "pending" | "current" | "passed" | "stuck" | null;
-};
-
-// attempts_total + accuracy_recent เป็นชุดเดียวกับที่ guardian_advance_plan_if_passed ใช้ตัดสินผ่านจริง
-// (ไม่ scope เวลา) — "N/20" จึงตรงกับเกณฑ์ผ่านเป๊ะ; มีแค่ accuracy_start ที่นับตั้งแต่บทนี้เป็น current
-type PlanProgress = {
-  chapter_key: string;
-  attempts_total: number;
-  accuracy_start: number | null;
-  accuracy_recent: number | null;
-  pass_threshold_attempts: number;
-};
-
 const LEVEL_LABEL: Record<string, string> = { relaxed: "สบายๆ", steady: "กำลังดี", challenging: "ท้าทาย" };
-const FRAMEWORK_LABEL: Record<string, string> = {
-  school: "ตามที่โรงเรียนสอน",
-  weak_spot: "ซ่อมจุดอ่อน",
-  exam_prep: "เตรียมสอบ",
-};
 
 function petImagePathFor(qmon: QmonDisplay): string | null {
   try {
@@ -142,10 +118,10 @@ export default async function GuardianStudentDashboardPage({
   const target = points?.computed_target ?? null;
   const goalPct = hasGoal && target ? Math.min(100, Math.round(((points?.total_points ?? 0) / target) * 100)) : 0;
 
-  const planPassed = plan.filter((r) => r.chapter_status === "passed").length;
-  // current มีได้ 1 บทต่อวิชา — โชว์ทุกวิชาที่กำลังเรียนอยู่ และส่ง chapter_key ไปให้ day-breakdown ติดป้าย "ตามแผน"
-  const planCurrents = plan.filter((r) => r.chapter_status === "current" && r.chapter && r.subject);
-  const planCurrentKeys = planCurrents.map((r) => r.chapter_key as string);
+  // current มีได้ 1 บทต่อวิชา — ส่ง chapter_key ไปให้ day-breakdown ติดป้าย "ตามแผน"
+  const planCurrentKeys = plan
+    .filter((r) => r.chapter_status === "current" && r.chapter && r.subject)
+    .map((r) => r.chapter_key as string);
 
   return (
     <div className="flex flex-col gap-4">
@@ -213,6 +189,9 @@ export default async function GuardianStudentDashboardPage({
         </div>
       </div>
 
+      {/* แผนการเรียน — section เด่นเต็มความกว้าง (คำตอบของ "ที่วางแผนให้ลูกทำ ได้ผลไหม") */}
+      <PlanProgressCard studentId={studentId} plan={plan} progressByKey={progressByKey} />
+
       {/* จุดที่น่าสนใจ + เทียบวิชา */}
       <div className="flex flex-col gap-4 md:grid md:grid-cols-[2fr_1fr]">
         <Card>
@@ -243,64 +222,8 @@ export default async function GuardianStudentDashboardPage({
         </Card>
       </div>
 
-      {/* พรีวิวแผน + เป้าหมาย — กดไปหน้าเต็ม */}
+      {/* เป้าหมาย — การ์ดเล็ก กดไปหน้าเต็ม (แผนการเรียนย้ายขึ้นเป็น section เด่นด้านบนแล้ว) */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Link
-          href={`/guardian/${studentId}/plan`}
-          className="gd-card flex items-center justify-between gap-3 p-4 transition hover:border-mint"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-mint">แผนการเรียน</p>
-            {plan.length === 0 ? (
-              <p className="mt-1 text-sm text-text2">ยังไม่มีแผน — แตะเพื่อสร้าง</p>
-            ) : (
-              <>
-                <p className="mt-1 text-sm text-text">
-                  {FRAMEWORK_LABEL[plan[0].framework] ?? plan[0].framework} · ผ่านแล้ว {planPassed}/{plan.length} บท
-                </p>
-                {planCurrents.length > 0 && (
-                  <div className="mt-1.5 flex flex-col gap-2">
-                    {planCurrents.map((r) => {
-                      const p = progressByKey.get(r.chapter_key as string);
-                      const hasCompare = p && p.accuracy_start !== null && p.accuracy_recent !== null;
-                      const arrow = hasCompare
-                        ? (p.accuracy_recent as number) > (p.accuracy_start as number)
-                          ? " ⬆️"
-                          : (p.accuracy_recent as number) < (p.accuracy_start as number)
-                            ? " ⬇️"
-                            : ""
-                        : "";
-                      return (
-                        <div key={r.chapter_key} className="text-xs text-text2">
-                          <p className="truncate">
-                            🎯 {subjectLabel(r.subject as string, r.branch)}:{" "}
-                            <span className="text-text">{r.chapter}</span>
-                          </p>
-                          {p && (
-                            <p className="pl-5 text-text2">
-                              {hasCompare && (
-                                <>
-                                  ถูก {p.accuracy_start}% → {p.accuracy_recent}%{arrow} ·{" "}
-                                </>
-                              )}
-                              ทำไปแล้ว{" "}
-                              {p.attempts_total >= p.pass_threshold_attempts
-                                ? `${p.attempts_total} ข้อ`
-                                : `${p.attempts_total}/${p.pass_threshold_attempts} ข้อ`}
-                              {!hasCompare && " · ยังไม่มีข้อมูลเพียงพอสำหรับเทียบ"}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          <ChevronRight className="h-5 w-5 shrink-0 text-text3" />
-        </Link>
-
         <Link
           href={`/guardian/${studentId}/goal`}
           className="gd-card flex items-center justify-between gap-3 p-4 transition hover:border-mint"
