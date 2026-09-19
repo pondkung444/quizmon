@@ -45,9 +45,11 @@ type PlanRow = {
   chapter_status: "pending" | "current" | "passed" | "stuck" | null;
 };
 
+// attempts_total + accuracy_recent เป็นชุดเดียวกับที่ guardian_advance_plan_if_passed ใช้ตัดสินผ่านจริง
+// (ไม่ scope เวลา) — "N/20" จึงตรงกับเกณฑ์ผ่านเป๊ะ; มีแค่ accuracy_start ที่นับตั้งแต่บทนี้เป็น current
 type PlanProgress = {
   chapter_key: string;
-  attempts_since_current: number;
+  attempts_total: number;
   accuracy_start: number | null;
   accuracy_recent: number | null;
   pass_threshold_attempts: number;
@@ -282,9 +284,9 @@ export default async function GuardianStudentDashboardPage({
                                 </>
                               )}
                               ทำไปแล้ว{" "}
-                              {p.attempts_since_current >= p.pass_threshold_attempts
-                                ? `${p.attempts_since_current} ข้อ`
-                                : `${p.attempts_since_current}/${p.pass_threshold_attempts} ข้อ`}
+                              {p.attempts_total >= p.pass_threshold_attempts
+                                ? `${p.attempts_total} ข้อ`
+                                : `${p.attempts_total}/${p.pass_threshold_attempts} ข้อ`}
                               {!hasCompare && " · ยังไม่มีข้อมูลเพียงพอสำหรับเทียบ"}
                             </p>
                           )}
