@@ -106,7 +106,7 @@ export default function TrendCard({ studentId, days30 }: { studentId: string; da
               <div className="flex w-full flex-1 items-end">
                 <div
                   className={`w-full rounded-t-md transition group-active:opacity-70 ${
-                    day.has_data ? `${accuracyBgClass(day.accuracy ?? 0)} ${(day.accuracy ?? 0) >= 80 ? "gd-glow-good" : (day.accuracy ?? 0) >= 50 ? "gd-glow-warn" : "gd-glow-risk"}` : "bg-track"
+                    day.has_data ? accuracyBgClass(day.accuracy ?? 0) : "bg-[#15181d]"
                   }`}
                   style={{ height: day.has_data ? `${h}%` : "3px" }}
                 />

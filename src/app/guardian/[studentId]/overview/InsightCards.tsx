@@ -11,10 +11,10 @@ function tone(c: ChapterChange): "good" | "warn" | "risk" | "neutral" {
 }
 
 const TONE_CLASS = {
-  good: "border-good/60 bg-good/15 shadow-[0_0_16px_-4px_var(--color-good)]",
-  warn: "border-warn/60 bg-warn/15 shadow-[0_0_16px_-4px_var(--color-warn)]",
-  risk: "border-red/70 bg-red/15 shadow-[0_0_16px_-4px_var(--color-red)]",
-  neutral: "border-[#404650] bg-[#232830]",
+  good: "border-good/60 bg-good/15",
+  warn: "border-warn/60 bg-warn/15",
+  risk: "border-red/70 bg-red/15",
+  neutral: "border-[#383e48] bg-[#1f242b]",
 };
 
 const TONE_DOT = {
