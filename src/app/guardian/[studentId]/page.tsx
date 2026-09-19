@@ -178,7 +178,7 @@ export default async function GuardianStudentDashboardPage({
               <>
                 <p className="mt-1 text-xl font-bold text-text">{goal?.bucket}</p>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-track">
-                  <div className="gd-glow-warn h-full rounded-full bg-amber" style={{ width: `${goalPct}%` }} />
+                  <div className="h-full rounded-full bg-amber" style={{ width: `${goalPct}%` }} />
                 </div>
                 <p className="mt-1 text-xs text-text2">
                   {points?.total_points ?? 0} / เป้าหมาย ~{target} แต้ม

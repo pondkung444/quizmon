@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { List, LayoutGrid } from "lucide-react";
+import BottomSheet from "@/components/social/BottomSheet";
 import {
   accuracyBgClass,
   gradeLabel,
@@ -133,7 +134,7 @@ export default function ChapterCompare({
                 {g.subjects.map(([label, chapters]) => (
                   <div key={label}>
                     <p className="mb-1.5 text-xs font-semibold text-text2">{label}</p>
-                    <div className="grid grid-cols-8 gap-1.5 md:grid-cols-12">
+                    <div className="grid grid-cols-8 gap-1.5 md:grid-cols-4">
                       {chapters.map((ch, i) => {
                         const cat = byKey.get(ch.chapter_key);
                         return (
@@ -142,13 +143,16 @@ export default function ChapterCompare({
                             type="button"
                             onClick={() => setPicked(ch.chapter_key)}
                             aria-label={`${ch.chapter}: ${cat ? `${cat.tier} ${cat.accuracy}%` : "ยังไม่มีข้อมูลพอ"}`}
-                            className={`flex aspect-square items-center justify-center rounded-lg text-[11px] font-bold ${
+                            title={ch.chapter}
+                            // มือถือ: ช่องเลขล้วน แตะแล้วเปิด bottom sheet บอกชื่อบท / ≥768px: กว้างพอใส่ชื่อบท (ตัด 2 บรรทัด) ในช่องเลย
+                            className={`flex aspect-square items-center justify-center rounded-lg text-[11px] font-bold md:aspect-auto md:min-h-[56px] md:items-start md:justify-start md:gap-1.5 md:px-2 md:py-1.5 md:text-left ${
                               cat
                                 ? `${tierBgClass(cat.tier)} text-[#10231d] shadow-[0_2px_8px_#00000055]`
                                 : "border border-dashed border-[#4a5560] bg-transparent text-text3"
                             } ${picked === ch.chapter_key ? "ring-2 ring-mint" : ""}`}
                           >
-                            {i + 1}
+                            <span>{i + 1}</span>
+                            <span className="hidden text-[11px] font-medium leading-tight md:line-clamp-2">{ch.chapter}</span>
                           </button>
                         );
                       })}
@@ -165,17 +169,22 @@ export default function ChapterCompare({
             <span><i className="mr-1 inline-block h-2 w-2 rounded-sm border border-dashed border-text3" />ข้อมูลยังไม่พอ</span>
           </div>
           {pickedChapter && (
-            <div className="gd-row px-3 py-2 text-sm">
-              <p className="text-text">
-                {pickedChapter.chapter}{" "}
-                <span className="text-[11px] text-text3">· {gradeLabel(pickedChapter.grade_level)}</span>
+            <BottomSheet title={pickedChapter.chapter} onClose={() => setPicked(null)}>
+              <p className="text-xs text-text3">
+                {subjectLabel(pickedChapter.subject, pickedChapter.branch)} · {gradeLabel(pickedChapter.grade_level)}
               </p>
-              <p className="text-xs text-text2">
-                {pickedCat
-                  ? `${pickedCat.tier} · ${pickedCat.accuracy}% · ${pickedCat.answered_count} ข้อ`
-                  : "ยังไม่มีข้อมูลพอ (ต้องตอบอย่างน้อย 10 ข้อใน 30 วัน)"}
-              </p>
-            </div>
+              {pickedCat ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${tierTagClass(pickedCat.tier)}`}>
+                    {pickedCat.tier}
+                  </span>
+                  <span className="text-sm text-text">{pickedCat.accuracy}%</span>
+                  <span className="text-xs text-text2">· {pickedCat.answered_count} ข้อ (30 วันล่าสุด)</span>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-text2">ยังไม่มีข้อมูลพอ (ต้องตอบอย่างน้อย 10 ข้อใน 30 วัน)</p>
+              )}
+            </BottomSheet>
           )}
         </div>
       )}
