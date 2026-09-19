@@ -70,15 +70,15 @@ export default function TrendCard({ studentId, days30 }: { studentId: string; da
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-gold-hi">แนวโน้มการตอบถูก</p>
-        <div className="flex rounded-full border border-border p-0.5 text-xs">
+        <p className="text-sm font-semibold text-mint">แนวโน้มการตอบถูก</p>
+        <div className="gd-pill-group text-xs">
           {([7, 30] as const).map((n) => (
             <button
               key={n}
               type="button"
               onClick={() => setRange(n)}
               className={`rounded-full px-3 py-1 transition ${
-                range === n ? "bg-gold-hi/15 font-bold text-gold-hi" : "text-text3"
+                range === n ? "gd-pill-active" : "text-text2"
               }`}
             >
               {n === 7 ? "7 วันล่าสุด" : "เดือนนี้"}
@@ -106,7 +106,7 @@ export default function TrendCard({ studentId, days30 }: { studentId: string; da
               <div className="flex w-full flex-1 items-end">
                 <div
                   className={`w-full rounded-t-md transition group-active:opacity-70 ${
-                    day.has_data ? accuracyBgClass(day.accuracy ?? 0) : "bg-track"
+                    day.has_data ? `${accuracyBgClass(day.accuracy ?? 0)} ${(day.accuracy ?? 0) >= 80 ? "gd-glow-good" : (day.accuracy ?? 0) >= 50 ? "gd-glow-warn" : "gd-glow-risk"}` : "bg-track"
                   }`}
                   style={{ height: day.has_data ? `${h}%` : "3px" }}
                 />
@@ -149,7 +149,7 @@ export default function TrendCard({ studentId, days30 }: { studentId: string; da
                     {items.map((r) => (
                       <div
                         key={r.chapter}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-border bg-track px-3 py-2"
+                        className="gd-row flex items-center justify-between gap-2 px-3 py-2"
                       >
                         <span className="min-w-0 truncate text-sm text-text">{r.chapter}</span>
                         <span className="shrink-0 text-xs text-text2">
