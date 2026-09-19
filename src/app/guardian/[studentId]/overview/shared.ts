@@ -14,6 +14,8 @@ export type CategoryRow = {
   answered_count: number;
   accuracy: number;
   tier: string;
+  grade_level: string | null;
+  grade_order: number;
 };
 
 export type ChapterChange = {
@@ -39,6 +41,8 @@ export type CurriculumChapter = {
   branch: string | null;
   chapter: string;
   chapter_order: number;
+  grade_level: string | null;
+  grade_order: number;
 };
 
 export const TIER_RANK: Record<string, number> = {
@@ -80,4 +84,9 @@ export function tierBgClass(tier: string): string {
   if (tier === "คล่องแล้ว") return "bg-good";
   if (tier === "กำลังไปได้") return "bg-warn";
   return "bg-red";
+}
+
+// grade_level เป็น null (grade_order 0) ในบทกลางระดับ junior บางบท — รวมเป็นกลุ่ม "ทั่วไป" ขึ้นก่อนสุด
+export function gradeLabel(gradeLevel: string | null): string {
+  return gradeLevel ?? "ทั่วไป";
 }

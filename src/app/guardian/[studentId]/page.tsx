@@ -8,14 +8,11 @@ import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import TrendCard from "./overview/TrendCard";
 import InsightCards from "./overview/InsightCards";
-import ChapterCompare from "./overview/ChapterCompare";
 import {
   accuracyBgClass,
   accuracyTextClass,
   subjectLabel,
-  type CategoryRow,
   type ChapterChange,
-  type CurriculumChapter,
   type SubjectRow,
   type TrendDay,
 } from "./overview/shared";
@@ -66,7 +63,7 @@ function petImagePathFor(qmon: QmonDisplay): string | null {
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>{children}</div>;
+  return <div className={`gd-card p-4 ${className}`}>{children}</div>;
 }
 
 export default async function GuardianStudentDashboardPage({
@@ -96,17 +93,15 @@ export default async function GuardianStudentDashboardPage({
 
   const supabase = await createClient();
 
-  const [qmonRes, trendRes, categoriesRes, goalRes, pointsRes, changesRes, subjectRes, planRes, chaptersRes] =
+  const [qmonRes, trendRes, goalRes, pointsRes, changesRes, subjectRes, planRes] =
     await Promise.all([
       supabase.rpc("guardian_get_qmon_display", { p_student_id: studentId }),
       supabase.rpc("guardian_get_daily_trend", { p_student_id: studentId, p_end_date: null, p_days: 30 }),
-      supabase.rpc("guardian_get_categories", { p_student_id: studentId }),
       supabase.rpc("guardian_get_goal_progress", { p_student_id: studentId }),
       supabase.rpc("guardian_get_goal_points", { p_student_id: studentId }),
       supabase.rpc("guardian_get_chapter_status_changes", { p_student_id: studentId }),
       supabase.rpc("guardian_get_subject_comparison", { p_student_id: studentId, p_days: 30 }),
       supabase.rpc("guardian_get_plan", { p_student_id: studentId }),
-      supabase.rpc("guardian_get_available_chapters", { p_student_id: studentId }),
     ]);
 
   // fire-and-forget ตาม spec ของ guardian_log_insight_view — await เพื่อกันโดน cut off ก่อน
@@ -119,13 +114,11 @@ export default async function GuardianStudentDashboardPage({
 
   const qmon = (qmonRes.data?.[0] ?? null) as QmonDisplay | null;
   const trend = (trendRes.data ?? []) as TrendDay[];
-  const categories = (categoriesRes.data ?? []) as CategoryRow[];
   const goal = (goalRes.data?.[0] ?? null) as GoalProgress | null;
   const points = (pointsRes.data?.[0] ?? null) as GoalPoints | null;
   const changes = (changesRes.data ?? []) as ChapterChange[];
   const subjects = (subjectRes.data ?? []) as SubjectRow[];
   const plan = (planRes.data ?? []) as PlanRow[];
-  const curriculum = (chaptersRes.data ?? []) as CurriculumChapter[];
 
   const petImagePath = qmon ? petImagePathFor(qmon) : null;
   const today = trend[trend.length - 1];
@@ -160,8 +153,8 @@ export default async function GuardianStudentDashboardPage({
       </Card>
 
       {/* Hero — มือถือ: การ์ดรวม (วันนี้ + ความสม่ำเสมอ) แล้วการ์ดกราฟแยก / ≥768px: การ์ดเดียว 3 คอลัมน์ */}
-      <div className="flex flex-col gap-4 md:grid md:grid-cols-[1fr_1fr_1.8fr] md:gap-0 md:overflow-hidden md:rounded-xl md:border md:border-border md:bg-card">
-        <div className="overflow-hidden rounded-xl border border-border bg-card md:contents">
+      <div className="flex flex-col gap-4 md:grid md:grid-cols-[1fr_1fr_1.8fr] md:gap-0 gd-card-hero-md">
+        <div className="gd-card-hero md:contents">
           <div className="p-4">
             <p className="text-xs text-text3">วันนี้</p>
             {today?.has_data ? (
@@ -185,7 +178,7 @@ export default async function GuardianStudentDashboardPage({
               <>
                 <p className="mt-1 text-xl font-bold text-text">{goal?.bucket}</p>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-track">
-                  <div className="h-full rounded-full bg-amber" style={{ width: `${goalPct}%` }} />
+                  <div className="gd-glow-warn h-full rounded-full bg-amber" style={{ width: `${goalPct}%` }} />
                 </div>
                 <p className="mt-1 text-xs text-text2">
                   {points?.total_points ?? 0} / เป้าหมาย ~{target} แต้ม
@@ -197,7 +190,7 @@ export default async function GuardianStudentDashboardPage({
           </div>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4 md:rounded-none md:border-0 md:border-l md:bg-transparent">
+        <div className="gd-card p-4 md:rounded-none md:border-0 md:border-l md:border-[#385b57] md:bg-transparent md:shadow-none">
           <TrendCard studentId={studentId} days30={trend} />
         </div>
       </div>
@@ -208,7 +201,7 @@ export default async function GuardianStudentDashboardPage({
           <InsightCards changes={changes} />
         </Card>
         <Card>
-          <p className="mb-3 text-sm font-semibold text-gold-hi">เทียบวิชา (30 วันล่าสุด)</p>
+          <p className="mb-3 text-sm font-semibold text-mint">เทียบวิชา (30 วันล่าสุด)</p>
           {subjects.length === 0 ? (
             <p className="text-sm text-text3">ยังไม่มีวิชาที่ข้อมูลพอ (ต้องตอบอย่างน้อย 10 ข้อ)</p>
           ) : (
@@ -232,19 +225,14 @@ export default async function GuardianStudentDashboardPage({
         </Card>
       </div>
 
-      {/* เทียบบท */}
-      <Card>
-        <ChapterCompare categories={categories} curriculum={curriculum} />
-      </Card>
-
       {/* พรีวิวแผน + เป้าหมาย — กดไปหน้าเต็ม */}
       <div className="grid gap-4 md:grid-cols-2">
         <Link
           href={`/guardian/${studentId}/plan`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition hover:border-gold"
+          className="gd-card flex items-center justify-between gap-3 p-4 transition hover:border-mint"
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gold-hi">แผนการเรียน</p>
+            <p className="text-sm font-semibold text-mint">แผนการเรียน</p>
             {plan.length === 0 ? (
               <p className="mt-1 text-sm text-text2">ยังไม่มีแผน — แตะเพื่อสร้าง</p>
             ) : (
@@ -263,10 +251,10 @@ export default async function GuardianStudentDashboardPage({
 
         <Link
           href={`/guardian/${studentId}/goal`}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 transition hover:border-gold"
+          className="gd-card flex items-center justify-between gap-3 p-4 transition hover:border-mint"
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gold-hi">เป้าความสม่ำเสมอ</p>
+            <p className="text-sm font-semibold text-mint">เป้าความสม่ำเสมอ</p>
             {hasGoal ? (
               <>
                 <p className="mt-1 text-sm text-text">

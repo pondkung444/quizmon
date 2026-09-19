@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { appAudio } from "@/lib/audio/appAudio";
-import { zoneForPath } from "@/lib/audio/bgmForPath";
+import { isGuardianPath, zoneForPath } from "@/lib/audio/bgmForPath";
 
 const INTRO_SEEN_KEY = "qm_sound_intro_seen";
 const INTRO_TEXT = "🔊 เปิดเสียงแล้ว ปิดได้ที่ตั้งค่า";
@@ -23,6 +23,9 @@ export default function SoundProvider() {
   const pathname = usePathname();
   const introPending = useSyncExternalStore(noopSubscribe, readIntroPending, () => false);
   const [dismissed, setDismissed] = useState(false);
+  // /guardian/* = พื้นที่ผู้ปกครอง: ห้ามมีเสียงเกมเลย — ไม่ init AudioContext ไม่ผูก gesture-unlock ไม่โชว์ toast
+  // (root layout mount ตัวนี้ครั้งเดียวข้าม client-side navigation จึง unmount จาก layout ย่อยไม่ได้ ต้องกันที่นี่)
+  const inGuardian = isGuardianPath(pathname);
 
   const dismissIntro = useCallback(() => {
     try {
@@ -35,6 +38,7 @@ export default function SoundProvider() {
 
   // init + gesture-unlock ครั้งเดียวทั้งแอป
   useEffect(() => {
+    if (inGuardian) return;
     appAudio.init();
 
     const unlock = () => {
@@ -51,7 +55,7 @@ export default function SoundProvider() {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("keydown", unlock);
     };
-  }, []);
+  }, [inGuardian]);
 
   // เปลี่ยนหน้า -> แจ้งโซนปัจจุบัน (appAudio จะ no-op ถ้าโซนไม่เปลี่ยน — เพลง general เล่นต่อไม่สะดุด)
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function SoundProvider() {
     return () => clearTimeout(t);
   }, [introPending, dismissed, dismissIntro]);
 
-  if (!introPending || dismissed) return null;
+  if (inGuardian || !introPending || dismissed) return null;
 
   return (
     <div

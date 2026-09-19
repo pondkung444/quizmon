@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChartBar, Route, Target, ChevronDown, LogOut } from "lucide-react";
+import { ChartBar, Route, Target, ClipboardList, ChevronDown, LogOut } from "lucide-react";
 import BottomSheet from "@/components/social/BottomSheet";
 import { guardianSignOut } from "@/app/guardian/actions";
 
@@ -13,6 +13,7 @@ const SECTIONS = [
   { key: "overview", label: "ภาพรวม", Icon: ChartBar, path: "" },
   { key: "plan", label: "แผนฝึก", Icon: Route, path: "/plan" },
   { key: "goal", label: "เป้าหมาย", Icon: Target, path: "/goal" },
+  { key: "report", label: "รายงาน", Icon: ClipboardList, path: "/report" },
 ] as const;
 
 // เดา section ปัจจุบันจาก pathname เอง ไม่รับเป็น prop — กันเคส back/forward ของ browser ที่ prop
@@ -20,6 +21,7 @@ const SECTIONS = [
 function currentSectionKey(pathname: string): (typeof SECTIONS)[number]["key"] {
   if (pathname.endsWith("/plan")) return "plan";
   if (pathname.endsWith("/goal")) return "goal";
+  if (pathname.endsWith("/report")) return "report";
   return "overview";
 }
 
@@ -49,7 +51,7 @@ export default function GuardianShell({
   const hasMultipleStudents = students.length > 1;
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg text-text lg:flex-row">
+    <div className="flex min-h-screen flex-col gd-shell text-text lg:flex-row">
       {/* Sidebar — เฉพาะจอกว้าง (lg ขึ้นไป) คงที่ตลอด ไม่ต้องเลื่อนหา */}
       <aside className="hidden w-56 flex-none flex-col gap-6 border-r border-border p-5 lg:flex">
         <div>
@@ -71,7 +73,7 @@ export default function GuardianShell({
               key={key}
               href={`/guardian/${studentId}${path}`}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                active === key ? "bg-gold-hi/15 font-bold text-gold-hi" : "text-text2 hover:bg-card"
+                active === key ? "bg-mint/15 font-bold text-mint" : "text-text2 hover:bg-card"
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -112,7 +114,7 @@ export default function GuardianShell({
       <main className="flex-1 pb-20 lg:pb-0">
         <div
           className={`mx-auto w-full p-4 lg:p-8 ${
-            active === "overview" ? "max-w-[420px] md:max-w-4xl" : "max-w-[420px] lg:max-w-4xl"
+            active === "overview" || active === "report" ? "max-w-[420px] md:max-w-4xl" : "max-w-[420px] lg:max-w-4xl"
           }`}
         >
           {children}
@@ -120,13 +122,13 @@ export default function GuardianShell({
       </main>
 
       {/* Bottom tab — เฉพาะจอแคบกว่า lg เอื้อมนิ้วโป้งง่าย เหมือน pattern แอปฝั่งเด็ก */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-bg lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-[#385b57] bg-[#1b1f25]/95 backdrop-blur lg:hidden">
         {SECTIONS.map(({ key, label, Icon, path }) => (
           <Link
             key={key}
             href={`/guardian/${studentId}${path}`}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] ${
-              active === key ? "text-gold-hi" : "text-text3"
+              active === key ? "text-mint" : "text-text3"
             }`}
           >
             <Icon className="h-5 w-5" />
