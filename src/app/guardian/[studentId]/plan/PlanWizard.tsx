@@ -12,8 +12,11 @@ import {
   CalendarClock,
   CircleCheck,
   AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import BottomSheet from "@/components/social/BottomSheet";
+import { accuracyTextClass } from "../overview/shared";
 
 type AvailableChapter = {
   chapter_key: string;
@@ -99,16 +102,22 @@ function subjectGroupLabel(subject: string | null, branch: string | null): strin
   return "อื่นๆ";
 }
 
+// น้อยกว่านี้ถือว่าข้อมูลไม่พอ — ไม่โชว์ % เพราะ 0%/2 ข้อ จะทำให้เข้าใจผิดว่าอ่อนจริง
+// (เกณฑ์เดียวกับ "เทียบวิชา" ในภาพรวมที่ต้องตอบอย่างน้อย 10 ข้อ)
+const MIN_ATTEMPTS_FOR_ACCURACY = 10;
+
 function ChapterList({
   chapters,
   selectedKeys,
   onToggle,
   excludeKeys,
+  passedKeys,
 }: {
   chapters: AvailableChapter[];
   selectedKeys: string[];
   onToggle: (key: string) => void;
   excludeKeys?: string[];
+  passedKeys?: string[];
 }) {
   const visible = chapters.filter((c) => !excludeKeys?.includes(c.chapter_key));
 
@@ -128,6 +137,8 @@ function ChapterList({
             {items.map((ch) => {
               const order = selectedKeys.indexOf(ch.chapter_key);
               const isSelected = order !== -1;
+              const wasPassed = passedKeys?.includes(ch.chapter_key) ?? false;
+              const enoughData = ch.recent_accuracy !== null && ch.recent_attempts >= MIN_ATTEMPTS_FOR_ACCURACY;
               return (
                 <li key={ch.chapter_key}>
                   <button
@@ -148,9 +159,25 @@ function ChapterList({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-base font-semibold text-text">{ch.chapter}</p>
                       <p className="text-sm text-text3">
-                        {ch.question_count} ข้อ
-                        {ch.recent_accuracy !== null ? ` · ทำถูก ${ch.recent_accuracy}%` : " · ยังไม่เคยทำ"}
+                        {enoughData ? (
+                          <>
+                            30 วันล่าสุด ทำ {ch.recent_attempts} ข้อ · ถูก{" "}
+                            <span className={`font-semibold ${accuracyTextClass(ch.recent_accuracy as number)}`}>
+                              {ch.recent_accuracy}%
+                            </span>
+                          </>
+                        ) : ch.recent_attempts > 0 ? (
+                          `ทำไป ${ch.recent_attempts} ข้อ · ยังไม่มีข้อมูลเพียงพอ`
+                        ) : (
+                          "ยังไม่มีข้อมูลเพียงพอ"
+                        )}
+                        {` · คลัง ${ch.question_count} ข้อ`}
                       </p>
+                      {wasPassed && (
+                        <p className="mt-0.5 text-xs font-semibold text-emerald-400">
+                          ✓ ผ่านแล้วในแผนเดิม — ไม่ต้องทำซ้ำ
+                        </p>
+                      )}
                     </div>
                   </button>
                 </li>
@@ -161,6 +188,28 @@ function ChapterList({
       ))}
     </div>
   );
+}
+
+type PlanGroup = { label: string; rows: PlanRow[] };
+
+// จัดกลุ่มคิวตามวิชา (label เดียวกับตัวเลือกบท) — backend ให้ current ได้ 1 บทต่อวิชา ฉะนั้นแต่ละกลุ่ม
+// มี "กำลังเรียนอยู่" ของตัวเอง ในกลุ่ม: บทที่ผ่านแล้วขึ้นก่อน (เป็นประวัติ) ตามด้วยคิวที่เหลือตาม queue_order
+function groupPlan(rows: PlanRow[]): PlanGroup[] {
+  const map = new Map<string, PlanRow[]>();
+  for (const r of rows) {
+    if (!r.chapter_key) continue;
+    const label = subjectGroupLabel(r.subject, r.branch);
+    if (!map.has(label)) map.set(label, []);
+    map.get(label)!.push(r);
+  }
+  return [...map.entries()].map(([label, items]) => ({
+    label,
+    rows: items.sort((a, b) => {
+      const pa = a.chapter_status === "passed" ? 0 : 1;
+      const pb = b.chapter_status === "passed" ? 0 : 1;
+      return pa - pb || (a.chapter_queue_order ?? 0) - (b.chapter_queue_order ?? 0);
+    }),
+  }));
 }
 
 export default function PlanWizard({
@@ -189,6 +238,10 @@ export default function PlanWizard({
   // เพิ่มบทเข้าคิวที่มีอยู่แล้ว
   const [addingChapters, setAddingChapters] = useState(false);
   const [addKeys, setAddKeys] = useState<string[]>([]);
+
+  // เปลี่ยนโหมด/สร้างแผนใหม่ทับแผนเดิม: confirm dialog -> wizard (เริ่มด้วยบทเดิมที่เลือกไว้ให้)
+  const [confirmingReplace, setConfirmingReplace] = useState(false);
+  const [replacing, setReplacing] = useState(false);
 
   async function loadAll() {
     setLoading(true);
@@ -260,16 +313,40 @@ export default function PlanWizard({
     setSelectedKeys([]);
     setJustCreatedPlan(false);
     setJustSetGoalLabel(null);
+    setReplacing(false);
   }
 
-  async function moveChapter(index: number, direction: -1 | 1) {
-    const editable = plan.filter((r) => r.chapter_status !== "passed");
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= editable.length) return;
+  // เริ่ม wizard สร้างแผนใหม่ — เลือกบทเดิมทั้งหมด (รวมที่ผ่านแล้ว) ไว้ให้ก่อน ผู้ปกครองแค่เพิ่ม/ลด
+  // บทที่ผ่านแล้วที่ถูกเลือกซ้ำ backend จะ carry เป็น "ผ่านแล้ว" ให้ ไม่ต้องทำซ้ำ
+  function startReplace() {
+    const groups = groupPlan(plan);
+    setSelectedKeys(groups.flatMap((g) => g.rows.map((r) => r.chapter_key as string)));
+    setFramework(plan[0].framework as "school" | "weak_spot" | "exam_prep");
+    setDurationWeeks(plan[0].duration_weeks as 4 | 8 | 12);
+    setExamDate(plan[0].exam_date ?? "");
+    setStep(1);
+    setConfirmingReplace(false);
+    setReplacing(true);
+  }
 
-    const reordered = [...editable];
-    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
-    const newOrderKeys = reordered.map((r) => r.chapter_key as string);
+  // คิวที่ไม่ผ่านแล้ว เรียงเป็นกลุ่มต่อกัน (ตามลำดับกลุ่ม) — backend เรียง queue_order ใหม่แยกต่อวิชาจาก
+  // ลำดับที่ส่งไป ฉะนั้นสลับตำแหน่งภายในกลุ่มเดียวกันก็พอ
+  function editableKeys(groups: PlanGroup[]): string[] {
+    return groups.flatMap((g) => g.rows.filter((r) => r.chapter_status !== "passed").map((r) => r.chapter_key as string));
+  }
+
+  async function moveChapter(groupLabel: string, chapterKey: string, direction: -1 | 1) {
+    const groups = groupPlan(plan);
+    const group = groups.find((g) => g.label === groupLabel);
+    if (!group) return;
+    const items = group.rows.filter((r) => r.chapter_status !== "passed");
+    const index = items.findIndex((r) => r.chapter_key === chapterKey);
+    const targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= items.length) return;
+
+    [items[index], items[targetIndex]] = [items[targetIndex], items[index]];
+    group.rows = [...group.rows.filter((r) => r.chapter_status === "passed"), ...items];
+    const newOrderKeys = editableKeys(groups);
 
     setSubmitting(true);
     setError(null);
@@ -286,8 +363,7 @@ export default function PlanWizard({
   }
 
   async function removeChapter(chapterKey: string) {
-    const editable = plan.filter((r) => r.chapter_status !== "passed" && r.chapter_key !== chapterKey);
-    const newOrderKeys = editable.map((r) => r.chapter_key as string);
+    const newOrderKeys = editableKeys(groupPlan(plan)).filter((k) => k !== chapterKey);
     if (newOrderKeys.length === 0) {
       setError("ต้องเหลืออย่างน้อย 1 บทเรียนในคิว");
       return;
@@ -309,9 +385,7 @@ export default function PlanWizard({
 
   async function confirmAddChapters() {
     if (submitting || addKeys.length === 0) return;
-    const existingKeys = plan
-      .filter((r) => r.chapter_status !== "passed" && r.chapter_key)
-      .map((r) => r.chapter_key as string);
+    const existingKeys = editableKeys(groupPlan(plan));
 
     setSubmitting(true);
     setError(null);
@@ -343,19 +417,19 @@ export default function PlanWizard({
 
       {error && <p className="rounded-xl bg-red/10 p-3 text-center text-base text-red">{error}</p>}
 
-      {hasActivePlan && !justCreatedPlan ? (
+      {hasActivePlan && !justCreatedPlan && !replacing ? (
         <>
           {(() => {
-            const chapters = plan.filter((r) => r.chapter_key);
-            const total = chapters.length;
-            const currentPos = chapters.findIndex((r) => r.chapter_status !== "passed") + 1;
-            const editable = chapters.filter((r) => r.chapter_status !== "passed");
+            const groups = groupPlan(plan);
+            const allRows = groups.flatMap((g) => g.rows);
+            const total = allRows.length;
+            const passedCount = allRows.filter((r) => r.chapter_status === "passed").length;
             return (
               <>
-                <div className="rounded-2xl border border-gold-dim bg-card p-5">
+                <div className="gd-card p-5">
                   <div className="flex items-center gap-3">
                     <framework0.Icon className="h-8 w-8 flex-none text-gold-hi" />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-lg font-bold text-text">{framework0.label}</p>
                       <p className="text-sm text-text3">
                         {plan[0].duration_weeks} สัปดาห์
@@ -365,90 +439,122 @@ export default function PlanWizard({
                   </div>
                   {total > 0 && (
                     <p className="mt-3 text-base font-semibold text-gold-hi">
-                      อยู่บทที่ {currentPos > 0 ? currentPos : total} จาก {total}
+                      ผ่านแล้ว {passedCount} จาก {total} บท
                     </p>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingReplace(true)}
+                    className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-border text-base font-semibold text-text2 transition active:scale-[0.98]"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    เปลี่ยนโหมด / สร้างแผนใหม่
+                  </button>
                 </div>
 
-                <ul className="flex flex-col gap-2">
-                  {chapters.map((row, i) => {
-                    const statusInfo = CHAPTER_STATUS_LABEL[row.chapter_status ?? "pending"];
-                    const editableIndex = editable.findIndex((r) => r.chapter_key === row.chapter_key);
-                    const isPassed = row.chapter_status === "passed";
-                    const isCurrent = row.chapter_status === "current";
-                    const isStuck = row.chapter_status === "stuck";
+                <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:items-start">
+                  {groups.map((group) => {
+                    const passedInGroup = group.rows.filter((r) => r.chapter_status === "passed").length;
+                    const editable = group.rows.filter((r) => r.chapter_status !== "passed");
+                    const hasCurrent = group.rows.some((r) => r.chapter_status === "current");
+                    const allPassed = editable.length === 0;
                     return (
-                      <li
-                        key={row.chapter_key}
-                        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 ${
-                          isCurrent
-                            ? "border-gold-hi bg-gold-hi/10"
-                            : isPassed
-                              ? "border-border bg-card opacity-60"
-                              : isStuck
-                                ? "border-amber bg-amber/10"
-                                : "border-border bg-card"
-                        }`}
-                      >
-                        {isPassed ? (
-                          <CircleCheck className="h-6 w-6 flex-none text-emerald-400" />
-                        ) : isStuck ? (
-                          <AlertTriangle className="h-6 w-6 flex-none text-amber" />
-                        ) : (
-                          <div className="flex h-6 w-6 flex-none items-center justify-center text-sm font-bold text-text3">
-                            {i + 1}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-base font-semibold text-text">
-                            {row.chapter}{" "}
-                            <span className="font-normal text-text3">
-                              ({subjectGroupLabel(row.subject, row.branch)})
-                            </span>
-                          </p>
-                          <p className={`text-sm ${isCurrent ? "text-gold-hi" : "text-text3"}`}>
-                            {statusInfo.label}
-                            {statusInfo.note ? ` — ${statusInfo.note}` : ""}
-                          </p>
+                      <section key={group.label} className="gd-card p-4">
+                        <div className="mb-3 flex items-baseline justify-between gap-2">
+                          <h2 className="text-base font-bold text-mint">{group.label}</h2>
+                          <span className="text-xs text-text3">
+                            ผ่านแล้ว {passedInGroup}/{group.rows.length} บท
+                          </span>
                         </div>
-                        {!isPassed && (
-                          <div className="flex flex-none gap-1">
-                            <button
-                              type="button"
-                              disabled={submitting || editableIndex <= 0}
-                              onClick={() => moveChapter(editableIndex, -1)}
-                              aria-label="เลื่อนขึ้น"
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text2 disabled:opacity-30"
-                            >
-                              <ChevronUp className="h-5 w-5" />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submitting || editableIndex >= editable.length - 1}
-                              onClick={() => moveChapter(editableIndex, 1)}
-                              aria-label="เลื่อนลง"
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text2 disabled:opacity-30"
-                            >
-                              <ChevronDown className="h-5 w-5" />
-                            </button>
-                            <button
-                              type="button"
-                              disabled={submitting}
-                              onClick={() => removeChapter(row.chapter_key as string)}
-                              aria-label="ลบบทนี้"
-                              className="flex h-9 w-9 items-center justify-center rounded-lg border border-red/40 text-red"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </button>
-                          </div>
+
+                        {allPassed && (
+                          <p className="mb-2 flex items-center gap-2 rounded-xl bg-good/15 px-3 py-2 text-sm font-semibold text-good">
+                            <CircleCheck className="h-5 w-5 flex-none" />
+                            จบวิชานี้ในแผนนี้แล้ว
+                          </p>
                         )}
-                      </li>
+                        {!allPassed && !hasCurrent && (
+                          <p className="mb-2 text-xs text-text3">ยังไม่มีบทที่กำลังเรียนอยู่ในวิชานี้</p>
+                        )}
+
+                        <ul className="flex flex-col gap-2">
+                          {group.rows.map((row) => {
+                            const statusInfo = CHAPTER_STATUS_LABEL[row.chapter_status ?? "pending"];
+                            const editableIndex = editable.findIndex((r) => r.chapter_key === row.chapter_key);
+                            const isPassed = row.chapter_status === "passed";
+                            const isCurrent = row.chapter_status === "current";
+                            const isStuck = row.chapter_status === "stuck";
+                            return (
+                              <li
+                                key={row.chapter_key}
+                                className={`flex items-center gap-3 rounded-xl border-2 px-3 py-3 ${
+                                  isCurrent
+                                    ? "border-gold-hi bg-gold-hi/10"
+                                    : isPassed
+                                      ? "border-border bg-track opacity-60"
+                                      : isStuck
+                                        ? "border-amber bg-amber/10"
+                                        : "border-border bg-track"
+                                }`}
+                              >
+                                {isPassed ? (
+                                  <CircleCheck className="h-6 w-6 flex-none text-emerald-400" />
+                                ) : isStuck ? (
+                                  <AlertTriangle className="h-6 w-6 flex-none text-amber" />
+                                ) : (
+                                  <div className="flex h-6 w-6 flex-none items-center justify-center text-sm font-bold text-text3">
+                                    {isCurrent ? "🔥" : editableIndex + 1}
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-base font-semibold text-text">{row.chapter}</p>
+                                  <p className={`text-sm ${isCurrent ? "font-semibold text-gold-hi" : "text-text3"}`}>
+                                    {isCurrent ? `กำลังเรียนอยู่ (${group.label})` : statusInfo.label}
+                                    {statusInfo.note ? ` — ${statusInfo.note}` : ""}
+                                  </p>
+                                </div>
+                                {!isPassed && (
+                                  <div className="flex flex-none gap-1">
+                                    <button
+                                      type="button"
+                                      disabled={submitting || editableIndex <= 0}
+                                      onClick={() => moveChapter(group.label, row.chapter_key as string, -1)}
+                                      aria-label="เลื่อนขึ้น"
+                                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text2 disabled:opacity-30"
+                                    >
+                                      <ChevronUp className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={submitting || editableIndex >= editable.length - 1}
+                                      onClick={() => moveChapter(group.label, row.chapter_key as string, 1)}
+                                      aria-label="เลื่อนลง"
+                                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text2 disabled:opacity-30"
+                                    >
+                                      <ChevronDown className="h-5 w-5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={submitting}
+                                      onClick={() => removeChapter(row.chapter_key as string)}
+                                      aria-label="ลบบทนี้"
+                                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-red/40 text-red"
+                                    >
+                                      <Trash2 className="h-5 w-5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </section>
                     );
                   })}
-                </ul>
+                </div>
 
                 {addingChapters ? (
-                  <div className="flex flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4">
+                  <div className="gd-card flex flex-col gap-3 p-4">
                     <p className="text-base font-semibold text-text2">
                       เพิ่มบทเข้าคิว — เลือกแล้ว {addKeys.length}
                     </p>
@@ -456,7 +562,7 @@ export default function PlanWizard({
                       chapters={available}
                       selectedKeys={addKeys}
                       onToggle={toggleAddChapter}
-                      excludeKeys={chapters.map((c) => c.chapter_key as string)}
+                      excludeKeys={allRows.map((c) => c.chapter_key as string)}
                     />
                     <div className="flex gap-2">
                       <button
@@ -488,6 +594,37 @@ export default function PlanWizard({
                     <Plus className="h-5 w-5" />
                     เพิ่มบทเข้าคิว
                   </button>
+                )}
+
+                {confirmingReplace && (
+                  <BottomSheet title="เปลี่ยนโหมด / สร้างแผนใหม่" onClose={() => setConfirmingReplace(false)}>
+                    <div className="flex flex-col gap-3 p-4">
+                      <p className="text-base text-text">
+                        บทที่ลูกผ่านไปแล้ว <span className="font-bold text-emerald-400">จะไม่ต้องทำซ้ำ</span>{" "}
+                        ถ้าเลือกบทเดิมในแผนใหม่ ระบบจะนับให้ว่าผ่านแล้วทันที
+                      </p>
+                      <p className="text-sm text-text3">
+                        เราเลือกบทเดิมของแผนนี้ไว้ให้ก่อน คุณเปลี่ยนโหมด ระยะเวลา และเพิ่ม/ลดบทได้ในขั้นถัดไป
+                        ความคืบหน้าของบทที่ไม่ได้เลือกซ้ำจะไม่ถูกนับในแผนใหม่
+                      </p>
+                      <div className="mt-1 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingReplace(false)}
+                          className="flex-1 rounded-full border border-border py-3 text-base font-semibold text-text2"
+                        >
+                          ยกเลิก
+                        </button>
+                        <button
+                          type="button"
+                          onClick={startReplace}
+                          className="flex-1 rounded-full bg-gold-hi py-3 text-base font-bold text-track"
+                        >
+                          ไปต่อ
+                        </button>
+                      </div>
+                    </div>
+                  </BottomSheet>
                 )}
               </>
             );
@@ -532,14 +669,25 @@ export default function PlanWizard({
                   {framework === value && <Check className="mt-1 h-6 w-6 flex-none text-gold-hi" />}
                 </button>
               ))}
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="mt-2 rounded-full py-3 text-base font-bold text-track"
-                style={{ background: "linear-gradient(180deg, #f0a05c 0%, var(--color-amber) 100%)" }}
-              >
-                ถัดไป
-              </button>
+              <div className="mt-2 flex gap-2">
+                {replacing && (
+                  <button
+                    type="button"
+                    onClick={finishWizard}
+                    className="flex-1 rounded-full border border-border py-3 text-base font-semibold text-text2"
+                  >
+                    ยกเลิก
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="flex-1 rounded-full py-3 text-base font-bold text-track"
+                  style={{ background: "linear-gradient(180deg, #f0a05c 0%, var(--color-amber) 100%)" }}
+                >
+                  ถัดไป
+                </button>
+              </div>
             </div>
           )}
 
@@ -567,6 +715,7 @@ export default function PlanWizard({
                   <p className="mb-1 text-base font-medium text-text2">วันสอบ</p>
                   <input
                     type="date"
+                    min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
                     value={examDate}
                     onChange={(e) => setExamDate(e.target.value)}
                     className="w-full rounded-xl border border-border bg-track px-4 py-3 text-base text-text"
@@ -598,7 +747,17 @@ export default function PlanWizard({
           {step === 3 && (
             <div className="flex flex-col gap-3">
               <p className="text-lg font-bold text-text">เลือกบท — {selectedKeys.length} บทที่เลือก</p>
-              <ChapterList chapters={available} selectedKeys={selectedKeys} onToggle={toggleChapter} />
+              {replacing && (
+                <p className="-mt-1 text-sm text-text3">
+                  บทที่ติ๊ก ✓ ผ่านแล้วจะนับเป็นผ่านให้ทันทีในแผนใหม่ ไม่ต้องทำซ้ำ
+                </p>
+              )}
+              <ChapterList
+                chapters={available}
+                selectedKeys={selectedKeys}
+                onToggle={toggleChapter}
+                passedKeys={plan.filter((r) => r.chapter_status === "passed").map((r) => r.chapter_key as string)}
+              />
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"

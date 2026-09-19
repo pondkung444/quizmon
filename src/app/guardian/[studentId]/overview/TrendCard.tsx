@@ -9,6 +9,7 @@ type DayRow = {
   subject: string;
   branch: string | null;
   chapter: string;
+  chapter_key: string;
   correct_count: number;
   total_count: number;
   accuracy: number;
@@ -33,7 +34,15 @@ function longDate(d: string): string {
   });
 }
 
-export default function TrendCard({ studentId, days30 }: { studentId: string; days30 : TrendDay[] }) {
+export default function TrendCard({
+  studentId,
+  days30,
+  planChapterKeys = [],
+}: {
+  studentId: string;
+  days30: TrendDay[];
+  planChapterKeys?: string[];
+}) {
   const [range, setRange] = useState<7 | 30>(7);
   const [selected, setSelected] = useState<string | null>(null);
   const [rows, setRows] = useState<DayRow[] | null>(null);
@@ -148,10 +157,17 @@ export default function TrendCard({ studentId, days30 }: { studentId: string; da
                   <div className="flex flex-col gap-1.5">
                     {items.map((r) => (
                       <div
-                        key={r.chapter}
+                        key={r.chapter_key}
                         className="gd-row flex items-center justify-between gap-2 px-3 py-2"
                       >
-                        <span className="min-w-0 truncate text-sm text-text">{r.chapter}</span>
+                        <span className="min-w-0 truncate text-sm text-text">
+                          {r.chapter}
+                          {planChapterKeys.includes(r.chapter_key) && (
+                            <span className="ml-2 rounded-full bg-mint/15 px-2 py-0.5 text-[11px] font-semibold text-mint">
+                              🎯 ตามแผน
+                            </span>
+                          )}
+                        </span>
                         <span className="shrink-0 text-xs text-text2">
                           {r.correct_count}/{r.total_count} ข้อ ·{" "}
                           <span className={`font-semibold ${accuracyTextClass(r.accuracy)}`}>{r.accuracy}%</span>

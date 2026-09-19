@@ -38,6 +38,9 @@ type GoalPoints = { has_goal: boolean; level: string | null; total_points: numbe
 type PlanRow = {
   framework: string;
   plan_status: string;
+  chapter_key: string | null;
+  subject: string | null;
+  branch: string | null;
   chapter: string | null;
   chapter_status: "pending" | "current" | "passed" | "stuck" | null;
 };
@@ -127,7 +130,9 @@ export default async function GuardianStudentDashboardPage({
   const goalPct = hasGoal && target ? Math.min(100, Math.round(((points?.total_points ?? 0) / target) * 100)) : 0;
 
   const planPassed = plan.filter((r) => r.chapter_status === "passed").length;
-  const planCurrent = plan.find((r) => r.chapter_status === "current") ?? plan.find((r) => r.chapter_status !== "passed");
+  // current มีได้ 1 บทต่อวิชา — โชว์ทุกวิชาที่กำลังเรียนอยู่ และส่ง chapter_key ไปให้ day-breakdown ติดป้าย "ตามแผน"
+  const planCurrents = plan.filter((r) => r.chapter_status === "current" && r.chapter && r.subject);
+  const planCurrentKeys = planCurrents.map((r) => r.chapter_key as string);
 
   return (
     <div className="flex flex-col gap-4">
@@ -191,7 +196,7 @@ export default async function GuardianStudentDashboardPage({
         </div>
 
         <div className="gd-card p-4 md:rounded-none md:border-0 md:border-l md:border-[#385b57] md:bg-transparent md:shadow-none">
-          <TrendCard studentId={studentId} days30={trend} />
+          <TrendCard studentId={studentId} days30={trend} planChapterKeys={planCurrentKeys} />
         </div>
       </div>
 
@@ -240,8 +245,15 @@ export default async function GuardianStudentDashboardPage({
                 <p className="mt-1 text-sm text-text">
                   {FRAMEWORK_LABEL[plan[0].framework] ?? plan[0].framework} · ผ่านแล้ว {planPassed}/{plan.length} บท
                 </p>
-                {planCurrent?.chapter && (
-                  <p className="truncate text-xs text-text2">ตอนนี้: {planCurrent.chapter}</p>
+                {planCurrents.length > 0 && (
+                  <div className="mt-1 flex flex-col gap-0.5">
+                    {planCurrents.map((r) => (
+                      <p key={r.chapter_key} className="truncate text-xs text-text2">
+                        🎯 {subjectLabel(r.subject as string, r.branch)}:{" "}
+                        <span className="text-text">{r.chapter}</span>
+                      </p>
+                    ))}
+                  </div>
                 )}
               </>
             )}
