@@ -45,6 +45,16 @@ type PlanRow = {
   chapter_status: "pending" | "current" | "passed" | "stuck" | null;
 };
 
+// attempts_total + accuracy_recent เป็นชุดเดียวกับที่ guardian_advance_plan_if_passed ใช้ตัดสินผ่านจริง
+// (ไม่ scope เวลา) — "N/20" จึงตรงกับเกณฑ์ผ่านเป๊ะ; มีแค่ accuracy_start ที่นับตั้งแต่บทนี้เป็น current
+type PlanProgress = {
+  chapter_key: string;
+  attempts_total: number;
+  accuracy_start: number | null;
+  accuracy_recent: number | null;
+  pass_threshold_attempts: number;
+};
+
 const LEVEL_LABEL: Record<string, string> = { relaxed: "สบายๆ", steady: "กำลังดี", challenging: "ท้าทาย" };
 const FRAMEWORK_LABEL: Record<string, string> = {
   school: "ตามที่โรงเรียนสอน",
@@ -96,7 +106,7 @@ export default async function GuardianStudentDashboardPage({
 
   const supabase = await createClient();
 
-  const [qmonRes, trendRes, goalRes, pointsRes, changesRes, subjectRes, planRes] =
+  const [qmonRes, trendRes, goalRes, pointsRes, changesRes, subjectRes, planRes, progressRes] =
     await Promise.all([
       supabase.rpc("guardian_get_qmon_display", { p_student_id: studentId }),
       supabase.rpc("guardian_get_daily_trend", { p_student_id: studentId, p_end_date: null, p_days: 30 }),
@@ -105,6 +115,7 @@ export default async function GuardianStudentDashboardPage({
       supabase.rpc("guardian_get_chapter_status_changes", { p_student_id: studentId }),
       supabase.rpc("guardian_get_subject_comparison", { p_student_id: studentId, p_days: 30 }),
       supabase.rpc("guardian_get_plan", { p_student_id: studentId }),
+      supabase.rpc("guardian_get_plan_progress", { p_student_id: studentId }),
     ]);
 
   // fire-and-forget ตาม spec ของ guardian_log_insight_view — await เพื่อกันโดน cut off ก่อน
@@ -122,6 +133,8 @@ export default async function GuardianStudentDashboardPage({
   const changes = (changesRes.data ?? []) as ChapterChange[];
   const subjects = (subjectRes.data ?? []) as SubjectRow[];
   const plan = (planRes.data ?? []) as PlanRow[];
+  // ถ้า RPC นี้ล้มเหลวการ์ดแผนยังโชว์ชื่อบท current ตามเดิม แค่ไม่มีบรรทัดเทียบ
+  const progressByKey = new Map(((progressRes.data ?? []) as PlanProgress[]).map((p) => [p.chapter_key, p]));
 
   const petImagePath = qmon ? petImagePathFor(qmon) : null;
   const today = trend[trend.length - 1];
@@ -246,13 +259,40 @@ export default async function GuardianStudentDashboardPage({
                   {FRAMEWORK_LABEL[plan[0].framework] ?? plan[0].framework} · ผ่านแล้ว {planPassed}/{plan.length} บท
                 </p>
                 {planCurrents.length > 0 && (
-                  <div className="mt-1 flex flex-col gap-0.5">
-                    {planCurrents.map((r) => (
-                      <p key={r.chapter_key} className="truncate text-xs text-text2">
-                        🎯 {subjectLabel(r.subject as string, r.branch)}:{" "}
-                        <span className="text-text">{r.chapter}</span>
-                      </p>
-                    ))}
+                  <div className="mt-1.5 flex flex-col gap-2">
+                    {planCurrents.map((r) => {
+                      const p = progressByKey.get(r.chapter_key as string);
+                      const hasCompare = p && p.accuracy_start !== null && p.accuracy_recent !== null;
+                      const arrow = hasCompare
+                        ? (p.accuracy_recent as number) > (p.accuracy_start as number)
+                          ? " ⬆️"
+                          : (p.accuracy_recent as number) < (p.accuracy_start as number)
+                            ? " ⬇️"
+                            : ""
+                        : "";
+                      return (
+                        <div key={r.chapter_key} className="text-xs text-text2">
+                          <p className="truncate">
+                            🎯 {subjectLabel(r.subject as string, r.branch)}:{" "}
+                            <span className="text-text">{r.chapter}</span>
+                          </p>
+                          {p && (
+                            <p className="pl-5 text-text2">
+                              {hasCompare && (
+                                <>
+                                  ถูก {p.accuracy_start}% → {p.accuracy_recent}%{arrow} ·{" "}
+                                </>
+                              )}
+                              ทำไปแล้ว{" "}
+                              {p.attempts_total >= p.pass_threshold_attempts
+                                ? `${p.attempts_total} ข้อ`
+                                : `${p.attempts_total}/${p.pass_threshold_attempts} ข้อ`}
+                              {!hasCompare && " · ยังไม่มีข้อมูลเพียงพอสำหรับเทียบ"}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </>
