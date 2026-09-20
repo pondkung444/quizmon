@@ -75,6 +75,9 @@ export function buildWeeks(startYmd: string, n: number, todayYmd: string): WeekI
 
 export type ExamInfo = {
   examYmd: string;
+  planWeeks: number;
+  /** วันเต็มระหว่างวันสิ้นสุดแผน (วันเริ่ม + สัปดาห์ × 7) ถึงวันสอบ — ใช้แสดงผล; ติดลบ = แผนยาวเกินเวลาที่เหลือ */
+  bufferDays: number;
   /** สัปดาห์เต็มที่เหลือระหว่างวันสิ้นสุดแผนถึงวันสอบ; ติดลบ = แผนยาวเกินเวลาที่มี */
   bufferWeeks: number;
   daysToExam: number;
@@ -84,15 +87,24 @@ export function examInfo(startYmd: string, n: number, examYmd: string, todayYmd:
   const planEnd = ymdToDays(startYmd) + n * 7;
   return {
     examYmd,
+    planWeeks: n,
+    bufferDays: ymdToDays(examYmd) - planEnd,
     bufferWeeks: Math.floor((ymdToDays(examYmd) - planEnd) / 7),
     daysToExam: ymdToDays(examYmd) - ymdToDays(todayYmd),
   };
 }
 
-export function bufferSummary(bufferWeeks: number): { text: string; ok: boolean } {
-  if (bufferWeeks > 0) return { text: `เหลือเวลาเผื่อทบทวน ${bufferWeeks} สัปดาห์ก่อนสอบ`, ok: true };
-  if (bufferWeeks === 0) return { text: "แผนจบใกล้วันสอบพอดี — ไม่มีเวลาเผื่อทบทวน", ok: true };
-  return { text: `แผนยาวเกินวันสอบประมาณ ${-bufferWeeks} สัปดาห์ — ลองเลือกระยะเวลาที่สั้นลง`, ok: false };
+/** ช่วงเผื่อทบทวนเป็นภาษาคน: ≥7 วัน = "~X สัปดาห์" ไม่งั้น "X วัน" */
+export function bufferPhrase(days: number): string {
+  return days >= 7 ? `~${Math.round(days / 7)} สัปดาห์` : `${days} วัน`;
+}
+
+// อธิบายว่าทำไม "แผน N สัปดาห์" กับ "อีก M วันถึงสอบ" ไม่เท่ากัน: ส่วนต่างคือช่วงเผื่อทบทวนหลังแผนจบ
+export function bufferSummary(exam: ExamInfo): { text: string; ok: boolean } {
+  if (exam.bufferDays > 0)
+    return { text: `แผนเข้มข้น ${exam.planWeeks} สัปดาห์ แล้วเผื่อทบทวนอีก ${bufferPhrase(exam.bufferDays)} ก่อนสอบจริง`, ok: true };
+  if (exam.bufferDays === 0) return { text: "แผนจบใกล้วันสอบพอดี — ไม่มีเวลาเผื่อทบทวน", ok: true };
+  return { text: "แผนอาจยาวเกินเวลาที่เหลือ ลองปรับลดสัปดาห์", ok: false };
 }
 
 /**

@@ -20,6 +20,7 @@ import {
   bufferSummary,
   checkFit,
   examInfo,
+  formatShortDate,
   placeChapters,
   previewChapters,
   reorderForDrop,
@@ -359,15 +360,20 @@ function PlanCalendarPreview({ durationWeeks, examDate }: { durationWeeks: numbe
   const today = toBkkYmd(new Date());
   const weeks = buildWeeks(today, durationWeeks, today);
   const exam = examDate ? examInfo(today, durationWeeks, examDate, today) : null;
-  const summary = exam ? bufferSummary(exam.bufferWeeks) : null;
+  const summary = exam ? bufferSummary(exam) : null;
   return (
     <div className="rounded-2xl border border-border bg-card p-3">
       <p className="mb-2 text-base font-bold text-text">
         ปฏิทินแผน {durationWeeks} สัปดาห์ <span className="text-sm font-normal text-text3">(เริ่มวันนี้)</span>
       </p>
       <PlanTimeline weeks={weeks} schedules={[]} exam={exam} />
-      {summary && (
-        <p className={`mt-2 text-sm font-semibold ${summary.ok ? "text-good" : "text-red"}`}>{summary.text}</p>
+      {exam && summary && (
+        <div className="mt-2">
+          <p className="text-sm text-text2">
+            สอบ {formatShortDate(exam.examYmd)} · อีก {exam.daysToExam} วัน
+          </p>
+          <p className={`text-sm font-semibold ${summary.ok ? "text-good" : "text-red"}`}>{summary.text}</p>
+        </div>
       )}
       <div className="mt-2">
         <PlanTimelineLegend />
@@ -399,7 +405,7 @@ function SelectionPreview({
   const schedules = placeChapters(previewChapters(picks, passedKeys), today, durationWeeks, today);
   const exam = examDate ? examInfo(today, durationWeeks, examDate, today) : null;
   const fit = checkFit(schedules, durationWeeks, (s) => subjectGroupLabel(s.subject, s.branch));
-  const examSummary = exam ? bufferSummary(exam.bufferWeeks) : null;
+  const examSummary = exam ? bufferSummary(exam) : null;
   const ok = fit.ok && (examSummary?.ok ?? true);
   return (
     <div className="rounded-2xl border border-border bg-card p-3">
@@ -671,7 +677,7 @@ export default function PlanWizard({
                       <p className="text-lg font-bold text-text">{framework0.label}</p>
                       <p className="text-sm text-text3">
                         {plan[0].duration_weeks} สัปดาห์
-                        {plan[0].exam_date ? ` · สอบวันที่ ${plan[0].exam_date}` : ""}
+                        {plan[0].exam_date ? ` · สอบ ${formatShortDate(plan[0].exam_date)}` : ""}
                       </p>
                     </div>
                   </div>

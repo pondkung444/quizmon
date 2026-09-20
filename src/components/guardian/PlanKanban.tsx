@@ -18,7 +18,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { AlertTriangle, Check, GripVertical, Trash2 } from "lucide-react";
-import { formatRange, formatShortDate, type ExamInfo, type PlacedChapter, type SubjectSchedule, type WeekInfo } from "@/lib/planSchedule";
+import { bufferPhrase, bufferSummary, formatRange, formatShortDate, type ExamInfo, type PlacedChapter, type SubjectSchedule, type WeekInfo } from "@/lib/planSchedule";
 import { PlanTimelineLegend } from "@/components/guardian/PlanTimeline";
 
 // คณิต = indigo, วิทย์ = sci, "ผ่านแล้ว" = good (สงวนไว้) — แถบสีซ้ายการ์ดบอกวิชา ไม่แยกแถวตามวิชา
@@ -197,10 +197,15 @@ export default function PlanKanban({
           </p>
         </div>
         {exam && (
-          <p className="text-sm font-bold text-red">
-            🚩 สอบ {formatShortDate(exam.examYmd)}
-            {exam.daysToExam >= 0 ? ` · อีก ${exam.daysToExam} วัน` : ""}
-          </p>
+          <div className="sm:text-right">
+            <p className="text-sm font-bold text-red">
+              🚩 สอบ {formatShortDate(exam.examYmd)}
+              {exam.daysToExam >= 0 ? ` · อีก ${exam.daysToExam} วัน` : ""}
+            </p>
+            <p className={`text-xs ${bufferSummary(exam).ok ? "text-text2" : "font-semibold text-red"}`}>
+              {bufferSummary(exam).text}
+            </p>
+          </div>
         )}
       </div>
 
@@ -241,11 +246,11 @@ export default function PlanKanban({
                 <p className="text-[11px] text-red/80">{formatShortDate(exam.examYmd)}</p>
               </div>
               <p className="flex flex-1 items-center p-3 text-center text-xs leading-relaxed text-text3">
-                {exam.bufferWeeks > 0
-                  ? `เหลือเวลาเผื่อทบทวน ${exam.bufferWeeks} สัปดาห์หลังแผนจบ`
-                  : exam.bufferWeeks === 0
+                {exam.bufferDays > 0
+                  ? `เผื่อทบทวน ${bufferPhrase(exam.bufferDays)} หลังแผนจบ`
+                  : exam.bufferDays === 0
                     ? "แผนจบใกล้วันสอบพอดี"
-                    : `แผนยาวเกินวันสอบ ${-exam.bufferWeeks} สัปดาห์`}
+                    : "แผนอาจยาวเกินเวลาที่เหลือ ลองปรับลดสัปดาห์"}
               </p>
             </div>
           )}
