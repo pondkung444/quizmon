@@ -110,9 +110,10 @@ export function placeChapters(
   const cur = weekIndexOf(startYmd, todayYmd, n);
   const bySubject = new Map<string, ScheduleChapter[]>();
   for (const c of chapters) {
-    const key = `${c.subject}|${c.branch ?? ""}`;
-    if (!bySubject.has(key)) bySubject.set(key, []);
-    bySubject.get(key)!.push(c);
+    // จัดกลุ่มตามวิชาอย่างเดียว (ไม่แยก branch) ให้ตรงกับ guardian_set_plan_chapter_queue
+    // ที่นับ queue_order แบบ partition by subject
+    if (!bySubject.has(c.subject)) bySubject.set(c.subject, []);
+    bySubject.get(c.subject)!.push(c);
   }
 
   const out: SubjectSchedule[] = [];
@@ -186,7 +187,49 @@ export function checkFit(schedules: SubjectSchedule[], weeks: number, subjectNam
   return { ok: false, text: `บทมากเกินเวลาที่มี: ${parts.join(", ")} — ลดจำนวนบท หรือเลือกระยะเวลาที่ยาวขึ้น` };
 }
 
-export type Strength = "weak" | "mid" | "strong" | "unknown";
+/**
+ * ลากบท pending ไปวางคอลัมน์สัปดาห์ targetWeek: DB ไม่เก็บ "สัปดาห์เป้าหมาย" มีแค่ลำดับคิว จึงลองแทรกบทที่ทุกตำแหน่ง
+ * ในคิว pending ของวิชานั้น แล้วเลือกตำแหน่งที่ placeChapters ให้บทตกสัปดาห์ใกล้ targetWeek ที่สุด
+ * (เสมอกัน = ใกล้ตำแหน่งเดิมที่สุด) คืนรายการ chapter_key ที่ไม่ใช่ passed ทั้งแผนตามลำดับใหม่ สำหรับ
+ * guardian_set_plan_chapter_queue; คืน null ถ้าลำดับไม่เปลี่ยนหรือบทลากไม่ได้ (ต้องเป็น pending เท่านั้น)
+ */
+export function reorderForDrop(
+  chapters: ScheduleChapter[],
+  dragKey: string,
+  targetWeek: number,
+  startYmd: string,
+  n: number,
+  todayYmd: string
+): string[] | null {
+  const dragged = chapters.find((c) => c.chapter_key === dragKey);
+  if (!dragged || dragged.status !== "pending") return null;
+
+  const byOrder = (a: ScheduleChapter, b: ScheduleChapter) => a.queue_order - b.queue_order;
+  const editable = chapters.filter((c) => c.status !== "passed").sort(byOrder);
+  const mine = editable.filter((c) => c.subject === dragged.subject);
+  const others = editable.filter((c) => c.subject !== dragged.subject);
+  const locked = mine.filter((c) => c.status !== "pending");
+  const pend = mine.filter((c) => c.status === "pending" && c.chapter_key !== dragKey);
+  const passed = chapters.filter((c) => c.status === "passed" && c.subject === dragged.subject);
+  const origJ = mine.filter((c) => c.status === "pending" && c.queue_order < dragged.queue_order).length;
+
+  let best: { j: number; dist: number; move: number } | null = null;
+  for (let j = 0; j <= pend.length; j++) {
+    const cand = [...locked, ...pend.slice(0, j), dragged, ...pend.slice(j)];
+    const rows = [...passed, ...cand.map((c, i) => ({ ...c, queue_order: i }))];
+    const placed = placeChapters(rows, startYmd, n, todayYmd)[0]?.placed.find((c) => c.chapter_key === dragKey);
+    if (!placed) continue;
+    const dist = Math.abs(placed.weekIndex - targetWeek);
+    const move = Math.abs(j - origJ);
+    if (!best || dist < best.dist || (dist === best.dist && move < best.move)) best = { j, dist, move };
+  }
+  if (!best || best.j === origJ) return null;
+
+  const newMine = [...locked, ...pend.slice(0, best.j), dragged, ...pend.slice(best.j)];
+  return [...others, ...newMine].map((c) => c.chapter_key);
+}
+
+export type Strength ="weak" | "mid" | "strong" | "unknown";
 
 export function strengthOf(accuracy: number | null, attempts: number, minAttempts: number): Strength {
   if (accuracy === null || attempts < minAttempts) return "unknown";
