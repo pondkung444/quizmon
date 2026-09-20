@@ -4,6 +4,8 @@ import { useState } from "react";
 import {
   DndContext,
   DragOverlay,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
   MouseSensor,
   TouchSensor,
@@ -11,6 +13,7 @@ import {
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
@@ -122,7 +125,7 @@ function WeekColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-[216px] flex-none flex-col overflow-hidden rounded-2xl border bg-card ${
+      className={`flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card ${
         week.isCurrent ? "border-amber" : "border-border"
       } ${isOver ? "outline outline-2 -outline-offset-2 outline-dashed outline-amber" : ""}`}
     >
@@ -141,6 +144,12 @@ function WeekColumn({
     </div>
   );
 }
+
+// ตารางหลายแถว: pointerWithin ก่อน (ตรงกับที่นิ้ว/เมาส์ชี้จริง) แล้ว fallback rectIntersection (คีย์บอร์ดไม่มี pointer)
+const collision: CollisionDetection = (args) => {
+  const hit = pointerWithin(args);
+  return hit.length > 0 ? hit : rectIntersection(args);
+};
 
 // ปฏิทินแผนฝึกแบบ Kanban: คอลัมน์ต่อสัปดาห์ ลากบท "รอคิว" ไปวางสัปดาห์ที่ต้องการ (เปลี่ยนลำดับคิวในวิชาเดียวกัน
 // แล้วให้ planSchedule คำนวณสัปดาห์ใหม่) — ผ่านแล้ว/กำลังเรียน/ค้างนาน ล็อกไว้ ลากไม่ได้
@@ -209,11 +218,12 @@ export default function PlanKanban({
 
       <DndContext
         sensors={sensors}
+        collisionDetection={collision}
         onDragStart={(e: DragStartEvent) => setActiveKey(String(e.active.id))}
         onDragCancel={() => setActiveKey(null)}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
           {weeks.map((w) => (
             <WeekColumn
               key={w.index}
@@ -225,7 +235,7 @@ export default function PlanKanban({
             />
           ))}
           {exam && (
-            <div className="flex w-[180px] flex-none flex-col items-center overflow-hidden rounded-2xl border border-red/40 bg-red/5">
+            <div className="flex min-w-0 flex-col items-center overflow-hidden rounded-2xl border border-red/40 bg-red/5">
               <div className="w-full border-b border-red/30 px-3 py-2 text-center">
                 <p className="text-sm font-extrabold text-red">🚩 วันสอบ</p>
                 <p className="text-[11px] text-red/80">{formatShortDate(exam.examYmd)}</p>
