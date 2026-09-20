@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { accuracyTextClass, subjectLabel } from "./shared";
+import { guardianBasePath, type ViewerMode } from "@/components/guardian/viewerMode";
 
 export type PlanRow = {
   framework: string;
@@ -33,17 +34,19 @@ export default function PlanProgressCard({
   studentId,
   plan,
   progressByKey,
+  viewerMode = "guardian",
 }: {
   studentId: string;
   plan: PlanRow[];
   progressByKey: Map<string, PlanProgress>;
+  viewerMode?: ViewerMode;
 }) {
   const passed = plan.filter((r) => r.chapter_status === "passed").length;
   const currents = plan.filter((r) => r.chapter_status === "current" && r.chapter && r.subject);
 
   return (
     <Link
-      href={`/guardian/${studentId}/plan`}
+      href={`${guardianBasePath(viewerMode, studentId)}/plan`}
       className="gd-card-hero block p-5 transition hover:brightness-110 md:p-6"
     >
       <div className="flex items-start justify-between gap-3">

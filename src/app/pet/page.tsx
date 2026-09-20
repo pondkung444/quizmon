@@ -27,6 +27,7 @@ import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
+import SelfServePlanCard from "@/components/SelfServePlanCard";
 import HomeNextAction from "@/components/HomeNextAction";
 import { resolveNextAction } from "@/lib/nextAction";
 import { getPvpBadgeCount } from "@/lib/pvp";
@@ -288,6 +289,7 @@ export default async function PetPage({
           ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}
       <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
       {user && <WeeklyRewardCelebration />}
+      {user && <SelfServePlanCard />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
       ) : pet ? (

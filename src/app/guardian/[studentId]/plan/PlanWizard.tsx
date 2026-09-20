@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import BottomSheet from "@/components/social/BottomSheet";
+import type { ViewerMode } from "@/components/guardian/viewerMode";
 import { accuracyTextClass, gradeLabel } from "../overview/shared";
 
 type AvailableChapter = {
@@ -82,6 +83,21 @@ const GOAL_LEVELS = [
   { level: "relaxed" as const, label: "สบายๆ", description: "พอๆ กับที่ลูกเล่นเป็นปกติอยู่แล้ว" },
   { level: "steady" as const, label: "กำลังดี", description: "มากกว่าปกติหน่อย ให้ลูกได้ฝึกเพิ่ม" },
   { level: "challenging" as const, label: "ท้าทาย", description: "เต็มที่ เหมาะกับสัปดาห์ที่ลูกพร้อม" },
+];
+
+// viewerMode="self": copy บุรุษที่ 1 (นักเรียนอ่านเอง) — ที่เหลือของแต่ละรายการเหมือนเดิม
+const FRAMEWORKS_SELF = FRAMEWORKS.map((f) =>
+  f.value === "school"
+    ? { ...f, description: "เรียงตามลำดับที่โรงเรียนกำลังสอน — ตัวเลือกปลอดภัย เหมาะกับทุกคน" }
+    : f.value === "weak_spot"
+      ? { ...f, description: "เรียงจากบทที่คุณยังทำได้ไม่ดี ใช้ข้อมูลการตอบจริงช่วยจัดลำดับ" }
+      : f
+);
+
+const GOAL_LEVELS_SELF = [
+  { ...GOAL_LEVELS[0], description: "พอๆ กับที่เล่นเป็นปกติอยู่แล้ว" },
+  { ...GOAL_LEVELS[1], description: "มากกว่าปกติหน่อย ได้ฝึกเพิ่ม" },
+  { ...GOAL_LEVELS[2], description: "เต็มที่ เหมาะกับสัปดาห์ที่พร้อม" },
 ];
 
 const CHAPTER_STATUS_LABEL: Record<string, { label: string; note?: string }> = {
@@ -314,10 +330,13 @@ function groupPlan(rows: PlanRow[]): PlanGroup[] {
 export default function PlanWizard({
   studentId,
   studentUsername,
+  viewerMode = "guardian",
 }: {
   studentId: string;
   studentUsername: string;
+  viewerMode?: ViewerMode;
 }) {
+  const isSelf = viewerMode === "self";
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -511,7 +530,13 @@ export default function PlanWizard({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-center text-base text-text2">
-        แผนฝึกของ <span className="font-semibold text-text">{studentUsername}</span>
+        {isSelf ? (
+          "แผนฝึกของฉัน"
+        ) : (
+          <>
+            แผนฝึกของ <span className="font-semibold text-text">{studentUsername}</span>
+          </>
+        )}
       </p>
 
       {error && <p className="rounded-xl bg-red/10 p-3 text-center text-base text-red">{error}</p>}
@@ -700,7 +725,7 @@ export default function PlanWizard({
                   <BottomSheet title="เปลี่ยนโหมด / สร้างแผนใหม่" onClose={() => setConfirmingReplace(false)}>
                     <div className="flex flex-col gap-3 p-4">
                       <p className="text-base text-text">
-                        บทที่ลูกผ่านไปแล้ว <span className="font-bold text-emerald-400">จะไม่ต้องทำซ้ำ</span>{" "}
+                        {isSelf ? "บทที่คุณผ่านไปแล้ว" : "บทที่ลูกผ่านไปแล้ว"} <span className="font-bold text-emerald-400">จะไม่ต้องทำซ้ำ</span>{" "}
                         ถ้าเลือกบทเดิมในแผนใหม่ ระบบจะนับให้ว่าผ่านแล้วทันที
                       </p>
                       <p className="text-sm text-text3">
@@ -745,7 +770,7 @@ export default function PlanWizard({
           {step === 1 && (
             <div className="flex flex-col gap-3">
               <p className="text-lg font-bold text-text">เน้นอะไรดี</p>
-              {FRAMEWORKS.map(({ value, label, description, Icon, badge }) => (
+              {(isSelf ? FRAMEWORKS_SELF : FRAMEWORKS).map(({ value, label, description, Icon, badge }) => (
                 <button
                   key={value}
                   type="button"
@@ -884,9 +909,11 @@ export default function PlanWizard({
               {justCreatedPlan && (
                 <p className="text-center text-base text-emerald-400">สร้างแผนเรียบร้อยแล้ว</p>
               )}
-              <p className="text-lg font-bold text-text">อยากให้ลูกฝึกสม่ำเสมอแค่ไหน</p>
+              <p className="text-lg font-bold text-text">
+                {isSelf ? "อยากฝึกสม่ำเสมอแค่ไหน" : "อยากให้ลูกฝึกสม่ำเสมอแค่ไหน"}
+              </p>
               <p className="-mt-2 text-sm text-text3">ตั้งเป้าประจำสัปดาห์ควบคู่ไปด้วยได้ (ไม่ตั้งตอนนี้ก็ได้)</p>
-              {GOAL_LEVELS.map(({ level, label, description }) => (
+              {(isSelf ? GOAL_LEVELS_SELF : GOAL_LEVELS).map(({ level, label, description }) => (
                 <button
                   key={level}
                   type="button"
