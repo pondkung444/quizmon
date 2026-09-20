@@ -18,6 +18,18 @@ import { createClient } from "@/lib/supabase/client";
 import BottomSheet from "@/components/social/BottomSheet";
 import type { ViewerMode } from "@/components/guardian/viewerMode";
 import { accuracyTextClass, gradeLabel } from "../overview/shared";
+import PlanTimeline, { PlanTimelineLegend } from "@/components/guardian/PlanTimeline";
+import {
+  buildWeeks,
+  bufferSummary,
+  checkFit,
+  examInfo,
+  placeChapters,
+  previewChapters,
+  STRENGTH_LABEL,
+  strengthOf,
+  toBkkYmd,
+} from "@/lib/planSchedule";
 
 type AvailableChapter = {
   chapter_key: string;
@@ -246,13 +258,24 @@ function ChapterList({
       <div className="flex max-h-80 flex-col gap-4 overflow-y-auto">
       {[...groups.entries()].map(([groupName, items]) => (
         <div key={groupName}>
-          <p className="mb-2 px-1 text-sm font-bold text-text3">{groupName}</p>
+          <p
+            className={`mb-2 flex items-center gap-2 border-b border-border px-1 pb-1 text-sm font-bold ${
+              items[0].subject === "science" ? "text-sci-hi" : "text-indigo-hi"
+            }`}
+          >
+            <span className={`h-2.5 w-2.5 rounded-full ${items[0].subject === "science" ? "bg-sci" : "bg-indigo"}`} />
+            {groupName}
+            <span className="text-xs font-normal text-text3">
+              · เลือกแล้ว {items.filter((c) => selectedKeys.includes(c.chapter_key)).length}/{items.length}
+            </span>
+          </p>
           <ul className="flex flex-col gap-2">
             {items.map((ch) => {
               const order = selectedKeys.indexOf(ch.chapter_key);
               const isSelected = order !== -1;
               const wasPassed = passedKeys?.includes(ch.chapter_key) ?? false;
               const enoughData = ch.recent_accuracy !== null && ch.recent_attempts >= MIN_ATTEMPTS_FOR_ACCURACY;
+              const strength = strengthOf(ch.recent_accuracy, ch.recent_attempts, MIN_ATTEMPTS_FOR_ACCURACY);
               return (
                 <li key={ch.chapter_key}>
                   <button
@@ -272,19 +295,17 @@ function ChapterList({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-base font-semibold text-text">{ch.chapter}</p>
-                      <p className="text-sm text-text3">
-                        {enoughData ? (
-                          <>
-                            30 วันล่าสุด ทำ {ch.recent_attempts} ข้อ · ถูก{" "}
-                            <span className={`font-semibold ${accuracyTextClass(ch.recent_accuracy as number)}`}>
-                              {ch.recent_accuracy}%
-                            </span>
-                          </>
-                        ) : ch.recent_attempts > 0 ? (
-                          `ทำไป ${ch.recent_attempts} ข้อ · ยังไม่มีข้อมูลเพียงพอ`
-                        ) : (
-                          "ยังไม่มีข้อมูลเพียงพอ"
-                        )}
+                      <p className="text-sm">
+                        <span className={`font-semibold ${strength === "unknown" ? "text-text3" : accuracyTextClass(ch.recent_accuracy as number)}`}>
+                          {STRENGTH_LABEL[strength]}
+                        </span>
+                      </p>
+                      <p className="text-xs text-text3">
+                        {enoughData
+                          ? `30 วันล่าสุด ทำ ${ch.recent_attempts} ข้อ · ถูก ${ch.recent_accuracy}%`
+                          : ch.recent_attempts > 0
+                            ? `ทำไป ${ch.recent_attempts} ข้อ (น้อยกว่า ${MIN_ATTEMPTS_FOR_ACCURACY} ข้อ)`
+                            : "ยังไม่เคยทำ"}
                         {` · คลัง ${ch.question_count} ข้อ`}
                       </p>
                       {wasPassed && (
@@ -325,6 +346,75 @@ function groupPlan(rows: PlanRow[]): PlanGroup[] {
       return pa - pb || (a.chapter_queue_order ?? 0) - (b.chapter_queue_order ?? 0);
     }),
   }));
+}
+
+// ขั้น 2: ตัวอย่างสัปดาห์ของแผน (อัปเดตทันทีเมื่อเปลี่ยนระยะเวลา/วันสอบ) — วันที่นับ rolling จากวันนี้
+function PlanCalendarPreview({ durationWeeks, examDate }: { durationWeeks: number; examDate: string }) {
+  const today = toBkkYmd(new Date());
+  const weeks = buildWeeks(today, durationWeeks, today);
+  const exam = examDate ? examInfo(today, durationWeeks, examDate, today) : null;
+  const summary = exam ? bufferSummary(exam.bufferWeeks) : null;
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3">
+      <p className="mb-2 text-base font-bold text-text">
+        ปฏิทินแผน {durationWeeks} สัปดาห์ <span className="text-sm font-normal text-text3">(เริ่มวันนี้)</span>
+      </p>
+      <PlanTimeline weeks={weeks} schedules={[]} exam={exam} />
+      {summary && (
+        <p className={`mt-2 text-sm font-semibold ${summary.ok ? "text-good" : "text-red"}`}>{summary.text}</p>
+      )}
+      <div className="mt-2">
+        <PlanTimelineLegend />
+      </div>
+    </div>
+  );
+}
+
+// ขั้น 3: กระจายบทที่ติ๊กลงสัปดาห์แบบประมาณการ (ตำแหน่งจริงขึ้นกับความเร็วในการฝึก)
+function SelectionPreview({
+  available,
+  selectedKeys,
+  passedKeys,
+  durationWeeks,
+  examDate,
+}: {
+  available: AvailableChapter[];
+  selectedKeys: string[];
+  passedKeys: string[];
+  durationWeeks: number;
+  examDate: string;
+}) {
+  if (selectedKeys.length === 0) return null;
+  const today = toBkkYmd(new Date());
+  const picks = selectedKeys
+    .map((k) => available.find((c) => c.chapter_key === k))
+    .filter((c): c is AvailableChapter => !!c);
+  const weeks = buildWeeks(today, durationWeeks, today);
+  const schedules = placeChapters(previewChapters(picks, passedKeys), today, durationWeeks, today);
+  const exam = examDate ? examInfo(today, durationWeeks, examDate, today) : null;
+  const fit = checkFit(schedules, durationWeeks, (s) => subjectGroupLabel(s.subject, s.branch));
+  const examSummary = exam ? bufferSummary(exam.bufferWeeks) : null;
+  const ok = fit.ok && (examSummary?.ok ?? true);
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3">
+      <p className="mb-2 text-base font-bold text-text">ตัวอย่างการกระจายบทตามสัปดาห์</p>
+      <div
+        className={`mb-3 rounded-xl border px-3 py-2 text-sm font-semibold ${
+          ok ? "border-good/60 bg-good/10 text-good" : "border-red bg-red/10 text-red"
+        }`}
+      >
+        {fit.text}
+        {examSummary && !examSummary.ok && <span className="block">{examSummary.text}</span>}
+      </div>
+      <PlanTimeline weeks={weeks} schedules={schedules} exam={exam} />
+      <p className="mt-2 text-xs text-text3">
+        เป็นค่าประมาณ — บทจริงจะขยับตามความเร็วที่ฝึก (ผ่านเมื่อทำครบ 20 ข้อและแม่นพอ)
+      </p>
+      <div className="mt-2">
+        <PlanTimelineLegend />
+      </div>
+    </div>
+  );
 }
 
 export default function PlanWizard({
@@ -848,6 +938,8 @@ export default function PlanWizard({
                 </div>
               )}
 
+              <PlanCalendarPreview durationWeeks={durationWeeks} examDate={framework === "exam_prep" ? examDate : ""} />
+
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
@@ -882,6 +974,13 @@ export default function PlanWizard({
                 selectedKeys={selectedKeys}
                 onToggle={toggleChapter}
                 passedKeys={plan.filter((r) => r.chapter_status === "passed").map((r) => r.chapter_key as string)}
+              />
+              <SelectionPreview
+                available={available}
+                selectedKeys={selectedKeys}
+                passedKeys={plan.filter((r) => r.chapter_status === "passed").map((r) => r.chapter_key as string)}
+                durationWeeks={durationWeeks}
+                examDate={framework === "exam_prep" ? examDate : ""}
               />
               <div className="mt-2 flex gap-2">
                 <button
