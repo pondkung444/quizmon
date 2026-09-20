@@ -289,7 +289,6 @@ export default async function PetPage({
           ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}
       <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
       {user && <WeeklyRewardCelebration />}
-      {user && <SelfServePlanCard />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
       ) : pet ? (
@@ -345,6 +344,8 @@ export default async function PetPage({
           <EggsClient eggs={unhatchedEggs} hasActivePet={false} />
         </div>
       )}
+      {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (self-serve pilot: โผล่เฉพาะคนที่ enroll) */}
+      {user && <SelfServePlanCard />}
     </main>
   );
 }
