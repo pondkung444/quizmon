@@ -1,16 +1,33 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { accuracyTextClass, subjectLabel } from "./shared";
+import PlanTimeline, { PlanTimelineLegend } from "@/components/guardian/PlanTimeline";
+import {
+  bufferSummary,
+  buildWeeks,
+  examInfo,
+  formatRange,
+  formatShortDate,
+  placeChapters,
+  toBkkYmd,
+  type ScheduleChapter,
+} from "@/lib/planSchedule";
 import { guardianBasePath, type ViewerMode } from "@/components/guardian/viewerMode";
 
 export type PlanRow = {
   framework: string;
+  duration_weeks: number;
+  exam_date: string | null;
+  plan_created_at: string;
   plan_status: string;
   chapter_key: string | null;
   subject: string | null;
   branch: string | null;
   chapter: string | null;
   chapter_status: "pending" | "current" | "passed" | "stuck" | null;
+  chapter_queue_order: number | null;
+  entered_current_at: string | null;
+  passed_at: string | null;
 };
 
 // attempts_total + accuracy_recent เป็นชุดเดียวกับที่ guardian_advance_plan_if_passed ใช้ตัดสินผ่านจริง
@@ -44,6 +61,37 @@ export default function PlanProgressCard({
   const passed = plan.filter((r) => r.chapter_status === "passed").length;
   const currents = plan.filter((r) => r.chapter_status === "current" && r.chapter && r.subject);
 
+  // ปฏิทินแผน: ตำแหน่งสัปดาห์ของบทที่รอคิวเป็นค่าประมาณที่คำนวณสด (ดู lib/planSchedule)
+  const hasPlan = plan.length > 0 && !!plan[0].plan_created_at;
+  const today = toBkkYmd(new Date());
+  const startYmd = hasPlan ? toBkkYmd(plan[0].plan_created_at) : today;
+  const n = hasPlan ? plan[0].duration_weeks : 0;
+  const weeks = hasPlan ? buildWeeks(startYmd, n, today) : [];
+  const curWeek = weeks.find((w) => w.isCurrent);
+  const schedules = hasPlan
+    ? placeChapters(
+        plan
+          .filter((r) => r.chapter_key && r.subject && r.chapter && r.chapter_status)
+          .map(
+            (r): ScheduleChapter => ({
+              chapter_key: r.chapter_key as string,
+              subject: r.subject as string,
+              branch: r.branch,
+              chapter: r.chapter as string,
+              queue_order: r.chapter_queue_order ?? 0,
+              status: r.chapter_status as ScheduleChapter["status"],
+              entered_current_at: r.entered_current_at,
+              passed_at: r.passed_at,
+            })
+          ),
+        startYmd,
+        n,
+        today
+      )
+    : [];
+  const exam = hasPlan && plan[0].exam_date ? examInfo(startYmd, n, plan[0].exam_date, today) : null;
+  const planEnded = hasPlan && weeks.length > 0 && today > weeks[weeks.length - 1].endYmd;
+
   return (
     <Link
       href={`${guardianBasePath(viewerMode, studentId)}/plan`}
@@ -65,6 +113,33 @@ export default function PlanProgressCard({
           <ChevronRight className="h-5 w-5" />
         </span>
       </div>
+
+      {hasPlan && curWeek && (
+        <div className="mt-4 rounded-2xl border border-[#385b57] bg-[#1e2f30] p-3">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="text-base font-bold text-text">
+              ปฏิทินแผนฝึก · {planEnded ? `ครบ ${n} สัปดาห์แล้ว` : `สัปดาห์ที่ ${curWeek.index + 1} จาก ${n}`}
+              <span className="ml-2 text-sm font-normal text-text2">({formatRange(curWeek.startYmd, curWeek.endYmd)})</span>
+            </p>
+            {exam && (
+              <p className="text-sm font-semibold text-gold-hi">
+                🚩 สอบ {formatShortDate(exam.examYmd)}
+                {exam.daysToExam >= 0 ? ` · อีก ${exam.daysToExam} วัน` : ""}
+              </p>
+            )}
+          </div>
+          <PlanTimeline weeks={weeks} schedules={schedules} exam={exam} />
+          {exam && exam.bufferWeeks !== 0 && (
+            <p className={`mt-2 text-sm ${bufferSummary(exam.bufferWeeks).ok ? "text-text2" : "text-red"}`}>
+              {bufferSummary(exam.bufferWeeks).text}
+            </p>
+          )}
+          <p className="mt-2 text-[11px] text-text3">ตำแหน่งบทที่รอคิวเป็นค่าประมาณ — ขยับตามความเร็วที่ฝึกจริง</p>
+          <div className="mt-1">
+            <PlanTimelineLegend />
+          </div>
+        </div>
+      )}
 
       {plan.length > 0 && currents.length === 0 && (
         <p className="mt-4 text-base text-text2">ตอนนี้ไม่มีบทที่กำลังเรียนอยู่ — ทุกวิชาในแผนผ่านครบแล้ว</p>

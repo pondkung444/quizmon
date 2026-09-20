@@ -31,6 +31,10 @@
   --color-good: #34d399;
   --color-warn: #fbbf24;
   --color-mint: #a0e0c9;
+  /* ปฏิทินแผนฝึก: คณิต = indigo, วิทย์ = sci (cyan/sky — แยกจากเขียว good/mint ที่สงวนไว้เป็น "ผ่านแล้ว") */
+  --color-sci: #4fb6e8;
+  --color-sci-dim: #1f4a63;
+  --color-sci-hi: #b9e4f7;
 }
 
 body {
