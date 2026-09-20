@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, Feather, Gauge, Flame, Trophy, ListChecks } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { ViewerMode } from "@/components/guardian/viewerMode";
 
 type GoalProgress = {
   goal_week_start: string;
@@ -36,6 +37,13 @@ const LEVELS = [
   },
 ];
 
+// viewerMode="self": คำอธิบายบุรุษที่ 1 (นักเรียนอ่านเอง) — label/level เหมือนเดิม
+const LEVELS_SELF = [
+  { ...LEVELS[0], description: "พอๆ กับที่เล่นเป็นปกติอยู่แล้ว" },
+  { ...LEVELS[1], description: "มากกว่าปกติหน่อย ได้ฝึกเพิ่ม" },
+  { ...LEVELS[2], description: "เต็มที่ เหมาะกับสัปดาห์ที่พร้อม" },
+];
+
 // ข้อความ bucket มาจาก guardian_get_goal_progress ตรงๆ (ล็อกไว้แล้วใน RPC) — component นี้แค่
 // เลือกไอคอน/สีให้ตรงแต่ละขั้น เป็นตัวช่วยภาพสำหรับผู้ปกครองที่อาจไม่ถนัดอ่านตัวหนังสือเยอะๆ
 const BUCKET_VISUAL: Record<string, { Icon: typeof Feather; ring: string; text: string }> = {
@@ -49,10 +57,13 @@ const BUCKET_VISUAL: Record<string, { Icon: typeof Feather; ring: string; text: 
 export default function GoalPanel({
   studentId,
   studentUsername,
+  viewerMode = "guardian",
 }: {
   studentId: string;
   studentUsername: string;
+  viewerMode?: ViewerMode;
 }) {
+  const isSelf = viewerMode === "self";
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +114,13 @@ export default function GoalPanel({
   return (
     <div className="flex flex-col gap-5">
       <p className="text-center text-base text-text2">
-        เป้าหมายประจำสัปดาห์ของ <span className="font-semibold text-text">{studentUsername}</span>
+        {isSelf ? (
+          "เป้าหมายประจำสัปดาห์ของคุณ"
+        ) : (
+          <>
+            เป้าหมายประจำสัปดาห์ของ <span className="font-semibold text-text">{studentUsername}</span>
+          </>
+        )}
       </p>
 
       {error && (
@@ -144,7 +161,7 @@ export default function GoalPanel({
         <p className="text-base font-semibold text-text2">
           {progress?.has_goal ? "เปลี่ยนเป้าหมาย" : "ตั้งเป้าความสม่ำเสมอ"}
         </p>
-        {LEVELS.map(({ level, label, description }) => {
+        {(isSelf ? LEVELS_SELF : LEVELS).map(({ level, label, description }) => {
           const isSelected = progress?.goal_level === level;
           return (
             <button
@@ -170,8 +187,16 @@ export default function GoalPanel({
 
       {justSetLabel && (
         <p className="text-center text-base text-text2">
-          ตั้งเป้า <span className="font-semibold text-gold-hi">{justSetLabel}</span> ให้{" "}
-          {studentUsername} เรียบร้อยแล้ว
+          {isSelf ? (
+            <>
+              ตั้งเป้า <span className="font-semibold text-gold-hi">{justSetLabel}</span> เรียบร้อยแล้ว
+            </>
+          ) : (
+            <>
+              ตั้งเป้า <span className="font-semibold text-gold-hi">{justSetLabel}</span> ให้{" "}
+              {studentUsername} เรียบร้อยแล้ว
+            </>
+          )}
         </p>
       )}
     </div>

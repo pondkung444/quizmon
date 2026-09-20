@@ -6,9 +6,16 @@ import type { BgmZone } from "@/lib/audio/appAudio";
 //   challenge = /raid/*        — bgm_challenge_loop วนซ้ำ (เบากว่าปกติ 10%)
 //   silent    = /boss-raid/*   — จอมือถือนักเรียน เงียบสนิท (จอทีวี /tv เป็นระบบเสียงแยก tvAudio.ts)
 //   silent    = /guardian/*    — พื้นที่ผู้ปกครอง ไม่มีเสียงเกมเลย (SoundProvider ก็ไม่ init/unlock ที่นี่ด้วย)
+//   silent    = /my-plan/*     — แผนของนักเรียน self-serve (ใช้ component ชุดเดียวกับ /guardian) เงียบเหมือนกัน
 //   general   = ที่เหลือทั้งหมด — playlist สุ่มต่อเนื่อง (รวม /pet /quiz /adventure /pvp/* ฯลฯ)
 export function isGuardianPath(pathname: string | null): boolean {
-  return !!pathname && (pathname === "/guardian" || pathname.startsWith("/guardian/"));
+  return (
+    !!pathname &&
+    (pathname === "/guardian" ||
+      pathname.startsWith("/guardian/") ||
+      pathname === "/my-plan" ||
+      pathname.startsWith("/my-plan/"))
+  );
 }
 
 export function zoneForPath(pathname: string | null): BgmZone {

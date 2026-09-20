@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChartBar, Route, Target, ClipboardList, ChevronDown, LogOut } from "lucide-react";
+import { ChartBar, Route, Target, ClipboardList, ChevronDown, LogOut, ArrowLeft } from "lucide-react";
 import BottomSheet from "@/components/social/BottomSheet";
 import { guardianSignOut } from "@/app/guardian/actions";
+import { guardianBasePath, type ViewerMode } from "./viewerMode";
 
 export type ShellStudent = { student_id: string; username: string; grade_level: string | null };
 
@@ -37,14 +38,20 @@ export default function GuardianShell({
   studentUsername,
   students,
   displayName,
+  viewerMode = "guardian",
   children,
 }: {
   studentId: string;
   studentUsername: string;
   students: ShellStudent[];
   displayName: string | null;
+  // "self" = นักเรียน self-serve ดูของตัวเอง (/my-plan/*): ไม่มีตัวสลับนักเรียน ไม่มีปุ่ม guardianSignOut
+  // (ออกจากระบบผ่านแอปปกติ) แต่มีลิงก์กลับ /pet แทน — "guardian" (default) เหมือนเดิมทุกอย่าง
+  viewerMode?: ViewerMode;
   children: React.ReactNode;
 }) {
+  const isSelf = viewerMode === "self";
+  const basePath = guardianBasePath(viewerMode, studentId);
   const pathname = usePathname();
   const active = currentSectionKey(pathname);
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -54,6 +61,8 @@ export default function GuardianShell({
     <div className="flex min-h-screen flex-col gd-shell text-text lg:flex-row">
       {/* Sidebar — เฉพาะจอกว้าง (lg ขึ้นไป) คงที่ตลอด ไม่ต้องเลื่อนหา */}
       <aside className="hidden w-56 flex-none flex-col gap-6 border-r border-border p-5 lg:flex">
+        {isSelf && <p className="text-sm font-bold text-text">แผนของฉัน</p>}
+        {!isSelf && (
         <div>
           <p className="text-xs text-text3">กำลังดูของ</p>
           <button
@@ -66,12 +75,13 @@ export default function GuardianShell({
             {hasMultipleStudents && <ChevronDown className="h-4 w-4 flex-none text-text3" />}
           </button>
         </div>
+        )}
 
         <nav className="flex flex-col gap-1">
           {SECTIONS.map(({ key, label, Icon, path }) => (
             <Link
               key={key}
-              href={`/guardian/${studentId}${path}`}
+              href={`${basePath}${path}`}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
                 active === key ? "bg-mint/15 font-bold text-mint" : "text-text2 hover:bg-card"
               }`}
@@ -82,16 +92,33 @@ export default function GuardianShell({
           ))}
         </nav>
 
+        {isSelf && (
+          <Link href="/pet" className="mt-auto flex items-center gap-2 text-xs text-text3 hover:text-gold-hi">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            กลับหน้าหลัก
+          </Link>
+        )}
+        {!isSelf && (
         <form action={guardianSignOut} className="mt-auto">
           <button type="submit" className="flex items-center gap-2 text-xs text-text3 hover:text-red">
             <LogOut className="h-3.5 w-3.5" />
             ออกจากระบบ
           </button>
         </form>
+        )}
       </aside>
 
       {/* Header มือถือ/tablet — แสดงเฉพาะจอแคบกว่า lg */}
       <header className="flex items-center justify-between border-b border-border p-4 lg:hidden">
+        {isSelf && (
+          <>
+            <p className="text-base font-bold text-text">แผนของฉัน</p>
+            <Link href="/pet" aria-label="กลับหน้าหลัก" className="text-text3 hover:text-gold-hi">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </>
+        )}
+        {!isSelf && (
         <button
           type="button"
           onClick={() => hasMultipleStudents && setSwitcherOpen(true)}
@@ -104,11 +131,14 @@ export default function GuardianShell({
           </div>
           {hasMultipleStudents && <ChevronDown className="h-4 w-4 text-text3" />}
         </button>
+        )}
+        {!isSelf && (
         <form action={guardianSignOut}>
           <button type="submit" aria-label="ออกจากระบบ" className="text-text3 hover:text-red">
             <LogOut className="h-4 w-4" />
           </button>
         </form>
+        )}
       </header>
 
       <main className="min-w-0 flex-1 pb-20 lg:pb-0">
@@ -133,7 +163,7 @@ export default function GuardianShell({
         {SECTIONS.map(({ key, label, Icon, path }) => (
           <Link
             key={key}
-            href={`/guardian/${studentId}${path}`}
+            href={`${basePath}${path}`}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] ${
               active === key ? "text-mint" : "text-text3"
             }`}
