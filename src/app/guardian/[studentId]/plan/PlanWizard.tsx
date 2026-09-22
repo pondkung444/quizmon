@@ -442,6 +442,12 @@ export default function PlanWizard({
   const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dropHint, setDropHint] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dropHint) return;
+    const t = setTimeout(() => setDropHint(null), 4000);
+    return () => clearTimeout(t);
+  }, [dropHint]);
   const [plan, setPlan] = useState<PlanRow[]>([]);
   const [available, setAvailable] = useState<AvailableChapter[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -560,7 +566,7 @@ export default function PlanWizard({
   // ลากบท pending ไปสัปดาห์ใหม่: คำนวณลำดับคิวใหม่ (ดู reorderForDrop) -> optimistic -> RPC เดิม; error = rollback
   async function handleDropChapter(chapterKey: string, targetWeek: number) {
     if (submitting || plan.length === 0) return;
-    const newOrderKeys = reorderForDrop(
+    const result = reorderForDrop(
       toScheduleChapters(plan),
       chapterKey,
       targetWeek,
@@ -568,7 +574,14 @@ export default function PlanWizard({
       plan[0].duration_weeks,
       toBkkYmd(new Date())
     );
-    if (!newOrderKeys) return;
+    if (!result.ok) {
+      if (result.reason === "no-op") {
+        setDropHint("ย้ายไปสัปดาห์นี้ไม่ได้ เพราะบทที่เหลือมีน้อยเกินกว่าจะกระจายละเอียดขนาดนั้น");
+      }
+      return;
+    }
+    setDropHint(null);
+    const newOrderKeys = result.keys;
 
     const snapshot = plan;
     const subjectOf = new Map(plan.map((r) => [r.chapter_key, r.subject]));
@@ -695,6 +708,8 @@ export default function PlanWizard({
                     เปลี่ยนโหมด / สร้างแผนใหม่
                   </button>
                 </div>
+
+                {dropHint && <p className="rounded-xl bg-amber/10 p-3 text-center text-sm text-amber">{dropHint}</p>}
 
                 <div className="gd-card p-4">
                   {(() => {
