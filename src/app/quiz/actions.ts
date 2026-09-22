@@ -264,65 +264,53 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
 
   let candidateIds = idRows.map((r) => r.id).filter((id) => !excludeIds.has(id));
 
-  // Self-serve pilot (guardian-self-serve-student-design-2026-09-20.md): inject 3/5 ข้อจาก
-  // current chapter ของแผนถ้า self_serve_enrollment active + ยังไม่หมดอายุ เฉพาะ practice mode
-  // + junior เท่านั้น (ตาม scope v1) — ตั้งใจไม่เช็ค guardian_links เลยในรอบนี้ เพราะฟีเจอร์นี้ไม่
-  // เคยถูก implement มาก่อนแม้แต่ฝั่งผู้ปกครองจริง (เจอตอน survey โค้ด 2026-09-20) เปิดกับ 20
-  // ครอบครัว pilot จริงพร้อมกันไปด้วยจะกระทบพฤติกรรมที่เขาไม่เคยเจอมาก่อน เก็บไว้เป็นการตัดสินใจ
-  // แยกต่างหากทีหลัง
+  // Guardian plan question injection: inject 3/5 ข้อจาก current chapter ของแผนถ้านักเรียนมี
+  // guardian_plan status='active' (ไม่สนว่าสร้างผ่านทางไหน — ผู้ปกครองสร้างให้ปกติ หรือ self-serve)
+  // เฉพาะ practice mode + junior เท่านั้น (isSeniorBranchMode กันไว้แล้ว เพราะ current chapter ยัง
+  // ไม่ awareของ branch)
   let planInjectedIds: number[] = [];
   if (input.type === "practice" && !isSeniorBranchMode && user) {
-    const { data: enrollment } = await admin
-      .from("self_serve_enrollment")
+    const { data: activePlan } = await admin
+      .from("guardian_plan")
       .select("id")
       .eq("student_id", user.id)
       .eq("status", "active")
-      .gt("expires_at", new Date().toISOString())
       .maybeSingle();
 
-    if (enrollment) {
-      const { data: activePlan } = await admin
-        .from("guardian_plan")
-        .select("id")
-        .eq("student_id", user.id)
-        .eq("status", "active")
+    if (activePlan) {
+      const { data: currentChapter } = await admin
+        .from("guardian_plan_chapters")
+        .select("chapter_key, subject, branch")
+        .eq("plan_id", activePlan.id)
+        .eq("status", "current")
+        .eq("subject", mode) // mode = 'math' | 'science' เท่านั้นตรงนี้ (isSeniorBranchMode กันไว้แล้ว)
         .maybeSingle();
 
-      if (activePlan) {
-        const { data: currentChapter } = await admin
-          .from("guardian_plan_chapters")
-          .select("chapter_key, subject, branch")
-          .eq("plan_id", activePlan.id)
-          .eq("status", "current")
-          .eq("subject", mode) // mode = 'math' | 'science' เท่านั้นตรงนี้ (isSeniorBranchMode กันไว้แล้ว)
-          .maybeSingle();
+      if (currentChapter) {
+        const { data: cc } = await admin
+          .from("curriculum_chapters")
+          .select("chapter, grade_band")
+          .eq("chapter_key", currentChapter.chapter_key)
+          .single();
 
-        if (currentChapter) {
-          const { data: cc } = await admin
-            .from("curriculum_chapters")
-            .select("chapter, grade_band")
-            .eq("chapter_key", currentChapter.chapter_key)
-            .single();
-
-          if (cc) {
-            const chapterRows = await fetchAllRows<{ id: number }>((from, to) => {
-              let q = admin
-                .from("questions")
-                .select("id")
-                .eq("status", "active")
-                .eq("subject", currentChapter.subject)
-                .eq("grade_band", cc.grade_band)
-                .eq("chapter", cc.chapter);
-              q =
-                currentChapter.branch === null
-                  ? q.is("branch", null)
-                  : q.eq("branch", currentChapter.branch);
-              return q.range(from, to);
-            });
-            const chapterIds = chapterRows.map((r) => r.id).filter((id) => !excludeIds.has(id));
-            const PLAN_COUNT = Math.ceil(roundSize / 2); // roundSize=5 → 3 จากแผน (ปัดขึ้นตามที่ตกลง)
-            planInjectedIds = shuffle(chapterIds).slice(0, Math.min(PLAN_COUNT, chapterIds.length));
-          }
+        if (cc) {
+          const chapterRows = await fetchAllRows<{ id: number }>((from, to) => {
+            let q = admin
+              .from("questions")
+              .select("id")
+              .eq("status", "active")
+              .eq("subject", currentChapter.subject)
+              .eq("grade_band", cc.grade_band)
+              .eq("chapter", cc.chapter);
+            q =
+              currentChapter.branch === null
+                ? q.is("branch", null)
+                : q.eq("branch", currentChapter.branch);
+            return q.range(from, to);
+          });
+          const chapterIds = chapterRows.map((r) => r.id).filter((id) => !excludeIds.has(id));
+          const PLAN_COUNT = Math.ceil(roundSize / 2); // roundSize=5 → 3 จากแผน (ปัดขึ้นตามที่ตกลง)
+          planInjectedIds = shuffle(chapterIds).slice(0, Math.min(PLAN_COUNT, chapterIds.length));
         }
       }
     }
