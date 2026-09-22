@@ -108,18 +108,16 @@ export function bufferSummary(exam: ExamInfo): { text: string; ok: boolean } {
 }
 
 /**
- * วางบทลงสัปดาห์ (ต่อวิชา)
- * - passed: ตาม passed_at จริง (ก่อนวันเริ่มแผน -> beforePlan)
- * - current: สัปดาห์ปัจจุบัน; stuck: สัปดาห์ที่เข้า current (clamp ไม่เกินปัจจุบัน)
- * - pending: กระจายเท่าๆ กันตาม queue_order ในสัปดาห์ที่เหลือ (ถ้าไม่มีสัปดาห์เหลือ รวมในสัปดาห์สุดท้าย)
+ * วางบทลงสัปดาห์ (ต่อวิชา) — ทุกสถานะ (ผ่านแล้ว/กำลังเรียน/ค้างนาน/รอคิว) วางตามลำดับคิวที่วางแผนไว้
+ * (queue_order) กระจายเท่าๆ กันข้ามทั้ง n สัปดาห์ ไม่ใช้วันที่จริง (passed_at/entered_current_at) กำหนด
+ * ตำแหน่งอีกต่อไป — ยกเว้นบทที่ผ่านก่อนวันเริ่มแผน (beforePlan) ยังคงแยกออกจากกริดเหมือนเดิม
  */
 export function placeChapters(
   chapters: ScheduleChapter[],
   startYmd: string,
   n: number,
-  todayYmd: string
+  _todayYmd: string
 ): SubjectSchedule[] {
-  const cur = weekIndexOf(startYmd, todayYmd, n);
   const bySubject = new Map<string, ScheduleChapter[]>();
   for (const c of chapters) {
     // จัดกลุ่มตามวิชาอย่างเดียว (ไม่แยก branch) ให้ตรงกับ guardian_set_plan_chapter_queue
@@ -131,32 +129,24 @@ export function placeChapters(
   const out: SubjectSchedule[] = [];
   for (const items of bySubject.values()) {
     const beforePlan: ScheduleChapter[] = [];
-    const placed: PlacedChapter[] = [];
-    const pending: ScheduleChapter[] = [];
-    let hasActive = false;
+    const rest: ScheduleChapter[] = [];
 
     for (const c of [...items].sort((a, b) => a.queue_order - b.queue_order)) {
       if (c.status === "passed") {
         const ymd = c.passed_at ? toBkkYmd(c.passed_at) : null;
-        if (ymd && ymdToDays(ymd) < ymdToDays(startYmd)) beforePlan.push(c);
-        else placed.push({ ...c, weekIndex: ymd ? weekIndexOf(startYmd, ymd, n) : cur });
-      } else if (c.status === "current") {
-        hasActive = true;
-        placed.push({ ...c, weekIndex: cur });
-      } else if (c.status === "stuck") {
-        const w = c.entered_current_at ? weekIndexOf(startYmd, toBkkYmd(c.entered_current_at), n) : cur;
-        placed.push({ ...c, weekIndex: Math.min(w, cur) });
-      } else {
-        pending.push(c);
+        if (ymd && ymdToDays(ymd) < ymdToDays(startYmd)) {
+          beforePlan.push(c);
+          continue;
+        }
       }
+      rest.push(c);
     }
 
-    const first = hasActive ? cur + 1 : cur;
-    const avail = Math.max(1, n - first);
-    pending.forEach((c, i) => {
-      const w = first >= n ? n - 1 : first + Math.floor((i * avail) / pending.length);
-      placed.push({ ...c, weekIndex: Math.min(n - 1, w) });
-    });
+    const m = rest.length;
+    const placed: PlacedChapter[] = rest.map((c, i) => ({
+      ...c,
+      weekIndex: Math.min(n - 1, Math.floor((i * n) / m)),
+    }));
 
     out.push({ subject: items[0].subject, branch: items[0].branch, beforePlan, placed });
   }
@@ -199,11 +189,18 @@ export function checkFit(schedules: SubjectSchedule[], weeks: number, subjectNam
   return { ok: false, text: `บทมากเกินเวลาที่มี: ${parts.join(", ")} — ลดจำนวนบท หรือเลือกระยะเวลาที่ยาวขึ้น` };
 }
 
+/** ผลลัพธ์การลากวาง: ย้ายสำเร็จ (keys) หรือเหตุผลที่ย้ายไม่ได้ — ให้ UI แสดง feedback ต่างกันตามเหตุผล */
+export type ReorderResult =
+  | { ok: true; keys: string[] }
+  | { ok: false; reason: "not-draggable" }
+  | { ok: false; reason: "no-op" };
+
 /**
  * ลากบท pending ไปวางคอลัมน์สัปดาห์ targetWeek: DB ไม่เก็บ "สัปดาห์เป้าหมาย" มีแค่ลำดับคิว จึงลองแทรกบทที่ทุกตำแหน่ง
  * ในคิว pending ของวิชานั้น แล้วเลือกตำแหน่งที่ placeChapters ให้บทตกสัปดาห์ใกล้ targetWeek ที่สุด
  * (เสมอกัน = ใกล้ตำแหน่งเดิมที่สุด) คืนรายการ chapter_key ที่ไม่ใช่ passed ทั้งแผนตามลำดับใหม่ สำหรับ
- * guardian_set_plan_chapter_queue; คืน null ถ้าลำดับไม่เปลี่ยนหรือบทลากไม่ได้ (ต้องเป็น pending เท่านั้น)
+ * guardian_set_plan_chapter_queue; reason "not-draggable" = บทลากไม่ได้ (ต้องเป็น pending เท่านั้น),
+ * "no-op" = ตำแหน่งที่ดีที่สุดคือตำแหน่งเดิม (บทที่เหลือน้อยเกินกว่าจะกระจายละเอียดขนาดนั้น)
  */
 export function reorderForDrop(
   chapters: ScheduleChapter[],
@@ -212,9 +209,9 @@ export function reorderForDrop(
   startYmd: string,
   n: number,
   todayYmd: string
-): string[] | null {
+): ReorderResult {
   const dragged = chapters.find((c) => c.chapter_key === dragKey);
-  if (!dragged || dragged.status !== "pending") return null;
+  if (!dragged || dragged.status !== "pending") return { ok: false, reason: "not-draggable" };
 
   const byOrder = (a: ScheduleChapter, b: ScheduleChapter) => a.queue_order - b.queue_order;
   const editable = chapters.filter((c) => c.status !== "passed").sort(byOrder);
@@ -235,10 +232,10 @@ export function reorderForDrop(
     const move = Math.abs(j - origJ);
     if (!best || dist < best.dist || (dist === best.dist && move < best.move)) best = { j, dist, move };
   }
-  if (!best || best.j === origJ) return null;
+  if (!best || best.j === origJ) return { ok: false, reason: "no-op" };
 
   const newMine = [...locked, ...pend.slice(0, best.j), dragged, ...pend.slice(best.j)];
-  return [...others, ...newMine].map((c) => c.chapter_key);
+  return { ok: true, keys: [...others, ...newMine].map((c) => c.chapter_key) };
 }
 
 export type Strength ="weak" | "mid" | "strong" | "unknown";
