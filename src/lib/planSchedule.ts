@@ -196,11 +196,13 @@ export type ReorderResult =
   | { ok: false; reason: "no-op" };
 
 /**
- * ลากบท pending ไปวางคอลัมน์สัปดาห์ targetWeek: DB ไม่เก็บ "สัปดาห์เป้าหมาย" มีแค่ลำดับคิว จึงลองแทรกบทที่ทุกตำแหน่ง
- * ในคิว pending ของวิชานั้น แล้วเลือกตำแหน่งที่ placeChapters ให้บทตกสัปดาห์ใกล้ targetWeek ที่สุด
- * (เสมอกัน = ใกล้ตำแหน่งเดิมที่สุด) คืนรายการ chapter_key ที่ไม่ใช่ passed ทั้งแผนตามลำดับใหม่ สำหรับ
- * guardian_set_plan_chapter_queue; reason "not-draggable" = บทลากไม่ได้ (ต้องเป็น pending เท่านั้น),
- * "no-op" = ตำแหน่งที่ดีที่สุดคือตำแหน่งเดิม (บทที่เหลือน้อยเกินกว่าจะกระจายละเอียดขนาดนั้น)
+ * ลากบทวิชาเดียวกัน (สถานะอะไรก็ได้ยกเว้นบทที่ผ่านมาก่อนแผน) ไปวางคอลัมน์สัปดาห์ targetWeek: DB ไม่เก็บ
+ * "สัปดาห์เป้าหมาย" มีแค่ลำดับคิว จึงลองแทรกบทที่ทุกตำแหน่งในคิวของวิชานั้น (ไม่รวมบทที่ผ่านมาก่อนแผน — ไม่มี
+ * ตำแหน่งสัปดาห์ให้ลากอยู่แล้ว) แล้วเลือกตำแหน่งที่ placeChapters ให้บทตกสัปดาห์ใกล้ targetWeek ที่สุด (เสมอกัน
+ * = ใกล้ตำแหน่งเดิมที่สุด) คืนรายการ chapter_key ทั้งแผนตามลำดับใหม่ (รวมทุกสถานะ รวมบทที่ผ่านมาก่อนแผนด้วย —
+ * guardian_set_plan_chapter_queue ลบบทที่ไม่อยู่ใน array ทิ้งทุกสถานะ ถ้าไม่ส่งมาจะโดนลบทิ้งโดยไม่ตั้งใจ)
+ * สำหรับ guardian_set_plan_chapter_queue; reason "not-draggable" = บทลากไม่ได้ (บทที่ผ่านมาก่อนแผนเท่านั้น
+ * ที่ลากไม่ได้), "no-op" = ตำแหน่งที่ดีที่สุดคือตำแหน่งเดิม (บทที่เหลือน้อยเกินกว่าจะกระจายละเอียดขนาดนั้น)
  */
 export function reorderForDrop(
   chapters: ScheduleChapter[],
@@ -211,21 +213,25 @@ export function reorderForDrop(
   todayYmd: string
 ): ReorderResult {
   const dragged = chapters.find((c) => c.chapter_key === dragKey);
-  if (!dragged || dragged.status !== "pending") return { ok: false, reason: "not-draggable" };
+  const isBeforePlan = (c: ScheduleChapter) =>
+    c.status === "passed" && !!c.passed_at && ymdToDays(toBkkYmd(c.passed_at)) < ymdToDays(startYmd);
+  if (!dragged || isBeforePlan(dragged)) return { ok: false, reason: "not-draggable" };
 
   const byOrder = (a: ScheduleChapter, b: ScheduleChapter) => a.queue_order - b.queue_order;
-  const editable = chapters.filter((c) => c.status !== "passed").sort(byOrder);
-  const mine = editable.filter((c) => c.subject === dragged.subject);
-  const others = editable.filter((c) => c.subject !== dragged.subject);
-  const locked = mine.filter((c) => c.status !== "pending");
-  const pend = mine.filter((c) => c.status === "pending" && c.chapter_key !== dragKey);
-  const passed = chapters.filter((c) => c.status === "passed" && c.subject === dragged.subject);
-  const origJ = mine.filter((c) => c.status === "pending" && c.queue_order < dragged.queue_order).length;
+  const all = [...chapters].sort(byOrder);
+  const others = all.filter((c) => c.subject !== dragged.subject);
+  const mineAll = all.filter((c) => c.subject === dragged.subject);
+  // บทที่ผ่านมาก่อนแผนของวิชานี้: ตำแหน่งในคิวไม่มีผลต่อ weekIndex ของบทอื่น (placeChapters ตัดออกก่อน
+  // คำนวณเสมอ) เลยแค่วางไว้หน้าสุดของกลุ่มที่ลากสลับกันได้ ไม่ต้องหาตำแหน่งให้
+  const beforePlan = mineAll.filter(isBeforePlan);
+  const movable = mineAll.filter((c) => !isBeforePlan(c));
+  const rest = movable.filter((c) => c.chapter_key !== dragKey);
+  const origJ = rest.filter((c) => c.queue_order < dragged.queue_order).length;
 
   let best: { j: number; dist: number; move: number } | null = null;
-  for (let j = 0; j <= pend.length; j++) {
-    const cand = [...locked, ...pend.slice(0, j), dragged, ...pend.slice(j)];
-    const rows = [...passed, ...cand.map((c, i) => ({ ...c, queue_order: i }))];
+  for (let j = 0; j <= rest.length; j++) {
+    const cand = [...rest.slice(0, j), dragged, ...rest.slice(j)];
+    const rows = [...beforePlan, ...cand.map((c, i) => ({ ...c, queue_order: i }))];
     const placed = placeChapters(rows, startYmd, n, todayYmd)[0]?.placed.find((c) => c.chapter_key === dragKey);
     if (!placed) continue;
     const dist = Math.abs(placed.weekIndex - targetWeek);
@@ -234,7 +240,7 @@ export function reorderForDrop(
   }
   if (!best || best.j === origJ) return { ok: false, reason: "no-op" };
 
-  const newMine = [...locked, ...pend.slice(0, best.j), dragged, ...pend.slice(best.j)];
+  const newMine = [...beforePlan, ...rest.slice(0, best.j), dragged, ...rest.slice(best.j)];
   return { ok: true, keys: [...others, ...newMine].map((c) => c.chapter_key) };
 }
 

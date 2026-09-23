@@ -17,7 +17,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { AlertTriangle, Check, GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
 import { bufferPhrase, bufferSummary, formatRange, formatShortDate, type ExamInfo, type PlacedChapter, type SubjectSchedule, type WeekInfo } from "@/lib/planSchedule";
 import { PlanTimelineLegend } from "@/components/guardian/PlanTimeline";
 
@@ -48,13 +48,6 @@ function CardBody({ c }: { c: PlacedChapter }) {
   );
 }
 
-function StatusIcon({ status }: { status: PlacedChapter["status"] }) {
-  if (status === "passed") return <Check className="mt-0.5 h-4 w-4 flex-none text-good" strokeWidth={3} />;
-  if (status === "stuck") return <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-red" />;
-  if (status === "current") return <span className="mt-1.5 h-2.5 w-2.5 flex-none rounded-full bg-amber" />;
-  return null;
-}
-
 function ChapterCard({
   c,
   subject,
@@ -66,7 +59,8 @@ function ChapterCard({
   onRemove: (key: string) => void;
   disabled: boolean;
 }) {
-  const draggable = c.status === "pending" && !disabled;
+  // ทุกสถานะลากได้ (ยกเว้นบทที่ผ่านมาก่อนแผน ซึ่งไม่ได้อยู่ในกริดนี้อยู่แล้ว — แยกโชว์เป็น badge ต่างหาก)
+  const draggable = !disabled;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: c.chapter_key,
     disabled: !draggable,
@@ -76,34 +70,28 @@ function ChapterCard({
       ref={setNodeRef}
       className={`flex items-start gap-2 rounded-xl border border-l-4 p-2.5 ${SUBJECT_BAR[subject] ?? "border-l-text3"} ${cardClass(c.status)} ${isDragging ? "opacity-30" : ""}`}
     >
-      {c.status === "pending" ? (
-        <button
-          type="button"
-          ref={setActivatorNodeRef}
-          {...attributes}
-          {...listeners}
-          disabled={!draggable}
-          aria-label={`ลากเพื่อย้ายบท ${c.chapter}`}
-          style={{ touchAction: "none" }}
-          className="-m-1 flex h-8 w-8 flex-none cursor-grab items-center justify-center rounded-lg text-text3 active:cursor-grabbing disabled:opacity-30"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-      ) : (
-        <StatusIcon status={c.status} />
-      )}
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        disabled={!draggable}
+        aria-label={`ลากเพื่อย้ายบท ${c.chapter}`}
+        style={{ touchAction: "none" }}
+        className="-m-1 flex h-8 w-8 flex-none cursor-grab items-center justify-center rounded-lg text-text3 active:cursor-grabbing disabled:opacity-30"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
       <CardBody c={c} />
-      {c.status !== "passed" && (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => onRemove(c.chapter_key)}
-          aria-label={`ลบบท ${c.chapter} ออกจากแผน`}
-          className="-m-1 flex h-8 w-8 flex-none items-center justify-center rounded-lg text-red/80 disabled:opacity-30"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      )}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onRemove(c.chapter_key)}
+        aria-label={`ลบบท ${c.chapter} ออกจากแผน`}
+        className="-m-1 flex h-8 w-8 flex-none items-center justify-center rounded-lg text-red/80 disabled:opacity-30"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -151,8 +139,9 @@ const collision: CollisionDetection = (args) => {
   return hit.length > 0 ? hit : rectIntersection(args);
 };
 
-// ปฏิทินแผนฝึกแบบ Kanban: คอลัมน์ต่อสัปดาห์ ลากบท "รอคิว" ไปวางสัปดาห์ที่ต้องการ (เปลี่ยนลำดับคิวในวิชาเดียวกัน
-// แล้วให้ planSchedule คำนวณสัปดาห์ใหม่) — ผ่านแล้ว/กำลังเรียน/ค้างนาน ล็อกไว้ ลากไม่ได้
+// ปฏิทินแผนฝึกแบบ Kanban: คอลัมน์ต่อสัปดาห์ ลากบท (ทุกสถานะ — ผ่านแล้ว/กำลังเรียน/ค้างนาน/รอคิว) ไปวาง
+// สัปดาห์ที่ต้องการ (เปลี่ยนลำดับคิวในวิชาเดียวกัน แล้วให้ planSchedule คำนวณสัปดาห์ใหม่) — บทที่ผ่านมาก่อน
+// แผน (badge แยกต่างหาก) ไม่อยู่ในกริดนี้ เลยลากไม่ได้อยู่แล้ว
 export default function PlanKanban({
   weeks,
   schedules,
@@ -193,7 +182,7 @@ export default function PlanKanban({
         <div>
           <p className="text-lg font-bold text-text">ปฏิทินแผนฝึก</p>
           <p className="text-xs text-text3">
-            ตำแหน่งสัปดาห์เป็นค่าประมาณ ปรับเองได้โดยลากบทที่รอคิวไปมา (ลากที่ไอคอน ⋮⋮ · ย้ายได้เฉพาะในวิชาเดียวกัน)
+            ตำแหน่งสัปดาห์เป็นค่าประมาณ ปรับเองได้โดยลากบทไปมา (ลากที่ไอคอน ⋮⋮ · ย้ายได้เฉพาะในวิชาเดียวกัน)
           </p>
         </div>
         {exam && (

@@ -557,10 +557,16 @@ export default function PlanWizard({
     setReplacing(true);
   }
 
-  // คิวที่ไม่ผ่านแล้ว เรียงเป็นกลุ่มต่อกัน (ตามลำดับกลุ่ม) — backend เรียง queue_order ใหม่แยกต่อวิชาจาก
-  // ลำดับที่ส่งไป ฉะนั้นสลับตำแหน่งภายในกลุ่มเดียวกันก็พอ
+  // ส่งทุกสถานะ (รวมบทที่ผ่านแล้ว) เข้า RPC เสมอ เรียงตาม queue_order เดิมของมัน (ไม่ใช่ passed-first แบบ
+  // groupPlan ใช้แสดงผล) เพื่อไม่ทำให้บทอื่นที่ไม่เกี่ยวข้องขยับตำแหน่งโดยไม่ตั้งใจ — guardian_set_plan_chapter_queue
+  // ลบบทที่ไม่อยู่ใน array ทิ้งทันทีทุกสถานะ (ไม่ยกเว้นผ่านแล้วอีกต่อไป) ถ้าไม่ส่งบทที่ผ่านแล้วเข้ามาด้วย
+  // จะโดนลบประวัติทิ้งโดยไม่ตั้งใจ — ยกเว้นตอนตั้งใจลบบทนั้นจริงๆ (caller ตัด key ออกเองก่อนส่ง)
   function editableKeys(groups: PlanGroup[]): string[] {
-    return groups.flatMap((g) => g.rows.filter((r) => r.chapter_status !== "passed").map((r) => r.chapter_key as string));
+    return groups.flatMap((g) =>
+      [...g.rows]
+        .sort((a, b) => (a.chapter_queue_order ?? 0) - (b.chapter_queue_order ?? 0))
+        .map((r) => r.chapter_key as string)
+    );
   }
 
   // ลากบท pending ไปสัปดาห์ใหม่: คำนวณลำดับคิวใหม่ (ดู reorderForDrop) -> optimistic -> RPC เดิม; error = rollback
@@ -773,12 +779,22 @@ export default function PlanWizard({
                   </button>
                 )}
 
-                {removingKey && (
+                {removingKey && (() => {
+                  const removingRow = plan.find((r) => r.chapter_key === removingKey);
+                  const removingPassed = removingRow?.chapter_status === "passed";
+                  return (
                   <BottomSheet title="ลบบทนี้ออกจากแผน" onClose={() => setRemovingKey(null)}>
                     <div className="flex flex-col gap-3 p-4">
-                      <p className="text-base text-text">
-                        ลบ <span className="font-bold text-gold-hi">{plan.find((r) => r.chapter_key === removingKey)?.chapter ?? "บทนี้"}</span> ออกจากแผนใช่ไหม
-                      </p>
+                      {removingPassed ? (
+                        <p className="text-base text-text">
+                          ลบ <span className="font-bold text-gold-hi">{removingRow?.chapter ?? "บทนี้"}</span> (ผ่านแล้ว)? บทนี้เด็กเรียนผ่านไปแล้วจริง
+                          การลบจะเอาออกจากแผนเท่านั้น
+                        </p>
+                      ) : (
+                        <p className="text-base text-text">
+                          ลบ <span className="font-bold text-gold-hi">{removingRow?.chapter ?? "บทนี้"}</span> ออกจากแผนใช่ไหม
+                        </p>
+                      )}
                       <p className="text-sm text-text3">
                         ลบแล้วบทนี้จะหายจากคิว ถ้าต้องการกลับมาต้องกด "เพิ่มบทเข้าคิว" เพิ่มเองใหม่
                       </p>
@@ -801,7 +817,8 @@ export default function PlanWizard({
                       </div>
                     </div>
                   </BottomSheet>
-                )}
+                  );
+                })()}
 
                 {confirmingReplace && (
                   <BottomSheet title="เปลี่ยนโหมด / สร้างแผนใหม่" onClose={() => setConfirmingReplace(false)}>
