@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
@@ -13,8 +13,9 @@ export type ClassroomSession = {
   teacher_id: string;
   join_code: string;
   status: "lobby" | "active" | "ended";
-  current_activity: "name_picker" | "boss_raid" | null;
+  current_activity: "name_picker" | "boss_raid" | "focus_mode" | null;
   active_boss_raid_session_id: string | null;
+  active_focus_session_id: string | null;
   created_at: string;
   ended_at: string | null;
 };
@@ -29,6 +30,8 @@ type State = {
   session: ClassroomSession | null;
   participants: ClassroomParticipant[];
   connected: boolean;
+  /** ดึง snapshot ห้องใหม่ — ใช้หลัง action สำเร็จ เผื่อ realtime หลุดชั่วคราว */
+  refetch: () => Promise<void>;
 };
 
 export function useClassroomLobby(
@@ -38,6 +41,7 @@ export function useClassroomLobby(
   const [session, setSession] = useState<ClassroomSession | null>(initial.session);
   const [participants, setParticipants] = useState<ClassroomParticipant[]>(initial.participants);
   const [connected, setConnected] = useState(false);
+  const refetchRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     const supabase = createClient();
@@ -57,6 +61,8 @@ export function useClassroomLobby(
       setSession((s as ClassroomSession | null) ?? null);
       setParticipants((p as ClassroomParticipant[] | null) ?? []);
     }
+
+    refetchRef.current = refetch;
 
     void (async () => {
       try {
@@ -111,5 +117,5 @@ export function useClassroomLobby(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
 
-  return { session, participants, connected };
+  return { session, participants, connected, refetch: () => refetchRef.current() };
 }

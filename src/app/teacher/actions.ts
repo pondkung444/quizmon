@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { focusErrorMessage } from "@/lib/classroom/focusErrors";
 
 // Teacher Classroom Hub Phase 1 — เขียนทุกอย่างผ่าน RPC security definer เท่านั้น
 // (pattern เดียวกับ src/app/boss-raid/actions.ts)
@@ -33,7 +34,7 @@ export async function setClassroomActivityNamePicker(sessionId: string): Promise
   const { error } = await supabase.rpc("set_classroom_activity_name_picker", {
     p_session_id: sessionId,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(focusErrorMessage(error.message));
 }
 
 export type PickedStudent = { userId: string; username: string | null };
@@ -55,7 +56,7 @@ export async function launchBossRaidFromClassroom(
   const { data, error } = await supabase
     .rpc("launch_boss_raid_from_classroom", { p_session_id: sessionId })
     .single();
-  if (error || !data) throw new Error(error?.message ?? "เปิด Boss Raid ไม่สำเร็จ");
+  if (error || !data) throw new Error(focusErrorMessage(error?.message, "เปิด Boss Raid ไม่สำเร็จ"));
   const row = data as { id: string };
   return { bossRaidSessionId: row.id };
 }
