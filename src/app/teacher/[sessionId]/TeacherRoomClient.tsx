@@ -10,11 +10,14 @@ import {
   setClassroomActivityNamePicker,
   type PickedStudent,
 } from "../actions";
+import { endFocusMode, launchFocusMode } from "../focusActions";
 import {
   useClassroomLobby,
   type ClassroomParticipant,
   type ClassroomSession,
 } from "@/lib/classroom/useClassroomLobby";
+import { isFocusRunning, useFocusSession } from "@/lib/classroom/useFocusSession";
+import FocusTeacherPanel from "@/components/classroom/FocusTeacherPanel";
 
 export default function TeacherRoomClient({
   sessionId,
@@ -26,10 +29,15 @@ export default function TeacherRoomClient({
   initialParticipants: ClassroomParticipant[];
 }) {
   const router = useRouter();
-  const { session, participants, connected } = useClassroomLobby(sessionId, {
+  const { session, participants, connected, refetch } = useClassroomLobby(sessionId, {
     session: initialSession,
     participants: initialParticipants,
   });
+  const { focusSession, participantCount } = useFocusSession(
+    sessionId,
+    session?.active_focus_session_id ?? null
+  );
+  const focusRunning = isFocusRunning(session, focusSession);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [pickedLog, setPickedLog] = useState<Array<PickedStudent & { pickedAt: string }>>([]);
@@ -100,10 +108,26 @@ export default function TeacherRoomClient({
             <p className="text-sm text-text2">นักเรียนในห้อง: {participants.length} คน</p>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {focusRunning && focusSession && (
+            <FocusTeacherPanel
+              startedAt={focusSession.started_at}
+              participantCount={participantCount}
+              pending={pending}
+              onStop={() =>
+                start(async () => {
+                  setError(null);
+                  const res = await endFocusMode(focusSession.id);
+                  if (res.ok) await refetch();
+                  else setError(res.error);
+                })
+              }
+            />
+          )}
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || focusRunning}
               onClick={() =>
                 start(async () => {
                   setError(null);
@@ -120,7 +144,7 @@ export default function TeacherRoomClient({
             </button>
             <button
               type="button"
-              disabled={pending}
+              disabled={pending || focusRunning}
               onClick={() =>
                 start(async () => {
                   setError(null);
@@ -136,7 +160,35 @@ export default function TeacherRoomClient({
             >
               Boss Raid
             </button>
+            <button
+              type="button"
+              disabled={pending || focusRunning}
+              onClick={() =>
+                start(async () => {
+                  setError(null);
+                  const res = await launchFocusMode(sessionId);
+                  if (res.ok) {
+                    await refetch();
+                  } else {
+                    setError(
+                      res.code.includes("classroom_activity_busy") && focusSession?.status === "running"
+                        ? "คาบตั้งใจกำลังดำเนินอยู่"
+                        : res.error
+                    );
+                    await refetch();
+                  }
+                })
+              }
+              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+            >
+              เริ่มคาบตั้งใจ
+            </button>
           </div>
+          {focusRunning && (
+            <p className="mt-2 text-xs text-text3">
+              กำลังคาบตั้งใจอยู่ — หยุดคาบก่อน จึงจะเริ่มกิจกรรมอื่นได้
+            </p>
+          )}
 
           {session.current_activity === "name_picker" && (
             <div className="mt-4 rounded-xl border border-border bg-card px-4 py-4">
