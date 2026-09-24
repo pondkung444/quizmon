@@ -1127,3 +1127,14 @@ body {
   outline: 2px solid var(--color-amber);
   outline-offset: 2px;
 }
+
+/* ── ระดับความหายากของไข่ (คลังไข่ EggsClient.tsx) ─────────────────────────────────────────────
+   --egg-tier = สีประจำระดับ ใช้เป็นขอบการ์ด + พื้นป้าย (ตัวอักษรบนป้ายสีขาว/เข้มตามความสว่างของสี)
+   ธรรมดา เขียว / หายาก ฟ้า / สุดยอด ม่วง / ในตำนาน ทอง (ทองสงวนให้ legendary ตามเดิม)
+   ค่าเข้มพอให้อ่านได้ทั้งธีมค่ำและธีมสว่าง */
+.egg-tier-common { --egg-tier: #3fa857; --egg-tier-on: #ffffff; }
+.egg-tier-rare { --egg-tier: #2f8fe0; --egg-tier-on: #ffffff; }
+.egg-tier-epic { --egg-tier: #8b5cf6; --egg-tier-on: #ffffff; }
+.egg-tier-legendary { --egg-tier: #f2b01e; --egg-tier-on: #3d2400; }
+[class*="egg-tier-"]:not(.egg-tier-badge) { border-color: color-mix(in srgb, var(--egg-tier, var(--color-border)) 55%, transparent); }
+.egg-tier-badge { background: var(--egg-tier, var(--color-track)); color: var(--egg-tier-on, var(--color-text)); }
