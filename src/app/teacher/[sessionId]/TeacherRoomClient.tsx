@@ -10,7 +10,7 @@ import {
   setClassroomActivityNamePicker,
   type PickedStudent,
 } from "../actions";
-import { endFocusMode, launchFocusMode } from "../focusActions";
+import { clearClassroomActivity, endFocusMode, launchFocusMode } from "../focusActions";
 import {
   useClassroomLobby,
   type ClassroomParticipant,
@@ -188,6 +188,29 @@ export default function TeacherRoomClient({
             <p className="mt-2 text-xs text-text3">
               กำลังคาบตั้งใจอยู่ — หยุดคาบก่อน จึงจะเริ่มกิจกรรมอื่นได้
             </p>
+          )}
+
+          {/* ห้องยังค้างกิจกรรมเดิม (Raid/Focus จบแล้วแต่ current_activity ไม่ถูกเคลียร์) → นักเรียนที่เข้าห้อง
+              ตอนนี้จะถูกพาไปหน้าเก่าที่ปิดแล้ว. ฝั่งครูแยกไม่ออกว่า Raid จบหรือยัง (boss_raid_sessions อ่านไม่ได้
+              จากที่นี่) จึงโชว์ปุ่มทุกครั้งที่มีกิจกรรม แล้วให้ RPC ปฏิเสธเองถ้ายังรันอยู่ */}
+          {session.current_activity !== null && !focusRunning && (
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    setError(null);
+                    const res = await clearClassroomActivity(sessionId);
+                    if (!res.ok) setError(res.error);
+                    await refetch();
+                  })
+                }
+                className="rounded-xl border border-gold px-4 py-2 text-sm font-medium text-gold-hi transition active:scale-95 disabled:opacity-50"
+              >
+                กลับห้องรอ
+              </button>
+            </div>
           )}
 
           {session.current_activity === "name_picker" && (

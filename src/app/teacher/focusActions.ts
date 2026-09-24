@@ -43,6 +43,25 @@ export async function endFocusMode(focusSessionId: string): Promise<FocusActionR
   return { ok: true, data: null };
 }
 
+// ครูพาห้องกลับ lobby (current_activity = null) หลังกิจกรรมจบ — RPC ปฏิเสธถ้ากิจกรรมยังรันอยู่
+// (classroom_activity_busy) จึงใช้ข้อความเฉพาะที่นี่ ไม่แก้ข้อความรวมใน focusErrors
+export async function clearClassroomActivity(sessionId: string): Promise<FocusActionResult> {
+  const { supabase, user } = await requireUser();
+  if (!user) return fail("ต้องเข้าสู่ระบบก่อน");
+  const { error } = await supabase.rpc("clear_classroom_activity", { p_session_id: sessionId });
+  if (error) {
+    if (error.message.includes("classroom_activity_busy")) {
+      return {
+        ok: false,
+        error: "กิจกรรมยังไม่จบ — จบกิจกรรมก่อนจึงจะกลับห้องรอได้",
+        code: error.message,
+      };
+    }
+    return fail(error.message);
+  }
+  return { ok: true, data: null };
+}
+
 export async function joinFocusSession(focusSessionId: string): Promise<FocusActionResult> {
   const { supabase, user } = await requireUser();
   if (!user) return fail("ต้องเข้าสู่ระบบก่อน");
