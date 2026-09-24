@@ -8,7 +8,7 @@ export default function QuizJourney({ completed, total, avatar }: { completed: n
   const position = Math.min(count, Math.max(0, completed));
   return (
     <section className="quiz-journey" aria-label={`เดินทางแล้ว ${position} จาก ${count} จุด`}>
-      <div className="flex items-center justify-between gap-3 text-xs text-emerald-100">
+      <div className="flex items-center justify-between gap-3 text-xs font-medium">
         <span className="font-medium">เดินทางไปด้วยกัน</span>
         <span>{position === count ? "ถึงปลายทางแล้ว!" : `ผ่านแล้ว ${position}/${count} จุด`}</span>
       </div>
