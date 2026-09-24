@@ -38,6 +38,11 @@
   --color-good: #34d399;
   --color-warn: #fbbf24;
   --color-mint: #a0e0c9;
+  /* ตอบถูก (หน้า /quiz, MiniReviewRound) — เดิมใช้ emerald-400/300/100 ตายตัว ย้ายมาเป็น token เพื่อให้
+     ธีมสว่างใช้เขียวเข้มแทน (emerald-100 บนพื้นขาวอ่านไม่ออก) ค่าตรงนี้ = ค่า emerald เดิมเป๊ะ */
+  --color-correct: #34d399;
+  --color-correct-hi: #6ee7b7;
+  --color-correct-text: #d1fae5;
   /* ปฏิทินแผนฝึก: คณิต = indigo, วิทย์ = sci (cyan/sky — แยกจากเขียว good/mint ที่สงวนไว้เป็น "ผ่านแล้ว") */
   --color-sci: #4fb6e8;
   --color-sci-dim: #1f4a63;
@@ -663,16 +668,34 @@ body {
 .quiz-shell { max-width: 840px; padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 .quiz-shell > div:not(.quiz-play) { width: 100%; max-width: 400px; margin-inline: auto; }
 .quiz-play { min-width: 0; }
-.quiz-play button:focus-visible, .quiz-play [tabindex]:focus-visible { outline: 3px solid #9fe3d0; outline-offset: 4px; }
-.quiz-question-card { border: 1px solid #404650; border-radius: 24px; background: #282d35; padding: 18px 14px; box-shadow: 0 12px 36px #00000018; overflow-wrap: anywhere; }
-.quiz-question-label { border-radius: 999px; padding: 5px 10px; background: #36413f; color: #c9ece1; }
-.quiz-journey { padding: 14px 24px 12px; border: 1px solid #385b57; border-radius: 22px; background: radial-gradient(ellipse at 75% 0%, #365f59 0%, transparent 65%), #243d3e; }
+/* สีหน้า /quiz มาจาก --quiz-* (ค่าใน :root = หน้าตาเดิม) ธีมแอปสลับให้ที่ [data-app-theme] ด้านล่างไฟล์ */
+:root {
+  --quiz-focus: #9fe3d0;
+  --quiz-card-bg: #282d35;
+  --quiz-card-border: #404650;
+  --quiz-label-bg: #36413f;
+  --quiz-label-text: #c9ece1;
+  --quiz-journey-bg: radial-gradient(ellipse at 75% 0%, #365f59 0%, transparent 65%), #243d3e;
+  --quiz-journey-border: #385b57;
+  --quiz-journey-text: #d1fae5;
+  --quiz-route-line: #516b68;
+  --quiz-route-fill: #a0e0c9;
+  --quiz-point-bg: #304b4a;
+  --quiz-point-border: #6f8983;
+  --quiz-point-text: #d4e5e1;
+  --quiz-point-done-bg: #a0e0c9;
+  --quiz-point-done-text: #193a31;
+}
+.quiz-play button:focus-visible, .quiz-play [tabindex]:focus-visible { outline: 3px solid var(--quiz-focus); outline-offset: 4px; }
+.quiz-question-card { border: 1px solid var(--quiz-card-border); border-radius: 24px; background: var(--quiz-card-bg); padding: 18px 14px; box-shadow: 0 12px 36px #00000018; overflow-wrap: anywhere; }
+.quiz-question-label { border-radius: 999px; padding: 5px 10px; background: var(--quiz-label-bg); color: var(--quiz-label-text); font-weight: 600; }
+.quiz-journey { padding: 14px 24px 12px; border: 1px solid var(--quiz-journey-border); border-radius: 22px; background: var(--quiz-journey-bg); color: var(--quiz-journey-text); }
 .quiz-route { position: relative; height: 78px; margin: 0 8px; }
 .quiz-route-line, .quiz-route-fill { position: absolute; top: 62px; height: 4px; border-radius: 8px; }
-.quiz-route-line { width: 100%; background: #516b68; }
-.quiz-route-fill { background: #a0e0c9; transition: width 320ms ease-out; }
-.quiz-route-point { position: absolute; top: 53px; transform: translateX(-50%); width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; background: #304b4a; border: 1px solid #6f8983; color: #d4e5e1; font-size: 11px; }
-.quiz-route-point.is-complete { background: #a0e0c9; color: #193a31; border-color: #a0e0c9; }
+.quiz-route-line { width: 100%; background: var(--quiz-route-line); }
+.quiz-route-fill { background: var(--quiz-route-fill); transition: width 320ms ease-out; }
+.quiz-route-point { position: absolute; top: 53px; transform: translateX(-50%); width: 23px; height: 23px; display: grid; place-items: center; border-radius: 50%; background: var(--quiz-point-bg); border: 1px solid var(--quiz-point-border); color: var(--quiz-point-text); font-size: 11px; }
+.quiz-route-point.is-complete { background: var(--quiz-point-done-bg); color: var(--quiz-point-done-text); border-color: var(--quiz-point-done-bg); }
 .quiz-traveler { position: absolute; top: 1px; width: 50px; height: 50px; transform: translateX(-50%); transition: left 320ms ease-out; display: grid; place-items: center; filter: drop-shadow(0 4px 3px #0004); }
 .quiz-traveler img { width: 100%; height: 100%; object-fit: contain; }
 .quiz-image { overflow: hidden; border-radius: 16px; background: #fafaf8; border: 1px solid #d4d9d7; }
@@ -818,6 +841,22 @@ body {
   --hero-cta-text: #d83a62;
   --hero-cta-shadow: #b8304f;
   --hero-divider: rgba(255, 255, 255, 0.35);
+
+  --quiz-focus: #ffd166;
+  --quiz-card-bg: #262052;
+  --quiz-card-border: #3f3a7a;
+  --quiz-label-bg: #3a3380;
+  --quiz-label-text: #e3deff;
+  --quiz-journey-bg: radial-gradient(ellipse at 75% 0%, #6a3fa0 0%, transparent 70%), linear-gradient(180deg, #33286e, #262052);
+  --quiz-journey-border: #4b4390;
+  --quiz-journey-text: #ece8ff;
+  --quiz-route-line: #4b4390;
+  --quiz-route-fill: #ffd166;
+  --quiz-point-bg: #2b2566;
+  --quiz-point-border: #6b62b8;
+  --quiz-point-text: #d9d2ff;
+  --quiz-point-done-bg: #ffd166;
+  --quiz-point-done-text: #3a2400;
 }
 
 /* ธีม 2: เช้าสดใส — พื้นสว่าง ฟ้า/หญ้าเขียว (เฉพาะหน้า /pet หน้าอื่นยังเป็นโทนมืดตามเดิม) */
@@ -875,6 +914,26 @@ body {
   --medal-bronze: #a8611f;
   --medal-silver: #6f7a8a;
   --medal-crown: #7c4ddb;
+
+  --color-correct: #16a34a;
+  --color-correct-hi: #15803d;
+  --color-correct-text: #14532d;
+
+  --quiz-focus: #4361ee;
+  --quiz-card-bg: #ffffff;
+  --quiz-card-border: #d7e3ef;
+  --quiz-label-bg: #e3efff;
+  --quiz-label-text: #2b5cad;
+  --quiz-journey-bg: linear-gradient(180deg, #bfe6ff 0%, #e4f5ff 70%, #eaf8e2 100%);
+  --quiz-journey-border: #b6dcf2;
+  --quiz-journey-text: #1f4f73;
+  --quiz-route-line: #c4dbe9;
+  --quiz-route-fill: #58c26b;
+  --quiz-point-bg: #ffffff;
+  --quiz-point-border: #a9c9dd;
+  --quiz-point-text: #3d6480;
+  --quiz-point-done-bg: #58c26b;
+  --quiz-point-done-text: #ffffff;
 }
 
 /* ไล่สีสูงเท่าจอเดียวแล้วต่อด้วยสีปลาย (--background) — ถ้าปล่อยให้ gradient ยืดตาม body ที่ยาวหลายจอ

@@ -747,7 +747,7 @@ export default function QuizClient({
 
             let style = "border-border bg-card hover:border-gold-dim";
             if (isCorrectChoice) {
-              style = "border-emerald-400 bg-emerald-400/10";
+              style = "border-correct bg-correct/10";
             } else if (isWrongSelected) {
               style = "border-red bg-red/10";
             } else if (isSelected) {
@@ -767,7 +767,7 @@ export default function QuizClient({
                   {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
                 </span>
                 <span className="min-w-0 flex-1 break-words">{choiceText}</span>
-                {isCorrectChoice && <span aria-label="คำตอบที่ถูกต้อง" className="text-emerald-300">✓</span>}
+                {isCorrectChoice && <span aria-label="คำตอบที่ถูกต้อง" className="text-correct-hi">✓</span>}
                 {isWrongSelected && <span aria-label="คำตอบที่เลือกยังไม่ถูก" className="text-red">×</span>}
               </button>
             );
@@ -778,7 +778,7 @@ export default function QuizClient({
           <div
             role="status"
             className={`rounded-2xl border p-4 text-center ${
-              result.correct ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : "border-border bg-track/40 text-text"
+              result.correct ? "border-correct/40 bg-correct/10 text-correct-text" : "border-border bg-track/40 text-text"
             }`}
           >
             {result.correct ? (

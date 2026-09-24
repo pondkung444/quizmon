@@ -44,18 +44,18 @@ export default function MiniReviewRound({ questions, onDone }: { questions: Quiz
         const selected = feedback?.selectedIndex === choiceIndex;
         const correct = feedback?.correctIndex === choiceIndex;
         const wrong = Boolean(feedback && selected && !correct);
-        const style = correct ? "border-emerald-400 bg-emerald-400/10" : wrong ? "border-red bg-red/10" : "border-border bg-card";
+        const style = correct ? "border-correct bg-correct/10" : wrong ? "border-red bg-red/10" : "border-border bg-card";
         return <button key={choiceIndex} type="button" disabled={Boolean(feedback)} aria-pressed={selected} onClick={() => answer(choiceIndex)} className={`flex min-h-12 items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left font-sarabun text-base text-text disabled:opacity-100 ${style}`}>
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">{LABELS[choiceIndex] ?? choiceIndex + 1}</span>
           <span className="min-w-0 flex-1 break-words">{choice}</span>
-          {correct && <strong className="text-xs text-emerald-200">คำตอบที่ถูก</strong>}
+          {correct && <strong className="text-xs text-correct-hi">คำตอบที่ถูก</strong>}
           {wrong && <strong className="text-xs text-red">คำตอบของเรา</strong>}
         </button>;
       })}
     </div>
 
     {feedback && <div className="flex flex-col gap-3" role="status">
-      <p className={`rounded-2xl border p-4 font-bold ${feedback.correct ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : "border-border bg-card text-text"}`}>
+      <p className={`rounded-2xl border p-4 font-bold ${feedback.correct ? "border-correct/40 bg-correct/10 text-correct-text" : "border-border bg-card text-text"}`}>
         {feedback.correct ? "ถูกต้อง — จำหลักนี้ได้แล้ว!" : "ยังไม่ตรง ลองอ่านเหตุผลอีกครั้งนะ"}
       </p>
       <div className="rounded-2xl bg-track p-4 text-sm leading-relaxed text-text2">
