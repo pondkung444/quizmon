@@ -1013,3 +1013,66 @@ body {
   .pet-bar-fill::after { animation: none; }
   .pet-spark { opacity: 0.7; }
 }
+
+/* ── แถบอันดับสัปดาห์ (WeeklyLeaderboardCard.tsx บนหน้า /pet) ─────────────────────────────────
+   ก้อนสีของตัวเอง ใช้ค่าเดียวกันทั้งธีมค่ำ/สว่าง (ตัดกับพื้นได้ทั้งคู่) — ทอง = ถ้วยรางวัล (champ/podium)
+   ม่วงคราม = กำลังไต่ (climb) ไม่ใช้ส้มเพราะการ์ดภารกิจสีส้มชมพูคือ CTA หลักของหน้า */
+/* champ ต้องแยกจาก podium ได้ชัด: ทองส้มเข้ม + ขอบเรือง / podium: ทองอ่อนนวล */
+.rank-strip-champ {
+  background: linear-gradient(135deg, #ffd23f 0%, #ff9f1c 60%, #ff7a00 100%);
+  color: #3d1f00;
+  box-shadow: 0 0 0 2px #fff0a8, 0 6px 20px rgba(255, 140, 0, 0.45);
+}
+.rank-strip-podium {
+  background: linear-gradient(135deg, #fff6da 0%, #ffe08a 100%);
+  color: #5a3800;
+}
+.rank-strip-climb {
+  background: linear-gradient(135deg, #7b6cf0 0%, #5a4bd1 100%);
+  color: #ffffff;
+}
+.rank-strip-champ .rank-strip-icon,
+.rank-strip-podium .rank-strip-icon { background: rgba(255, 255, 255, 0.55); }
+.rank-strip-climb .rank-strip-icon { background: rgba(255, 255, 255, 0.2); }
+.rank-strip-champ .rank-strip-sub { color: #5c2e00; }
+.rank-strip-podium .rank-strip-sub { color: #7a4d00; }
+.rank-strip-climb .rank-strip-sub { color: #e4e0ff; }
+.rank-strip-podium .rank-strip-track { background: rgba(122, 77, 0, 0.18); }
+.rank-strip-podium .rank-strip-fill { background: #c77800; }
+.rank-strip-climb .rank-strip-track { background: rgba(255, 255, 255, 0.25); }
+.rank-strip-climb .rank-strip-fill { background: #ffd166; }
+/* แชมป์: แสงวิ่งผ่านเป็นระยะ */
+.rank-strip-champ::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.6) 50%, transparent 65%);
+  animation: rank-shine 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes rank-shine {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+.rank-strip-none {
+  border: 2px dashed var(--color-gold-dim);
+  background: var(--color-card);
+}
+/* แท่นรางวัลในแผ่น Top 5 — ทอง / เงิน / ทองแดง */
+.rank-podium-1 { background: linear-gradient(180deg, #ffd966, #f0a92e); color: #4a2600; }
+.rank-podium-2 { background: linear-gradient(180deg, #e6ebf2, #b8c2d0); color: #3b4656; }
+.rank-podium-3 { background: linear-gradient(180deg, #f3c69b, #cf8a4e); color: #4d2a0e; }
+@media (prefers-reduced-motion: reduce) {
+  .rank-strip-champ::after { animation: none; opacity: 0; }
+}
+
+/* กรอบ focus: เดิมใช้ค่า default ของเบราว์เซอร์ (กรอบขาว/ดำ) ค้างหลังแตะบนการ์ดและแท็บเมนูล่าง —
+   ซ่อนตอน focus จากเมาส์/นิ้ว (:not(:focus-visible)) คงไว้เฉพาะคีย์บอร์ด และใช้สี amber ตามแอป
+   (หน้า /quiz มี .quiz-play focus ของตัวเองที่เจาะจงกว่า ไม่โดนทับ) */
+:where(a, button, summary, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-amber);
+  outline-offset: 2px;
+}

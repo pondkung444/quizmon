@@ -191,8 +191,8 @@ export default function PetCard({
   // ชิปหัวการ์ด: นับวันที่ได้ EXP จริงในสัปดาห์นี้ (ข้อมูลเดียวกับหน้า /pet/calendar) — ไม่ใช่ streak ข้ามสัปดาห์
   const daysPlayedThisWeek = journeyDays.filter((d) => !d.isFuture && d.expEarned > 0).length;
 
-  // ธีมหน้า /pet (2026-09): เลิกเป็นการ์ดใหญ่ใบเดียว เปลี่ยนเป็นบล็อกแยก โดยให้ Qmon ในฉากเป็นสิ่งแรก
-  // ที่เห็น ตามด้วยแถบวิวัฒนาการ → CTA หลัก (HomeNextAction) ยังอยู่ใน fold แรกบนจอ 667px
+  // ธีมหน้า /pet (2026-09): เลิกเป็นการ์ดใหญ่ใบเดียว เปลี่ยนเป็นบล็อกแยก ลำดับ ชื่อ → แถบอันดับสัปดาห์ →
+  // ฉาก Qmon (220px) → แถบวิวัฒนาการ → CTA หลัก (HomeNextAction) ยังต้องอยู่ใน fold แรกบนจอ 667px
   // สีทุกชิ้นมาจาก token ที่ธีมสลับให้ (globals.css [data-app-theme])
   return (
     <div className="flex w-full flex-col items-center gap-3 text-center">
@@ -214,10 +214,14 @@ export default function PetCard({
         </button>
       </div>
 
+      {/* 1.5 แถบอันดับสัปดาห์ — ย้ายขึ้นมาบนสุดใต้ชื่อ (2026-09) ให้เด่น แตะเปิดแผ่น Top 5
+          ดู WeeklyLeaderboardCard.tsx */}
+      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
+
       {/* 2. ฉาก Qmon: ท้องฟ้า + เนิน + แท่นเรืองแสง + ประกาย (.pet-scene* ใน globals.css)
           แตะน้อง = เด้ง + ข้อความตามบุคลิก + (stage 4) กางพลังประจำตัวด้านล่าง เหมือนเดิม
           QmonChatBubble ต้องเป็น sibling ของปุ่มน้อง ไม่ใช่ลูก (ปุ่มซ้อนปุ่มทำ hydration พัง) */}
-      <div className="pet-scene relative h-[248px] w-full overflow-hidden rounded-3xl shadow-lg">
+      <div className="pet-scene relative h-[220px] w-full overflow-hidden rounded-3xl shadow-lg">
         <span className="pet-scene-ground" aria-hidden />
         <span className="pet-scene-platform" aria-hidden />
         {SCENE_SPARKS.map((s, i) => (
@@ -384,10 +388,7 @@ export default function PetCard({
         </div>
       </section>
 
-      {/* 7. อันดับสัปดาห์ */}
-      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
-
-      {/* 8. ลิงก์ที่ใช้ไม่บ่อย — ตัวเล็กแต่ touch target ยัง 44px */}
+      {/* 7. ลิงก์ที่ใช้ไม่บ่อย — ตัวเล็กแต่ touch target ยัง 44px */}
       <div className="flex items-center justify-center gap-1 text-xs text-text3">
         <Link href="/classroom/join" className="flex min-h-11 items-center gap-1.5 px-3 transition active:opacity-70">
           <DoorOpen size={15} aria-hidden />
