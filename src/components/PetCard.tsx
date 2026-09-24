@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { BarChart3, CalendarDays, DoorOpen, Settings } from "lucide-react";
+import { CalendarDays, DoorOpen, Settings } from "lucide-react";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -15,7 +15,6 @@ import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, STAGE_LABEL_TH } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
 import { useSfx } from "@/lib/audio/useSfx";
-import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
 import type { MyWeeklyRank } from "@/lib/weeklyLeaderboard";
@@ -28,7 +27,7 @@ import type { Subline } from "@/lib/evolution";
 import FeedPetCard from "@/components/FeedPetCard";
 import DungeonAdventureCard from "@/components/DungeonAdventureCard";
 import type { DungeonCardState } from "@/lib/dungeon";
-import StickyActionBanner from "@/components/StickyActionBanner";
+import { activityTileClass, ActivityTileContent } from "@/components/ActivityTile";
 import HomeNextAction from "@/components/HomeNextAction";
 import QmonGrowthGuide from "@/components/QmonGrowthGuide";
 import { resolveNextAction } from "@/lib/nextAction";
@@ -187,7 +186,9 @@ export default function PetCard({
   });
 
   const displayName = nickname ?? speciesName ?? stageName;
-  // ชิปหัวการ์ด: นับวันที่ได้ EXP จริงในสัปดาห์นี้ (ข้อมูลเดียวกับ WeeklyJourneyCard) — ไม่ใช่ streak ข้ามสัปดาห์
+  // ผจญภัย/ท้าทายเปิดเมื่อมี Qmon stage 4 ในฟาร์มแล้ว หรือตัวที่เลี้ยงอยู่โตเต็มที่
+  const advancedUnlocked = dungeonCard.status !== "invite" || isMaxStage;
+  // ชิปหัวการ์ด: นับวันที่ได้ EXP จริงในสัปดาห์นี้ (ข้อมูลเดียวกับหน้า /pet/calendar) — ไม่ใช่ streak ข้ามสัปดาห์
   const daysPlayedThisWeek = journeyDays.filter((d) => !d.isFuture && d.expEarned > 0).length;
 
   // ธีมหน้า /pet (2026-09): เลิกเป็นการ์ดใหญ่ใบเดียว เปลี่ยนเป็นบล็อกแยก โดยให้ Qmon ในฉากเป็นสิ่งแรก
@@ -310,7 +311,7 @@ export default function PetCard({
           stage={stage}
           exp={exp}
           dailyCap={dailyCap}
-          advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+          advancedActivitiesUnlocked={advancedUnlocked}
         />
       </div>
 
@@ -318,7 +319,7 @@ export default function PetCard({
       <HomeNextAction
         action={nextAction}
         learnerState="active_pet"
-        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+        advancedActivitiesUnlocked={advancedUnlocked}
       />
 
       {/* control ที่ต้องทำงานในหน้าเดิม (เก็บ Qmon) และ mission chip ที่จบแล้วคงไว้เป็นสถานะรอง */}
@@ -359,51 +360,42 @@ export default function PetCard({
         )}
       </div>
 
-      {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
+      {/* 6. กิจกรรม (จัดใหม่ 2026-09) — การ์ดผจญภัยเต็มความกว้างเป็นจุดเดียวของผจญภัย (เดิมมีไทล์
+          ผจญภัยแยกที่บอกเวลาซ้ำกับการ์ดฉาก) ตามด้วยไทล์สีขนาดเท่ากันใน grid เดียว จำนวนคอลัมน์ตามไทล์
+          ที่มีจริง (auto-cols-fr): ท้าทาย (เมื่อปลดล็อก) / ป้อนอาหาร (ก่อน stage 4 และมีอาหารในคลัง —
+          กัน dead-end "มี 0 ชิ้น") / สถิติ (เสมอ) — แถบปฏิทินสัปดาห์เอาออก ดูได้จากชิปหัวการ์ด */}
+      <section aria-labelledby="pet-activities-title" className="flex w-full flex-col gap-2 text-left">
+        <h2 id="pet-activities-title" className="px-1 text-sm font-bold text-text">
+          กิจกรรม
+        </h2>
+        {advancedUnlocked && <DungeonAdventureCard state={dungeonCard} />}
+        <div className="grid w-full auto-cols-fr grid-flow-col gap-2">
+          {advancedUnlocked && (
+            <Link href="/raid" onClick={() => sfx("tap")} className={activityTileClass("raid")}>
+              <ActivityTileContent icon="⚔️" title="ท้าทาย" subtitle={`กุญแจ ${raidTicketCount} ดอก`} />
+            </Link>
+          )}
+          {!isMaxStage && foodA + foodB > 0 && (
+            <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} variant="tile" />
+          )}
+          <button type="button" onClick={() => setShowTopicStats(true)} className={activityTileClass("stats")}>
+            <ActivityTileContent icon="📊" title="สถิติ" subtitle="ดูบทที่ถนัด" />
+          </button>
+        </div>
+      </section>
 
-      {/* 6. ไทล์ผจญภัย/ท้าทาย — sticky ค้างบนสุดตอนเลื่อนผ่าน ดู StickyActionBanner.tsx */}
-      {(dungeonCard.status !== "invite" || isMaxStage) && (
-        <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
-      )}
-
-      {/* 6.6 ป้อนอาหาร — เฉพาะก่อน stage 4 และเฉพาะตอนมีอาหารในคลังจริง (กัน dead-end กดเข้าไป
-          แล้วเจอ "มี 0 ชิ้น" — หลักเดียวกับ mission chip: สถานะที่ไม่รอ action ไม่ควรกินที่) */}
-      {!isMaxStage && foodA + foodB > 0 && (
-        <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />
-      )}
-
-      {/* 6.65 การ์ดผจญภัย — ดู DungeonAdventureCard.tsx สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
-      {(dungeonCard.status === "traveling" || dungeonCard.status === "claimable") && (
-        <DungeonAdventureCard state={dungeonCard} />
-      )}
-
-      {/* 7. สรุปสัปดาห์ + อันดับ — ย้ายลงมาจากบนสุด (ธีม 2026-09) ให้ Qmon เป็นสิ่งแรกที่เห็น
-          journey strip กดเข้า /pet/calendar ได้เหมือนเดิม (ชิปหัวการ์ดก็พาไปที่เดียวกัน) */}
-      <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
+      {/* 7. อันดับสัปดาห์ */}
       <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
 
-      {/* 8. ปุ่มรอง — touch target 44px + label (กลุ่มเป้าหมายเด็ก) */}
-      <div className="flex flex-wrap justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => setShowTopicStats(true)}
-          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
-        >
-          <BarChart3 size={18} className="text-indigo" />
-          สถิติ
-        </button>
-        <Link
-          href="/classroom/join"
-          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
-        >
-          <DoorOpen size={18} className="text-amber" />
-          เข้าห้อง
+      {/* 8. ลิงก์ที่ใช้ไม่บ่อย — ตัวเล็กแต่ touch target ยัง 44px */}
+      <div className="flex items-center justify-center gap-1 text-xs text-text3">
+        <Link href="/classroom/join" className="flex min-h-11 items-center gap-1.5 px-3 transition active:opacity-70">
+          <DoorOpen size={15} aria-hidden />
+          เข้าห้องเรียน
         </Link>
-        <Link
-          href="/settings"
-          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
-        >
-          <Settings size={18} className="text-text3" />
+        <span aria-hidden>·</span>
+        <Link href="/settings" className="flex min-h-11 items-center gap-1.5 px-3 transition active:opacity-70">
+          <Settings size={15} aria-hidden />
           ตั้งค่า
         </Link>
       </div>

@@ -14,8 +14,7 @@ const GRADE_BAND_LABEL_TH: Record<GradeBand, string> = {
 };
 
 // collapsed-by-default บรรทัดเดียว แตะขยายเป็น Top 5 in-place — ไม่ใช่การ์ดใหญ่ถาวร เพื่อไม่เพิ่ม
-// ความสูงหน้า /pet ตอนปิด ดู game-design-document-v6.md หมวด Weekly Journey สำหรับ pattern เดิมที่
-// การ์ดนี้อยู่ใกล้กัน (WeeklyJourneyCard.tsx)
+// ความสูงหน้า /pet ตอนปิด ดู game-design-document-v6.md หมวด Weekly Journey สำหรับ pattern เดิม
 //
 // myWeeklyRank มาจาก getMyWeeklyRank() ที่ page.tsx fetch ให้แล้ว (เบา, มาพร้อม initial render ไม่ต้อง
 // รอ client fetch) ส่วน Top 5 เต็ม (get_weekly_leaderboard) lazy-load เฉพาะตอนกดขยายครั้งแรกเท่านั้น

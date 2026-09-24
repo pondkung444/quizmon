@@ -765,6 +765,10 @@ body {
   --pet-tile-adv-text: #eafff9;
   --pet-tile-raid-bg: #8a4fd6;
   --pet-tile-raid-text: #f6eeff;
+  --pet-tile-food-bg: #c2456b;
+  --pet-tile-food-text: #fff0f5;
+  --pet-tile-stats-bg: #2a6fb8;
+  --pet-tile-stats-text: #eef6ff;
 
   --hero-bg: linear-gradient(to bottom right, var(--color-card), var(--color-track));
   --hero-border: var(--color-gold);
@@ -850,8 +854,12 @@ body {
   --pet-zap-bg: #ffe28a;
   --pet-tile-adv-bg: #d9f7e8;
   --pet-tile-adv-text: #1f6e48;
-  --pet-tile-raid-bg: #ffe3ec;
-  --pet-tile-raid-text: #b0305a;
+  --pet-tile-raid-bg: #ece3ff;
+  --pet-tile-raid-text: #5b32b0;
+  --pet-tile-food-bg: #ffe3ec;
+  --pet-tile-food-text: #b0305a;
+  --pet-tile-stats-bg: #dcecff;
+  --pet-tile-stats-text: #1f5fae;
 
   --hero-bg: linear-gradient(135deg, #ffb238, #ff7a3d);
   --hero-border: transparent;

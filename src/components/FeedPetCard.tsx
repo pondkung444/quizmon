@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { feedPet } from "@/app/pet/actions";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
+import { activityTileClass, ActivityTileContent } from "@/components/ActivityTile";
 
 // ป้อนอาหาร A/B สะสมให้ Qmon ที่กำลังเลี้ยง — เฉพาะก่อน stage 4 (parent เป็นคนกันเงื่อนไข stage
 // ไม่เรนเดอร์การ์ดนี้เลยตอน stage 4 ดู PetCard.tsx) อัปเดตจำนวนคงเหลือจาก response ตรงๆ ไม่ต้อง
@@ -16,10 +17,13 @@ export default function FeedPetCard({
   petId,
   initialFoodA,
   initialFoodB,
+  variant = "button",
 }: {
   petId: string;
   initialFoodA: number;
   initialFoodB: number;
+  // "tile" = ไทล์สีในส่วนกิจกรรมหน้า /pet (ดู ActivityTile.tsx) ส่วน sheet เลือกอาหารเหมือนเดิม
+  variant?: "button" | "tile";
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [foodA, setFoodA] = useState(initialFoodA);
@@ -61,13 +65,19 @@ export default function FeedPetCard({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openSheet}
-        className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card px-4 py-3 text-sm font-bold text-gold-hi transition active:scale-95"
-      >
-        🍽️ ป้อนอาหาร Qmon
-      </button>
+      {variant === "tile" ? (
+        <button type="button" onClick={openSheet} className={activityTileClass("food")}>
+          <ActivityTileContent icon="🍽️" title="ป้อนอาหาร" subtitle={`มี ${foodA + foodB} ชิ้น`} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={openSheet}
+          className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card px-4 py-3 text-sm font-bold text-gold-hi transition active:scale-95"
+        >
+          🍽️ ป้อนอาหาร Qmon
+        </button>
+      )}
 
       {sheetOpen && (
         <div
