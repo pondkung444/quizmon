@@ -150,7 +150,7 @@ export default function BonusQuizBox({
               const isCorrect = feedback?.correctIndex === choiceIndex;
               const isWrongSelected = Boolean(feedback && isSelected && !isCorrect);
               const style = isCorrect
-                ? "border-emerald-400 bg-emerald-400/10"
+                ? "border-correct bg-correct/10"
                 : isWrongSelected
                   ? "border-red bg-red/10"
                   : isSelected
@@ -169,18 +169,18 @@ export default function BonusQuizBox({
                     {THAI_LETTERS[choiceIndex] ?? choiceIndex + 1}
                   </span>
                   <span className="min-w-0 flex-1 break-words">{choiceText}</span>
-                  {isCorrect && <strong className="shrink-0 text-[10px] text-emerald-200">คำตอบที่ถูก</strong>}
+                  {isCorrect && <strong className="shrink-0 text-[10px] text-correct-hi">คำตอบที่ถูก</strong>}
                   {isWrongSelected && <strong className="shrink-0 text-[10px] text-red">คำตอบของเรา</strong>}
                 </button>
               );
             })}
           </div>
           {feedback && <div className="mt-3 flex flex-col gap-2" role="status">
-            <p className={`rounded-xl border p-3 text-sm font-bold ${feedback.correct ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-100" : "border-border bg-track text-text"}`}>
+            <p className={`rounded-xl border p-3 text-sm font-bold ${feedback.correct ? "border-correct/40 bg-correct/10 text-correct-text" : "border-border bg-track text-text"}`}>
               {feedback.correct ? "ถูกต้อง! ร่นเวลาเดินทางได้ 12 นาที" : "รอบนี้ยังไม่ถูก ไม่เป็นไร ไปต่อกัน"}
             </p>
             {!feedback.correct && <p className="rounded-xl border border-red/50 bg-red/10 p-3 text-sm text-text"><strong>คำตอบของเรา:</strong> {current.choices[feedback.selectedIndex]}</p>}
-            <p className="rounded-xl border border-emerald-400/40 bg-emerald-400/10 p-3 text-sm text-text"><strong>คำตอบที่ถูก:</strong> {current.choices[feedback.correctIndex]}</p>
+            <p className="rounded-xl border border-correct/40 bg-correct/10 p-3 text-sm text-text"><strong>คำตอบที่ถูก:</strong> {current.choices[feedback.correctIndex]}</p>
             <div className="rounded-xl bg-track p-3 text-sm leading-relaxed text-text2">
               <strong className="block text-xs text-gold-hi">เหตุผล</strong>
               <p className="mt-1">{feedback.explanation || "จำคำตอบนี้ไว้ แล้วใช้หลักเดียวกันกับข้อถัดไป"}</p>

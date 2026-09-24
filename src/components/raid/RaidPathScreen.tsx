@@ -188,7 +188,7 @@ export default function RaidPathScreen({
                     ? "text-indigo-hi animate-raid-roll-spin"
                     : rollPhase === "settled"
                       ? result.rollPassed
-                        ? "text-green-400 animate-raid-roll-pass"
+                        ? "text-good animate-raid-roll-pass"
                         : "text-red animate-raid-roll-fail"
                       : "text-text3"
                 }`}

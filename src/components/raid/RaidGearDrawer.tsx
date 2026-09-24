@@ -6,7 +6,7 @@ import type { RaidStatKey } from "@/lib/raid/stats";
 import RaidGearIcon from "@/components/raid/RaidGearIcon";
 
 const STAT_LABEL_TH: Record<RaidStatKey, string> = { hp: "HP", atk: "ATK", def: "DEF", spd: "SPD", foc: "FOC" };
-const EMPTY_ICON_COLOR = "#3a3d47"; // --color-border
+const EMPTY_ICON_COLOR = "var(--color-border)"; // --color-border
 
 function gearLine(item: {
   mainStat: RaidStatKey;

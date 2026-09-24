@@ -106,7 +106,7 @@ export default function ClaimScreen({
   const durationHours = dungeon.durationMinutes / 60;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col gap-4 px-4 pb-24 pt-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-4 pb-24 pt-6">
       <AdventureHeader title={dungeon.nameTh} subtitle={`ผจญภัยครบ ${durationHours} ชั่วโมงแล้ว`} />
 
       <div className="flex w-full flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-5">

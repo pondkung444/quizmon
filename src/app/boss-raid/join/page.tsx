@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import JoinForm from "./JoinForm";
+import AppThemeMarker from "@/components/AppThemeMarker";
 
 // นักเรียนเข้าห้องด้วยรหัส (หรือ ?code= จากลิงก์/QR) — join ผ่าน RPC แล้วเด้งเข้าจอห้อง
 export default async function BossRaidJoinPage({
@@ -17,7 +18,9 @@ export default async function BossRaidJoinPage({
   if (!user) redirect("/login");
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-12">
+    <main className="mx-auto w-full max-w-sm px-4 py-12">
+      {/* ธีมแอปเฉพาะหน้าเข้าห้องฝั่งนักเรียน — หน้าครู/จอทีวีของ boss-raid คงโทนเดิม */}
+      <AppThemeMarker />
       <h1 className="text-2xl font-bold text-gold-hi">เข้าห้อง Boss Raid</h1>
       <p className="mt-1 text-sm text-text3">กรอกรหัสห้อง 6 หลักจากครู</p>
       <JoinForm initialCode={code ?? ""} />

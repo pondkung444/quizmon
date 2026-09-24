@@ -227,7 +227,7 @@ export default function RaidBossScreen({
   const ctaLabel = !current ? "ดูสรุปผล" : answeredCount === 0 ? "เจอคำถามข้อแรก" : "ข้อต่อไป";
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-track">
+    <div className="scene-dark fixed inset-0 z-50 overflow-hidden bg-track">
       <div className="relative h-full w-full">
         <RaidScene
           fullScreen

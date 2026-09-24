@@ -427,7 +427,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
 
   const battleStage = (
     // A.1/A.4 — ขนาดคงที่ทุก state (w เต็ม, h 240px). คลัสเตอร์สองฝั่ง absolute ชิดมุมของตัวเอง
-    <div className="relative h-60 w-full overflow-hidden rounded-2xl border border-gold-dim bg-gradient-to-b from-[#23252c] to-track">
+    <div className="relative h-60 w-full overflow-hidden rounded-2xl border border-gold-dim bg-gradient-to-b from-(--duel-arena-top) to-track">
       {/* ลำแสงกลาง + แสงเรืองที่จุด VS */}
       <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-gold/25 to-transparent" />
       <div className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 blur-2xl" />
@@ -587,10 +587,10 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                 const correct = choiceIndex === result.correctIndex;
                 const selected = choiceIndex === result.selectedIndex;
                 const wrong = selected && !correct;
-                const style = correct ? "border-emerald-400 bg-emerald-400/10" : wrong ? "border-red bg-red/10" : "border-border bg-track";
+                const style = correct ? "border-correct bg-correct/10" : wrong ? "border-red bg-red/10" : "border-border bg-track";
                 return <div key={choiceIndex} className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-left font-sarabun text-sm text-text ${style}`}>
                   <span className="min-w-0 flex-1 break-words">{choice}</span>
-                  {correct && <strong className="shrink-0 text-[10px] text-emerald-200">คำตอบที่ถูก</strong>}
+                  {correct && <strong className="shrink-0 text-[10px] text-correct-hi">คำตอบที่ถูก</strong>}
                   {wrong && <strong className="shrink-0 text-[10px] text-red">คำตอบของเรา</strong>}
                 </div>;
               })}
