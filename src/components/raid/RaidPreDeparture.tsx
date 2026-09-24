@@ -192,7 +192,7 @@ export default function RaidPreDeparture({
           type="button"
           disabled={!selectedPetId || isSending || ticketCount === 0}
           onClick={handleDepartClick}
-          className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isSending ? "กำลังเริ่ม..." : ticketCount === 0 ? "ไม่มีกุญแจท้าทาย" : cardMode ? "ใช้กุญแจเข้าสู้บอส" : "ใช้กุญแจเริ่มท้าทาย"}
         </button>
@@ -218,7 +218,7 @@ export default function RaidPreDeparture({
               <button
                 type="button"
                 onClick={() => setShowGearWarning(false)}
-                className="w-full rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-track"
+                className="w-full rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber"
               >
                 กลับไปใส่อุปกรณ์
               </button>

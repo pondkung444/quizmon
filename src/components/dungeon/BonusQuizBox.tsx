@@ -125,7 +125,7 @@ export default function BonusQuizBox({
           type="button"
           disabled={phase === "loading"}
           onClick={handleStart}
-          className="mt-3 w-full rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="mt-3 w-full rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {phase === "loading" ? "กำลังเตรียมคำถาม..." : "เริ่มตอบคำถาม"}
         </button>
@@ -185,7 +185,7 @@ export default function BonusQuizBox({
               <strong className="block text-xs text-gold-hi">เหตุผล</strong>
               <p className="mt-1">{feedback.explanation || "จำคำตอบนี้ไว้ แล้วใช้หลักเดียวกันกับข้อถัดไป"}</p>
             </div>
-            <button type="button" disabled={phase === "applying"} onClick={handleContinue} className="min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-track shadow-lg active:scale-95 disabled:opacity-60">
+            <button type="button" disabled={phase === "applying"} onClick={handleContinue} className="min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-on-amber shadow-lg active:scale-95 disabled:opacity-60">
               {phase === "applying" ? "กำลังสรุปผล..." : index + 1 >= questions.length ? "ดูผลการเร่งเวลา" : "ข้อต่อไป →"}
             </button>
           </div>}

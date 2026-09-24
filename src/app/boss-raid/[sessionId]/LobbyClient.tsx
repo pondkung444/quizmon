@@ -331,7 +331,7 @@ function EndRaidButton({ sessionId }: { sessionId: string }) {
                   }
                 })
               }
-              className="flex-1 rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-track disabled:opacity-50"
+              className="flex-1 rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber disabled:opacity-50"
             >
               {pending ? "กำลังจบรอบ…" : "จบรอบเลย"}
             </button>
@@ -581,7 +581,7 @@ function StartGameButton({
         type="button"
         onClick={go}
         disabled={pending || blockedReason !== null}
-        className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังเริ่ม…" : "เริ่มเกม"}
       </button>
@@ -683,7 +683,7 @@ function ConfigPanel({
             onClick={() => setDifficulty(d)}
             className={`rounded-full border px-3 py-1 text-sm transition ${
               difficulty === d
-                ? "border-gold bg-amber text-track"
+                ? "border-gold bg-amber text-on-amber"
                 : "border-border bg-track text-text2"
             }`}
           >
@@ -701,7 +701,7 @@ function ConfigPanel({
             onClick={() => setBossKey(b.key)}
             className={`rounded-full border px-3 py-1 text-sm transition ${
               bossKey === b.key
-                ? "border-gold bg-amber text-track"
+                ? "border-gold bg-amber text-on-amber"
                 : "border-border bg-track text-text2"
             }`}
           >

@@ -31,6 +31,8 @@ import SelfServePlanCard from "@/components/SelfServePlanCard";
 import HomeNextAction from "@/components/HomeNextAction";
 import { resolveNextAction } from "@/lib/nextAction";
 import { getPvpBadgeCount } from "@/lib/pvp";
+import { cookies } from "next/headers";
+import { PET_THEME_COOKIE, parsePetTheme } from "@/lib/petTheme";
 
 export default async function PetPage({
   searchParams,
@@ -39,6 +41,7 @@ export default async function PetPage({
 }) {
   const { evolved } = await searchParams;
   const justEvolved = evolved === "1";
+  const petTheme = parsePetTheme((await cookies()).get(PET_THEME_COOKIE)?.value);
 
   const supabase = await createClient();
   const user = await getUser();
@@ -283,7 +286,10 @@ export default async function PetPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    // w-full: body เป็น flex-col + mx-auto ทำให้ <main> หดเท่า min-content ของลูก ถ้าไม่ใส่ ลูกที่ไม่ยอมหด
+    // (เช่นแถบผจญภัย/ท้าทาย) ดัน <main> กว้างเกินจอมือถือ 375px ได้ (เคยล้นเป็น 404px)
+    // data-pet-theme: สลับชุดสีทั้งหน้า ดู globals.css [data-pet-theme]
+    <main data-pet-theme={petTheme} className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
           มุมบน เพราะ StickyActionBanner ของ PetCard กิน sticky top-0 เต็มความกว้าง ชนทั้งสองมุมบน
           ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}

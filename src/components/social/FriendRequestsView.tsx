@@ -109,7 +109,7 @@ export default function FriendRequestsView({
           <p className="text-sm text-text3">ยังไม่มีคำขอใหม่</p>
           <Link
             href="/social?tab=friends"
-            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95"
           >
             กลับไปรายชื่อเพื่อน
           </Link>
@@ -143,7 +143,7 @@ export default function FriendRequestsView({
                     type="button"
                     disabled={isPending}
                     onClick={() => handleAccept(item)}
-                    className="rounded-xl border border-gold bg-amber px-3 py-2 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+                    className="rounded-xl border border-gold bg-amber px-3 py-2 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
                   >
                     รับ
                   </button>

@@ -24,7 +24,7 @@ export default function FocusTeacherPanel({
         type="button"
         disabled={pending}
         onClick={onStop}
-        className="mt-4 w-full rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+        className="mt-4 w-full rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังหยุด…" : "หยุดคาบตั้งใจ"}
       </button>

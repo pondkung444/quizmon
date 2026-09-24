@@ -90,7 +90,7 @@ export default function GuestSetPasswordPrompt() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่าน"}
           </button>

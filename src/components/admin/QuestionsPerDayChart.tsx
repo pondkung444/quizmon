@@ -56,7 +56,7 @@ export default function QuestionsPerDayChart({ data }: { data: QuestionsPerDayDa
             type="button"
             onClick={() => setMode("total")}
             className={`px-3 py-1.5 text-xs font-medium transition ${
-              mode === "total" ? "bg-amber text-track" : "bg-track text-text3"
+              mode === "total" ? "bg-amber text-on-amber" : "bg-track text-text3"
             }`}
           >
             รวมทั้งกลุ่ม
@@ -65,7 +65,7 @@ export default function QuestionsPerDayChart({ data }: { data: QuestionsPerDayDa
             type="button"
             onClick={() => setMode("perUser")}
             className={`px-3 py-1.5 text-xs font-medium transition ${
-              mode === "perUser" ? "bg-amber text-track" : "bg-track text-text3"
+              mode === "perUser" ? "bg-amber text-on-amber" : "bg-track text-text3"
             }`}
           >
             เฉลี่ยต่อคน

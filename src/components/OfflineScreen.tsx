@@ -102,7 +102,7 @@ export default function OfflineScreen() {
       <button
         onClick={handleRetry}
         disabled={isRetrying}
-        className="mt-7 flex items-center gap-2 rounded-full bg-gradient-to-b from-[#f0a05c] to-amber px-9 py-3 font-sans text-[15.5px] font-semibold text-bg shadow-[0_8px_22px_rgba(224,134,58,0.35)] transition-transform active:scale-95 disabled:opacity-70"
+        className="mt-7 flex items-center gap-2 rounded-full bg-gradient-to-b from-[#f0a05c] to-amber px-9 py-3 font-sans text-[15.5px] font-semibold text-on-amber shadow-[0_8px_22px_rgba(224,134,58,0.35)] transition-transform active:scale-95 disabled:opacity-70"
       >
         <svg
           viewBox="0 0 24 24"

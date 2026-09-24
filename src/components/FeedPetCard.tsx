@@ -132,7 +132,7 @@ export default function FeedPetCard({
               type="button"
               disabled={!selected || feeding}
               onClick={handleConfirm}
-              className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-40"
+              className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-40"
             >
               {feeding ? "กำลังป้อน..." : selected ? `ยืนยันป้อน${FOOD_LABEL[selected]} · 1 ชิ้น` : "เลือกอาหารก่อน"}
             </button>

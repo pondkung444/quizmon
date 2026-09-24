@@ -101,7 +101,7 @@ export default function PublicProfileView({
               type="button"
               disabled={isSending}
               onClick={handleSend}
-              className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+              className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
             >
               {isSending ? "กำลังส่ง..." : "เพิ่มเพื่อน"}
             </button>

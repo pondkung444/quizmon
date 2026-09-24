@@ -50,7 +50,7 @@ export default function ClassroomJoinForm({ initialCode }: { initialCode: string
       <button
         type="submit"
         disabled={pending || code.length !== 6}
-        className="w-full rounded-2xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+        className="w-full rounded-2xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังเข้าห้อง…" : "เข้าห้อง"}
       </button>

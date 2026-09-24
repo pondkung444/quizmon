@@ -137,7 +137,7 @@ export default function EggsClient({
                 type="button"
                 disabled={hasActivePet || isPending}
                 onClick={() => openNamingModal(egg.id)}
-                className="shrink-0 rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-track shadow transition active:scale-95 disabled:opacity-50"
+                className="shrink-0 rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-on-amber shadow transition active:scale-95 disabled:opacity-50"
               >
                 {isPending && hatchingId === egg.id ? "กำลังฟัก..." : "ฟักไข่นี้"}
               </button>

@@ -133,7 +133,7 @@ export default function ClaimScreen({
           type="button"
           disabled={isClaiming}
           onClick={handleClaim}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-gold bg-amber px-6 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-gold bg-amber px-6 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isClaiming && <Spinner />}
           {isClaiming ? "กำลังรับ..." : "รับของ"}
@@ -211,7 +211,7 @@ function TicketRewardModal({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
         >
           เย้!
         </button>
@@ -239,7 +239,7 @@ function EggRewardModal({
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
         >
           เย้! ไปดูคลังไข่
         </button>
@@ -274,7 +274,7 @@ function MeterProgressModal({ pityMeter, onClose }: { pityMeter: number; onClose
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
         >
           เยี่ยม!
         </button>

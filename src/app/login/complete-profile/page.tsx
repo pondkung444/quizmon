@@ -187,7 +187,7 @@ export default function CompleteProfilePage() {
           <button
             type="submit"
             disabled={loading || !privacyAccepted}
-            className="rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
+            className="rounded-full border border-gold bg-amber py-2 font-medium text-on-amber transition hover:opacity-90 disabled:opacity-50"
           >
             {loading ? "กำลังดำเนินการ..." : "เริ่มการผจญภัย"}
           </button>

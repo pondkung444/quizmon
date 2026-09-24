@@ -10,7 +10,7 @@ export default function SocialError({ reset }: { error: Error & { digest?: strin
       <button
         type="button"
         onClick={() => reset()}
-        className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+        className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95"
       >
         ลองอีกครั้ง
       </button>

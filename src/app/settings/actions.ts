@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { PET_THEME_COOKIE, parsePetTheme } from "@/lib/petTheme";
 
 export type PushPreferencesUpdate = Partial<{
   push_enabled: boolean;
@@ -38,4 +40,15 @@ export async function deleteOwnAccount() {
   if (error) throw new Error("ลบบัญชีไม่สำเร็จ: " + error.message);
 
   await supabase.auth.signOut();
+}
+
+// ธีมหน้าน้อง Qmon — เก็บใน cookie (ไม่ใช่ DB) ดูเหตุผลใน src/lib/petTheme.ts
+// parsePetTheme กันค่าแปลกจาก client ตกไปเป็นค่าเริ่มต้นเสมอ
+export async function setPetTheme(theme: string) {
+  (await cookies()).set(PET_THEME_COOKIE, parsePetTheme(theme), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+  revalidatePath("/pet");
 }

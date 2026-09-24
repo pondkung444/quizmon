@@ -43,7 +43,7 @@ export default function FriendListSection({ friends }: { friends: FriendListItem
           type="button"
           onClick={() => setSortBy("recent")}
           className={`min-h-9 rounded-full px-3 text-xs font-bold transition ${
-            sortBy === "recent" ? "bg-amber text-track" : "border border-gold-dim text-text3"
+            sortBy === "recent" ? "bg-amber text-on-amber" : "border border-gold-dim text-text3"
           }`}
         >
           เพิ่มล่าสุด
@@ -52,7 +52,7 @@ export default function FriendListSection({ friends }: { friends: FriendListItem
           type="button"
           onClick={() => setSortBy("name")}
           className={`min-h-9 rounded-full px-3 text-xs font-bold transition ${
-            sortBy === "name" ? "bg-amber text-track" : "border border-gold-dim text-text3"
+            sortBy === "name" ? "bg-amber text-on-amber" : "border border-gold-dim text-text3"
           }`}
         >
           ชื่อ

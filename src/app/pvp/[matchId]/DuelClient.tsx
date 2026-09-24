@@ -530,14 +530,14 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
         {evolveResult?.evolved && !evolveResult.reachedStage4 ? (
           <Link
             href="/pet?evolved=1"
-            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
+            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-on-amber active:scale-95"
           >
             ไปดู Qmon ที่วิวัฒนาการ
           </Link>
         ) : (
           <Link
             href="/pvp"
-            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-track active:scale-95"
+            className="mx-auto mt-8 block w-fit rounded-2xl border border-gold bg-amber px-6 py-3 font-bold text-on-amber active:scale-95"
           >
             กลับหน้าประลอง
           </Link>
@@ -610,7 +610,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
               {result.pierce > 0 && result.self_damage === 0 && <span>ทะลุเกราะ</span>}
             </p>
           )}
-          <button type="button" onClick={() => { holdRef.current = false; router.refresh(); }} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-track shadow-lg active:scale-95">
+          <button type="button" onClick={() => { holdRef.current = false; router.refresh(); }} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-on-amber shadow-lg active:scale-95">
             ไปตาต่อไป →
           </button>
         </div>
@@ -698,7 +698,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
             type="button"
             disabled={busy}
             onClick={() => void doStart()}
-            className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             เริ่มตอบ
           </button>

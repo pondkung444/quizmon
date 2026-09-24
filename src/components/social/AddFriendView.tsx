@@ -110,7 +110,7 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
       </Link>
 
       <div className="order-last rounded-2xl border border-gold-dim bg-card p-4 text-center">
-        <button type="button" disabled={!myFriendCode} onClick={handleShare} className="mb-3 min-h-11 w-full rounded-xl bg-amber px-4 text-sm font-bold text-track">แชร์ลิงก์ให้เพื่อน</button>
+        <button type="button" disabled={!myFriendCode} onClick={handleShare} className="mb-3 min-h-11 w-full rounded-xl bg-amber px-4 text-sm font-bold text-on-amber">แชร์ลิงก์ให้เพื่อน</button>
         <button type="button" disabled={!myFriendCode || qrLoading} aria-expanded={Boolean(qrImage)} onClick={showQr} className="mb-3 min-h-11 w-full rounded-xl border border-border px-4 text-sm text-text2">{qrLoading ? "กำลังสร้าง QR…" : qrImage ? "ซ่อน QR" : "ให้เพื่อนสแกน QR"}</button>
         {qrImage && <div className="mb-3"><Image src={qrImage} alt="QR เพิ่มเพื่อนของฉัน" width={240} height={240} unoptimized className="mx-auto max-w-full rounded-xl" /><p className="mt-2 text-xs text-text3">เพื่อนสแกนด้วยกล้องมือถือ แล้วค้นหาและส่งคำขอได้เลย</p></div>}
         <p className="text-xs text-text3">รหัสเพื่อนของฉัน · ใช้เป็นทางสำรอง</p>
@@ -144,7 +144,7 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
           <button
             type="submit"
             disabled={!canSearch}
-            className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+            className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
           >
             {isSearching ? "กำลังค้นหา..." : "ค้นหา"}
           </button>
@@ -182,7 +182,7 @@ export default function AddFriendView({ myFriendCode, invitationCode = "" }: { m
                   type="button"
                   disabled={isSending}
                   onClick={handleSend}
-                  className="flex-none rounded-xl border border-gold bg-amber px-4 py-2.5 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+                  className="flex-none rounded-xl border border-gold bg-amber px-4 py-2.5 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
                 >
                   {isSending ? "กำลังส่ง..." : "เพิ่มเพื่อน"}
                 </button>

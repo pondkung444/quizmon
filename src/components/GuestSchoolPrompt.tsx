@@ -77,7 +77,7 @@ export default function GuestSchoolPrompt({ userId }: { userId: string }) {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-track active:scale-95 disabled:opacity-50"
+            className="flex-1 rounded-xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber active:scale-95 disabled:opacity-50"
           >
             {saving ? "กำลังบันทึก..." : "บันทึก"}
           </button>
