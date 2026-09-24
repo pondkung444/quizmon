@@ -288,8 +288,7 @@ export default async function PetPage({
     // ธีมสี (dusk/day) มาจาก <AppThemeMarker /> ใน pet/layout.tsx
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
-          มุมบน เพราะ StickyActionBanner ของ PetCard กิน sticky top-0 เต็มความกว้าง ชนทั้งสองมุมบน
-          ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}
+          มุมบน (หัวการ์ด PetCard มีชื่อ + ชิปสัปดาห์เต็มความกว้าง) ส่วนมุมล่างขวาว่างสนิท */}
       <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
       {user && <WeeklyRewardCelebration />}
       {pet && needsPersonalityChoice ? (

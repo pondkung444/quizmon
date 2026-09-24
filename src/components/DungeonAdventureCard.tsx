@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { ChevronRight } from "lucide-react";
 import type { DungeonCardState } from "@/lib/dungeon";
 import { useDungeonProgress, formatCountdown } from "@/hooks/useDungeonProgress";
 import { useSfx } from "@/lib/audio/useSfx";
@@ -15,13 +16,14 @@ function travelXPercent(progressPercent: number): number {
   return TRAVEL_X_MIN + (progressPercent / 100) * (TRAVEL_X_MAX - TRAVEL_X_MIN);
 }
 
-// การ์ดผจญภัยหน้า /pet — 4 สถานะ วางไว้ใต้บล็อก CTA หลัก (มิชชัน/ปุ่มฝึก Qmon) เสมอ ไม่อยู่เหนือ
+// การ์ดผจญภัยหน้า /pet — 4 สถานะ อยู่บนสุดของส่วน "กิจกรรม" (ใต้ CTA หลักเสมอ) เต็มความกว้าง
+// (2026-09) เป็นจุดเดียวของผจญภัยบนหน้านี้แล้ว — เดิมมีไทล์ผจญภัยแยกอีกอันที่บอกเวลาซ้ำกัน
 export default function DungeonAdventureCard({ state }: { state: DungeonCardState }) {
   const sfx = useSfx();
   if (state.status === "invite") {
     return (
-      <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-4 text-center">
-        <p className="text-sm font-bold text-gold-hi">ผจญภัยรอวันที่ Qmon โตเต็มที่</p>
+      <div className="w-full rounded-2xl border border-border bg-card p-4 text-center">
+        <p className="text-sm font-bold text-gold-hi">🗺️ ผจญภัยรอวันที่ Qmon โตเต็มที่</p>
         <p className="mt-1 text-xs text-text3">
           เลี้ยง Qmon จนถึงร่างสุดท้ายแล้ว จะพาไปผจญภัยหาของรางวัลได้
         </p>
@@ -30,17 +32,21 @@ export default function DungeonAdventureCard({ state }: { state: DungeonCardStat
   }
 
   if (state.status === "ready") {
-    // CTA รอง — น้ำหนักเบากว่าปุ่ม "เริ่มภารกิจ"/"ฝึก Qmon" (fill สี amber) แต่ยังต้องดูเป็นปุ่มกดได้
-    // ชัดเจน ไม่ใช่ text link — ใช้ pattern เดียวกับปุ่ม "ฝึกต่อได้" ใน PetCard.tsx (outline gold
-    // เต็มความกว้าง มุมโค้งเท่ากัน) แทน pattern แถวข้อความเดิม
+    // CTA รอง — การ์ดสีผจญภัย (--pet-tile-adv-*) เต็มความกว้าง ยังเบากว่า CTA หลัก (HomeNextAction)
     return (
       <Link
         href="/adventure"
         onClick={() => sfx("tap")}
-        className="flex w-full max-w-xs flex-col items-center gap-0.5 rounded-2xl border-2 border-gold py-3 text-center transition active:scale-95"
+        className="flex w-full items-center gap-3 rounded-2xl bg-(--pet-tile-adv-bg) px-4 py-3 text-left text-(--pet-tile-adv-text) shadow-md transition active:scale-95"
       >
-        <span className="text-lg font-bold text-gold-hi">ส่งไปผจญภัย</span>
-        <span className="text-xs text-text3">มี Qmon พร้อมออกเดินทาง</span>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/60 text-2xl" aria-hidden>
+          🗺️
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-bold">ส่ง Qmon ไปผจญภัย</span>
+          <span className="block truncate text-xs opacity-90">มี Qmon พร้อมออกเดินทาง</span>
+        </span>
+        <ChevronRight size={20} aria-hidden />
       </Link>
     );
   }
@@ -61,13 +67,15 @@ function ActiveDungeonStrip({
   return (
     <Link
       href="/adventure"
-      className="flex w-full max-w-xs flex-col overflow-hidden rounded-2xl border border-gold-dim bg-card transition active:scale-95"
+      className={`relative flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-md transition active:scale-[0.98] ${
+        isClaimable ? "ring-2 ring-gold" : ""
+      }`}
     >
       {/* สเกลลงจากจอ B (DungeonScene.tsx) ตามสัดส่วนเดิม: สไปรต์ 32% ของความสูงฉาก, เท้า 82% —
           เดิมฉากสูงแค่ 64px + สไปรต์กล่องคงที่ 40px ทำให้เนื้อรูปที่เห็นจริงเหลือแค่ ~10px มองไม่ออก
           ว่าเป็นตัวอะไร ความสูงฉากในการ์ดนี้ (112px) ปรับเล็กกว่าจอ B (150px) ได้เพราะเป็นแค่การ์ดย่อ
           แต่สัดส่วนสไปรต์/เท้าต้องคงเดิมเพื่อให้มองออกเหมือนกัน */}
-      <div className="relative h-28 w-full overflow-hidden">
+      <div className="relative h-32 w-full overflow-hidden">
         <Image
           src={dungeon.backgroundPath}
           alt=""
@@ -97,14 +105,20 @@ function ActiveDungeonStrip({
           />
         </div>
       </div>
-      <div className="flex items-center justify-between px-4 py-2">
+      {isClaimable && <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-red" aria-hidden />}
+      <div className="flex items-center justify-between gap-2 px-4 py-2.5 text-left">
+        <span className="min-w-0">
+          <span className="block text-sm font-bold text-text">🗺️ ผจญภัย</span>
+          <span className={`block truncate text-xs ${isClaimable ? "font-bold text-gold-hi" : "text-text3"}`}>
+            {isClaimable ? "ถึงแล้ว! แตะเพื่อรับของรางวัล" : `กำลังเดินทาง · ${dungeon.nameTh}`}
+          </span>
+        </span>
         {isClaimable ? (
-          <span className="text-sm font-bold text-gold-hi">ถึงแล้ว! รับของได้เลย →</span>
+          <ChevronRight size={20} className="shrink-0 text-gold-hi" aria-hidden />
         ) : (
-          <>
-            <span className="text-xs text-text3">กำลังเดินทาง</span>
-            <span className="font-mono text-sm font-bold text-text">{formatCountdown(remainingMs)}</span>
-          </>
+          <span className="shrink-0 rounded-lg bg-track px-2 py-1 font-mono text-sm font-bold text-text">
+            ⏱ {formatCountdown(remainingMs)}
+          </span>
         )}
       </div>
     </Link>
