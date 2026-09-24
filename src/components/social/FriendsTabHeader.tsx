@@ -46,7 +46,7 @@ function EmptyFriendsState({ myFriendCode }: { myFriendCode: string }) {
       </div>
       <Link
         href="/social/add-friend"
-        className="flex min-h-11 w-full items-center justify-center rounded-2xl border border-gold bg-amber text-sm font-bold text-track transition active:scale-95"
+        className="flex min-h-11 w-full items-center justify-center rounded-2xl border border-gold bg-amber text-sm font-bold text-on-amber transition active:scale-95"
       >
         เพิ่มเพื่อนคนแรก
       </Link>
@@ -82,7 +82,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         </div>
         <Link
           href="/social/add-friend"
-          className="flex min-h-11 items-center gap-2 rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95"
         >
           <UserPlus className="h-4 w-4" />
           เพิ่มเพื่อน
@@ -96,7 +96,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         <Inbox className="h-5 w-5 flex-none text-amber" />
         <span className="flex-1 text-sm font-bold text-text">คำขอเป็นเพื่อน</span>
         {data.receivedRequestCount > 0 && (
-          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-track">
+          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-on-amber">
             {data.receivedRequestCount}
           </span>
         )}
@@ -109,7 +109,7 @@ export default function FriendsTabHeader({ data }: { data: FriendsHeaderData }) 
         <HeartHandshake className="h-5 w-5 flex-none text-amber" />
         <span className="flex-1 text-sm font-bold text-text">กำลังใจถึงฉัน</span>
         {data.unreadEncouragementCount > 0 && (
-          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-track">
+          <span className="flex h-6 min-w-6 flex-none items-center justify-center rounded-full bg-amber px-1.5 text-xs font-bold text-on-amber">
             {data.unreadEncouragementCount}
           </span>
         )}

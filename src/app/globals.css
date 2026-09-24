@@ -10,7 +10,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-kanit);
   --font-sarabun: var(--font-sarabun);
+}
 
+/* palette แยกออกจาก @theme inline ด้านบน — utility (bg-card, text-text2 ...) จะอ้าง var(--color-*)
+   แทนการฝังค่าสีตรงๆ เพื่อให้ธีมหน้า /pet (ดู [data-app-theme] ท้ายไฟล์) สลับสีทั้งหน้าได้จากจุดเดียว
+   หน้าอื่นได้ค่าเดิมทุกประการ */
+@theme {
   --color-bg: #1f2127;
   --color-card: #2a2d35;
   --color-border: #3a3d47;
@@ -21,6 +26,8 @@
   --color-amber-dim: #8a5322;
   --color-red: #d8362f;
   --color-track: #15171c;
+  /* ตัวอักษรบนปุ่มสี amber — เดิมใช้ text-track แต่ track กลายเป็นสีอ่อนในธีมสว่างของ /pet */
+  --color-on-amber: #15171c;
   --color-gold: #c8a86a;
   --color-gold-dim: #5f4f30;
   --color-gold-hi: #ecd7a0;
@@ -733,4 +740,209 @@ body {
   .guardian-frame-mid::before,
   .guardian-frame-special::before,
   .guardian-frame-special { animation: none; }
+}
+
+/* ── ธีมแอป (บ้าน/สังคม/ฟาร์ม/ประลอง) ──────────────────────────────────────────────────────────
+   หน้าที่ใช้ธีมวาง <AppThemeMarker /> (span ซ่อน data-app-theme ค่าจาก cookie qm_app_theme ดู
+   src/lib/appTheme.ts) แล้ว :root:has() สลับ token สีทั้งเอกสาร — พื้นหลัง body + แถบเมนูล่าง
+   (อยู่นอกหน้าใน root layout) + modal/sheet ที่ fixed อยู่ เปลี่ยนตามด้วย ออกจากหน้าเมื่อไหร่ป้ายหาย
+   ทุกอย่างกลับเป็นโทนเดิมเอง
+   --pet-* / --hero-* = สีเฉพาะชิ้นส่วนของหน้านี้ (ฉาก, แถบพลัง, การ์ด HomeNextAction) ค่าใน :root คือ
+   ค่าเริ่มต้นที่หน้าตาเหมือนก่อนมีธีม (HomeNextAction ไม่ได้ใช้ที่อื่น แต่กันไว้) */
+:root {
+  --pet-page-bg: var(--color-bg);
+  --pet-sky: linear-gradient(180deg, #3b2a7a 0%, #6a3fa0 55%, #e0729a 100%);
+  --pet-ground: #2a2366;
+  --pet-platform: #8f7cff;
+  --pet-platform-glow: rgba(143, 124, 255, 0.8);
+  --pet-spark: #fff4a8;
+  --pet-badge-bg: rgba(255, 255, 255, 0.88);
+  --pet-badge-text: #4b3aa0;
+  --pet-evo-fill: linear-gradient(90deg, #4fd1ff, #8f7cff, #ff7ad9);
+  --pet-daily-fill: linear-gradient(90deg, #ffd166, #ff9f43);
+  --pet-zap-bg: #ffd166;
+  --pet-tile-adv-bg: #2e8c7a;
+  --pet-tile-adv-text: #eafff9;
+  --pet-tile-raid-bg: #8a4fd6;
+  --pet-tile-raid-text: #f6eeff;
+
+  --hero-bg: linear-gradient(to bottom right, var(--color-card), var(--color-track));
+  --hero-border: var(--color-gold);
+  --hero-kicker: var(--color-amber);
+  --hero-title: var(--color-gold-hi);
+  --hero-text2: var(--color-text2);
+  --hero-text3: var(--color-text3);
+  --hero-cta-bg: var(--color-amber);
+  --hero-cta-text: var(--color-on-amber);
+  --hero-cta-shadow: transparent;
+  --hero-divider: var(--color-border);
+
+  /* สีเหรียญความสำเร็จ (AchievementCard / โปรไฟล์) — ธีมสว่างเข้มขึ้นให้อ่านออกบนพื้นขาว */
+  --medal-bronze: #cd7f32;
+  --medal-silver: #b9c2cf;
+  --medal-crown: #c7a6f7;
+}
+
+/* ธีม 1 (ค่าเริ่มต้น): ท้องฟ้ายามค่ำ — ยังเป็นโทนมืดเข้ากับหน้าอื่น แต่ม่วง/ชมพู/ฟ้ามีสีสัน */
+:root:has([data-app-theme="dusk"]) {
+  --background: #15193a;
+  --pet-page-bg: linear-gradient(180deg, #241a4d 0%, #1a1f45 55%, #15193a 100%);
+  --color-bg: #1a1f45;
+  --color-card: #262052;
+  --color-border: #3f3a7a;
+  --color-text: #ffffff;
+  --color-text2: #d4d1f2;
+  --color-text3: #aeaadb;
+  --color-amber: #ff9f43;
+  --color-amber-dim: #9a5a23;
+  --color-track: #15123a;
+  --color-gold: #ffd166;
+  --color-gold-dim: #4b4390;
+  --color-gold-hi: #ffe08a;
+  --color-indigo: #8f7cff;
+  --color-indigo-dim: #4b3f9a;
+  --color-indigo-hi: #d9d2ff;
+  --color-on-amber: #2a1300;
+
+  --hero-bg: linear-gradient(135deg, #ff9f43, #ff6b8b);
+  --hero-border: transparent;
+  --hero-kicker: rgba(255, 255, 255, 0.9);
+  --hero-title: #ffffff;
+  --hero-text2: rgba(255, 255, 255, 0.92);
+  --hero-text3: rgba(255, 255, 255, 0.8);
+  --hero-cta-bg: #ffffff;
+  --hero-cta-text: #d83a62;
+  --hero-cta-shadow: #b8304f;
+  --hero-divider: rgba(255, 255, 255, 0.35);
+}
+
+/* ธีม 2: เช้าสดใส — พื้นสว่าง ฟ้า/หญ้าเขียว (เฉพาะหน้า /pet หน้าอื่นยังเป็นโทนมืดตามเดิม) */
+:root:has([data-app-theme="day"]) {
+  color-scheme: light;
+  --background: #fdf8ee;
+  --pet-page-bg: linear-gradient(180deg, #e6f6ff 0%, #fdf8ee 100%);
+  --color-bg: #fdf8ee;
+  --color-card: #ffffff;
+  --color-border: #d7e3ef;
+  --color-text: #23324a;
+  --color-text2: #44536b;
+  --color-text3: #5f6e84;
+  --color-amber: #f26a2e;
+  --color-amber-dim: #f7c9a8;
+  --color-track: #e9eef5;
+  --color-gold: #e3a02f;
+  --color-gold-dim: #f1dcb4;
+  --color-gold-hi: #a8520a;
+  --color-indigo: #4361ee;
+  --color-indigo-dim: #b3c0f6;
+  --color-indigo-hi: #2b3bb0;
+  --color-on-amber: #ffffff;
+
+  --pet-sky: linear-gradient(180deg, #8fd3ff 0%, #c9ecff 60%, #fff6d6 100%);
+  --pet-ground: #8ed36b;
+  --pet-platform: #6fbf4f;
+  --pet-platform-glow: rgba(255, 255, 255, 0.7);
+  --pet-spark: #ffffff;
+  --pet-badge-bg: rgba(255, 255, 255, 0.92);
+  --pet-badge-text: #2a7bbf;
+  --pet-evo-fill: linear-gradient(90deg, #4cc9f0, #4361ee);
+  --pet-daily-fill: linear-gradient(90deg, #ffc93c, #ff8a3d);
+  --pet-zap-bg: #ffe28a;
+  --pet-tile-adv-bg: #d9f7e8;
+  --pet-tile-adv-text: #1f6e48;
+  --pet-tile-raid-bg: #ffe3ec;
+  --pet-tile-raid-text: #b0305a;
+
+  --hero-bg: linear-gradient(135deg, #ffb238, #ff7a3d);
+  --hero-border: transparent;
+  --hero-kicker: rgba(255, 255, 255, 0.92);
+  --hero-title: #ffffff;
+  --hero-text2: #ffffff;
+  --hero-text3: rgba(255, 255, 255, 0.88);
+  --hero-cta-bg: #ffffff;
+  --hero-cta-text: #e0561d;
+  --hero-cta-shadow: #d4541c;
+  --hero-divider: rgba(255, 255, 255, 0.45);
+
+  --medal-bronze: #a8611f;
+  --medal-silver: #6f7a8a;
+  --medal-crown: #7c4ddb;
+}
+
+/* ไล่สีสูงเท่าจอเดียวแล้วต่อด้วยสีปลาย (--background) — ถ้าปล่อยให้ gradient ยืดตาม body ที่ยาวหลายจอ
+   จะเกิดรอยต่อเวลา gradient วนซ้ำ (background-attachment: fixed ใช้บน iOS Safari ไม่ได้) */
+:root:has([data-app-theme]) body {
+  background-color: var(--background);
+  background-image: var(--pet-page-bg);
+  background-repeat: no-repeat;
+  background-size: 100% 100vh;
+}
+
+/* ฉากหลัง Qmon: ท้องฟ้า + เนิน + แท่นเรืองแสง + ประกายลอย (PetCard.tsx) */
+.pet-scene {
+  background: var(--pet-sky);
+}
+.pet-scene-ground {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -64px;
+  height: 128px;
+  border-radius: 50%;
+  background: var(--pet-ground);
+}
+.pet-scene-platform {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  width: 160px;
+  height: 28px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--pet-platform);
+  box-shadow: 0 0 24px var(--pet-platform-glow);
+}
+.pet-spark {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--pet-spark);
+  box-shadow: 0 0 8px var(--pet-spark);
+  animation: pet-twinkle 2.4s ease-in-out infinite;
+}
+@keyframes pet-twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* แถบพลังหนา: ไฮไลต์เงาด้านบน + แสงวิ่งผ่าน */
+.pet-bar-fill {
+  position: relative;
+  overflow: hidden;
+}
+.pet-bar-fill::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 2px;
+  height: 30%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+.pet-bar-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+  animation: pet-bar-shine 2.4s linear infinite;
+}
+@keyframes pet-bar-shine {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-spark,
+  .pet-bar-fill::after { animation: none; }
+  .pet-spark { opacity: 0.7; }
 }

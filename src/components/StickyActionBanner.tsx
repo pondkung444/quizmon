@@ -8,6 +8,12 @@ import { useSfx } from "@/lib/audio/useSfx";
 // แถบด่วนติดบนสุดเมื่อเลื่อนผ่าน (11 ส.ค. 2026 — เปิดระบบท้าทายให้เล่นจริง) วางระหว่างการ์ด
 // weekly leaderboard กับ nameplate ใน PetCard.tsx — 2 ชิปเท่ากัน ไม่มีสถานะล็อกแล้ว (allowlist
 // เปิดให้ทุกคนแล้ว) แตะแล้วพาไปหน้าเต็มของระบบนั้นตรงๆ ไม่ใช่แค่ scroll ไปหาการ์ดเดิมที่อยู่ล่างๆ
+// ธีมแอป (2026-09): เปลี่ยนเป็นไทล์สี 2 ใบ (--pet-tile-* ใน globals.css) ทุกไทล์ต้อง min-w-0 —
+// ไม่งั้นข้อความในไทล์ไม่ยอมหด ดันทั้งหน้ากว้างเกินจอมือถือ
+const TILE = "relative flex min-w-0 items-center gap-2 rounded-2xl px-3 py-2.5 shadow-md transition active:scale-95";
+const ADVENTURE_TILE = `${TILE} bg-(--pet-tile-adv-bg) text-(--pet-tile-adv-text)`;
+const RAID_TILE = `${TILE} bg-(--pet-tile-raid-bg) text-(--pet-tile-raid-text)`;
+const TILE_ICON = "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/60 text-xl";
 export default function StickyActionBanner({
   dungeonCard,
   raidTicketCount,
@@ -17,19 +23,19 @@ export default function StickyActionBanner({
 }) {
   const sfx = useSfx();
   return (
-    <div className="sticky top-0 z-10 flex w-full gap-2 rounded-xl border border-gold-dim bg-card p-2 shadow-md">
+    <div className="sticky top-0 z-10 grid w-full grid-cols-2 gap-2 rounded-2xl bg-bg/80 p-1 backdrop-blur">
       <AdventureChip state={dungeonCard} />
       <Link
         href="/raid"
         onClick={() => sfx("tap")}
-        className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-track px-3 py-2 transition active:scale-95"
+        className={RAID_TILE}
       >
-        <span className="text-xl" aria-hidden>
+        <span className={TILE_ICON} aria-hidden>
           ⚔️
         </span>
         <span className="min-w-0 flex-1 text-left">
-          <span className="block text-[11px] font-bold text-text2">ท้าทาย</span>
-          <span className="block truncate text-xs text-text3">มีกุญแจ {raidTicketCount} ดอก</span>
+          <span className="block text-sm font-bold">ท้าทาย</span>
+          <span className="block truncate text-[11px] opacity-90">มีกุญแจ {raidTicketCount} ดอก</span>
         </span>
       </Link>
     </div>
@@ -48,14 +54,14 @@ function AdventureChip({ state }: { state: DungeonCardState }) {
     <Link
       href="/adventure"
       onClick={() => sfx("tap")}
-      className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-track px-3 py-2 transition active:scale-95"
+      className={ADVENTURE_TILE}
     >
-      <span className="text-xl" aria-hidden>
+      <span className={TILE_ICON} aria-hidden>
         🗺️
       </span>
       <span className="min-w-0 flex-1 text-left">
-        <span className="block text-[11px] font-bold text-text2">ผจญภัย</span>
-        <span className="block truncate text-xs text-text3">{statusText}</span>
+        <span className="block text-sm font-bold">ผจญภัย</span>
+        <span className="block truncate text-[11px] opacity-90">{statusText}</span>
       </span>
     </Link>
   );
@@ -75,21 +81,17 @@ function AdventureChipActive({
   return (
     <Link
       href="/adventure"
-      className={`relative flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 transition active:scale-95 ${
-        isClaimable ? "border-gold bg-amber/10" : "border-border bg-track"
-      }`}
+      className={`${ADVENTURE_TILE} ${isClaimable ? "ring-2 ring-gold" : ""}`}
     >
       {isClaimable && (
         <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red" aria-hidden />
       )}
-      <span className="text-xl" aria-hidden>
+      <span className={TILE_ICON} aria-hidden>
         🗺️
       </span>
       <span className="min-w-0 flex-1 text-left">
-        <span className={`block text-[11px] font-bold ${isClaimable ? "text-gold-hi" : "text-text2"}`}>
-          ผจญภัย
-        </span>
-        <span className={`block truncate text-xs ${isClaimable ? "text-gold-hi" : "text-text3"}`}>
+        <span className="block text-sm font-bold">ผจญภัย</span>
+        <span className={`block truncate text-[11px] ${isClaimable ? "font-bold" : "opacity-90"}`}>
           {isClaimable ? "เก็บรางวัลได้แล้ว!" : `กำลังเดินทาง ${formatCountdown(remainingMs)}`}
         </span>
       </span>

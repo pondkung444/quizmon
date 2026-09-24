@@ -8,6 +8,7 @@ import {
 } from "@/lib/pvp";
 import { getUserRaidGearItems } from "@/lib/raid";
 import AcceptChallengeClient from "./AcceptChallengeClient";
+import AppThemeMarker from "@/components/AppThemeMarker";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,16 @@ export default async function AcceptPvpChallengePage({
   ]);
   if (pets.length === 0) redirect("/pet");
 
+  // ธีมแอปวางทีละหน้า (ไม่ใช่ pvp/layout.tsx) เพราะจอต่อสู้ /pvp/[matchId] ต้องคงโทนเดิม
   return (
-    <AcceptChallengeClient
-      challenge={challenge}
-      pets={pets}
-      gearItems={gearItems}
-      lockedPetIds={lockedPetIds}
-    />
+    <>
+      <AppThemeMarker />
+      <AcceptChallengeClient
+        challenge={challenge}
+        pets={pets}
+        gearItems={gearItems}
+        lockedPetIds={lockedPetIds}
+      />
+    </>
   );
 }

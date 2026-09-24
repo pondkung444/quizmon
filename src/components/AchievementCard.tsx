@@ -19,10 +19,10 @@ export type AchievementCardData = {
 
 // ระดับเหรียญไม่มีโทนสีสำเร็จรูปในธีมเดิม (gold/indigo ถูกจองไว้ใช้ที่อื่นแล้ว) — กำหนดสีเฉพาะจุดนี้
 const TIER_STYLE: Record<AchievementTier, { textClass: string; borderClass: string; Icon: typeof Crown }> = {
-  Bronze: { textClass: "text-[#cd7f32]", borderClass: "border-[#cd7f32]/50", Icon: Medal },
-  Silver: { textClass: "text-[#b9c2cf]", borderClass: "border-[#b9c2cf]/50", Icon: Medal },
+  Bronze: { textClass: "text-(--medal-bronze)", borderClass: "border-(--medal-bronze)/50", Icon: Medal },
+  Silver: { textClass: "text-(--medal-silver)", borderClass: "border-(--medal-silver)/50", Icon: Medal },
   Gold: { textClass: "text-gold-hi", borderClass: "border-gold/60", Icon: Medal },
-  Crown: { textClass: "text-[#c7a6f7]", borderClass: "border-[#c7a6f7]/50", Icon: Crown },
+  Crown: { textClass: "text-(--medal-crown)", borderClass: "border-(--medal-crown)/50", Icon: Crown },
 };
 
 export default function AchievementCard({ data }: { data: AchievementCardData }) {

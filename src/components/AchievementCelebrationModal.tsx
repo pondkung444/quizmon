@@ -99,7 +99,7 @@ export default function AchievementCelebrationModal({ items }: { items: Celebrat
           type="button"
           onClick={handleClose}
           disabled={closing}
-          className="w-full flex-none rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="w-full flex-none rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {closing ? "กำลังบันทึก..." : "เยี่ยมมาก!"}
         </button>

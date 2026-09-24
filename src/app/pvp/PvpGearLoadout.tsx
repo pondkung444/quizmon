@@ -10,7 +10,7 @@ import type { PvpPetStats } from "@/lib/pvp/stats";
 import { pvpGearBonus, type PvpGearStatKey } from "@/lib/pvp/gear";
 
 const SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
-const EMPTY_ICON_COLOR = "#3a3d47";
+const EMPTY_ICON_COLOR = "var(--color-border)"; // ตามธีมแอป
 const STAT_ROWS: Array<{ key: PvpGearStatKey; label: string }> = [
   { key: "hp", label: "HP" },
   { key: "atk", label: "ตี" },

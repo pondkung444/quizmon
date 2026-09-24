@@ -62,7 +62,7 @@ export default function RaidLevelSelect({
               </div>
 
               {level.cleared && level.unlocked && (
-                <div className="absolute right-3 top-3 rounded-full bg-amber px-2 py-1 text-xs font-bold text-track">
+                <div className="absolute right-3 top-3 rounded-full bg-amber px-2 py-1 text-xs font-bold text-on-amber">
                   ผ่านแล้ว
                 </div>
               )}

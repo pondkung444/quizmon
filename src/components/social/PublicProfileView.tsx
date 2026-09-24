@@ -15,10 +15,10 @@ import type { PublicProfileResult } from "@/lib/publicProfile";
 
 // สีขอบตามระดับเหรียญ — คัดลอกจาก MyProfileTab.tsx (ตั้งใจไม่ export มาใช้ร่วม เหตุผลเดียวกับที่นั่น)
 const MEDAL_TIER_BORDER: Record<string, string> = {
-  Bronze: "border-[#cd7f32]/60",
-  Silver: "border-[#b9c2cf]/60",
+  Bronze: "border-(--medal-bronze)/60",
+  Silver: "border-(--medal-silver)/60",
   Gold: "border-gold/70",
-  Crown: "border-[#c7a6f7]/60",
+  Crown: "border-(--medal-crown)/60",
 };
 
 // self/friends redirect ฝั่ง server component ก่อนถึงตรงนี้แล้ว (page.tsx) — เหลือแค่ 4 สถานะ
@@ -101,7 +101,7 @@ export default function PublicProfileView({
               type="button"
               disabled={isSending}
               onClick={handleSend}
-              className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+              className="min-h-11 flex-none rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
             >
               {isSending ? "กำลังส่ง..." : "เพิ่มเพื่อน"}
             </button>

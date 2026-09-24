@@ -51,7 +51,7 @@ export default function WeeklyRewardCelebration() {
         <button
           type="button"
           onClick={() => setReveal(null)}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
         >
           เย้! ไปดูคลังไข่
         </button>

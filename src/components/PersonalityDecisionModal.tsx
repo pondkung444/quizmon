@@ -172,7 +172,7 @@ export default function PersonalityDecisionModal({ onClose }: { onClose: () => v
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+              className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
             >
               ไปเลี้ยง Qmon ต่อ
             </button>
@@ -188,7 +188,7 @@ export default function PersonalityDecisionModal({ onClose }: { onClose: () => v
                 <button
                   type="button"
                   onClick={() => submit(lastChoice, context)}
-                  className="w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-track transition active:scale-95"
+                  className="w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-on-amber transition active:scale-95"
                 >
                   ลองอีกครั้ง
                 </button>

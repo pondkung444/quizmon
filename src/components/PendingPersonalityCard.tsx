@@ -25,7 +25,7 @@ export default function PendingPersonalityCard() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+        className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
       >
         กลับไปตอบคำถาม
       </button>

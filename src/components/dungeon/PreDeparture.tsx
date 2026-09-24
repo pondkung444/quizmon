@@ -160,7 +160,7 @@ export default function PreDeparture({
           type="button"
           disabled={!selectedPetId || isSending}
           onClick={handleDepart}
-          className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="w-full max-w-xs rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isSending ? "กำลังออกเดินทาง..." : "ออกเดินทาง"}
         </button>

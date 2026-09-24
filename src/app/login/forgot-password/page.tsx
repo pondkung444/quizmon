@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
+              className="rounded-full border border-gold bg-amber py-2 font-medium text-on-amber transition hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "กำลังดำเนินการ..." : "ส่งลิงก์ตั้งรหัสผ่านใหม่"}
             </button>

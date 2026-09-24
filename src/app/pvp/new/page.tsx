@@ -9,6 +9,7 @@ import {
 } from "@/lib/pvp";
 import { getUserRaidGearItems } from "@/lib/raid";
 import NewChallengeClient from "./NewChallengeClient";
+import AppThemeMarker from "@/components/AppThemeMarker";
 
 export const dynamic = "force-dynamic";
 
@@ -27,13 +28,17 @@ export default async function NewPvpChallengePage() {
   // ไม่มี Qmon เลยสักตัว -> กลับหน้าบ้าน (ประลองไม่ได้อยู่ดี)
   if (pets.length === 0) redirect("/pet");
 
+  // ธีมแอปวางทีละหน้า (ไม่ใช่ pvp/layout.tsx) เพราะจอต่อสู้ /pvp/[matchId] ต้องคงโทนเดิม
   return (
-    <NewChallengeClient
-      friends={friends}
-      pets={pets}
-      ticketBalance={ticketBalance}
-      gearItems={gearItems}
-      lockedPetIds={lockedPetIds}
-    />
+    <>
+      <AppThemeMarker />
+      <NewChallengeClient
+        friends={friends}
+        pets={pets}
+        ticketBalance={ticketBalance}
+        gearItems={gearItems}
+        lockedPetIds={lockedPetIds}
+      />
+    </>
   );
 }

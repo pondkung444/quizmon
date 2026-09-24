@@ -47,7 +47,7 @@ export default function HardestLessonsCard({
               type="button"
               onClick={() => setBand(value)}
               className={`px-3 py-1.5 text-xs font-medium transition ${
-                band === value ? "bg-amber text-track" : "bg-track text-text3"
+                band === value ? "bg-amber text-on-amber" : "bg-track text-text3"
               }`}
             >
               {label}

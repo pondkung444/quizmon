@@ -4,6 +4,9 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions";
 import NotificationSettings from "@/components/settings/NotificationSettings";
 import SoundSettings from "@/components/settings/SoundSettings";
+import AppThemeSettings from "@/components/settings/AppThemeSettings";
+import { cookies } from "next/headers";
+import { APP_THEME_COOKIE, parseAppTheme } from "@/lib/appTheme";
 import FeedbackRow from "@/components/settings/FeedbackRow";
 import GuestLinkAccountRow from "@/components/settings/GuestLinkAccountRow";
 import packageJson from "../../../package.json";
@@ -12,6 +15,7 @@ export default async function SettingsPage() {
   const user = await getUser();
   const supabase = await createClient();
   const isAnonymous = user?.is_anonymous === true;
+  const appTheme = parseAppTheme((await cookies()).get(APP_THEME_COOKIE)?.value);
 
   // push_preferences ควรมีเสมอ (backfill + trigger handle_new_user ครอบคลุมแล้ว)
   // แต่กัน edge case ไว้ด้วยค่า default ปลอดภัยถ้าหาไม่เจอจริงๆ
@@ -46,6 +50,8 @@ export default async function SettingsPage() {
           social_enabled: prefs?.social_enabled ?? true,
         }}
       />
+
+      <AppThemeSettings initial={appTheme} />
 
       <SoundSettings />
 

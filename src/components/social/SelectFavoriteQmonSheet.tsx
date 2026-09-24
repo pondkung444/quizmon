@@ -81,7 +81,7 @@ export default function SelectFavoriteQmonSheet({
               </div>
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold ${
-                  isSelected ? "border-gold bg-amber text-track" : "border-gold-dim text-transparent"
+                  isSelected ? "border-gold bg-amber text-on-amber" : "border-gold-dim text-transparent"
                 }`}
               >
                 ✓
@@ -97,7 +97,7 @@ export default function SelectFavoriteQmonSheet({
         type="button"
         disabled={isPending}
         onClick={handleSave}
-        className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+        className="mt-4 w-full rounded-2xl border border-gold bg-amber py-3 text-base font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
       >
         {isPending ? "กำลังบันทึก..." : "บันทึก"}
       </button>

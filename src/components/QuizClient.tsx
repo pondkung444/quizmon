@@ -720,7 +720,7 @@ export default function QuizClient({
                 <button
                   type="button"
                   onClick={() => router.push("/pet")}
-                  className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-track"
+                  className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber"
                 >
                   ออก
                 </button>
@@ -803,7 +803,7 @@ export default function QuizClient({
             type="button"
             onClick={handleNext}
             disabled={isPending || arrived}
-            className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {isPending ? "ถึงปลายทางแล้ว · กำลังบันทึก..." : isLastQuestion ? "ถึงปลายทาง · ดูสรุป" : "ไปต่อ →"}
           </button>
@@ -985,7 +985,7 @@ export default function QuizClient({
       {missedQuestions.length > 0 && <div className="rounded-3xl border border-border bg-track/50 p-5 text-left">
         <p className="font-sarabun text-lg font-bold text-text">แนะนำก่อนจบรอบ</p>
         <p className="mt-1 text-sm leading-relaxed text-text2">ทบทวนข้อที่พลาด {missedQuestions.length} ข้อ ใช้เวลาไม่นาน และไม่บันทึกคำตอบหรือให้ EXP ซ้ำ</p>
-        <button type="button" onClick={() => setPhase("review")} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-track shadow-lg active:scale-95">
+        <button type="button" onClick={() => setPhase("review")} className="mt-4 min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 font-bold text-on-amber shadow-lg active:scale-95">
           ทบทวนสั้น {missedQuestions.length} ข้อ
         </button>
       </div>}
@@ -994,7 +994,7 @@ export default function QuizClient({
         <button
           type="button"
           onClick={handlePlayAgain}
-          className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-track shadow-lg transition active:scale-95"
+          className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
         >
           เล่นอีกรอบ
         </button>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { BarChart3, DoorOpen, Settings } from "lucide-react";
+import { BarChart3, CalendarDays, DoorOpen, Settings } from "lucide-react";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -12,7 +12,7 @@ import SpeechBubble from "@/components/SpeechBubble";
 import QmonChatBubble from "@/components/QmonChatBubble";
 import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
-import { getEvolutionProgress } from "@/lib/evolution";
+import { getEvolutionProgress, STAGE_LABEL_TH } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
 import { useSfx } from "@/lib/audio/useSfx";
 import WeeklyJourneyCard from "@/components/WeeklyJourneyCard";
@@ -32,6 +32,16 @@ import StickyActionBanner from "@/components/StickyActionBanner";
 import HomeNextAction from "@/components/HomeNextAction";
 import QmonGrowthGuide from "@/components/QmonGrowthGuide";
 import { resolveNextAction } from "@/lib/nextAction";
+
+// ประกายในฉาก Qmon — ตำแหน่งตายตัว (ไม่สุ่ม กัน hydration mismatch ระหว่าง server/client)
+const SCENE_SPARKS = [
+  { left: "14%", top: "30%", size: 6, delay: "0s" },
+  { left: "82%", top: "46%", size: 6, delay: "0.6s" },
+  { left: "28%", top: "62%", size: 4, delay: "1.2s" },
+  { left: "70%", top: "24%", size: 4, delay: "1.8s" },
+  { left: "8%", top: "54%", size: 5, delay: "0.9s" },
+  { left: "90%", top: "70%", size: 4, delay: "1.5s" },
+];
 
 
 export default function PetCard({
@@ -176,37 +186,55 @@ export default function PetCard({
     return 0;
   });
 
+  const displayName = nickname ?? speciesName ?? stageName;
+  // ชิปหัวการ์ด: นับวันที่ได้ EXP จริงในสัปดาห์นี้ (ข้อมูลเดียวกับ WeeklyJourneyCard) — ไม่ใช่ streak ข้ามสัปดาห์
+  const daysPlayedThisWeek = journeyDays.filter((d) => !d.isFuture && d.expEarned > 0).length;
+
+  // ธีมหน้า /pet (2026-09): เลิกเป็นการ์ดใหญ่ใบเดียว เปลี่ยนเป็นบล็อกแยก โดยให้ Qmon ในฉากเป็นสิ่งแรก
+  // ที่เห็น ตามด้วยแถบวิวัฒนาการ → CTA หลัก (HomeNextAction) ยังอยู่ใน fold แรกบนจอ 667px
+  // สีทุกชิ้นมาจาก token ที่ธีมสลับให้ (globals.css [data-app-theme])
   return (
-    <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-5 text-center">
-      {/* 1. weekly journey — แถบสรุปสีบางๆ เท่านั้น (รายละเอียดเต็มดูที่ /pet/calendar) กดเข้าได้ */}
-      <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
-
-      {/* 1.5 weekly leaderboard — ทดลอง (2026-07) collapsed แถวเดียว กดขยาย Top 5 in-place อยู่ใต้
-          journey strip ทันที เหนือ nameplate/avatar ของ pet card หลัก ดู WeeklyLeaderboardCard.tsx */}
-      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
-
-      {/* 1.6 แถบด่วนผจญภัย/ท้าทาย — sticky ค้างบนสุดตอนเลื่อนผ่าน (11 ส.ค. 2026 เปิดระบบท้าทาย)
-          ดู StickyActionBanner.tsx */}
-      {(dungeonCard.status !== "invite" || isMaxStage) && (
-        <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
-      )}
-
-      {/* 2. nameplate — เปลี่ยนจากทรงเพชร (หมุน 45°) เป็นแคปซูล/pill (ux pass 2026-07 รอบ 3)
-          เหตุผล: เพชรใช้พื้นที่แนวตั้งไม่คุ้ม (มุมทั้ง 4 เสียเปล่า ต้องสูงถึง 64px เพื่อใส่ข้อความ
-          บรรทัดเดียวที่จริงสูงแค่ ~14px) พอเปลี่ยนเป็น pill เหลือแค่ ~36px — ได้พื้นที่คืนอีก ~24-28px
-          ช่วยลด scroll เคส mission-active ที่ยังเหลืออยู่ ไม่ต้องมี whitespace-nowrap hack กันตัดมุม
-          อีกต่อไปเพราะไม่มีมุมให้ตัดแล้ว — เปลี่ยนพร้อมกันทั้ง CollectedPetCard.tsx (/collection) ด้วย
-          เพื่อความสม่ำเสมอ ตามที่ปอนด์เลือก (ทางเลือกที่ 2 จาก 3 ตัวเลือกที่เสนอไป) */}
-      <div className="flex h-9 items-center justify-center rounded-full border-2 border-gold bg-track px-4">
-        <span className="font-sarabun whitespace-nowrap text-xs font-bold text-gold-hi">
-          {nickname ?? speciesName ?? stageName}
-        </span>
+    <div className="flex w-full flex-col items-center gap-3 text-center">
+      {/* 1. หัว: ชื่อ + ระยะ + ชิปสัปดาห์ (กดไปปฏิทินเต็ม) */}
+      <div className="flex w-full items-center justify-between gap-2">
+        <div className="min-w-0 text-left">
+          <h2 className="font-sarabun truncate text-lg font-bold leading-tight text-text">{displayName}</h2>
+          <p className="text-xs text-text3">
+            ระยะ {stage} · {stageName}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push("/pet/calendar")}
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-gold-dim bg-card px-3 text-xs font-bold text-gold-hi shadow-sm transition active:scale-95"
+        >
+          <CalendarDays size={14} aria-hidden />
+          {daysPlayedThisWeek > 0 ? `สัปดาห์นี้เล่น ${daysPlayedThisWeek} วัน` : "ดูสัปดาห์นี้"}
+        </button>
       </div>
 
-      {/* 3. avatar (click to expand) — ห่อด้วย wrapper "relative" แยกจากปุ่ม avatar เอง เพื่อวาง
-          QmonChatBubble เป็น badge ติดมุมล่างขวาของกรอบนี้ (ต้องเป็น sibling ของปุ่ม ไม่ใช่ลูกของมัน
-          เพราะ QmonChatBubble มี <button> ของตัวเอง — ปุ่มซ้อนปุ่มผิด HTML ทำให้ hydration พัง) */}
-      <div className="relative">
+      {/* 2. ฉาก Qmon: ท้องฟ้า + เนิน + แท่นเรืองแสง + ประกาย (.pet-scene* ใน globals.css)
+          แตะน้อง = เด้ง + ข้อความตามบุคลิก + (stage 4) กางพลังประจำตัวด้านล่าง เหมือนเดิม
+          QmonChatBubble ต้องเป็น sibling ของปุ่มน้อง ไม่ใช่ลูก (ปุ่มซ้อนปุ่มทำ hydration พัง) */}
+      <div className="pet-scene relative h-[248px] w-full overflow-hidden rounded-3xl shadow-lg">
+        <span className="pet-scene-ground" aria-hidden />
+        <span className="pet-scene-platform" aria-hidden />
+        {SCENE_SPARKS.map((s, i) => (
+          <span
+            key={i}
+            className="pet-spark"
+            aria-hidden
+            style={{ left: s.left, top: s.top, width: s.size, height: s.size, animationDelay: s.delay }}
+          />
+        ))}
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-(--pet-badge-bg) px-2.5 py-1 text-[11px] font-bold text-(--pet-badge-text) shadow-sm">
+          ⭐ ระยะ {stage}
+        </span>
+        {personalityMessage && (
+          <div className="absolute right-3 top-3 z-20 text-left">
+            <SpeechBubble message={personalityMessage} />
+          </div>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -214,19 +242,10 @@ export default function PetCard({
             setTapPulse((n) => n + 1);
             triggerPersonalityEvent("tapQmon");
           }}
-          className="relative flex h-[220px] w-[220px] items-center justify-center"
+          className="absolute inset-x-0 bottom-[26px] mx-auto flex h-[190px] w-[200px] items-end justify-center"
           aria-expanded={expanded}
+          aria-label={`แตะ ${displayName}`}
         >
-          {personalityMessage && (
-            <div className="absolute -top-2 z-10 -translate-y-full">
-              <SpeechBubble message={personalityMessage} />
-            </div>
-          )}
-          <span className="absolute h-[200px] w-[200px] rounded-full bg-amber opacity-20 blur-2xl" />
-          <svg viewBox="0 0 200 200" className="absolute h-[190px] w-[190px] animate-spin-slow opacity-40">
-            <circle cx="100" cy="100" r="90" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="4 10" />
-            <circle cx="100" cy="100" r="72" fill="none" stroke="var(--color-gold)" strokeWidth={1} strokeDasharray="1 8" />
-          </svg>
           <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
             <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
               {petImagePath ? (
@@ -252,44 +271,41 @@ export default function PetCard({
             </div>
           </div>
         </button>
-        <QmonChatBubble />
+        <div className="absolute bottom-4 right-4 h-12 w-12">
+          <QmonChatBubble />
+        </div>
       </div>
 
-      <HomeNextAction
-        action={nextAction}
-        learnerState="active_pet"
-        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
-      />
-
-      {/* Hero ด้านบนเป็น CTA หลักเพียงจุดเดียว ส่วน control ที่ต้องทำงานในหน้าเดิม
-          (เก็บ Qmon) และ mission chip ที่จบแล้วคงไว้เป็นสถานะรอง ไม่แย่งลำดับการตัดสินใจ */}
-      {isMaxStage ? (
-        <div id="collect-qmon" className="w-full scroll-mt-24"><CollectPetButton eggChoices={eggChoices} /></div>
-      ) : !missionActive ? (
-        <MissionCard mission={mission} subline={subline} />
-      ) : null}
-
-      {/* ── จบ fold แรกที่ตั้งใจ (journey strip -> nameplate -> avatar -> CTA) ── */}
-
-      {/* 5. exp -> next stage — segmented bar, 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน)
-          label บรรทัดแรกรวมข้อความ "ระยะ N · ชื่อระยะ" ที่เคยเป็นบล็อกแยกใต้ nameplate เข้ามาด้วย
-          (ตัด stageDescription ทิ้ง — เป็น flavor text ซ้ำความหมายกับชื่อระยะ ไม่ใช่ข้อมูลที่ต้องรู้) */}
-      <div className="w-full max-w-xs">
-        <p className="mb-1 text-left text-xs text-text2">
-          พลังวิวัฒนาการ · ระยะ {stage}: {stageName}
-        </p>
-        <div className="flex gap-1">
+      {/* 3. แถบวิวัฒนาการ — segmented 1 ช่อง = 1 ระยะ (ดู evolutionSegments ด้านบน) หนาขึ้น + ไล่สี +
+          แสงวิ่งเฉพาะช่องระยะปัจจุบัน + ชื่อระยะใต้แต่ละช่อง */}
+      <div className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm">
+        <div className="flex items-baseline justify-between gap-2 text-xs">
+          <span className="font-bold text-text">✨ พลังวิวัฒนาการ</span>
+          <span className="text-text3">
+            {nextThreshold !== undefined
+              ? `อีก ${Math.max(0, nextThreshold - exp)} แต้มจะโต!`
+              : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
+          </span>
+        </div>
+        <div className="mt-2 flex gap-1">
           {evolutionSegments.map((fill, i) => (
-            <div key={i} className="h-2.5 flex-1 overflow-hidden rounded-full bg-track">
-              <div className="h-full bg-indigo transition-all" style={{ width: `${fill * 100}%` }} />
+            <div key={i} className="h-4 flex-1 overflow-hidden rounded-full bg-track">
+              {fill > 0 && (
+                <div
+                  className={`h-full rounded-full bg-(image:--pet-evo-fill) transition-all ${i + 1 === stage ? "pet-bar-fill" : ""}`}
+                  style={{ width: `${fill * 100}%` }}
+                />
+              )}
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-text3">
-          {nextThreshold !== undefined
-            ? `อีก ${Math.max(0, nextThreshold - exp)} แต้ม จะโตเป็นระยะถัดไป`
-            : "โตเต็มที่แล้ว! เก่งมาก 🎉"}
-        </p>
+        <div className="mt-1 grid grid-cols-4 gap-1 text-center text-[10px]">
+          {[1, 2, 3, 4].map((s) => (
+            <span key={s} className={s === stage ? "font-bold text-text" : "text-text3"}>
+              {STAGE_LABEL_TH[s].name}
+            </span>
+          ))}
+        </div>
         <QmonGrowthGuide
           stage={stage}
           exp={exp}
@@ -298,15 +314,44 @@ export default function PetCard({
         />
       </div>
 
-      {/* 6. daily training bar */}
-      <div className="w-full max-w-xs">
-        <p className="mb-1 text-left text-xs text-text2">พลังวันนี้</p>
-        <div className="h-3 w-full overflow-hidden rounded-full bg-track">
-          <div className="h-full bg-amber transition-all" style={{ width: `${dailyProgress * 100}%` }} />
+      {/* 4. CTA หลักเพียงจุดเดียว (สีสดที่สุดของหน้า ดู --hero-* ใน globals.css) */}
+      <HomeNextAction
+        action={nextAction}
+        learnerState="active_pet"
+        advancedActivitiesUnlocked={dungeonCard.status !== "invite" || isMaxStage}
+      />
+
+      {/* control ที่ต้องทำงานในหน้าเดิม (เก็บ Qmon) และ mission chip ที่จบแล้วคงไว้เป็นสถานะรอง */}
+      {isMaxStage ? (
+        <div id="collect-qmon" className="w-full scroll-mt-24"><CollectPetButton eggChoices={eggChoices} /></div>
+      ) : !missionActive ? (
+        <MissionCard mission={mission} subline={subline} />
+      ) : null}
+
+      {/* 5. พลังวันนี้ */}
+      <div className="w-full rounded-2xl border border-border bg-card p-3 text-left shadow-sm">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-(--pet-zap-bg) text-lg" aria-hidden>
+            ⚡
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="font-bold text-text">พลังวันนี้</span>
+              <span className="text-text3">
+                {Math.min(expToday, dailyCap)} / {dailyCap} แต้ม
+              </span>
+            </div>
+            <div className="mt-1.5 h-3.5 w-full overflow-hidden rounded-full bg-track">
+              {dailyProgress > 0 && (
+                <div
+                  className="pet-bar-fill h-full rounded-full bg-(image:--pet-daily-fill) transition-all"
+                  style={{ width: `${dailyProgress * 100}%` }}
+                />
+              )}
+            </div>
+            {expToday <= 0 && <p className="mt-1 text-[11px] text-text3">ตอบคำถามเพื่อเติมพลังให้น้องวันนี้</p>}
+          </div>
         </div>
-        <p className="mt-2 text-xs text-text3">
-          {Math.min(expToday, dailyCap)} / {dailyCap} แต้ม
-        </p>
         {cappedToday && (
           <p className="mt-2 rounded-xl border border-amber-dim bg-amber/10 p-2 text-xs text-amber">
             น้องอิ่มความรู้แล้ววันนี้ พรุ่งนี้มาฝึกต่อนะ
@@ -316,43 +361,49 @@ export default function PetCard({
 
       {/* ของรองด้านล่างนี้ไม่ต้องตัดสินใจอะไรวันนี้ ไม่จำเป็นต้องอยู่บนสุด: */}
 
+      {/* 6. ไทล์ผจญภัย/ท้าทาย — sticky ค้างบนสุดตอนเลื่อนผ่าน ดู StickyActionBanner.tsx */}
+      {(dungeonCard.status !== "invite" || isMaxStage) && (
+        <StickyActionBanner dungeonCard={dungeonCard} raidTicketCount={raidTicketCount} />
+      )}
+
       {/* 6.6 ป้อนอาหาร — เฉพาะก่อน stage 4 และเฉพาะตอนมีอาหารในคลังจริง (กัน dead-end กดเข้าไป
           แล้วเจอ "มี 0 ชิ้น" — หลักเดียวกับ mission chip: สถานะที่ไม่รอ action ไม่ควรกินที่) */}
       {!isMaxStage && foodA + foodB > 0 && (
         <FeedPetCard petId={petId} initialFoodA={foodA} initialFoodB={foodB} />
       )}
 
-      {/* 6.65 การ์ดผจญภัย — ใต้บล็อกป้อนอาหาร (ux pass 2026-08) ดู DungeonAdventureCard.tsx
-          สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
+      {/* 6.65 การ์ดผจญภัย — ดู DungeonAdventureCard.tsx สำหรับ 4 สถานะ (invite/ready/traveling/claimable) */}
       {(dungeonCard.status === "traveling" || dungeonCard.status === "claimable") && (
         <DungeonAdventureCard state={dungeonCard} />
       )}
 
-      {/* 6.7 ปุ่มเปิดสถิติแยกบท — ขยาย touch target เป็น 44px + ใส่ label (เดิม 32px icon ล้วน
-          ต่ำกว่ามาตรฐาน touch target และไม่มีคำกำกับ ซึ่งไม่เหมาะกับกลุ่มเป้าหมายเด็ก)
-          "ขอแรงใจ" ย้ายออกจากแถวนี้ไปเป็น floating chat bubble แล้ว (ดู QmonChatBubble.tsx —
-          จับคู่ผิดกลุ่มกับปุ่ม "สถิติ" ที่เป็น data view ไม่ใช่การคุยกับสัตว์เลี้ยง) */}
-      <div className="flex flex-wrap gap-2">
+      {/* 7. สรุปสัปดาห์ + อันดับ — ย้ายลงมาจากบนสุด (ธีม 2026-09) ให้ Qmon เป็นสิ่งแรกที่เห็น
+          journey strip กดเข้า /pet/calendar ได้เหมือนเดิม (ชิปหัวการ์ดก็พาไปที่เดียวกัน) */}
+      <WeeklyJourneyCard days={journeyDays} onClick={() => router.push("/pet/calendar")} />
+      <WeeklyLeaderboardCard myWeeklyRank={myWeeklyRank} gradeBand={gradeBand} />
+
+      {/* 8. ปุ่มรอง — touch target 44px + label (กลุ่มเป้าหมายเด็ก) */}
+      <div className="flex flex-wrap justify-center gap-2">
         <button
           type="button"
           onClick={() => setShowTopicStats(true)}
-          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
         >
-          <BarChart3 size={18} />
+          <BarChart3 size={18} className="text-indigo" />
           สถิติ
         </button>
         <Link
           href="/classroom/join"
-          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
         >
-          <DoorOpen size={18} />
+          <DoorOpen size={18} className="text-amber" />
           เข้าห้อง
         </Link>
         <Link
           href="/settings"
-          className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
+          className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-medium text-text2 shadow-sm transition active:scale-95"
         >
-          <Settings size={18} />
+          <Settings size={18} className="text-text3" />
           ตั้งค่า
         </Link>
       </div>
@@ -364,9 +415,9 @@ export default function PetCard({
         />
       )}
 
-      {/* 7. expandable detail */}
+      {/* 9. expandable detail */}
       {expanded && isMaxStage && hasFullStats && (
-        <div className="flex w-full flex-col items-center gap-4 border-t border-border pt-5">
+        <div className="flex w-full flex-col items-center gap-4 rounded-2xl border border-border bg-card p-4">
           <div>
             <h2 className="text-sm font-bold text-gold-hi">พลังประจำตัว</h2>
             <p className="text-xs text-text3">พลังพวกนี้จะได้ใช้จริงตอนเก็บเข้าฟาร์มแล้ว — ไปผจญภัยและท้าทายด่านต่างๆ ได้เลย</p>

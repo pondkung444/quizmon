@@ -283,7 +283,10 @@ export default async function PetPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    // w-full: body เป็น flex-col + mx-auto ทำให้ <main> หดเท่า min-content ของลูก ถ้าไม่ใส่ ลูกที่ไม่ยอมหด
+    // (เช่นแถบผจญภัย/ท้าทาย) ดัน <main> กว้างเกินจอมือถือ 375px ได้ (เคยล้นเป็น 404px)
+    // ธีมสี (dusk/day) มาจาก <AppThemeMarker /> ใน pet/layout.tsx
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
           มุมบน เพราะ StickyActionBanner ของ PetCard กิน sticky top-0 เต็มความกว้าง ชนทั้งสองมุมบน
           ตอนเลื่อน ส่วนมุมล่างขวาว่างสนิท */}

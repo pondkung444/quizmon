@@ -204,7 +204,7 @@ export default function PetCalendarClient({
       <button
         type="button"
         onClick={() => router.push("/pet")}
-        className="mt-6 flex h-12 w-full items-center justify-center rounded-2xl border border-gold bg-amber text-lg font-bold text-track shadow-lg transition active:scale-95"
+        className="mt-6 flex h-12 w-full items-center justify-center rounded-2xl border border-gold bg-amber text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
       >
         กลับไปหน้า Qmon
       </button>

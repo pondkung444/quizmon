@@ -83,7 +83,7 @@ export default function MissionCard({
       <button
         type="button"
         onClick={goToMission}
-        className="mt-2 w-full rounded-2xl border border-gold bg-amber py-2.5 text-lg font-bold text-track shadow-lg transition active:scale-95"
+        className="mt-2 w-full rounded-2xl border border-gold bg-amber py-2.5 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
       >
         {started ? `ฝึกต่อ (${answeredCount}/${target})` : "เริ่มภารกิจ"}
       </button>

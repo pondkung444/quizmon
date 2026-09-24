@@ -72,7 +72,7 @@ export default function EggChoiceModal({
           type="button"
           disabled={!selectedId || isPending}
           onClick={() => selectedId && onConfirm(selectedId)}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isPending ? "กำลังยืนยัน..." : "ยืนยันไข่ใบนี้"}
         </button>

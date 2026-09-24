@@ -61,7 +61,7 @@ export default function HatchNamingModal({
           type="button"
           disabled={!canConfirm}
           onClick={() => canConfirm && onConfirm(trimmed)}
-          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="w-full rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {isPending ? "กำลังฟัก..." : "ฟักไข่"}
         </button>

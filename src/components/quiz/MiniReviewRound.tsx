@@ -62,7 +62,7 @@ export default function MiniReviewRound({ questions, onDone }: { questions: Quiz
         <strong className="text-gold-hi">เหตุผล</strong>
         <p className="mt-1">{feedback.explanation || "คำตอบที่ถูกคือ " + current.choices[feedback.correctIndex]}</p>
       </div>
-      <button type="button" onClick={next} className="min-h-12 rounded-2xl border border-gold bg-amber px-4 text-lg font-bold text-track shadow-lg active:scale-95">
+      <button type="button" onClick={next} className="min-h-12 rounded-2xl border border-gold bg-amber px-4 text-lg font-bold text-on-amber shadow-lg active:scale-95">
         {index + 1 >= questions.length ? "กลับไปดูสรุป" : "ข้อทบทวนถัดไป →"}
       </button>
     </div>}

@@ -51,7 +51,7 @@ export default function EncouragementsView({ received }: { received: ReceivedEnc
           <p className="text-sm text-text3">กำลังใจจากเพื่อนจะมาปรากฏตรงนี้</p>
           <Link
             href="/social?tab=friends"
-            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95"
           >
             ดูรายชื่อเพื่อน
           </Link>

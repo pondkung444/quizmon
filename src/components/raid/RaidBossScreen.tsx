@@ -331,7 +331,7 @@ export default function RaidBossScreen({
                 <button
                   type="button"
                   onClick={handleRetryClick}
-                  className="w-full max-w-sm rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95"
+                  className="w-full max-w-sm rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95"
                 >
                   ลองใหม่
                 </button>
@@ -347,7 +347,7 @@ export default function RaidBossScreen({
               type="button"
               disabled={isAdvancing}
               onClick={handleCtaClick}
-              className="w-full max-w-sm rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+              className="w-full max-w-sm rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
             >
               {isAdvancing ? "กำลังไปต่อ..." : ctaLabel}
             </button>
@@ -427,7 +427,7 @@ export default function RaidBossScreen({
                 <strong className="text-gold-hi">เหตุผล</strong>
                 <p className="mt-1">{result.explanation || `คำตอบที่ถูกคือ ${sheetQuestion.choices[result.correctIndex]}`}</p>
               </div>
-              <button type="button" onClick={handleFeedbackContinue} className="min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 text-lg font-bold text-track shadow-lg active:scale-95">
+              <button type="button" onClick={handleFeedbackContinue} className="min-h-12 w-full rounded-2xl border border-gold bg-amber px-4 text-lg font-bold text-on-amber shadow-lg active:scale-95">
                 ดูผลการโจมตี →
               </button>
             </div>}

@@ -113,7 +113,7 @@ export default function RankingTabView({
           type="button"
           onClick={() => handleScopeChange("all")}
           className={`min-h-9 rounded-full px-4 text-xs font-bold transition ${
-            scope === "all" ? "bg-amber text-track" : "border border-gold-dim text-text3"
+            scope === "all" ? "bg-amber text-on-amber" : "border border-gold-dim text-text3"
           }`}
         >
           ทั้งหมด
@@ -122,7 +122,7 @@ export default function RankingTabView({
           type="button"
           onClick={() => handleScopeChange("friends")}
           className={`min-h-9 rounded-full px-4 text-xs font-bold transition ${
-            scope === "friends" ? "bg-amber text-track" : "border border-gold-dim text-text3"
+            scope === "friends" ? "bg-amber text-on-amber" : "border border-gold-dim text-text3"
           }`}
         >
           เพื่อน
@@ -172,7 +172,7 @@ export default function RankingTabView({
           <p className="text-sm text-text3">ยังไม่มีเพื่อนในอันดับนี้</p>
           <Link
             href="/social/add-friend"
-            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95"
           >
             เพิ่มเพื่อน
           </Link>
@@ -210,7 +210,7 @@ export default function RankingTabView({
                 <p className="flex-1 text-sm font-bold text-text">คุณยังไม่ติดอันดับ</p>
                 <Link
                   href={CATEGORY_CONFIG[category].getStartedHref}
-                  className="flex-none rounded-xl border border-gold bg-amber px-3 py-2 text-xs font-bold text-track transition active:scale-95"
+                  className="flex-none rounded-xl border border-gold bg-amber px-3 py-2 text-xs font-bold text-on-amber transition active:scale-95"
                 >
                   ดูวิธีเริ่มต้น
                 </Link>

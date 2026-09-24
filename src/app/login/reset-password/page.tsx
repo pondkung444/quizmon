@@ -92,7 +92,7 @@ export default function ResetPasswordPage() {
             <p className="text-sm text-red">ลิงก์หมดอายุ กรุณาขอลิงก์ใหม่</p>
             <Link
               href="/login/forgot-password"
-              className="rounded-full border border-gold bg-amber px-4 py-2 text-sm font-medium text-track transition hover:opacity-90"
+              className="rounded-full border border-gold bg-amber px-4 py-2 text-sm font-medium text-on-amber transition hover:opacity-90"
             >
               ขอลิงก์ใหม่
             </Link>
@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading || !sessionReady}
-              className="rounded-full border border-gold bg-amber py-2 font-medium text-track transition hover:opacity-90 disabled:opacity-50"
+              className="rounded-full border border-gold bg-amber py-2 font-medium text-on-amber transition hover:opacity-90 disabled:opacity-50"
             >
               {loading ? "กำลังดำเนินการ..." : "ตั้งรหัสผ่านใหม่"}
             </button>

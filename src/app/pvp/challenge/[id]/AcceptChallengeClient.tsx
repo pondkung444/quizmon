@@ -98,7 +98,7 @@ export default function AcceptChallengeClient({
           type="button"
           disabled={pending || !petId}
           onClick={accept}
-          className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-track shadow-lg transition active:scale-95 disabled:opacity-50"
+          className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
         >
           {pending ? "กำลังเริ่ม…" : "รับคำท้า"}
         </button>

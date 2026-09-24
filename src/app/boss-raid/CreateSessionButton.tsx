@@ -25,7 +25,7 @@ export default function CreateSessionButton() {
             }
           })
         }
-        className="rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+        className="rounded-xl border border-gold bg-amber px-4 py-2 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
       >
         {pending ? "กำลังสร้าง…" : "สร้างห้อง"}
       </button>

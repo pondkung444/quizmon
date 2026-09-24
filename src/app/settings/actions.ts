@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { APP_THEME_COOKIE, parseAppTheme } from "@/lib/appTheme";
 
 export type PushPreferencesUpdate = Partial<{
   push_enabled: boolean;
@@ -38,4 +40,15 @@ export async function deleteOwnAccount() {
   if (error) throw new Error("ลบบัญชีไม่สำเร็จ: " + error.message);
 
   await supabase.auth.signOut();
+}
+
+// ธีมแอป — เก็บใน cookie (ไม่ใช่ DB) ดูเหตุผลใน src/lib/appTheme.ts
+// parseAppTheme กันค่าแปลกจาก client ตกไปเป็นค่าเริ่มต้นเสมอ
+export async function setAppTheme(theme: string) {
+  (await cookies()).set(APP_THEME_COOKIE, parseAppTheme(theme), {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+  for (const path of ["/pet", "/social", "/collection", "/pvp"]) revalidatePath(path, "layout");
 }

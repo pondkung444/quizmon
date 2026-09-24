@@ -45,7 +45,7 @@ export default function ConfirmActionModal({
             disabled={isPending}
             onClick={onConfirm}
             className={`flex-1 rounded-2xl border py-3 text-sm font-bold shadow-lg transition active:scale-95 disabled:opacity-50 ${
-              danger ? "border-red bg-red text-text" : "border-gold bg-amber text-track"
+              danger ? "border-red bg-red text-text" : "border-gold bg-amber text-on-amber"
             }`}
           >
             {isPending ? "กำลังดำเนินการ..." : confirmLabel}

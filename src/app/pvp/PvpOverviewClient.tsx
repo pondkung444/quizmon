@@ -112,7 +112,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
           href="/pvp/new"
           className={`mt-4 flex items-center justify-center gap-2 rounded-xl border py-3 text-base font-extrabold active:scale-[0.98] ${
             overview.ticketBalance > 0
-              ? "border-gold bg-amber text-track shadow-md"
+              ? "border-gold bg-amber text-on-amber shadow-md"
               : "pointer-events-none border-border bg-track text-text3 opacity-60"
           }`}
         >
@@ -159,7 +159,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                 <div className="mt-3 flex gap-2">
                   <Link
                     href={`/pvp/challenge/${c.id}`}
-                    className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-gold bg-amber px-3 py-2 text-center text-sm font-bold text-track active:scale-95"
+                    className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-gold bg-amber px-3 py-2 text-center text-sm font-bold text-on-amber active:scale-95"
                   >
                     รับคำท้า
                   </Link>

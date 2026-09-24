@@ -138,7 +138,7 @@ export default function TeacherRoomClient({
                   }
                 })
               }
-              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
             >
               สุ่มรายชื่อ
             </button>
@@ -156,7 +156,7 @@ export default function TeacherRoomClient({
                   }
                 })
               }
-              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
             >
               Boss Raid
             </button>
@@ -179,7 +179,7 @@ export default function TeacherRoomClient({
                   }
                 })
               }
-              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+              className="rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
             >
               เริ่มคาบตั้งใจ
             </button>
@@ -229,7 +229,7 @@ export default function TeacherRoomClient({
                     }
                   })
                 }
-                className="w-full rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-track transition active:scale-95 disabled:opacity-50"
+                className="w-full rounded-xl border border-gold bg-amber px-4 py-3 font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
               >
                 {pending ? "กำลังสุ่ม…" : "กดสุ่ม"}
               </button>

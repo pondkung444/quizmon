@@ -247,7 +247,7 @@ export default function FeedbackModal({ petId, onClose }: { petId: string | null
               <button
                 type="button"
                 onClick={() => setStep("graphics")}
-                className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-track transition active:scale-95"
+                className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-on-amber transition active:scale-95"
               >
                 ถัดไป
               </button>
@@ -329,7 +329,7 @@ export default function FeedbackModal({ petId, onClose }: { petId: string | null
                 type="button"
                 disabled={submitting}
                 onClick={() => handleFinish(freeText.trim() === "" ? null : freeText.trim())}
-                className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+                className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
               >
                 {submitting ? "กำลังส่ง..." : "เสร็จแล้ว"}
               </button>
@@ -388,7 +388,7 @@ function MultiSelectStep<T extends string>({
         <button
           type="button"
           onClick={onNext}
-          className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-track transition active:scale-95"
+          className="flex-1 rounded-2xl border border-gold bg-amber py-3 text-sm font-bold text-on-amber transition active:scale-95"
         >
           ถัดไป
         </button>

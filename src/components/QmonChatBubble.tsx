@@ -176,7 +176,7 @@ export default function QmonChatBubble() {
                   <button
                     type="button"
                     onClick={() => activeMenu && handleAskMenu(activeMenu)}
-                    className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-track"
+                    className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber"
                   >
                     ลองอีกครั้ง
                   </button>

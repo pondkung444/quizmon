@@ -107,7 +107,7 @@ export default function GuardianLinkSection({
             type="button"
             onClick={handleCreateCode}
             disabled={loading}
-            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-track transition active:scale-95 disabled:opacity-50"
+            className="flex min-h-11 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-sm font-bold text-on-amber transition active:scale-95 disabled:opacity-50"
           >
             {loading ? "กำลังสร้าง..." : "สร้างรหัสเชิญ"}
           </button>
