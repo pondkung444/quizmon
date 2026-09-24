@@ -2,13 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { eggTierLabel } from "@/lib/eggTier";
 
-const TIER_LABEL: Record<string, string> = {
-  common: "ธรรมดา",
-  rare: "หายาก",
-  epic: "เอปิก",
-  legendary: "ในตำนาน",
-};
 
 export type EggChoice = {
   id: string;
@@ -59,7 +54,7 @@ export default function EggChoiceModal({
               />
               <div>
                 <p className="font-bold text-gold-hi">{egg.nameTh}</p>
-                <p className="text-xs text-text3">{TIER_LABEL[egg.tier] ?? egg.tier}</p>
+                <p className="text-xs text-text3">{eggTierLabel(egg.tier)}</p>
                 {egg.description && <p className="mt-1 text-xs text-text2">{egg.description}</p>}
               </div>
             </button>
