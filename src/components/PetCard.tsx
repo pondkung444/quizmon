@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { BarChart3, Settings, Swords } from "lucide-react";
+import { BarChart3, DoorOpen, Settings } from "lucide-react";
 import CollectPetButton from "@/components/CollectPetButton";
 import type { EggChoice } from "@/components/EggChoiceModal";
 import StatRadar from "@/components/StatRadar";
@@ -342,10 +342,10 @@ export default function PetCard({
           สถิติ
         </button>
         <Link
-          href="/boss-raid/join"
+          href="/classroom/join"
           className="flex h-11 items-center gap-2 rounded-full border border-gold-dim bg-track px-4 text-sm font-medium text-text2 transition active:scale-95"
         >
-          <Swords size={18} />
+          <DoorOpen size={18} />
           เข้าห้อง
         </Link>
         <Link
