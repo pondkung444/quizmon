@@ -301,7 +301,7 @@ function ChapterList({
                         {` · คลัง ${ch.question_count} ข้อ`}
                       </p>
                       {wasPassed && (
-                        <p className="mt-0.5 text-xs font-semibold text-emerald-400">
+                        <p className="mt-0.5 text-xs font-semibold text-correct">
                           ✓ ผ่านแล้วในแผนเดิม — ไม่ต้องทำซ้ำ
                         </p>
                       )}
@@ -1015,7 +1015,7 @@ export default function PlanWizard({
           {step === 4 && (
             <div className="flex flex-col gap-3">
               {justCreatedPlan && (
-                <p className="text-center text-base text-emerald-400">สร้างแผนเรียบร้อยแล้ว</p>
+                <p className="text-center text-base text-correct">สร้างแผนเรียบร้อยแล้ว</p>
               )}
               <p className="text-lg font-bold text-text">
                 {isSelf ? "อยากฝึกสม่ำเสมอแค่ไหน" : "อยากให้ลูกฝึกสม่ำเสมอแค่ไหน"}

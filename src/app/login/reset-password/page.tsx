@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 bg-bg p-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-6 bg-bg p-6">
       <div className="flex flex-col items-center text-center">
         <Image
           src="/brand/quizmon-logo-full.png"

@@ -5,7 +5,7 @@
 // จะเจอหน้า error ดิบของ Next.js แทนข้อความที่บอกทางแก้ (§12.3) — สีแดงใช้ได้ตรงนี้เพราะเป็น error จริง
 export default function SocialError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-4 p-6 pb-24 text-center">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center justify-center gap-4 p-6 pb-24 text-center">
       <p className="text-sm text-red">เปิดหน้านี้ไม่สำเร็จ ลองใหม่อีกครั้ง</p>
       <button
         type="button"

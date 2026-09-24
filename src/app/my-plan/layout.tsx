@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSelfServeAccess } from "@/lib/selfServe";
 import { getGradeBand } from "@/lib/gradeBand";
 import GuardianShell from "@/components/guardian/GuardianShell";
+import AppThemeMarker from "@/components/AppThemeMarker";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,19 @@ export default async function MyPlanLayout({ children }: { children: React.React
     redirect("/");
   }
 
+  // ธีมแอปเฉพาะฝั่งนักเรียน (/my-plan) — หน้า /guardian ใช้ component ชุดเดียวกันแต่ไม่มีป้ายนี้ จึงคงโทนเดิม
   return (
-    <GuardianShell
-      viewerMode="self"
-      studentId={access.userId}
-      studentUsername=""
-      students={[]}
-      displayName={null}
-    >
-      {children}
-    </GuardianShell>
+    <>
+      <AppThemeMarker />
+      <GuardianShell
+        viewerMode="self"
+        studentId={access.userId}
+        studentUsername=""
+        students={[]}
+        displayName={null}
+      >
+        {children}
+      </GuardianShell>
+    </>
   );
 }

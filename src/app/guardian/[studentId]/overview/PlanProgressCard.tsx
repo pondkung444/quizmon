@@ -104,7 +104,7 @@ export default function PlanProgressCard({
             const delta = hasCompare ? recent - start : 0;
 
             return (
-              <div key={r.chapter_key} className="rounded-2xl border border-[#385b57] bg-[#1e2f30] p-4">
+              <div key={r.chapter_key} className="rounded-2xl border border-(--gd-accent-border) bg-(--gd-accent-bg) p-4">
                 <p className="text-xs font-semibold text-mint">🎯 {subjectLabel(r.subject as string, r.branch)}</p>
                 <p className="mt-0.5 text-base font-bold leading-snug text-text md:text-lg">{r.chapter}</p>
 

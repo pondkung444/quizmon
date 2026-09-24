@@ -14,7 +14,7 @@ const TONE_CLASS = {
   good: "border-good/60 bg-good/15",
   warn: "border-warn/60 bg-warn/15",
   risk: "border-red/70 bg-red/15",
-  neutral: "border-[#383e48] bg-[#1f242b]",
+  neutral: "border-(--gd-card-border) bg-(--gd-row-bg)",
 };
 
 const TONE_DOT = {

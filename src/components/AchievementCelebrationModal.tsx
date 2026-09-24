@@ -18,10 +18,10 @@ export type CelebrationItem = {
 // โทนฉลอง = กรอบเรืองแสงตาม tier (แทนกรอบเรียบของการ์ดในหน้าสมุด) — ไม่ทำ confetti/animation
 // เพิ่มเติม สโคปเล็กพอทำเสร็จไวตามที่ระบุใน handoff
 const TIER_GLOW: Record<AchievementTier, { ringClass: string; textClass: string; Icon: typeof Crown }> = {
-  Bronze: { ringClass: "border-[#cd7f32] shadow-[0_0_16px_rgba(205,127,50,0.45)]", textClass: "text-[#cd7f32]", Icon: Medal },
-  Silver: { ringClass: "border-[#b9c2cf] shadow-[0_0_16px_rgba(185,194,207,0.45)]", textClass: "text-[#b9c2cf]", Icon: Medal },
+  Bronze: { ringClass: "border-(--medal-bronze) shadow-[0_0_16px_rgba(205,127,50,0.45)]", textClass: "text-(--medal-bronze)", Icon: Medal },
+  Silver: { ringClass: "border-(--medal-silver) shadow-[0_0_16px_rgba(185,194,207,0.45)]", textClass: "text-(--medal-silver)", Icon: Medal },
   Gold: { ringClass: "border-gold shadow-[0_0_16px_rgba(200,168,106,0.5)]", textClass: "text-gold-hi", Icon: Medal },
-  Crown: { ringClass: "border-[#c7a6f7] shadow-[0_0_18px_rgba(199,166,247,0.55)]", textClass: "text-[#c7a6f7]", Icon: Crown },
+  Crown: { ringClass: "border-(--medal-crown) shadow-[0_0_18px_rgba(199,166,247,0.55)]", textClass: "text-(--medal-crown)", Icon: Crown },
 };
 
 // items มาจาก server (page.tsx) หลัง evaluate_achievements + query เสร็จแล้วเท่านั้น — การันตี

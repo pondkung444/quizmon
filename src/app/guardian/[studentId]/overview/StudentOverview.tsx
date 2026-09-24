@@ -171,7 +171,7 @@ export default async function StudentOverview({
           </div>
         </div>
 
-        <div className="gd-card p-4 md:rounded-none md:border-0 md:border-l md:border-[#385b57] md:bg-transparent md:shadow-none">
+        <div className="gd-card p-4 md:rounded-none md:border-0 md:border-l md:border-(--gd-accent-border) md:bg-transparent md:shadow-none">
           <TrendCard studentId={studentId} days30={trend} planChapterKeys={planCurrentKeys} />
         </div>
       </div>

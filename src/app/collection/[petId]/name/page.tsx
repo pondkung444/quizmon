@@ -38,7 +38,7 @@ export default async function EditNicknamePage({
   );
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center gap-6 p-6 pb-24">
       <SignOutLink />
       <Link
         href={`/collection/${petId}`}

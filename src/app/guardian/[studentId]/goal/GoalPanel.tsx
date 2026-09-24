@@ -51,7 +51,7 @@ const BUCKET_VISUAL: Record<string, { Icon: typeof Feather; ring: string; text: 
   เริ่มแล้ว: { Icon: Gauge, ring: "border-amber", text: "text-amber" },
   ไปได้ดี: { Icon: Gauge, ring: "border-gold-hi", text: "text-gold-hi" },
   เกือบถึงแล้ว: { Icon: Flame, ring: "border-gold-hi", text: "text-gold-hi" },
-  ถึงเป้าแล้ว: { Icon: Trophy, ring: "border-emerald-400", text: "text-emerald-400" },
+  ถึงเป้าแล้ว: { Icon: Trophy, ring: "border-correct", text: "text-correct" },
 };
 
 export default function GoalPanel({

@@ -24,7 +24,7 @@ function DataRow({ label, detail }: { label: string; detail: string }) {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-6 pb-24">
       <div className="flex items-center gap-2">
         <BackButton />
         <h1 className="text-lg font-bold text-gold-hi">นโยบายความเป็นส่วนตัว</h1>

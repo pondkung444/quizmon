@@ -4,7 +4,7 @@ import { SkelBackLink, SkelBlock, SkelCircle } from "@/components/social/skeleto
 // เหรียญ → เส้นทางของฉัน (6 กล่อง) → Qmon ตัวโปรด (3 กล่อง)
 export default function FriendProfileLoading() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <div className="flex items-center justify-between">
         <SkelBackLink />
         <SkelBlock className="h-11 w-11 rounded-full" />

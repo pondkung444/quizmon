@@ -50,5 +50,5 @@ export async function setAppTheme(theme: string) {
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
   });
-  for (const path of ["/pet", "/social", "/collection", "/pvp"]) revalidatePath(path, "layout");
+  for (const path of ["/pet", "/social", "/collection", "/pvp", "/quiz", "/settings", "/achievements", "/hall-of-fame", "/eggs", "/my-plan"]) revalidatePath(path, "layout");
 }

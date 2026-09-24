@@ -159,7 +159,7 @@ export default function GuardianShell({
       </main>
 
       {/* Bottom tab — เฉพาะจอแคบกว่า lg เอื้อมนิ้วโป้งง่าย เหมือน pattern แอปฝั่งเด็ก */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-[#385b57] bg-[#1b1f25]/95 backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-(--gd-accent-border) bg-(--gd-nav-bg) backdrop-blur lg:hidden">
         {SECTIONS.map(({ key, label, Icon, path }) => (
           <Link
             key={key}

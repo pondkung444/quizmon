@@ -77,7 +77,7 @@ export default async function AchievementsPage() {
 
   if (!user) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
         <SignOutLink />
         <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">
           เข้าสู่ระบบก่อนเพื่อดูสมุด Achievement
@@ -217,7 +217,7 @@ export default async function AchievementsPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <AchievementCelebrationModal items={uncelebrated} />
       <SignOutLink />
       <div>
