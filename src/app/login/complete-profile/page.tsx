@@ -103,14 +103,14 @@ export default function CompleteProfilePage() {
 
   if (checking) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col items-center justify-center gap-6 bg-bg p-6">
+      <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-6 bg-bg p-6">
         <p className="text-sm text-text3">กำลังโหลด...</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 bg-bg p-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-6 bg-bg p-6">
       <div className="flex flex-col items-center gap-1 text-center">
         <div className="flex items-center justify-center gap-2">
           <Image

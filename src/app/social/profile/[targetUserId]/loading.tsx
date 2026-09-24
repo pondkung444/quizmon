@@ -3,7 +3,7 @@ import { SkelBackLink, SkelBlock, SkelCircle } from "@/components/social/skeleto
 // S04 — โครงตามลำดับจริง: ชื่อ → Qmon ที่ภูมิใจ+radar → ปุ่มถูกใจ/เพิ่มเพื่อน → เหรียญ
 export default function PublicProfileLoading() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <SkelBackLink />
       <SkelBlock className="h-6 w-32" />
 

@@ -708,13 +708,30 @@ body {
    ไล่เฉด/เรืองแสงแบบหน้า quiz (.quiz-journey) เก็บไว้เฉพาะ hero card เดียวในภาพรวม (.gd-card-hero) เพราะ
    พอใช้ทั้งพื้นหลังกับกริดเยอะๆ (Phase 3) มันแข่งกับข้อมูลจนอ่านยาก. สี tier อิ่มตัว (emerald/amber/red)
    กับ accent mint #a0e0c9 ยังคงไว้ */
-.gd-shell { background: #1b1f25; }
-.gd-card { border: 1px solid #383e48; border-radius: 22px; background: #262b33; box-shadow: 0 4px 14px #00000030; }
-.gd-card-hero { border: 1px solid #385b57; border-radius: 22px; background: radial-gradient(ellipse at 75% 0%, #365f59 0%, transparent 65%), #243d3e; box-shadow: 0 14px 36px #00000050, inset 0 1px 0 #ffffff18; }
-@media (min-width: 768px) { .gd-card-hero-md { display: grid; overflow: hidden; border: 1px solid #385b57; border-radius: 22px; background: radial-gradient(ellipse at 75% 0%, #365f59 0%, transparent 65%), #243d3e; box-shadow: 0 14px 36px #00000050, inset 0 1px 0 #ffffff18; } }
-.gd-row { border: 1px solid #383e48; border-radius: 14px; background: #1f242b; }
-.gd-pill-group { display: flex; border: 1px solid #385b57; border-radius: 999px; padding: 2px; background: #1e2f30; }
-.gd-pill-active { background: #a0e0c9; color: #193a31; font-weight: 700; }
+/* สีชุด guardian เป็นตัวแปร --gd-* (ค่าใน :root = หน้าตาเดิม — หน้า /guardian ไม่มีธีมแอปจึงไม่เปลี่ยน)
+   หน้า /my-plan (นักเรียนดูแผนตัวเอง ใช้ component ชุดเดียวกัน) มีธีมแอป → ค่าถูกสลับที่ [data-app-theme] */
+:root {
+  --gd-shell-bg: #1b1f25;
+  --gd-card-bg: #262b33;
+  --gd-card-border: #383e48;
+  --gd-row-bg: #1f242b;
+  --gd-accent-border: #385b57;
+  --gd-accent-bg: #1e2f30;
+  --gd-hero-bg: radial-gradient(ellipse at 75% 0%, #365f59 0%, transparent 65%), #243d3e;
+  --gd-pill-active-bg: #a0e0c9;
+  --gd-pill-active-text: #193a31;
+  --gd-empty: #15181d;
+  --gd-dash: #4a5560;
+  --gd-on-tier: #10231d;
+  --gd-nav-bg: rgba(27, 31, 37, 0.95);
+}
+.gd-shell { background: var(--gd-shell-bg); }
+.gd-card { border: 1px solid var(--gd-card-border); border-radius: 22px; background: var(--gd-card-bg); box-shadow: 0 4px 14px #00000030; }
+.gd-card-hero { border: 1px solid var(--gd-accent-border); border-radius: 22px; background: var(--gd-hero-bg); box-shadow: 0 14px 36px #00000050, inset 0 1px 0 #ffffff18; }
+@media (min-width: 768px) { .gd-card-hero-md { display: grid; overflow: hidden; border: 1px solid var(--gd-accent-border); border-radius: 22px; background: var(--gd-hero-bg); box-shadow: 0 14px 36px #00000050, inset 0 1px 0 #ffffff18; } }
+.gd-row { border: 1px solid var(--gd-card-border); border-radius: 14px; background: var(--gd-row-bg); }
+.gd-pill-group { display: flex; border: 1px solid var(--gd-accent-border); border-radius: 999px; padding: 2px; background: var(--gd-accent-bg); }
+.gd-pill-active { background: var(--gd-pill-active-bg); color: var(--gd-pill-active-text); font-weight: 700; }
 
 /* Guardian: กรอบโปรไฟล์ (frame_definitions) — scoped class ต่อ tier, ใช้ conic-gradient ล้วน
    ไม่มี artwork จริง (placeholder จนกว่าจะมี image_file) ขนาดปรับด้วย --frame-size ที่ inline style
@@ -857,6 +874,19 @@ body {
   --quiz-point-text: #d9d2ff;
   --quiz-point-done-bg: #ffd166;
   --quiz-point-done-text: #3a2400;
+
+  --gd-shell-bg: transparent;
+  --gd-card-bg: #262052;
+  --gd-card-border: #3f3a7a;
+  --gd-row-bg: #1f1a48;
+  --gd-accent-border: #4b4390;
+  --gd-accent-bg: #2b2566;
+  --gd-hero-bg: radial-gradient(ellipse at 75% 0%, #6a3fa0 0%, transparent 70%), linear-gradient(180deg, #33286e, #262052);
+  --gd-pill-active-bg: #ffd166;
+  --gd-pill-active-text: #3a2400;
+  --gd-empty: #15123a;
+  --gd-dash: #6b62b8;
+  --gd-nav-bg: rgba(26, 31, 69, 0.95);
 }
 
 /* ธีม 2: เช้าสดใส — พื้นสว่าง ฟ้า/หญ้าเขียว (เฉพาะหน้า /pet หน้าอื่นยังเป็นโทนมืดตามเดิม) */
@@ -934,6 +964,27 @@ body {
   --quiz-point-text: #3d6480;
   --quiz-point-done-bg: #58c26b;
   --quiz-point-done-text: #ffffff;
+
+  --color-good: #15803d;
+  --color-warn: #b45309;
+  --color-mint: #0e8a6a;
+  --color-sci: #1f8fc9;
+  --color-sci-dim: #cfe9f7;
+  --color-sci-hi: #146a99;
+
+  --gd-shell-bg: transparent;
+  --gd-card-bg: #ffffff;
+  --gd-card-border: #d7e3ef;
+  --gd-row-bg: #f4f8fc;
+  --gd-accent-border: #b6dcf2;
+  --gd-accent-bg: #e8f5ff;
+  --gd-hero-bg: linear-gradient(180deg, #bfe6ff 0%, #e4f5ff 70%, #eaf8e2 100%);
+  --gd-pill-active-bg: #2f9e5a;
+  --gd-pill-active-text: #ffffff;
+  --gd-empty: #e3e9f0;
+  --gd-dash: #a9b8c8;
+  --gd-on-tier: #ffffff;
+  --gd-nav-bg: rgba(255, 255, 255, 0.95);
 }
 
 /* ไล่สีสูงเท่าจอเดียวแล้วต่อด้วยสีปลาย (--background) — ถ้าปล่อยให้ gradient ยืดตาม body ที่ยาวหลายจอ

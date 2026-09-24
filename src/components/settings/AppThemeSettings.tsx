@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { APP_THEMES, APP_THEME_LABEL_TH, type AppTheme } from "@/lib/appTheme";
 import { setAppTheme } from "@/app/settings/actions";
 
-// ภาพตัวอย่างย่อของแต่ละธีม — หน้า /settings ไม่ได้อยู่ในธีม (token เป็นโทนเดิม) จึงต้องใส่สีจริงตรงนี้
+// ภาพตัวอย่างย่อของแต่ละธีม — ต้องโชว์สีของทั้งสองธีมพร้อมกันในหน้าเดียว จึงใส่สีจริงตรงนี้แทน token
 // ให้ตรงกับ --pet-sky / --pet-ground / --hero-bg ใน globals.css [data-app-theme]
 const PREVIEW: Record<AppTheme, { page: string; sky: string; ground: string; hero: string; note: string }> = {
   dusk: {
@@ -29,14 +29,16 @@ export default function AppThemeSettings({ initial }: { initial: AppTheme }) {
 
   function choose(next: AppTheme) {
     setTheme(next);
-    // เปลี่ยนภาพตัวอย่างทันที แล้วค่อยเก็บ cookie ฝั่ง server (AppThemeMarker อ่านตอน render)
+    // หน้าตั้งค่าเองก็อยู่ในธีม — สลับป้าย AppThemeMarker ในหน้านี้ทันทีให้เห็นผลเลย (ป้ายเป็น span จาก
+    // server ไม่มี state ของ React ผูกอยู่) แล้วค่อยเก็บ cookie ฝั่ง server ให้หน้าอื่นอ่านตอน render
+    document.querySelector("[data-app-theme]")?.setAttribute("data-app-theme", next);
     void setAppTheme(next);
   }
 
   return (
     <section className="rounded-2xl border border-gold-dim bg-card p-4">
       <h2 className="mb-1 text-sm font-bold text-gold-hi">ธีมแอป</h2>
-      <p className="mb-3 text-xs text-text3">เปลี่ยนโทนสีหน้าบ้าน สังคม ฟาร์ม และประลอง (หน้าเล่นเกมและฉากต่อสู้ยังเป็นโทนเดิม)</p>
+      <p className="mb-3 text-xs text-text3">เปลี่ยนโทนสีหน้าหลักของแอป (บ้าน สังคม ฟาร์ม ประลอง ตอบคำถาม ตั้งค่า ฯลฯ) ส่วนฉากผจญภัยและฉากต่อสู้ยังเป็นโทนเดิม</p>
       <div role="radiogroup" aria-label="ธีมแอป" className="grid grid-cols-2 gap-3">
         {APP_THEMES.map((t) => {
           const selected = theme === t;

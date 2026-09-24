@@ -23,7 +23,7 @@ export default async function HallOfFamePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <SignOutLink />
       <div>
         <h1 className="text-2xl font-bold text-gold-hi">Hall of Fame</h1>

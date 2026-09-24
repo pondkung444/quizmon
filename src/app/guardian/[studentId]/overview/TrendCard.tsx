@@ -115,7 +115,7 @@ export default function TrendCard({
               <div className="flex w-full flex-1 items-end">
                 <div
                   className={`w-full rounded-t-md transition group-active:opacity-70 ${
-                    day.has_data ? accuracyBgClass(day.accuracy ?? 0) : "bg-[#15181d]"
+                    day.has_data ? accuracyBgClass(day.accuracy ?? 0) : "bg-(--gd-empty)"
                   }`}
                   style={{ height: day.has_data ? `${h}%` : "3px" }}
                 />

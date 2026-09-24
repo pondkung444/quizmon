@@ -10,7 +10,7 @@ export default async function AddFriendPage({ searchParams }: { searchParams: Pr
   if (!user) {
     if (invitationCode) redirect(`/social/invite?code=${invitationCode}`);
     return (
-      <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+      <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
         <SignOutLink />
         <div className="rounded-2xl border border-gold-dim bg-card p-8 text-center text-sm text-text3">
           เข้าสู่ระบบก่อนเพื่อเพิ่มเพื่อน
@@ -23,7 +23,7 @@ export default async function AddFriendPage({ searchParams }: { searchParams: Pr
   const { data } = await supabase.from("profiles").select("friend_code").eq("id", user.id).maybeSingle();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <SignOutLink />
       <AddFriendView myFriendCode={data?.friend_code ?? ""} invitationCode={invitationCode} />
     </main>

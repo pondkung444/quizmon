@@ -63,7 +63,7 @@ export default async function CollectionFarmPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <FarmEggsTabs active="farm" />
       <SignOutLink />
       <div className="flex items-start justify-between gap-4">

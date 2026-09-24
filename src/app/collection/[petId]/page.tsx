@@ -79,7 +79,7 @@ export default async function CollectionPetDetailPage({
   > | null;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center gap-4 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col items-center gap-4 p-6 pb-24">
       <SignOutLink />
       <Link href="/collection" className="self-start text-sm text-text3 transition hover:text-gold-hi">
         ← กลับฟาร์ม
