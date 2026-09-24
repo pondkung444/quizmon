@@ -13,7 +13,7 @@
 }
 
 /* palette แยกออกจาก @theme inline ด้านบน — utility (bg-card, text-text2 ...) จะอ้าง var(--color-*)
-   แทนการฝังค่าสีตรงๆ เพื่อให้ธีมหน้า /pet (ดู [data-pet-theme] ท้ายไฟล์) สลับสีทั้งหน้าได้จากจุดเดียว
+   แทนการฝังค่าสีตรงๆ เพื่อให้ธีมหน้า /pet (ดู [data-app-theme] ท้ายไฟล์) สลับสีทั้งหน้าได้จากจุดเดียว
    หน้าอื่นได้ค่าเดิมทุกประการ */
 @theme {
   --color-bg: #1f2127;
@@ -742,12 +742,11 @@ body {
   .guardian-frame-special { animation: none; }
 }
 
-/* ── ธีมหน้าน้อง Qmon (/pet) ──────────────────────────────────────────────────────────────────
-   หน้า /pet วาง data-pet-theme ไว้บน <main> (ค่าจาก cookie qm_pet_theme ดู src/lib/petTheme.ts)
-   ใช้ :root:has() สลับ token สีทั้งเอกสารแทนการใส่บน <main> ตรงๆ เพื่อให้พื้นหลัง body + แถบเมนูล่าง
-   (อยู่นอก <main> ใน layout) + modal/sheet ที่ fixed อยู่ เปลี่ยนตามด้วย — ออกจากหน้า /pet เมื่อไหร่
-   attribute หายไปพร้อม <main> ทุกอย่างกลับเป็นโทนเดิมเอง (root layout ไม่ re-render ตอน client nav
-   จึงวาง attribute ที่ layout ไม่ได้)
+/* ── ธีมแอป (บ้าน/สังคม/ฟาร์ม/ประลอง) ──────────────────────────────────────────────────────────
+   หน้าที่ใช้ธีมวาง <AppThemeMarker /> (span ซ่อน data-app-theme ค่าจาก cookie qm_app_theme ดู
+   src/lib/appTheme.ts) แล้ว :root:has() สลับ token สีทั้งเอกสาร — พื้นหลัง body + แถบเมนูล่าง
+   (อยู่นอกหน้าใน root layout) + modal/sheet ที่ fixed อยู่ เปลี่ยนตามด้วย ออกจากหน้าเมื่อไหร่ป้ายหาย
+   ทุกอย่างกลับเป็นโทนเดิมเอง
    --pet-* / --hero-* = สีเฉพาะชิ้นส่วนของหน้านี้ (ฉาก, แถบพลัง, การ์ด HomeNextAction) ค่าใน :root คือ
    ค่าเริ่มต้นที่หน้าตาเหมือนก่อนมีธีม (HomeNextAction ไม่ได้ใช้ที่อื่น แต่กันไว้) */
 :root {
@@ -777,10 +776,15 @@ body {
   --hero-cta-text: var(--color-on-amber);
   --hero-cta-shadow: transparent;
   --hero-divider: var(--color-border);
+
+  /* สีเหรียญความสำเร็จ (AchievementCard / โปรไฟล์) — ธีมสว่างเข้มขึ้นให้อ่านออกบนพื้นขาว */
+  --medal-bronze: #cd7f32;
+  --medal-silver: #b9c2cf;
+  --medal-crown: #c7a6f7;
 }
 
 /* ธีม 1 (ค่าเริ่มต้น): ท้องฟ้ายามค่ำ — ยังเป็นโทนมืดเข้ากับหน้าอื่น แต่ม่วง/ชมพู/ฟ้ามีสีสัน */
-:root:has([data-pet-theme="dusk"]) {
+:root:has([data-app-theme="dusk"]) {
   --background: #15193a;
   --pet-page-bg: linear-gradient(180deg, #241a4d 0%, #1a1f45 55%, #15193a 100%);
   --color-bg: #1a1f45;
@@ -813,7 +817,7 @@ body {
 }
 
 /* ธีม 2: เช้าสดใส — พื้นสว่าง ฟ้า/หญ้าเขียว (เฉพาะหน้า /pet หน้าอื่นยังเป็นโทนมืดตามเดิม) */
-:root:has([data-pet-theme="day"]) {
+:root:has([data-app-theme="day"]) {
   color-scheme: light;
   --background: #fdf8ee;
   --pet-page-bg: linear-gradient(180deg, #e6f6ff 0%, #fdf8ee 100%);
@@ -859,11 +863,15 @@ body {
   --hero-cta-text: #e0561d;
   --hero-cta-shadow: #d4541c;
   --hero-divider: rgba(255, 255, 255, 0.45);
+
+  --medal-bronze: #a8611f;
+  --medal-silver: #6f7a8a;
+  --medal-crown: #7c4ddb;
 }
 
 /* ไล่สีสูงเท่าจอเดียวแล้วต่อด้วยสีปลาย (--background) — ถ้าปล่อยให้ gradient ยืดตาม body ที่ยาวหลายจอ
    จะเกิดรอยต่อเวลา gradient วนซ้ำ (background-attachment: fixed ใช้บน iOS Safari ไม่ได้) */
-:root:has([data-pet-theme]) body {
+:root:has([data-app-theme]) body {
   background-color: var(--background);
   background-image: var(--pet-page-bg);
   background-repeat: no-repeat;

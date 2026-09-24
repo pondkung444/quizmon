@@ -8,7 +8,7 @@ import { useSfx } from "@/lib/audio/useSfx";
 // แถบด่วนติดบนสุดเมื่อเลื่อนผ่าน (11 ส.ค. 2026 — เปิดระบบท้าทายให้เล่นจริง) วางระหว่างการ์ด
 // weekly leaderboard กับ nameplate ใน PetCard.tsx — 2 ชิปเท่ากัน ไม่มีสถานะล็อกแล้ว (allowlist
 // เปิดให้ทุกคนแล้ว) แตะแล้วพาไปหน้าเต็มของระบบนั้นตรงๆ ไม่ใช่แค่ scroll ไปหาการ์ดเดิมที่อยู่ล่างๆ
-// ธีมหน้า /pet (2026-09): เปลี่ยนเป็นไทล์สี 2 ใบ (--pet-tile-* ใน globals.css) ทุกไทล์ต้อง min-w-0 —
+// ธีมแอป (2026-09): เปลี่ยนเป็นไทล์สี 2 ใบ (--pet-tile-* ใน globals.css) ทุกไทล์ต้อง min-w-0 —
 // ไม่งั้นข้อความในไทล์ไม่ยอมหด ดันทั้งหน้ากว้างเกินจอมือถือ
 const TILE = "relative flex min-w-0 items-center gap-2 rounded-2xl px-3 py-2.5 shadow-md transition active:scale-95";
 const ADVENTURE_TILE = `${TILE} bg-(--pet-tile-adv-bg) text-(--pet-tile-adv-text)`;

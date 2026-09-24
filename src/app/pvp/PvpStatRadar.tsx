@@ -24,8 +24,8 @@ export default function PvpStatRadar({ stats }: { stats: PvpPetStats }) {
   return (
     <ResponsiveContainer width="100%" height={180}>
       <RadarChart data={data} outerRadius="70%">
-        <PolarGrid stroke="#3a3d47" />
-        <PolarAngleAxis dataKey="stat" tick={{ fill: "#9498a3", fontSize: 10 }} />
+        <PolarGrid stroke="var(--color-border)" />
+        <PolarAngleAxis dataKey="stat" tick={{ fill: "var(--color-text3)", fontSize: 10 }} />
         <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <Radar
           dataKey="value"

@@ -20,15 +20,15 @@ import type { FriendProfileResult } from "@/lib/friendProfile";
 
 // สีขอบตามระดับเหรียญ — คัดลอกจาก MyProfileTab.tsx (ตั้งใจไม่ export มาใช้ร่วม เหตุผลเดียวกับที่นั่น)
 const MEDAL_TIER_BORDER: Record<string, string> = {
-  Bronze: "border-[#cd7f32]/60",
-  Silver: "border-[#b9c2cf]/60",
+  Bronze: "border-(--medal-bronze)/60",
+  Silver: "border-(--medal-silver)/60",
   Gold: "border-gold/70",
-  Crown: "border-[#c7a6f7]/60",
+  Crown: "border-(--medal-crown)/60",
 };
 
 const STAT_LABEL_TH: Record<"hp" | "atk" | "def" | "spd", string> = { hp: "HP", atk: "ATK", def: "DEF", spd: "SPD" };
 const GEAR_SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
-const EMPTY_ICON_COLOR = "#3a3d47"; // --color-border
+const EMPTY_ICON_COLOR = "var(--color-border)"; // ตามธีมแอป
 
 // S05 เต็มรูปแบบ (เฟส 6) — ต่างจาก S03 (โปรไฟล์ตัวเอง) ตรงที่ "เพื่อน" เห็นรายละเอียดเต็มของ Qmon
 // ที่ภูมิใจ (สาย/บุคลิก/สเตตัส/อุปกรณ์) เพราะนี่เป็นที่เดียวที่เห็นข้อมูลนี้ของอีกฝ่ายได้ (ดู §4.3)

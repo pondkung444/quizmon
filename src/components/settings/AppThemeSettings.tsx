@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { PET_THEMES, PET_THEME_LABEL_TH, type PetTheme } from "@/lib/petTheme";
-import { setPetTheme } from "@/app/settings/actions";
+import { APP_THEMES, APP_THEME_LABEL_TH, type AppTheme } from "@/lib/appTheme";
+import { setAppTheme } from "@/app/settings/actions";
 
-// ภาพตัวอย่างย่อของแต่ละธีม — หน้า /settings ไม่ได้อยู่ในธีม /pet (token เป็นโทนเดิม) จึงต้องใส่สีจริงตรงนี้
-// ให้ตรงกับ --pet-sky / --pet-ground / --hero-bg ใน globals.css [data-pet-theme]
-const PREVIEW: Record<PetTheme, { page: string; sky: string; ground: string; hero: string; note: string }> = {
+// ภาพตัวอย่างย่อของแต่ละธีม — หน้า /settings ไม่ได้อยู่ในธีม (token เป็นโทนเดิม) จึงต้องใส่สีจริงตรงนี้
+// ให้ตรงกับ --pet-sky / --pet-ground / --hero-bg ใน globals.css [data-app-theme]
+const PREVIEW: Record<AppTheme, { page: string; sky: string; ground: string; hero: string; note: string }> = {
   dusk: {
     page: "#1a1f45",
     sky: "linear-gradient(180deg, #3b2a7a 0%, #6a3fa0 55%, #e0729a 100%)",
@@ -24,21 +24,21 @@ const PREVIEW: Record<PetTheme, { page: string; sky: string; ground: string; her
   },
 };
 
-export default function PetThemeSettings({ initial }: { initial: PetTheme }) {
-  const [theme, setTheme] = useState<PetTheme>(initial);
+export default function AppThemeSettings({ initial }: { initial: AppTheme }) {
+  const [theme, setTheme] = useState<AppTheme>(initial);
 
-  function choose(next: PetTheme) {
+  function choose(next: AppTheme) {
     setTheme(next);
-    // เปลี่ยนภาพตัวอย่างทันที แล้วค่อยเก็บ cookie ฝั่ง server (หน้า /pet อ่านตอน render)
-    void setPetTheme(next);
+    // เปลี่ยนภาพตัวอย่างทันที แล้วค่อยเก็บ cookie ฝั่ง server (AppThemeMarker อ่านตอน render)
+    void setAppTheme(next);
   }
 
   return (
     <section className="rounded-2xl border border-gold-dim bg-card p-4">
-      <h2 className="mb-1 text-sm font-bold text-gold-hi">ธีมหน้าน้อง Qmon</h2>
-      <p className="mb-3 text-xs text-text3">เปลี่ยนโทนสีของหน้าบ้าน (หน้าน้อง Qmon) หน้าอื่นยังเป็นโทนเดิม</p>
-      <div role="radiogroup" aria-label="ธีมหน้าน้อง Qmon" className="grid grid-cols-2 gap-3">
-        {PET_THEMES.map((t) => {
+      <h2 className="mb-1 text-sm font-bold text-gold-hi">ธีมแอป</h2>
+      <p className="mb-3 text-xs text-text3">เปลี่ยนโทนสีหน้าบ้าน สังคม ฟาร์ม และประลอง (หน้าเล่นเกมและฉากต่อสู้ยังเป็นโทนเดิม)</p>
+      <div role="radiogroup" aria-label="ธีมแอป" className="grid grid-cols-2 gap-3">
+        {APP_THEMES.map((t) => {
           const selected = theme === t;
           const p = PREVIEW[t];
           return (
@@ -61,7 +61,7 @@ export default function PetThemeSettings({ initial }: { initial: PetTheme }) {
                 </div>
                 <div className="mt-1.5 h-4 rounded-md" style={{ background: p.hero }} />
               </div>
-              <p className="mt-1.5 px-1 text-sm font-bold text-text">{PET_THEME_LABEL_TH[t]}</p>
+              <p className="mt-1.5 px-1 text-sm font-bold text-text">{APP_THEME_LABEL_TH[t]}</p>
               <p className="px-1 text-[11px] text-text3">{p.note}</p>
               {selected && (
                 <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber text-on-amber">

@@ -24,10 +24,10 @@ export type EquippedGearSummary = { slot: "head" | "body" | "feet"; quality: str
 // สีขอบตามระดับเหรียญ — คัดลอกโทนสีจาก TIER_STYLE ใน AchievementCard.tsx (ไม่ export มาใช้ร่วม
 // เพราะไม่อยากผูก MyProfileTab เข้ากับ internal ของสมุด Achievement ที่ใช้กว้างกว่านี้)
 const MEDAL_TIER_BORDER: Record<string, string> = {
-  Bronze: "border-[#cd7f32]/60",
-  Silver: "border-[#b9c2cf]/60",
+  Bronze: "border-(--medal-bronze)/60",
+  Silver: "border-(--medal-silver)/60",
   Gold: "border-gold/70",
-  Crown: "border-[#c7a6f7]/60",
+  Crown: "border-(--medal-crown)/60",
 };
 
 export type ProfileTabData = {

@@ -192,7 +192,7 @@ export default function PetCard({
 
   // ธีมหน้า /pet (2026-09): เลิกเป็นการ์ดใหญ่ใบเดียว เปลี่ยนเป็นบล็อกแยก โดยให้ Qmon ในฉากเป็นสิ่งแรก
   // ที่เห็น ตามด้วยแถบวิวัฒนาการ → CTA หลัก (HomeNextAction) ยังอยู่ใน fold แรกบนจอ 667px
-  // สีทุกชิ้นมาจาก token ที่ธีมสลับให้ (globals.css [data-pet-theme])
+  // สีทุกชิ้นมาจาก token ที่ธีมสลับให้ (globals.css [data-app-theme])
   return (
     <div className="flex w-full flex-col items-center gap-3 text-center">
       {/* 1. หัว: ชื่อ + ระยะ + ชิปสัปดาห์ (กดไปปฏิทินเต็ม) */}
