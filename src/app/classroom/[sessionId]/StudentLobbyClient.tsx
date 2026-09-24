@@ -65,7 +65,7 @@ export default function StudentLobbyClient({
   }, [focusId, participantsLoaded, myParticipant]);
 
   if (!session) {
-    return <main className="mx-auto max-w-sm px-4 py-12 text-center text-text3">ไม่พบห้อง</main>;
+    return <main className="mx-auto w-full max-w-sm px-4 py-12 text-center text-text3">ไม่พบห้อง</main>;
   }
 
   if (focusRunning && focusSession) {
@@ -73,7 +73,7 @@ export default function StudentLobbyClient({
   }
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-12 text-center">
+    <main className="mx-auto w-full max-w-sm px-4 py-12 text-center">
       <h1 className="text-2xl font-bold text-gold-hi">ห้องเรียน</h1>
       <p className="mt-1 text-xs text-text3">{connected ? "เชื่อมต่อแล้ว" : "กำลังเชื่อมต่อ…"}</p>
 

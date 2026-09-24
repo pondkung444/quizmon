@@ -5,7 +5,7 @@ import { SkelBlock, SkelCircle, SkelRows, SkelSegmentedTabs } from "@/components
 // (§12.2) ตามด้วยโครงการ์ดคู่ + รายการแถว
 export default function SocialLoading() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 p-6 pb-24">
+    <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <SkelSegmentedTabs labels={["อันดับ", "เพื่อน", "โปรไฟล์"]} />
       <div className="flex items-center gap-4 rounded-2xl border border-gold-dim bg-card p-4">
         <SkelCircle className="h-24 w-24" />

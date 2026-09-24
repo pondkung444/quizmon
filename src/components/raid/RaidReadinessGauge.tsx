@@ -9,7 +9,7 @@ export default function RaidReadinessGauge({ pct, thresholdPct }: { pct: number;
     <div className="w-full">
       <div className="mb-1 flex items-center justify-between text-xs">
         <span className="text-text2">ความพร้อม</span>
-        <span className={`font-bold ${isReady ? "text-green-400" : "text-red-500"}`}>
+        <span className={`font-bold ${isReady ? "text-good" : "text-red"}`}>
           {pct.toFixed(0)}% (ต้องการ {thresholdPct.toFixed(0)}%)
         </span>
       </div>

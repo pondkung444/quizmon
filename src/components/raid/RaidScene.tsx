@@ -52,8 +52,8 @@ export default function RaidScene({
     <div
       className={
         fullScreen
-          ? "relative h-full w-full overflow-hidden"
-          : "relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden"
+          ? "scene-dark relative h-full w-full overflow-hidden"
+          : "scene-dark relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden"
       }
     >
       <Image src={backgroundPath} alt="" fill sizes="100vw" priority className="object-cover object-center" />

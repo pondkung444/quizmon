@@ -32,7 +32,7 @@ export default async function AcceptPvpChallengePage({
   ]);
   if (pets.length === 0) redirect("/pet");
 
-  // ธีมแอปวางทีละหน้า (ไม่ใช่ pvp/layout.tsx) เพราะจอต่อสู้ /pvp/[matchId] ต้องคงโทนเดิม
+  // ธีมแอป (dusk/day) — ดู components/AppThemeMarker.tsx
   return (
     <>
       <AppThemeMarker />

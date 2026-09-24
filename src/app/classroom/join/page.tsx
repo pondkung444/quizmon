@@ -16,7 +16,7 @@ export default async function ClassroomJoinPage({
   if (!user) redirect("/login");
 
   return (
-    <main className="mx-auto max-w-sm px-4 py-12">
+    <main className="mx-auto w-full max-w-sm px-4 py-12">
       <h1 className="text-2xl font-bold text-gold-hi">เข้าห้องเรียน</h1>
       <p className="mt-1 text-sm text-text3">กรอกรหัสห้อง 6 หลักจากครู</p>
       <ClassroomJoinForm initialCode={code ?? ""} />

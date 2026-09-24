@@ -20,7 +20,7 @@ import Toast from "@/components/social/Toast";
 
 const STAT_LABEL_TH: Record<RaidStatKey, string> = { hp: "HP", atk: "ATK", def: "DEF", spd: "SPD", foc: "FOC" };
 const SLOTS: Array<"head" | "body" | "feet"> = ["head", "body", "feet"];
-const EMPTY_ICON_COLOR = "#3a3d47"; // --color-border — โทนมิวต์สำหรับช่องว่าง (ไม่ใช่สีคุณภาพ)
+const EMPTY_ICON_COLOR = "var(--color-border)"; // --color-border — โทนมิวต์สำหรับช่องว่าง (ไม่ใช่สีคุณภาพ)
 
 // จอ "ยืนยัน/ปรับ loadout" ก่อนออกท้าทาย (v3 §6.3, raid-slice2-ui-handoff §2) — state ล้วนอยู่ในนี้
 // ไม่พึ่ง router.refresh() เลย (equip/unequip อัปเดต local state ตรงๆ) เลขที่โชว์เป็นแค่ preview

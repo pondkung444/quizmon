@@ -33,7 +33,7 @@ export default function DungeonScene({
   overlay?: DungeonSceneOverlay | null;
 }) {
   return (
-    <div className="relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden">
+    <div className="scene-dark relative -mx-5 aspect-[8/3] w-[calc(100%+2.5rem)] overflow-hidden">
       <Image
         src={backgroundPath}
         alt=""

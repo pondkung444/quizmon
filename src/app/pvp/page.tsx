@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PvpPage() {
   const user = await requirePvpAccess();
-  // ธีมแอปวางทีละหน้า (ไม่ใช่ pvp/layout.tsx) เพราะจอต่อสู้ /pvp/[matchId] ต้องคงโทนเดิม
+  // ธีมแอป (dusk/day) — ดู components/AppThemeMarker.tsx
   if (user.isAnonymous)
     return (
       <>

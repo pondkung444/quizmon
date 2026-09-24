@@ -11,7 +11,7 @@ const AXES: { key: RaidStatKey; label: string }[] = [
   { key: "foc", label: "FOC" },
 ];
 
-const RAW_COLOR = "#9498a3"; // --color-text3
+const RAW_COLOR = "var(--color-text3)"; // --color-text3
 const EFFECTIVE_COLOR = "#4ade80"; // เขียวธีม readiness (ตรงกับ RaidReadinessGauge ตอนพร้อม)
 
 // ต่างจาก StatRadar.tsx (โชว์ค่าดิบเทียบเพดานคงที่ 120) — ที่นี่ normalize เป็น % ของ cap ต่อไข่ตัวนั้น
@@ -35,8 +35,8 @@ export default function RaidStatRadar({
   return (
     <ResponsiveContainer width="100%" height={200}>
       <RadarChart data={data} outerRadius="72%">
-        <PolarGrid stroke="#3a3d47" />
-        <PolarAngleAxis dataKey="stat" tick={{ fill: "#9498a3", fontSize: 11 }} />
+        <PolarGrid stroke="var(--color-border)" />
+        <PolarAngleAxis dataKey="stat" tick={{ fill: "var(--color-text3)", fontSize: 11 }} />
         <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
         <Radar name="พื้นฐาน" dataKey="raw" stroke={RAW_COLOR} strokeDasharray="4 4" fill="none" />
         <Radar name="รวมอุปกรณ์" dataKey="effective" stroke={EFFECTIVE_COLOR} fill={EFFECTIVE_COLOR} fillOpacity={0.25} />

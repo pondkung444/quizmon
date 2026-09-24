@@ -38,7 +38,7 @@ export default function InProgressScreen({
   const xPercent = travelXPercent(percent);
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6 pb-24">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-6 pb-24">
       <AdventureHeader title={dungeon.nameTh} />
 
       <div className="flex w-full flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-5">

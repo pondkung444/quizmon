@@ -49,6 +49,12 @@
   --color-sci-hi: #b9e4f7;
 }
 
+/* จองที่ให้แถบเลื่อนเสมอ (จอคอม) — ไม่งั้นหน้าที่ยาวจนมีแถบเลื่อนกับหน้าที่สั้นจะเลื่อนเนื้อหาซ้ายขวา ~7px
+   ทุกครั้งที่เปลี่ยนหน้า (มือถือใช้แถบเลื่อนแบบซ้อนทับ ไม่กินที่ จึงไม่มีผล) */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -724,6 +730,8 @@ body {
   --gd-dash: #4a5560;
   --gd-on-tier: #10231d;
   --gd-nav-bg: rgba(27, 31, 37, 0.95);
+  /* สนามประลอง (DuelClient) — พื้นไล่จากสีนี้ลงไป --color-track */
+  --duel-arena-top: #23252c;
 }
 .gd-shell { background: var(--gd-shell-bg); }
 .gd-card { border: 1px solid var(--gd-card-border); border-radius: 22px; background: var(--gd-card-bg); box-shadow: 0 4px 14px #00000030; }
@@ -887,6 +895,7 @@ body {
   --gd-empty: #15123a;
   --gd-dash: #6b62b8;
   --gd-nav-bg: rgba(26, 31, 69, 0.95);
+  --duel-arena-top: #3b2a7a;
 }
 
 /* ธีม 2: เช้าสดใส — พื้นสว่าง ฟ้า/หญ้าเขียว (เฉพาะหน้า /pet หน้าอื่นยังเป็นโทนมืดตามเดิม) */
@@ -985,6 +994,7 @@ body {
   --gd-dash: #a9b8c8;
   --gd-on-tier: #ffffff;
   --gd-nav-bg: rgba(255, 255, 255, 0.95);
+  --duel-arena-top: #8fd3ff;
 }
 
 /* ไล่สีสูงเท่าจอเดียวแล้วต่อด้วยสีปลาย (--background) — ถ้าปล่อยให้ gradient ยืดตาม body ที่ยาวหลายจอ
@@ -1138,3 +1148,21 @@ body {
 .egg-tier-legendary { --egg-tier: #f2b01e; --egg-tier-on: #3d2400; }
 [class*="egg-tier-"]:not(.egg-tier-badge) { border-color: color-mix(in srgb, var(--egg-tier, var(--color-border)) 55%, transparent); }
 .egg-tier-badge { background: var(--egg-tier, var(--color-track)); color: var(--egg-tier-on, var(--color-text)); }
+
+/* ── ส่วนที่เป็นรูปฉากเกม (RaidScene / DungeonScene / การ์ดด่าน / จอสู้บอส) ──────────────────────
+   ตัวอักษร/ป้ายที่วางทับบนรูปฉาก (มืดเสมอ) ต้องใช้โทนสำหรับพื้นมืดไม่ว่าธีมแอปจะเป็นอะไร — ประกาศ
+   token ชุดเดิม (ค่าก่อนมีธีม) ซ้ำในขอบเขตนี้ ลูกหลานที่ใช้ text-gold-hi / text-text ฯลฯ จึงอ่านออกบนรูป */
+.scene-dark {
+  --color-bg: #1f2127;
+  --color-card: #2a2d35;
+  --color-border: #3a3d47;
+  --color-text: #f5f5f4;
+  --color-text2: #a1a1aa;
+  --color-text3: #9498a3;
+  --color-track: #15171c;
+  --color-gold: #c8a86a;
+  --color-gold-dim: #5f4f30;
+  --color-gold-hi: #ecd7a0;
+  --color-on-amber: #15171c;
+  color-scheme: dark;
+}

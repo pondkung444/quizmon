@@ -23,7 +23,7 @@ export default function RaidLevelSelect({
           const href = `/raid/${level.slug}${petParam ? `?pet=${petParam}` : ""}`;
 
           const card = (
-            <div className="relative aspect-[16/7] w-full overflow-hidden rounded-2xl border border-gold-dim">
+            <div className="scene-dark relative aspect-[16/7] w-full overflow-hidden rounded-2xl border border-gold-dim">
               {level.backgroundPath && (
                 <Image
                   src={level.backgroundPath}
