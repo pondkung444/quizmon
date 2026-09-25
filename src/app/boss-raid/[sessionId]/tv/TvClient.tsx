@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import CloseBossRaidButton from "@/components/bossRaid/CloseBossRaidButton";
 import {
   useBossRaidTv,
   type TvRankedParticipant,
@@ -84,12 +85,15 @@ export default function TvClient({
   initialTopFive,
   initialParticipantCount,
   initialRoster,
+  isTeacher = false,
 }: {
   sessionId: string;
   initialSession: TvSession;
   initialTopFive: TvRankedParticipant[];
   initialParticipantCount: number;
   initialRoster: Record<string, ParticipantDisplay>;
+  /** ครูเจ้าของ Raid — โชว์ปุ่มจบเกม/ปิด Boss Raid (จอนี้นักเรียนเปิดดูได้ด้วย) */
+  isTeacher?: boolean;
 }) {
   const {
     session,
@@ -490,6 +494,15 @@ export default function TvClient({
             >
               เลือกบทเรียน + เริ่มเกม →
             </Link>
+            {isTeacher && (
+              <CloseBossRaidButton
+                sessionId={sessionId}
+                gameRunning
+                tone="tv"
+                label="ยกเลิก Boss Raid"
+                className="text-[clamp(11px,1.1vw,14px)] text-white/70 underline underline-offset-4"
+              />
+            )}
           </div>
         )}
 
@@ -587,8 +600,34 @@ export default function TvClient({
                 </div>
               </div>
             )}
+
+            {isTeacher && (
+              <div className="mt-[.6vw]">
+                <CloseBossRaidButton
+                  sessionId={sessionId}
+                  gameRunning={false}
+                  tone="tv"
+                  label="ปิด Boss Raid · กลับห้องเรียน"
+                  className="rounded-full border-2 border-gold bg-amber px-[2.4vw] py-[.9vw] text-[clamp(13px,1.5vw,19px)] font-bold text-on-amber transition active:scale-95"
+                />
+              </div>
+            )}
           </div>
         )}
+
+        {/* ===== ครู: จบเกมระหว่างเล่น — ปุ่มเล็กมุมขวาบนใต้ HUD ไม่แย่งสายตาจากฉากรบ ===== */}
+        {isTeacher && s.status === "in_progress" && (
+          <div className="absolute right-[3%] top-[11%] z-[58]">
+            <CloseBossRaidButton
+              sessionId={sessionId}
+              gameRunning
+              tone="tv"
+              label="⏹ จบเกม · ปิด Boss Raid"
+              className="rounded-full border-[1.5px] border-white/40 bg-black/55 px-[1.4vw] py-[.5vw] text-[clamp(10px,1vw,13px)] font-bold text-white/90 backdrop-blur transition hover:bg-black/70 active:scale-95"
+            />
+          </div>
+        )}
+
         {/* ===== ปุ่มเปิดเสียง — ครูแตะครั้งเดียวตอนตั้งจอ (unlock AudioContext ใน gesture จริง) ===== */}
         {!soundOn && (
           <button

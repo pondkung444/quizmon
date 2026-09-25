@@ -25,6 +25,7 @@ import {
   type PickedStudent,
 } from "../actions";
 import { clearClassroomActivity, endFocusMode, launchFocusMode } from "../focusActions";
+import { closeBossRaid } from "@/app/boss-raid/actions";
 import {
   useClassroomLobby,
   type ClassroomParticipant,
@@ -74,6 +75,7 @@ export default function TeacherRoomClient({
   const [sortMode, setSortMode] = useState<SortMode>("number");
   const [projector, setProjector] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [confirmCloseRaid, setConfirmCloseRaid] = useState(false);
   const [kickTarget, setKickTarget] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   // origin ฝั่ง client เท่านั้น (SSR ได้ "" แล้ว hydrate เป็นค่าจริง)
@@ -387,22 +389,65 @@ export default function TeacherRoomClient({
       <section className="mt-6">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-text2">เลือกกิจกรรม</h2>
-          {session.current_activity !== null && !focusRunning && (
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() =>
-                act(async () => {
-                  const res = await clearClassroomActivity(sessionId);
-                  if (!res.ok) throw new Error(res.error);
-                  setPickedLog([]);
-                  await refetch();
-                })
-              }
-              className="rounded-xl border border-gold-dim px-3 py-1.5 text-xs text-gold-hi transition active:scale-95 disabled:opacity-50"
-            >
-              จบกิจกรรม · กลับห้องรอ
-            </button>
+          {/* Boss Raid: ปิดผ่าน close_boss_raid (จบเกมถ้ายังเล่นอยู่ + กลับห้องรอ) — เดิม clear_classroom_activity
+              ปฏิเสธตอน Raid ยังไม่จบ และหน้านี้ไม่มีปุ่มจบ Raid ครูจึงติด. ถามยืนยันก่อนเพราะอาจกำลังเล่นอยู่
+              (ฝั่งนี้อ่านสถานะ Raid ไม่ได้) */}
+          {session.current_activity === "boss_raid" && session.active_boss_raid_session_id ? (
+            confirmCloseRaid ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-text2">ถ้าเกมยังเล่นอยู่ จะจบทันที</span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setConfirmCloseRaid(false)}
+                  className="rounded-xl border border-border px-3 py-1.5 text-xs text-text2 disabled:opacity-50"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() =>
+                    act(async () => {
+                      await closeBossRaid(session.active_boss_raid_session_id!);
+                      setConfirmCloseRaid(false);
+                      await refetch();
+                    })
+                  }
+                  className="rounded-xl border border-red bg-red px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                >
+                  {pending ? "กำลังปิด…" : "ปิด Boss Raid"}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setConfirmCloseRaid(true)}
+                className="rounded-xl border border-gold-dim px-3 py-1.5 text-xs text-gold-hi transition active:scale-95 disabled:opacity-50"
+              >
+                ปิด Boss Raid · กลับห้องรอ
+              </button>
+            )
+          ) : (
+            session.current_activity !== null &&
+            !focusRunning && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  act(async () => {
+                    const res = await clearClassroomActivity(sessionId);
+                    if (!res.ok) throw new Error(res.error);
+                    setPickedLog([]);
+                    await refetch();
+                  })
+                }
+                className="rounded-xl border border-gold-dim px-3 py-1.5 text-xs text-gold-hi transition active:scale-95 disabled:opacity-50"
+              >
+                จบกิจกรรม · กลับห้องรอ
+              </button>
+            )
           )}
         </div>
 
@@ -574,6 +619,7 @@ export default function TeacherRoomClient({
             <p className="text-lg font-bold text-text">ปิดห้องเรียนนี้?</p>
             <p className="mt-2 text-sm text-text3">
               นักเรียนทั้ง {participants.length} คนจะออกจากห้อง และใช้รหัสนี้เข้าไม่ได้อีก
+              {session.current_activity === "boss_raid" && " — Boss Raid ที่ยังเล่นอยู่จะจบไปด้วย"}
             </p>
             <div className="mt-5 flex gap-2">
               <button
