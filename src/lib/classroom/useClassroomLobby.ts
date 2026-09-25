@@ -18,6 +18,7 @@ export type ClassroomSession = {
   teacher_id: string;
   join_code: string;
   title: string | null;
+  class_id: string | null;
   status: "lobby" | "active" | "ended";
   current_activity: "name_picker" | "boss_raid" | "focus_mode" | null;
   active_boss_raid_session_id: string | null;

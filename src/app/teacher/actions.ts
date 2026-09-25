@@ -105,3 +105,54 @@ export async function launchBossRaidFromClassroom(
   const row = data as { id: string };
   return { bossRaidSessionId: row.id };
 }
+
+// ---- ห้องเรียนถาวร (ม.3/1 ฯลฯ) — migration 20260925120000_teacher_classes_dashboard ----
+
+const CLASS_ERRORS: Array<[code: string, message: string]> = [
+  ["class_name_taken", "มีห้องชื่อนี้อยู่แล้ว"],
+  ["invalid_class_name", "ตั้งชื่อห้อง 1–60 ตัวอักษร"],
+];
+
+function classErrorMessage(raw: string | null | undefined, fallback: string): string {
+  if (raw) {
+    for (const [code, message] of CLASS_ERRORS) if (raw.includes(code)) return message;
+  }
+  return focusErrorMessage(raw, fallback);
+}
+
+export async function createTeacherClass(name: string): Promise<{ classId: string }> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("create_teacher_class", { p_name: name }).single();
+  if (error || !data) throw new Error(classErrorMessage(error?.message, "เพิ่มห้องไม่สำเร็จ"));
+  return { classId: (data as { id: string }).id };
+}
+
+export async function renameTeacherClass(classId: string, name: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("rename_teacher_class", { p_class_id: classId, p_name: name });
+  if (error) throw new Error(classErrorMessage(error.message, "เปลี่ยนชื่อไม่สำเร็จ"));
+}
+
+export async function archiveTeacherClass(classId: string): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("archive_teacher_class", { p_class_id: classId });
+  if (error) throw new Error(classErrorMessage(error.message, "ซ่อนห้องไม่สำเร็จ"));
+}
+
+export type StartClassResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; reason: "other_session_open" };
+
+// มีคาบของห้องนี้เปิดอยู่ → ได้ห้องเดิมคืน; มีคาบห้องอื่นค้าง → ให้ UI ถามครูก่อน แล้วเรียกซ้ำด้วย endOtherOpen
+export async function startClassSession(
+  classId: string,
+  endOtherOpen = false
+): Promise<StartClassResult> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase
+    .rpc("start_class_session", { p_class_id: classId, p_end_other_open: endOtherOpen })
+    .single();
+  if (error?.message.includes("other_session_open")) return { ok: false, reason: "other_session_open" };
+  if (error || !data) throw new Error(classErrorMessage(error?.message, "เริ่มคาบไม่สำเร็จ"));
+  return { ok: true, sessionId: (data as { id: string }).id };
+}
