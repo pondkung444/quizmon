@@ -286,7 +286,7 @@ export default async function PetPage({
     // w-full: body เป็น flex-col + mx-auto ทำให้ <main> หดเท่า min-content ของลูก ถ้าไม่ใส่ ลูกที่ไม่ยอมหด
     // (เช่นแถบผจญภัย/ท้าทาย) ดัน <main> กว้างเกินจอมือถือ 375px ได้ (เคยล้นเป็น 404px)
     // ธีมสี (dusk/day) มาจาก <AppThemeMarker /> ใน pet/layout.tsx
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6 sm:pb-24">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
           มุมบน (หัวการ์ด PetCard มีชื่อ + ชิปสัปดาห์เต็มความกว้าง) ส่วนมุมล่างขวาว่างสนิท */}
       <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />

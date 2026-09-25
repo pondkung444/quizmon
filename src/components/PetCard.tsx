@@ -388,15 +388,23 @@ export default function PetCard({
         </div>
       </section>
 
-      {/* 7. ลิงก์ที่ใช้ไม่บ่อย — ตัวเล็กแต่ touch target ยัง 44px */}
-      <div className="flex items-center justify-center gap-1 text-xs text-text3">
-        <Link href="/classroom/join" className="flex min-h-11 items-center gap-1.5 px-3 transition active:opacity-70">
-          <DoorOpen size={15} aria-hidden />
+      {/* 7. เข้าห้องเรียน + ตั้งค่า — เดิมเป็นลิงก์ตัวเล็ก text-xs หาไม่เจอ (ผู้ใช้บอกเล็กไป 2026-09-25)
+          ทำเป็นปุ่มเต็มแถวคู่กัน; เข้าห้องเรียนเด่นกว่าเพราะครูสั่งให้เข้าบ่อยในคาบ */}
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Link
+          href="/classroom/join"
+          onClick={() => sfx("tap")}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-gold bg-amber/15 px-3 text-sm font-bold text-gold-hi transition active:scale-95"
+        >
+          <DoorOpen size={18} aria-hidden />
           เข้าห้องเรียน
         </Link>
-        <span aria-hidden>·</span>
-        <Link href="/settings" className="flex min-h-11 items-center gap-1.5 px-3 transition active:opacity-70">
-          <Settings size={15} aria-hidden />
+        <Link
+          href="/settings"
+          onClick={() => sfx("tap")}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-card px-3 text-sm font-bold text-text2 transition active:scale-95"
+        >
+          <Settings size={18} aria-hidden />
           ตั้งค่า
         </Link>
       </div>
