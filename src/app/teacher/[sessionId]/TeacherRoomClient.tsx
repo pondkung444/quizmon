@@ -39,7 +39,7 @@ import {
   sortByStudentNumber,
   STAGE_LABEL,
 } from "@/lib/classroom/roster";
-import FocusTeacherPanel from "@/components/classroom/FocusTeacherPanel";
+import FocusTeacherPanel, { FocusSummaryCard } from "@/components/classroom/FocusTeacherPanel";
 import RosterAvatar from "@/components/classroom/RosterAvatar";
 
 // จอครู — ออกแบบให้ฉายโปรเจกเตอร์ได้: รหัสใหญ่ฝั่งซ้าย, รายชื่อ+Qmon realtime ฝั่งขวา, กิจกรรมด้านล่าง
@@ -77,6 +77,7 @@ export default function TeacherRoomClient({
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmCloseRaid, setConfirmCloseRaid] = useState(false);
   const [kickTarget, setKickTarget] = useState<string | null>(null);
+  const [dismissedFocusId, setDismissedFocusId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   // origin ฝั่ง client เท่านั้น (SSR ได้ "" แล้ว hydrate เป็นค่าจริง)
   const origin = useSyncExternalStore(noopSubscribe, () => window.location.origin, () => "");
@@ -531,6 +532,18 @@ export default function TeacherRoomClient({
             }
           />
         )}
+
+        {/* สรุปท้ายคาบ — โชว์จนครูปิดหรือเริ่มกิจกรรมถัดไป (รีโหลดหน้าแล้วหาย: ประวัติดูที่หน้าห้องเรียน) */}
+        {!focusRunning &&
+          focusSession?.status === "ended" &&
+          session.current_activity === null &&
+          dismissedFocusId !== focusSession.id && (
+            <FocusSummaryCard
+              key={focusSession.id}
+              focusSessionId={focusSession.id}
+              onClose={() => setDismissedFocusId(focusSession.id)}
+            />
+          )}
 
         {session.current_activity === "name_picker" && (
           <div className="mt-4 rounded-3xl border border-gold-dim bg-card p-6">
