@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
-import { Pencil } from "lucide-react";
-import { getBossRaidJoinCodeForClassroom, setClassroomIdentity } from "../actions";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { ChevronDown, Pencil, Shield } from "lucide-react";
+import {
+  getBossRaidJoinCodeForClassroom,
+  getClassroomMySummary,
+  setClassroomIdentity,
+} from "../actions";
 import { joinFocusSession } from "@/app/teacher/focusActions";
 import { isFocusNotRunning } from "@/lib/classroom/focusErrors";
 import {
@@ -16,6 +20,9 @@ import { isFocusRunning, useFocusSession } from "@/lib/classroom/useFocusSession
 import { resolveRosterPet, rosterDisplayName } from "@/lib/classroom/roster";
 import FocusStudentView from "@/components/classroom/FocusStudentView";
 import RosterAvatar from "@/components/classroom/RosterAvatar";
+import ClassroomQmonLoadout from "@/components/classroom/ClassroomQmonLoadout";
+import MySessionRecap from "@/components/classroom/MySessionRecap";
+import type { MyClassroomSummary } from "@/lib/classroom/mySummary";
 
 export default function StudentLobbyClient({
   sessionId,
@@ -30,7 +37,7 @@ export default function StudentLobbyClient({
 }) {
   const router = useRouter();
   // track Presence เป็นตัวเอง — จอครูใช้โชว์ว่าใครหลุด และสุ่มชื่อเฉพาะคนที่ออนไลน์
-  const { session, participants, rosterDenied, connected, refetch } = useClassroomLobby(
+  const { session, participants, onlineIds, rosterDenied, connected, refetch } = useClassroomLobby(
     sessionId,
     { session: initialSession, participants: initialParticipants },
     { trackPresenceAs: userId }
@@ -39,6 +46,8 @@ export default function StudentLobbyClient({
     useFocusSession(sessionId, session?.active_focus_session_id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [loadoutOpen, setLoadoutOpen] = useState(false);
+  const [summary, setSummary] = useState<MyClassroomSummary | null>(null);
   const redirecting = useRef(false);
   const joinedFocusId = useRef<string | null>(null);
 
@@ -65,6 +74,22 @@ export default function StudentLobbyClient({
       })();
     }
   }, [session, router, ended, focusRunning]);
+
+  // ผลของตัวเองในคาบ — โหลดใหม่ทุกครั้งที่กิจกรรม/สถานะห้องเปลี่ยน (Raid จบ, คาบตั้งใจจบ, ครูสุ่มชื่อ)
+  const loadSummary = useCallback(async () => {
+    const s = await getClassroomMySummary(sessionId);
+    if (s) setSummary(s);
+  }, [sessionId]);
+  const activityKey = `${session?.status}|${session?.current_activity}|${session?.active_boss_raid_session_id}|${focusSession?.status}`;
+  useEffect(() => {
+    let cancelled = false;
+    void getClassroomMySummary(sessionId).then((s) => {
+      if (!cancelled && s) setSummary(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, activityKey]);
 
   // late-joiner: เข้าห้องหลังครูเริ่มคาบ → ยังไม่มีแถวผู้เข้าร่วม ให้ join ครั้งเดียวต่อรอบ
   const focusId = focusRunning ? focusSession!.id : null;
@@ -114,8 +139,9 @@ export default function StudentLobbyClient({
   }
 
   const myPet = me ? resolveRosterPet(me) : null;
+  const waiting = !ended && session.current_activity === null;
   const status = ended
-    ? "ห้องนี้ปิดแล้ว"
+    ? "คาบนี้จบแล้ว"
     : session.current_activity === "name_picker"
       ? "ครูกำลังสุ่มรายชื่อ… ดูผลบนจอหน้าห้อง"
       : session.current_activity === "boss_raid"
@@ -124,60 +150,137 @@ export default function StudentLobbyClient({
           ? "กำลังเข้าคาบตั้งใจ…"
           : "รอครูเริ่มกิจกรรม";
 
+  // ออนไลน์ก่อน แล้วตามเวลาเข้า — onlineIds null = Presence ยังไม่ sync ถือว่าทุกคนออนไลน์ (ไม่หรี่ทั้งห้อง)
+  const isOnline = (id: string) => onlineIds === null || onlineIds.has(id);
+  const sortedClassmates = [...classmates].sort(
+    (a, b) => Number(isOnline(b.user_id)) - Number(isOnline(a.user_id))
+  );
+  const onlineCount = classmates.filter((p) => isOnline(p.user_id)).length;
+
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-col items-center px-4 pb-24 pt-10 text-center">
-      <p className="text-sm text-text3">{session.title ?? "ห้องเรียน"}</p>
+    <main className="mx-auto flex w-full max-w-md flex-col items-center gap-4 px-4 pb-28 pt-6">
+      <header className="flex w-full items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs text-text3">ห้องเรียน</p>
+          <h1 className="truncate text-lg font-bold text-text">{session.title ?? "ห้องเรียน"}</h1>
+        </div>
+        <span
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
+            ended ? "bg-track text-text3" : connected ? "bg-good/15 text-good" : "bg-warn/15 text-warn"
+          }`}
+        >
+          {!ended && <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-good" : "bg-warn"}`} />}
+          {ended ? "จบคาบ" : connected ? "เชื่อมต่อแล้ว" : "กำลังเชื่อมต่อ…"}
+        </span>
+      </header>
 
       {me && (
-        <>
-          <div className="mt-4 animate-evolve-pop">
-            <RosterAvatar pet={myPet} name={rosterDisplayName(me)} size={168} />
+        <section className="w-full overflow-hidden rounded-3xl border border-gold-dim bg-card">
+          <div className="flex items-center gap-4 p-4">
+            <div className="animate-evolve-pop">
+              <RosterAvatar pet={myPet} name={rosterDisplayName(me)} size={104} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                disabled={ended}
+                className="flex max-w-full items-center gap-1.5 text-left text-xl font-bold text-gold-hi"
+              >
+                <span className="truncate">
+                  {me.student_number !== null && `${me.student_number}. `}
+                  {rosterDisplayName(me)}
+                </span>
+                {!ended && <Pencil className="h-4 w-4 shrink-0 text-text3" />}
+              </button>
+              {myPet && (
+                <p className="truncate text-sm text-text2">
+                  คู่หู: <span className="font-bold text-text">{myPet.nickname ?? myPet.speciesName}</span>
+                </p>
+              )}
+              {!ended && (
+                <button
+                  type="button"
+                  onClick={() => setLoadoutOpen((v) => !v)}
+                  aria-expanded={loadoutOpen}
+                  className={`mt-2.5 flex items-center gap-1.5 whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-bold transition active:scale-95 ${
+                    loadoutOpen ? "border-gold bg-amber/15 text-gold-hi" : "border-border bg-track text-text"
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  จัดทีม Qmon
+                  <ChevronDown className={`h-4 w-4 transition ${loadoutOpen ? "rotate-180" : ""}`} />
+                </button>
+              )}
+            </div>
           </div>
-          <p className="mt-3 text-sm font-bold text-good">เข้าห้องแล้ว</p>
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            disabled={ended}
-            className="mt-1 flex items-center gap-1.5 text-xl font-bold text-gold-hi"
-          >
-            {me.student_number !== null && <span>{me.student_number}.</span>}
-            {me.display_name}
-            {!ended && <Pencil className="h-4 w-4 text-text3" />}
-          </button>
-          {myPet && (
-            <p className="text-sm text-text3">คู่หู: {myPet.nickname ?? myPet.speciesName}</p>
+
+          {loadoutOpen && !ended && (
+            <div className="border-t border-border p-4">
+              <ClassroomQmonLoadout
+                sessionId={sessionId}
+                chosenPetId={summary?.pet_id ?? null}
+                onChanged={() => {
+                  void refetch();
+                  void loadSummary();
+                }}
+              />
+            </div>
           )}
-        </>
+        </section>
       )}
 
-      <div className="mt-8 w-full rounded-2xl border border-border bg-card px-4 py-4">
-        <div className="flex items-center justify-center gap-2">
-          {!ended && session.current_activity === null && (
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber" />
-            </span>
-          )}
-          <p className="font-bold text-text">{status}</p>
-        </div>
-        {!connected && !ended && <p className="mt-1 text-xs text-warn">กำลังเชื่อมต่อ…</p>}
+      <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3.5">
+        {waiting && (
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber opacity-60" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber" />
+          </span>
+        )}
+        <p className="font-bold text-text">{status}</p>
       </div>
 
-      {classmates.length > 0 && !ended && (
-        <div className="mt-6 w-full">
-          <p className="text-sm text-text3">เพื่อนในห้อง {classmates.length} คน</p>
-          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-            {classmates.slice(0, 30).map((p) => (
-              <RosterAvatar key={p.user_id} pet={resolveRosterPet(p)} name={rosterDisplayName(p)} size={40} />
-            ))}
-            {classmates.length > 30 && (
-              <span className="flex h-10 items-center px-2 text-xs text-text3">+{classmates.length - 30}</span>
-            )}
+      {summary && <MySessionRecap summary={summary} classEnded={ended} />}
+
+      {classmates.length > 0 && (
+        <section className="w-full rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-bold text-text">เพื่อนในห้อง</h2>
+            <p className="text-xs text-text3">
+              {ended ? `${classmates.length} คน` : `ออนไลน์ ${onlineCount}/${classmates.length}`}
+            </p>
           </div>
-        </div>
+          <ul className="mt-3 grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-5">
+            {sortedClassmates.slice(0, 40).map((p) => {
+              const online = ended || isOnline(p.user_id);
+              return (
+                <li key={p.user_id} className="flex min-w-0 flex-col items-center">
+                  <div className="relative">
+                    <RosterAvatar pet={resolveRosterPet(p)} name={rosterDisplayName(p)} size={56} dim={!online} />
+                    {!ended && online && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-good" />
+                    )}
+                  </div>
+                  <span className={`mt-1 w-full truncate text-center text-[11px] ${online ? "text-text2" : "text-text3"}`}>
+                    {rosterDisplayName(p)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          {classmates.length > 40 && (
+            <p className="mt-2 text-center text-xs text-text3">และอีก {classmates.length - 40} คน</p>
+          )}
+        </section>
       )}
 
-      {error && <p className="mt-4 text-sm text-red">{error}</p>}
+      {ended && (
+        <Link href="/pet" className="text-sm text-gold-hi underline">
+          กลับหน้าหลัก
+        </Link>
+      )}
+
+      {error && <p className="text-sm text-red">{error}</p>}
     </main>
   );
 }
