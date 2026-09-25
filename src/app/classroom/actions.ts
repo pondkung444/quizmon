@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { checkProfanity } from "@/lib/moderation";
 import { classroomErrorMessage } from "@/lib/classroom/roster";
+import type { MyClassroomSummary } from "@/lib/classroom/mySummary";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -59,4 +60,28 @@ export async function getBossRaidJoinCodeForClassroom(bossRaidSessionId: string)
   });
   if (error || !data) throw new Error(error?.message ?? "ดึงรหัสห้องไม่สำเร็จ");
   return data as string;
+}
+
+// ผลของตัวเองในคาบนี้ (Raid / คาบตั้งใจ / ถูกสุ่มชื่อ) — null ถ้าโหลดไม่ได้ (หน้ายังใช้งานได้โดยซ่อนส่วนนี้)
+export async function getClassroomMySummary(sessionId: string): Promise<MyClassroomSummary | null> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("get_classroom_my_summary", { p_session_id: sessionId });
+  if (error || !data) {
+    console.error("get_classroom_my_summary failed:", error?.message);
+    return null;
+  }
+  return data as MyClassroomSummary;
+}
+
+// Qmon ประจำคาบ (stage 4) — ใช้ลง Boss Raid ที่ครูเปิดจากคาบนี้; null = ใช้ตัวที่เลี้ยงอยู่
+export async function setClassroomPet(sessionId: string, petId: string | null): Promise<void> {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.rpc("set_classroom_pet", {
+    p_session_id: sessionId,
+    p_pet_id: petId,
+  });
+  if (error) {
+    if (error.message.includes("invalid_classroom_pet")) throw new Error("เลือกได้เฉพาะ Qmon ที่โตเต็มวัย");
+    throw new Error(classroomErrorMessage(error.message, "เปลี่ยน Qmon ไม่สำเร็จ ลองใหม่อีกครั้ง"));
+  }
 }
