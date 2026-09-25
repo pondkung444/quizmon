@@ -211,14 +211,19 @@ export default async function PetPage({
 
   // safety net (สไลซ์ 3): PvP ให้ EXP ตัว active ตรง ๆ ใน SQL โดยไม่เช็ค stage-up (option B) —
   // ถ้า exp ข้าม threshold แล้วแต่ stage ยังไม่ขยับ (เช่นปิดแอปตอนแมตช์จบ ไม่ได้เปิดหน้าแมตช์) reconcile ที่นี่
+  // ห่อ try/catch: อยู่ระหว่าง render หน้าแรก ห้าม throw ไม่ว่ากรณีใด — พลาดรอบนี้ เปิดหน้าครั้งหน้าก็ลองใหม่เอง
   if (user && pet && tryAdvanceStage(pet.stage, pet.exp) !== pet.stage) {
-    await evolvePet(
-      supabase,
-      user.id,
-      { id: pet.id, stage: pet.stage, math_correct: pet.math_correct, science_correct: pet.science_correct },
-      pet.exp,
-      "/pet"
-    );
+    try {
+      await evolvePet(
+        supabase,
+        user.id,
+        { id: pet.id, stage: pet.stage, math_correct: pet.math_correct, science_correct: pet.science_correct },
+        pet.exp,
+        "/pet"
+      );
+    } catch (err) {
+      console.error("/pet: safety-net evolvePet failed", user.id, pet.id, err);
+    }
     const { data: fresh } = await supabase
       .from("pets")
       .select(

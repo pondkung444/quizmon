@@ -7,6 +7,7 @@
 // evolution.ts ยังเป็นไฟล์ห้ามแก้ — ที่นี่ import ใช้ (tryAdvanceStage/determineSubline) เท่านั้น
 
 import type { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { tryAdvanceStage, determineSubline } from "@/lib/evolution";
 import { getGradeBand } from "@/lib/gradeBand";
 import { resolveSeniorLine, type PetLine, type SeniorLine } from "@/lib/petLine";
@@ -93,16 +94,32 @@ export async function evolvePet(
   };
   if (!plan.evolved) return outcome;
 
-  await supabase.from("pets").update({ stage: plan.newStage }).eq("id", pet.id).eq("stage", pet.stage);
+  // Premium 1.5d: เขียน stage/subline ผ่าน admin client (ผู้ใช้จะไม่มีสิทธิ์ UPDATE pets เอง) —
+  // admin ข้าม RLS จึงต้อง .eq("user_id", userId) เสมอ (userId มาจาก session ของผู้เรียกทุกจุด)
+  const admin = createAdminClient();
+  const { error: stageError } = await admin
+    .from("pets")
+    .update({ stage: plan.newStage })
+    .eq("id", pet.id)
+    .eq("user_id", userId)
+    .eq("stage", pet.stage);
+  if (stageError) {
+    console.error("evolvePet: stage update failed", userId, pet.id, plan.newStage, stageError);
+    return { ...outcome, evolved: false, toStage: pet.stage, reachedStage4: false };
+  }
 
   if (plan.computedSubline) {
-    const { data: locked } = await supabase
+    const { data: locked, error: sublineError } = await admin
       .from("pets")
       .update({ subline: plan.computedSubline })
       .eq("id", pet.id)
+      .eq("user_id", userId)
       .is("subline", null)
       .select("id")
       .maybeSingle();
+    if (sublineError) {
+      console.error("evolvePet: subline lock failed", userId, pet.id, sublineError);
+    }
 
     if (locked && plan.seniorLockCounts) {
       await supabase.from("analytics_events").insert({
