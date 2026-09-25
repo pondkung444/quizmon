@@ -517,6 +517,7 @@ export default function TeacherRoomClient({
 
         {focusRunning && focusSession && (
           <FocusTeacherPanel
+            focusSessionId={focusSession.id}
             startedAt={focusSession.started_at}
             participantCount={participantCount}
             pending={pending}

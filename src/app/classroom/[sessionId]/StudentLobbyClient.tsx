@@ -42,7 +42,7 @@ export default function StudentLobbyClient({
     { session: initialSession, participants: initialParticipants },
     { trackPresenceAs: userId }
   );
-  const { focusSession, myParticipant, participantsLoaded, connected: focusConnected } =
+  const { focusSession, myParticipant, participantsLoaded } =
     useFocusSession(sessionId, session?.active_focus_session_id ?? null);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -115,11 +115,19 @@ export default function StudentLobbyClient({
     );
   }
 
+  const me = participants.find((p) => p.user_id === userId);
+
   if (focusRunning && focusSession) {
-    return <FocusStudentView startedAt={focusSession.started_at} connected={focusConnected} />;
+    return (
+      <FocusStudentView
+        key={focusSession.id}
+        focusSessionId={focusSession.id}
+        joined={!!myParticipant}
+        pet={me ? resolveRosterPet(me) : null}
+      />
+    );
   }
 
-  const me = participants.find((p) => p.user_id === userId);
   const classmates = participants.filter((p) => p.user_id !== userId);
 
   // ต้องกรอกชื่อจริงก่อน — ครูเห็นแค่ username (ชื่อเล่นที่ตั้งเอง) จะไม่รู้ว่าเป็นใคร
