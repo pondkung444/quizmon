@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { tsMs, type BossRaidActiveEvent } from "@/lib/bossRaid/activeEvent";
+import { resolveBossRaidBoss } from "@/lib/bossRaidBosses";
+import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
 
 // Phase 0.3 — จอเล่นของนักเรียน (§12.3 timer จาก deadline timestamp, §12.4 resume ข้อค้าง)
 // - get_next_boss_raid_question: resume-aware (server คืนข้อเดิมถ้ายังค้าง) -> ไม่ต้องอ่าน questions เอง
@@ -69,6 +71,7 @@ type MeteorResult = {
 type Phase = "loading" | "answering" | "submitting" | "result" | "error" | "ended" | "cooldown";
 
 const TIER_TH: Record<string, string> = { light: "เบา", medium: "กลาง", heavy: "แรง" };
+const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 const STAT_TH: Record<string, string> = {
   hp: "พลังชีวิต",
   atk: "พลังโจมตี",
@@ -87,6 +90,7 @@ export default function BossRaidGame({
   crystalHp,
   crystalHpMax,
   currentTier,
+  bossKey,
 }: {
   participantId: string;
   currentQuestionId: number | null;
@@ -97,13 +101,20 @@ export default function BossRaidGame({
   crystalHp: number | null | undefined;
   crystalHpMax: number | null | undefined;
   currentTier: string | null | undefined;
+  /** config.boss_key — รูป/ชื่อบอสบน HUD */
+  bossKey?: string | null;
 }) {
   const supabase = createClient();
+  const boss = resolveBossRaidBoss(bossKey);
   const [phase, setPhase] = useState<Phase>("loading");
   const [q, setQ] = useState<QState | null>(null);
   const [result, setResult] = useState<AnswerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nowTs, setNowTs] = useState(() => Date.now());
+  // ข้อที่กดเลือก (null = หมดเวลา) — คงคำถามไว้บนจอตอนโชว์ผล แล้วระบายสีเฉพาะข้อนี้
+  const [picked, setPicked] = useState<number | null>(null);
+  // จำนวนข้อที่ตอบไปแล้วในรอบนี้ (นับฝั่ง client — ไว้โชว์ "ข้อ N" เท่านั้น)
+  const [answered, setAnswered] = useState(0);
   // Item 4a — คูลดาวน์รายคน (ตอบผิดติดกัน 3 -> พัก 30 วิ)
   const [cooldownUntil, setCooldownUntil] = useState<string | null>(null);
 
@@ -191,6 +202,7 @@ export default function BossRaidGame({
       submittedRef.current = false;
       setResult(null);
       setError(null);
+      setPicked(null);
       setQ(d as QState);
       setPhase("answering");
     } catch (e) {
@@ -211,6 +223,7 @@ export default function BossRaidGame({
       const cq = qRef.current;
       if (submittedRef.current || !cq) return;
       submittedRef.current = true;
+      setPicked(answerIndex);
       setPhase("submitting");
       try {
         const { data, error: err } = await supabase.rpc("submit_boss_raid_answer", {
@@ -235,6 +248,7 @@ export default function BossRaidGame({
           return;
         }
         setResult(res);
+        if (!res.idempotent) setAnswered((n) => n + 1);
         setPhase("result");
         if (res.status === "ended") {
           window.setTimeout(() => setPhase("ended"), 1800);
@@ -420,52 +434,73 @@ export default function BossRaidGame({
   const shownTier = result?.current_tier ?? currentTier ?? "light";
   const crystalHit = phase === "result" && (result?.crystal_damage ?? 0) > 0;
 
-  return (
-    <section className="mt-6 rounded-2xl border border-gold-dim bg-card p-4">
-      {/* บอส HP */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-xs text-text3">
-          <span>บอส HP</span>
-          <span>
-            {shownBossHp} / {bossHpMax ?? "?"}
-          </span>
-        </div>
-        <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-track">
-          <div className="h-full bg-red transition-all" style={{ width: `${bossPct}%` }} />
-        </div>
-      </div>
+  const secsLeft = Math.ceil(remainMs / 1000);
+  const timerTone = timerPct > 50 ? "bg-gold" : timerPct > 25 ? "bg-amber" : "bg-red";
+  const lastResultCorrect = phase === "result" && result?.is_correct === true;
+  const lastResultWrong = phase === "result" && result?.is_correct === false;
 
-      {/* คริสตัล HP + ระดับบอส (tier) */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-xs text-text3">
-          <span>
-            คริสตัล HP <span className="text-text2">· บอสระดับ{TIER_TH[shownTier] ?? "เบา"}</span>
-          </span>
-          <span>
-            {shownCrystalHp} / {crystalHpMax ?? "?"}
-          </span>
+  // สไตล์ชุดเดียวกับหน้า /quiz (quiz-question-card + ปุ่มตัวเลือก ก ข ค ง) — สีมาจาก token ของธีมแอป
+  // ([data-app-theme] ใน globals.css) ที่ page.tsx ใส่ให้เฉพาะฝั่งนักเรียน; จอครู/TV คงโทนเดิม
+  // server ไม่ส่งเฉลยกลับมา จึงระบายสีเฉพาะข้อที่เลือก (ถูก = เขียว, ผิด = แดง)
+  function choiceClass(i: number): string {
+    if (picked === i && lastResultCorrect) return "border-correct bg-correct/10";
+    if (picked === i && lastResultWrong) return "border-red bg-red/10";
+    if (picked === i) return "border-amber bg-amber/10";
+    return "border-border bg-card";
+  }
+
+  return (
+    <section className="mt-5 flex flex-col gap-3">
+      {/* ===== HUD: บอส + คริสตัล ===== */}
+      <div className="quiz-journey flex items-center gap-3 !px-4 !py-3">
+        <div className="relative h-16 w-16 shrink-0" aria-hidden>
+          <Image src={boss.sprite} alt="" fill sizes="64px" className="object-contain drop-shadow-lg" />
         </div>
-        <div
-          className={`mt-1 h-3 w-full overflow-hidden rounded-full bg-track transition-colors ${
-            crystalHit ? "ring-2 ring-red" : ""
-          }`}
-        >
-          <div
-            className="h-full bg-indigo-hi transition-all"
-            style={{ width: `${crystalPct}%` }}
-          />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div>
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="truncate font-bold">{boss.nameTh}</span>
+              <span className="shrink-0 tabular-nums opacity-80">
+                {shownBossHp} / {bossHpMax ?? "?"}
+              </span>
+            </div>
+            <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-black/25">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#ff6a4d] to-[#ffb37a] transition-all duration-500"
+                style={{ width: `${bossPct}%` }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between gap-2 text-xs">
+              <span className="truncate">
+                คริสตัล <span className="opacity-80">· บอสระดับ{TIER_TH[shownTier] ?? "เบา"}</span>
+              </span>
+              <span className="shrink-0 tabular-nums opacity-80">
+                {shownCrystalHp} / {crystalHpMax ?? "?"}
+              </span>
+            </div>
+            <div
+              className={`mt-1 h-2 w-full overflow-hidden rounded-full bg-black/25 ${
+                crystalHit ? "ring-2 ring-red" : ""
+              }`}
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#52d9d4] to-[#bff5f0] transition-all duration-500"
+                style={{ width: `${crystalPct}%` }}
+              />
+            </div>
+            {crystalHit && (
+              <p className="mt-1 text-right text-xs font-bold text-red">บอสฟาดคริสตัล −{result?.crystal_damage} HP</p>
+            )}
+          </div>
         </div>
-        {crystalHit && (
-          <p className="mt-1 text-right text-xs font-bold text-red">
-            บอสฟาดคริสตัล −{result?.crystal_damage} HP
-          </p>
-        )}
       </div>
 
       {/* ===== บัฟดาเมจ passive (จุดอ่อนเผย / บอสโกรธ) ===== */}
       {buff && (
         <div
-          className={`mb-3 rounded-xl px-3 py-2 text-center text-sm font-bold ${
+          className={`rounded-2xl px-4 py-2.5 text-center text-sm font-bold ${
             buff.type === "enrage"
               ? "border border-red bg-red/10 text-red"
               : "border border-gold bg-amber/10 text-gold-hi"
@@ -477,11 +512,14 @@ export default function BossRaidGame({
         </div>
       )}
 
-      {/* ===== event: นักรบถูกเลือก ===== */}
+      {/* ===== event: นักรบถูกเลือก (คนอื่นรอ) ===== */}
       {cw && !amChosen && (
-        <div className="rounded-xl border border-amber bg-amber/10 p-6 text-center">
-          <p className="text-lg font-bold text-gold-hi">⚔️ นักรบถูกเลือก</p>
-          <p className="mt-2 text-base font-bold text-text">{cw.chosen_name}</p>
+        <div className="quiz-question-card text-center">
+          <p className="text-3xl" aria-hidden>
+            ⚔️
+          </p>
+          <p className="mt-2 text-sm font-bold text-gold-hi">นักรบถูกเลือก</p>
+          <p className="mt-1 text-xl font-bold text-text">{cw.chosen_name}</p>
           <p className="mt-1 text-sm text-text3">
             {cw.criterion === "total"
               ? "สเตตัสรวมสูง — กำลังตอบคำถามแทนทั้งห้อง"
@@ -491,112 +529,101 @@ export default function BossRaidGame({
         </div>
       )}
 
+      {/* ===== event: นักรบถูกเลือก (เราคือนักรบ) ===== */}
       {cw && amChosen && (
-        <div className="rounded-xl border-2 border-gold bg-amber/10 p-4">
-          <p className="text-center text-sm font-bold text-gold-hi">
-            ⚔️ คุณคือนักรบที่ถูกเลือก!
-          </p>
-          <p className="mt-1 text-center text-xs text-text3">
-            {cw.criterion === "total"
-              ? `สเตตัสรวมของคุณ ${cw.stat_value} — สูงสุดที่ถูกสุ่มได้`
-              : `${STAT_TH[cw.stat_key ?? ""] ?? cw.stat_key} ของคุณ ${cw.stat_value}`}
-          </p>
-          <p className="mt-1 text-center text-xs font-bold text-red">
-            ตอบถูก บอสเสียเลือด ×3 · ตอบผิด คริสตัลแตกหนัก ×2.5
-          </p>
+        <div className="quiz-question-card flex flex-col gap-4 !border-2 !border-gold">
+          <div className="text-center">
+            <p className="text-sm font-bold text-gold-hi">⚔️ คุณคือนักรบที่ถูกเลือก!</p>
+            <p className="mt-1 text-xs text-text3">
+              {cw.criterion === "total"
+                ? `สเตตัสรวมของคุณ ${cw.stat_value} — สูงสุดที่ถูกสุ่มได้`
+                : `${STAT_TH[cw.stat_key ?? ""] ?? cw.stat_key} ของคุณ ${cw.stat_value}`}
+            </p>
+            <p className="mt-1 text-xs font-bold text-red">ตอบถูก บอสเสียเลือด ×3 · ตอบผิด คริสตัลแตกหนัก ×2.5</p>
+          </div>
 
           {cwResult ? (
-            <div className="py-6 text-center">
+            <div
+              role="status"
+              className={`rounded-2xl border p-4 text-center ${
+                cwResult.is_correct
+                  ? "border-correct/40 bg-correct/10 text-correct-text"
+                  : "border-border bg-track/40 text-text"
+              }`}
+            >
               {cwResult.is_correct ? (
                 <>
-                  <p className="text-2xl font-bold text-gold-hi">
+                  <p className="font-sarabun text-xl font-bold">
                     ตอบถูก! {cwResult.is_crit && <span className="text-amber">คริติคอล ✦</span>}
                   </p>
-                  <p className="mt-2 text-lg font-bold text-red">−{cwResult.damage_dealt} HP บอส</p>
+                  <p className="mt-1 text-lg font-bold text-red">−{cwResult.damage_dealt} HP บอส</p>
                 </>
               ) : cwResult.already_resolved || cwResult.event_active === false ? (
-                <p className="text-lg font-bold text-text2">อีเวนต์จบไปแล้ว</p>
+                <p className="text-lg font-bold">อีเวนต์จบไปแล้ว</p>
               ) : (
                 <>
-                  <p className="text-2xl font-bold text-text2">ยังไม่ถูก…</p>
-                  <p className="mt-2 text-lg font-bold text-red">
-                    คริสตัล −{cwResult.crystal_damage} HP
-                  </p>
+                  <p className="font-sarabun text-xl font-bold">ยังไม่ถูก…</p>
+                  <p className="mt-1 text-lg font-bold text-red">คริสตัล −{cwResult.crystal_damage} HP</p>
                 </>
               )}
-              <p className="mt-3 text-xs text-text3">กำลังกลับสู่คำถามปกติ…</p>
+              <p className="mt-2 text-xs text-text3">กำลังกลับสู่คำถามปกติ…</p>
             </div>
           ) : (
             <>
-              <p className="mt-4 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
+              <h2 className="whitespace-pre-wrap font-sarabun text-lg font-bold leading-relaxed text-text">
                 {cw.question_text}
-              </p>
-              <div className="mt-4 grid gap-2">
-                {cw.choices.map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={cwBusy}
-                    onClick={() => void submitChosen(i)}
-                    className="rounded-xl border border-gold-dim bg-track px-4 py-3 text-left text-sm text-text transition active:scale-[0.98] disabled:opacity-50"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+              </h2>
+              <ChoiceList
+                choices={cw.choices}
+                disabled={cwBusy}
+                onPick={(i) => void submitChosen(i)}
+                classFor={() => "border-gold-dim bg-card"}
+              />
             </>
           )}
-          {error && <p className="mt-2 text-center text-sm text-red">{error}</p>}
+          {error && <p className="text-center text-sm text-red">{error}</p>}
         </div>
       )}
 
       {/* ===== event: ฝนดาวตก (meteor) — คำถามโบนัสทั้งห้อง ===== */}
       {!cw && meteorActive && meteorEv && (
-        <div className="rounded-xl border-2 border-gold bg-amber/10 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-gold-hi">☄️ ฝนดาวตก!</p>
-            <span className="rounded-full bg-track px-2 py-0.5 text-xs font-bold text-text2">
+        <div className="quiz-question-card flex flex-col gap-4 !border-2 !border-gold">
+          <div className="flex items-center justify-between gap-2">
+            <span className="quiz-question-label text-xs">☄️ ฝนดาวตก · คนแรกที่ตอบถูกได้โบนัส</span>
+            <span className="rounded-full bg-track px-2.5 py-0.5 text-xs font-bold tabular-nums text-text2">
               {meteorRemain} วิ
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-text3">คนแรกที่ตอบถูกได้โบนัสก้อนใหญ่ใส่บอส</p>
 
           {meteorResult ? (
-            <div className="py-6 text-center">
+            <div role="status" className="rounded-2xl border border-border bg-track/40 p-4 text-center">
               {meteorResult.won ? (
-                <p className="text-xl font-bold text-gold-hi">
+                <p className="font-sarabun text-xl font-bold text-gold-hi">
                   ตอบถูก! บอสเสียเลือด −{meteorResult.bonus_damage ?? 15}
                 </p>
               ) : meteorResult.event_active === false ? (
                 <p className="text-lg font-bold text-text2">อีเวนต์จบไปแล้ว</p>
               ) : meteorResult.is_correct === false ? (
-                <p className="text-xl font-bold text-text2">ตอบผิด</p>
+                <p className="font-sarabun text-xl font-bold text-text2">ยังไม่ถูกนะ</p>
               ) : (
-                <p className="text-xl font-bold text-text2">ตอบแล้ว รอผล</p>
+                <p className="text-lg font-bold text-text2">ตอบแล้ว รอผล</p>
               )}
-              <p className="mt-3 text-xs text-text3">กำลังกลับสู่คำถามปกติ…</p>
+              <p className="mt-2 text-xs text-text3">กำลังกลับสู่คำถามปกติ…</p>
             </div>
           ) : (
             <>
-              <p className="mt-3 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
+              <h2 className="whitespace-pre-wrap font-sarabun text-lg font-bold leading-relaxed text-text">
                 {meteorEv.question_text}
-              </p>
-              <div className="mt-4 grid gap-2">
-                {meteorEv.choices.map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={meteorBusy}
-                    onClick={() => void submitMeteor(i)}
-                    className="rounded-xl border border-gold-dim bg-track px-4 py-3 text-left text-sm text-text transition active:scale-[0.98] disabled:opacity-50"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
+              </h2>
+              <ChoiceList
+                choices={meteorEv.choices}
+                disabled={meteorBusy}
+                onPick={(i) => void submitMeteor(i)}
+                classFor={() => "border-gold-dim bg-card"}
+              />
             </>
           )}
-          {error && <p className="mt-2 text-center text-sm text-red">{error}</p>}
+          {error && <p className="text-center text-sm text-red">{error}</p>}
         </div>
       )}
 
@@ -604,94 +631,151 @@ export default function BossRaidGame({
       {!cw && !meteorActive && (
         <>
           {phase === "loading" && (
-            <p className="py-8 text-center text-sm text-text3">กำลังโหลดคำถาม…</p>
+            <div className="quiz-question-card py-10 text-center text-sm text-text3">กำลังโหลดคำถาม…</div>
           )}
 
           {phase === "ended" && (
-            <p className="py-8 text-center text-lg font-bold text-text2">เกมจบแล้ว</p>
+            <div className="quiz-question-card py-10 text-center text-lg font-bold text-text2">เกมจบแล้ว</div>
           )}
 
           {phase === "cooldown" && (
-            <div className="rounded-xl border border-gold-dim bg-track p-6 text-center">
-              <p className="text-lg font-bold text-gold-hi">🌿 พักหายใจสักครู่</p>
-              <p className="mt-2 text-sm text-text2">
-                ค่อย ๆ อ่านโจทย์รอบหน้านะ — เดี๋ยวได้ไปต่อใน{" "}
-                <span className="font-bold text-text">{cooldownRemain}</span> วิ
+            <div className="quiz-question-card py-8 text-center">
+              <p className="text-4xl" aria-hidden>
+                🌿
               </p>
+              <p className="mt-2 text-lg font-bold text-gold-hi">พักหายใจสักครู่</p>
+              <p className="mt-1 text-sm text-text2">ค่อย ๆ อ่านโจทย์รอบหน้านะ</p>
+              <p className="mt-4 text-4xl font-extrabold tabular-nums text-text">{cooldownRemain}</p>
+              <p className="text-xs text-text3">วินาที</p>
             </div>
           )}
 
           {phase === "error" && (
-            <div className="py-6 text-center">
+            <div className="quiz-question-card py-8 text-center">
               <p className="text-sm text-red">{error}</p>
               <button
                 type="button"
                 onClick={() => void loadQuestion()}
-                className="mt-3 rounded-xl border border-gold-dim bg-track px-4 py-2 text-sm font-bold text-gold-hi active:scale-95"
+                className="mt-4 rounded-2xl border border-gold bg-amber px-5 py-3 text-sm font-bold text-on-amber transition active:scale-95"
               >
                 ขอคำถามใหม่
               </button>
             </div>
           )}
 
-          {(phase === "answering" || phase === "submitting") && q && (
-            <>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-track">
+          {(phase === "answering" || phase === "submitting" || phase === "result") && q && (
+            <div className="quiz-question-card flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="quiz-question-label text-xs">
+                  ⚔️ Boss Raid · ข้อ {answered + (phase === "result" ? 0 : 1)}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums ${
+                    phase === "answering" && secsLeft <= 5 ? "bg-red/15 text-red" : "bg-track text-text2"
+                  }`}
+                >
+                  {phase === "result" ? "—" : `${secsLeft} วิ`}
+                </span>
+              </div>
+              <div className="-mt-1 h-2 w-full overflow-hidden rounded-full bg-track">
                 <div
-                  className="h-full bg-amber transition-[width] duration-200 ease-linear"
-                  style={{ width: `${timerPct}%` }}
+                  className={`h-full rounded-full transition-[width] duration-200 ease-linear ${timerTone}`}
+                  style={{ width: `${phase === "result" ? 0 : timerPct}%` }}
                 />
               </div>
-              <p className="mt-1 text-right text-xs text-text3">{Math.ceil(remainMs / 1000)} วิ</p>
 
-              {q.image_url && (
-                <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-xl bg-track">
-                  <Image src={q.image_url} alt="" fill className="object-contain" unoptimized />
+              <h2 className="whitespace-pre-wrap font-sarabun text-lg font-bold leading-relaxed text-text sm:text-xl">
+                {q.question_text}
+              </h2>
+
+              {q.image_url && <QuizQuestionImage key={q.question_id} src={q.image_url} />}
+
+              <ChoiceList
+                choices={q.choices}
+                disabled={phase !== "answering"}
+                onPick={(i) => void submit(i)}
+                classFor={choiceClass}
+                mark={(i) =>
+                  picked === i && lastResultCorrect ? (
+                    <span aria-label="ตอบถูก" className="text-correct-hi">
+                      ✓
+                    </span>
+                  ) : picked === i && lastResultWrong ? (
+                    <span aria-label="ยังไม่ถูก" className="text-red">
+                      ×
+                    </span>
+                  ) : null
+                }
+              />
+
+              {phase === "result" && result && (
+                <div
+                  role="status"
+                  className={`rounded-2xl border p-4 text-center ${
+                    result.is_correct
+                      ? "border-correct/40 bg-correct/10 text-correct-text"
+                      : "border-border bg-track/40 text-text"
+                  }`}
+                >
+                  {result.is_correct ? (
+                    <>
+                      <p className="font-sarabun text-xl font-bold">
+                        ตอบถูก! 🎉 {result.is_crit && <span className="text-amber">คริติคอล ✦</span>}
+                      </p>
+                      <p className="mt-1 text-2xl font-extrabold text-red">−{result.damage_dealt} HP</p>
+                    </>
+                  ) : (
+                    <p className="font-sarabun text-xl font-bold">
+                      {picked === null ? "หมดเวลา ไม่เป็นไร!" : "ยังไม่ถูกนะ ไม่เป็นไร!"}
+                    </p>
+                  )}
+                  {result.combo_burst && (
+                    <p className="mt-2 text-sm font-bold text-indigo-hi">🔥 พลังรวมพลัง! ทั้งห้อง −40 เพิ่ม</p>
+                  )}
+                  <p className="mt-2 text-xs text-text3">
+                    {result.cooldown_until ? "พักหายใจแป๊บนึง…" : "กำลังไปข้อต่อไป…"}
+                  </p>
                 </div>
               )}
-
-              <p className="mt-3 whitespace-pre-wrap font-sarabun text-base font-medium text-text">
-                {q.question_text}
-              </p>
-
-              <div className="mt-4 grid gap-2">
-                {q.choices.map((c, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={phase !== "answering"}
-                    onClick={() => void submit(i)}
-                    className="rounded-xl border border-border bg-track px-4 py-3 text-left text-sm text-text transition active:scale-[0.98] disabled:opacity-50"
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {phase === "result" && result && (
-            <div className="py-8 text-center">
-              {result.is_correct ? (
-                <>
-                  <p className="text-2xl font-bold text-gold-hi">
-                    ตอบถูก! {result.is_crit && <span className="text-amber">คริติคอล ✦</span>}
-                  </p>
-                  <p className="mt-2 text-lg font-bold text-red">−{result.damage_dealt} HP</p>
-                </>
-              ) : (
-                <p className="text-2xl font-bold text-text2">ยังไม่ถูกนะ</p>
-              )}
-              {result.combo_burst && (
-                <p className="mt-2 text-sm font-bold text-indigo-hi">
-                  🔥 พลังรวมพลัง! ทั้งห้อง −40 เพิ่ม
-                </p>
-              )}
-              <p className="mt-3 text-xs text-text3">กำลังไปข้อต่อไป…</p>
             </div>
           )}
         </>
       )}
     </section>
+  );
+}
+
+// ปุ่มตัวเลือกแบบหน้า /quiz: วงตัวอักษร ก ข ค ง + ข้อความ font-sarabun ตัวใหญ่ แตะง่ายบนมือถือ
+function ChoiceList({
+  choices,
+  disabled,
+  onPick,
+  classFor,
+  mark,
+}: {
+  choices: string[];
+  disabled: boolean;
+  onPick: (i: number) => void;
+  classFor: (i: number) => string;
+  mark?: (i: number) => React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {choices.map((c, i) => (
+        <button
+          key={i}
+          type="button"
+          disabled={disabled}
+          onClick={() => onPick(i)}
+          className={`flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left font-sarabun text-lg font-medium text-text shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed ${classFor(i)}`}
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-track text-sm font-bold text-text2">
+            {THAI_LETTERS[i] ?? i + 1}
+          </span>
+          <span className="min-w-0 flex-1 break-words">{c}</span>
+          {mark?.(i)}
+        </button>
+      ))}
+    </div>
   );
 }

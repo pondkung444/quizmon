@@ -165,7 +165,8 @@ export default function LobbyClient({
         />
       )}
 
-      {s.status !== "lobby" && (s.boss_hp_max != null || s.crystal_hp_max != null) && (
+      {/* นักเรียนที่กำลังเล่นเห็น HUD บอส/คริสตัลใน BossRaidGame แล้ว — การ์ดนี้ไว้ให้ครู + ตอนจบเกม */}
+      {s.status !== "lobby" && !(s.status === "in_progress" && myParticipant) && (s.boss_hp_max != null || s.crystal_hp_max != null) && (
         <>
           <section className="mt-6 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-gold-dim bg-card p-3 text-center">
@@ -236,6 +237,7 @@ export default function LobbyClient({
           crystalHp={s.crystal_hp}
           crystalHpMax={s.crystal_hp_max}
           currentTier={s.current_tier}
+          bossKey={s.config.boss_key}
         />
       )}
 
