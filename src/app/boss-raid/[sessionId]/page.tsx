@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import LobbyClient from "./LobbyClient";
+import AppThemeMarker from "@/components/AppThemeMarker";
 import type { LobbyParticipant, LobbySession } from "@/lib/bossRaid/useBossRaidLobby";
 
 // จอห้อง (ครู/ทีวี และนักเรียนที่ join แล้ว) — server component ดึง snapshot เริ่มต้น
@@ -32,13 +33,19 @@ export default async function BossRaidSessionPage({
     .eq("session_id", sessionId)
     .order("joined_at", { ascending: true });
 
+  const isTeacher = session.teacher_id === user.id;
+
   return (
-    <LobbyClient
-      sessionId={sessionId}
-      userId={user.id}
-      isTeacher={session.teacher_id === user.id}
-      initialSession={session as LobbySession}
-      initialParticipants={(participants ?? []) as LobbyParticipant[]}
-    />
+    <>
+      {/* ธีมแอป (dusk/day ตามที่นักเรียนตั้งไว้) เฉพาะฝั่งนักเรียน — หน้าควบคุมของครูคงโทนเดิม */}
+      {!isTeacher && <AppThemeMarker />}
+      <LobbyClient
+        sessionId={sessionId}
+        userId={user.id}
+        isTeacher={isTeacher}
+        initialSession={session as LobbySession}
+        initialParticipants={(participants ?? []) as LobbyParticipant[]}
+      />
+    </>
   );
 }
