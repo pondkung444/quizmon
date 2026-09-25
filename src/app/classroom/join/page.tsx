@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ClassroomJoinForm from "./ClassroomJoinForm";
 
-// นักเรียนเข้าห้องเรียนด้วยรหัส (หรือ ?code= จากลิงก์/QR) — mirror ของ /boss-raid/join
+// นักเรียนเข้าห้องเรียนด้วยรหัส 6 หลัก (หรือ ?code= จากลิงก์ที่ครูส่ง) — mirror ของ /boss-raid/join
 export default async function ClassroomJoinPage({
   searchParams,
 }: {
@@ -17,8 +17,8 @@ export default async function ClassroomJoinPage({
 
   return (
     <main className="mx-auto w-full max-w-sm px-4 py-12">
-      <h1 className="text-2xl font-bold text-gold-hi">เข้าห้องเรียน</h1>
-      <p className="mt-1 text-sm text-text3">กรอกรหัสห้อง 6 หลักจากครู</p>
+      <h1 className="text-center text-2xl font-bold text-gold-hi">เข้าห้องเรียน</h1>
+      <p className="mt-1 text-center text-sm text-text3">กรอกรหัส 6 หลักที่ครูให้</p>
       <ClassroomJoinForm initialCode={code ?? ""} />
     </main>
   );
