@@ -1,7 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { formatJoinCode } from "@/lib/classroom/roster";
 import CreateClassroomButton from "./CreateClassroomButton";
+
+// ห้องที่ไม่ได้กดปิดจะหมดอายุเอง 12 ชม. หลังสร้าง (expire_stale_classroom_sessions ทำงานตอน create/join
+// เท่านั้น — หน้านี้จึงคำนวณเองด้วย กันห้องค้างโชว์ว่ายังเปิดอยู่)
+const ROOM_TTL_MS = 12 * 60 * 60 * 1000;
+
+const dateFmt = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "Asia/Bangkok",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+type Row = {
+  id: string;
+  join_code: string;
+  title: string | null;
+  status: string;
+  created_at: string;
+  classroom_participants: { count: number }[];
+};
 
 // /teacher — 2-tier gate: DB (is_teacher() ผ่าน RLS/RPC ทุกจุดเขียนอยู่แล้ว) + client-side UI gate นี้
 export default async function TeacherHubPage() {
@@ -21,43 +44,95 @@ export default async function TeacherHubPage() {
     );
   }
 
-  const { data: sessions } = await supabase
+  const { data } = await supabase
     .from("classroom_sessions")
-    .select("id, join_code, status, current_activity, created_at")
+    .select("id, join_code, title, status, created_at, classroom_participants(count)")
     .eq("teacher_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(30);
 
-  const STATUS_TH: Record<string, string> = {
-    lobby: "รอเริ่ม",
-    active: "กำลังใช้งาน",
-    ended: "จบแล้ว",
-  };
+  // eslint-disable-next-line react-hooks/purity -- server component, คำนวณครั้งเดียวต่อ request
+  const now = Date.now();
+  const rows = (data as Row[] | null) ?? [];
+  const isOpen = (r: Row) => r.status !== "ended" && now - new Date(r.created_at).getTime() < ROOM_TTL_MS;
+  const open = rows.filter(isOpen);
+  const past = rows.filter((r) => !isOpen(r));
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gold-hi">ห้องเรียน</h1>
+    <main className="mx-auto w-full max-w-3xl px-4 pb-16 pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gold-hi">ห้องเรียน</h1>
+          <p className="mt-1 text-sm text-text3">เปิดห้อง ให้นักเรียนกรอกรหัส แล้วเลือกกิจกรรมได้เลย</p>
+        </div>
         <CreateClassroomButton />
       </div>
 
-      <ul className="mt-6 space-y-2">
-        {(sessions ?? []).map((s) => (
-          <li key={s.id}>
-            <Link
-              href={`/teacher/${s.id}`}
-              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition hover:border-gold-dim"
-            >
-              <span className="font-mono text-lg tracking-widest text-gold-hi">{s.join_code}</span>
-              <span className="text-sm text-text2">{STATUS_TH[s.status] ?? s.status}</span>
-            </Link>
-          </li>
-        ))}
-        {(sessions ?? []).length === 0 && (
-          <li className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-text3">
-            ยังไม่มีห้องเรียน — กด &ldquo;เปิดห้องเรียน&rdquo; เพื่อเริ่ม
-          </li>
+      {open.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-bold text-text2">เปิดอยู่</h2>
+          <ul className="mt-2 space-y-2">
+            {open.map((r) => (
+              <RoomRow key={r.id} row={r} open />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="mt-8">
+        <h2 className="text-sm font-bold text-text2">ย้อนหลัง</h2>
+        {past.length === 0 ? (
+          <p className="mt-2 rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-text3">
+            {open.length === 0
+              ? "ยังไม่มีห้องเรียน กด “เปิดห้องเรียน” เพื่อเริ่มคาบแรก"
+              : "ยังไม่มีห้องที่ปิดแล้ว"}
+          </p>
+        ) : (
+          <ul className="mt-2 divide-y divide-border rounded-2xl border border-border bg-card">
+            {past.map((r) => (
+              <RoomRow key={r.id} row={r} open={false} />
+            ))}
+          </ul>
         )}
-      </ul>
+      </section>
     </main>
+  );
+}
+
+function RoomRow({ row, open }: { row: Row; open: boolean }) {
+  const count = row.classroom_participants[0]?.count ?? 0;
+  const inner = (
+    <>
+      <div className="min-w-0 flex-1">
+        <p className={`truncate font-bold ${open ? "text-text" : "text-text2"}`}>
+          {row.title ?? "ห้องไม่มีชื่อ"}
+        </p>
+        <p className="mt-0.5 text-xs text-text3">{dateFmt.format(new Date(row.created_at))}</p>
+      </div>
+      <span className="flex items-center gap-1 text-sm text-text3">
+        <Users className="h-4 w-4" /> {count}
+      </span>
+      {open && (
+        <span className="font-mono text-lg font-bold tracking-wider text-gold-hi">
+          {formatJoinCode(row.join_code)}
+        </span>
+      )}
+      <ChevronRight className="h-4 w-4 text-text3" />
+    </>
+  );
+
+  return (
+    <li>
+      <Link
+        href={`/teacher/${row.id}`}
+        className={
+          open
+            ? "flex items-center gap-4 rounded-2xl border border-gold-dim bg-card px-4 py-4 transition hover:border-gold"
+            : "flex items-center gap-4 px-4 py-3 transition hover:bg-track/40"
+        }
+      >
+        {inner}
+      </Link>
+    </li>
   );
 }

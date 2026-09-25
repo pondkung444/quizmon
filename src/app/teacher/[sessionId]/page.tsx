@@ -17,14 +17,10 @@ export default async function TeacherClassroomPage({
 
   const [{ data: session }, { data: participants }] = await Promise.all([
     supabase.from("classroom_sessions").select("*").eq("id", sessionId).maybeSingle(),
-    supabase
-      .from("classroom_participants")
-      .select("*")
-      .eq("session_id", sessionId)
-      .order("joined_at", { ascending: true }),
+    supabase.rpc("get_classroom_roster", { p_session_id: sessionId }),
   ]);
 
-  if (!session) redirect("/teacher");
+  if (!session || session.teacher_id !== user.id) redirect("/teacher");
 
   return (
     <TeacherRoomClient

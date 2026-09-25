@@ -48,6 +48,8 @@ export default function BottomNav({
 
   if (!forceShow && pathname?.startsWith("/quiz")) return null;
   if (pathname === "/login" || pathname === "/") return null;
+  // จอครู (ฉายโปรเจกเตอร์) — เมนูของนักเรียนไม่เกี่ยว
+  if (pathname?.startsWith("/teacher")) return null;
 
   return (
     <nav
