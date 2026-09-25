@@ -171,12 +171,22 @@ function BlockRing({ progress, children }: { progress: number; children: React.R
   );
 }
 
+// denied = เบราว์เซอร์ปฏิเสธครั้งนี้ (ลองใหม่ได้ตอนแตะจอ) / unsupported = ไม่มี API เลย
 function WakeLockNotice({ status }: { status: WakeLockStatus }) {
   if (status !== "unsupported" && status !== "denied") return null;
   return (
     <div className="absolute inset-x-4 top-4 rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-left text-xs text-amber/90">
-      เครื่องนี้สั่งให้จอเปิดค้างไม่ได้ — ตั้งค่าล็อกจออัตโนมัติเป็น &quot;ไม่ต้อง&quot; ชั่วคราว
-      ไม่งั้นพอจอดับเองจะนับว่าหลุด
+      {status === "denied" ? (
+        <>
+          เครื่องยังไม่ยอมให้จอเปิดค้าง — แตะจอ 1 ครั้งก่อนเริ่มนับเพื่อลองใหม่ ถ้ายังขึ้นข้อความนี้
+          ให้ปิดล็อกจออัตโนมัติชั่วคราว ไม่งั้นพอจอดับเองจะนับว่าหลุด
+        </>
+      ) : (
+        <>
+          เครื่องนี้สั่งให้จอเปิดค้างไม่ได้ — ตั้งค่าล็อกจออัตโนมัติเป็น &quot;ไม่ต้อง&quot; ชั่วคราว
+          ไม่งั้นพอจอดับเองจะนับว่าหลุด
+        </>
+      )}
     </div>
   );
 }

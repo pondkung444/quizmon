@@ -90,7 +90,9 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
     let blurred = false;
     let lastTouch = Date.now(); // เพิ่งเปิดหน้า = เพิ่งถือเครื่อง ต้องวางนิ่งก่อนเริ่มนับ
     let sentinel: WakeLockSentinel | null = null;
+    let wakeLockRequesting = false;
     let wakeLockReported = false;
+    let lastForegroundAt = 0;
 
     function apply(data: FocusRpcResult) {
       if (data.status !== "running") return; // จบคาบ — หน้าห้องสลับกลับเองผ่าน realtime ของ useFocusSession
@@ -121,19 +123,23 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
       apply(data as FocusRpcResult);
     }
 
-    function reportWakeLock(reason: string) {
+    // ครั้งเดียวต่อรอบ (server กันซ้ำด้วย) — แนบ user agent ไว้ไล่ว่าเครื่อง/เบราว์เซอร์ไหนไม่ยอม
+    function reportWakeLock(reason: string, trigger: string) {
       if (wakeLockReported) return;
       wakeLockReported = true;
-      void send("wake_lock_unsupported", { reason });
+      void send("wake_lock_unsupported", { reason, trigger, ua: navigator.userAgent.slice(0, 300) });
     }
 
-    async function requestWakeLock() {
+    // trigger: mount | visible | touch — บางเบราว์เซอร์ (เช่นโหมดประหยัดแบต / WebKit บางรุ่น) ปฏิเสธจนกว่า
+    // ผู้ใช้จะแตะจอ จึงลองใหม่ตอนแตะด้วย (ช่วงยังไม่เริ่มนับ แตะได้ไม่เสียรอบ)
+    async function requestWakeLock(trigger: string) {
       if (!("wakeLock" in navigator)) {
         setWakeLock("unsupported");
-        reportWakeLock("api_missing");
+        reportWakeLock("api_missing", trigger);
         return;
       }
-      if (document.visibilityState !== "visible" || sentinel) return;
+      if (document.visibilityState !== "visible" || sentinel || wakeLockRequesting) return;
+      wakeLockRequesting = true;
       try {
         const s = await navigator.wakeLock.request("screen");
         if (cancelled) {
@@ -148,8 +154,10 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
           if (!cancelled) setWakeLock("pending");
         });
       } catch (e) {
-        setWakeLock("denied");
-        reportWakeLock(e instanceof Error ? e.name : "request_failed");
+        if (!cancelled) setWakeLock("denied");
+        reportWakeLock(e instanceof Error ? e.name : "request_failed", trigger);
+      } finally {
+        wakeLockRequesting = false;
       }
     }
 
@@ -164,8 +172,9 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
       hiddenAt = null;
       lastTouch = Date.now(); // เพิ่งหยิบเครื่องกลับมา
       setLastTouchAt(lastTouch);
+      lastForegroundAt = Date.now();
       void send("foreground", { hidden_ms: hiddenMs });
-      void requestWakeLock();
+      void requestWakeLock("visible");
     }
 
     function onBlur() {
@@ -177,12 +186,16 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
     function onFocus() {
       if (!blurred) return;
       blurred = false;
+      // หน้าถูกซ่อนด้วย (สลับหน้าต่าง/แอป) → visibilitychange ส่ง foreground พร้อม hidden_ms จริงแล้ว
+      // หรือกำลังจะส่ง ไม่ต้องส่งซ้ำ (focus กับ visibilitychange มาไม่เรียงกันแน่นอน)
+      if (hiddenAt !== null || Date.now() - lastForegroundAt < 1000) return;
       if (current?.state === "warning") void send("foreground", { hidden_ms: 0 });
     }
 
     function onTouch() {
       lastTouch = Date.now();
       setLastTouchAt(lastTouch);
+      if (!sentinel) void requestWakeLock("touch");
       // ส่งครั้งเดียวต่อช่วงแตะ — แตะรัวๆ ระหว่าง warning คือการหลุดครั้งเดิม
       if (current?.state === "focusing" && !touchBreakSent) {
         touchBreakSent = true;
@@ -231,7 +244,7 @@ export function useFocusTracker(focusSessionId: string | null): FocusTracker {
     const hbTimer = setInterval(heartbeat, FOCUS_HEARTBEAT_MS);
 
     void send("heartbeat"); // ขอสถานะแรก
-    void requestWakeLock();
+    void requestWakeLock("mount");
 
     return () => {
       cancelled = true;
