@@ -29,6 +29,7 @@ import {
 } from "@/lib/bossRaid/participantDisplay";
 import BossRaidGame from "./BossRaidGame";
 import BossRaidLoadout from "./BossRaidLoadout";
+import CloseBossRaidButton from "@/components/bossRaid/CloseBossRaidButton";
 import {
   BOSS_RAID_BOSS_OPTIONS,
   DEFAULT_BOSS_RAID_BOSS_KEY,
@@ -210,6 +211,28 @@ export default function LobbyClient({
             ตอบผิดรวมทั้งห้อง {s.wrong_count_total ?? 0}
           </p>
         </>
+      )}
+
+      {isTeacher && s.status === "lobby" && (
+        <div className="mt-3">
+          <CloseBossRaidButton
+            sessionId={sessionId}
+            gameRunning
+            label="ยกเลิก Boss Raid · กลับห้องเรียน"
+            className="w-full rounded-xl border border-border bg-track py-2.5 text-sm font-bold text-text2 transition active:scale-95"
+          />
+        </div>
+      )}
+
+      {isTeacher && s.status === "ended" && (
+        <div className="mt-4">
+          <CloseBossRaidButton
+            sessionId={sessionId}
+            gameRunning={false}
+            label="ปิด Boss Raid · กลับห้องเรียน"
+            className="w-full rounded-2xl border border-gold bg-amber py-3.5 text-base font-bold text-on-amber transition active:scale-95"
+          />
+        </div>
       )}
 
       {s.status === "ended" && (

@@ -298,3 +298,13 @@ export async function startBossRaidGame(sessionId: string): Promise<void> {
   const { error } = await supabase.rpc("start_boss_raid_game", { p_session_id: sessionId });
   if (error) throw new Error(error.message);
 }
+
+// ปิด Boss Raid (ครูเจ้าของ) — จบเกมถ้ายังไม่จบ (แจกรางวัลตามเดิม) + พาห้องเรียนที่ผูกอยู่กลับห้องรอ
+// คืน classroomSessionId ให้หน้าเว็บพากลับ /teacher/[id] (null = Raid ที่ไม่ได้เปิดจากห้องเรียน)
+export async function closeBossRaid(sessionId: string): Promise<{ classroomSessionId: string | null }> {
+  const { supabase } = await requireUser();
+  const { data, error } = await supabase.rpc("close_boss_raid", { p_boss_raid_session_id: sessionId });
+  if (error) throw new Error(error.message.includes("not_authorized") ? "ไม่มีสิทธิ์ปิดห้องนี้" : error.message);
+  const row = data as { classroom_session_id: string | null } | null;
+  return { classroomSessionId: row?.classroom_session_id ?? null };
+}
