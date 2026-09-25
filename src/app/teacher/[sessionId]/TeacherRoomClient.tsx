@@ -620,6 +620,7 @@ export default function TeacherRoomClient({
             <p className="mt-2 text-sm text-text3">
               นักเรียนทั้ง {participants.length} คนจะออกจากห้อง และใช้รหัสนี้เข้าไม่ได้อีก
               {session.current_activity === "boss_raid" && " — Boss Raid ที่ยังเล่นอยู่จะจบไปด้วย"}
+              {focusRunning && " — คาบตั้งใจที่กำลังดำเนินอยู่จะจบไปด้วย"}
             </p>
             <div className="mt-5 flex gap-2">
               <button
