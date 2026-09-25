@@ -188,13 +188,20 @@ export default function TeacherRoomClient({
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <RoomTitle
-          title={session.title}
-          onSave={(t) => act(async () => {
-            await renameClassroomSession(sessionId, t);
-            await refetch();
-          })}
-        />
+        {session.class_id ? (
+          // คาบที่ผูกห้องถาวร — ชื่อมาจากห้อง (แก้ที่หน้าห้อง) กดแล้วดูประวัติห้องนี้
+          <Link href={`/teacher/classes/${session.class_id}`} className="min-w-0 truncate text-2xl font-bold text-gold-hi hover:underline">
+            {session.title ?? "ห้องเรียน"}
+          </Link>
+        ) : (
+          <RoomTitle
+            title={session.title}
+            onSave={(t) => act(async () => {
+              await renameClassroomSession(sessionId, t);
+              await refetch();
+            })}
+          />
+        )}
         <div className="ml-auto flex items-center gap-2">
           <span
             className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${
