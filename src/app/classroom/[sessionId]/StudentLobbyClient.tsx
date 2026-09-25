@@ -9,7 +9,7 @@ import {
   getClassroomMySummary,
   setClassroomIdentity,
 } from "../actions";
-import { joinFocusSession } from "@/app/teacher/focusActions";
+import { getFocusResult, joinFocusSession, type FocusResult } from "@/app/teacher/focusActions";
 import { isFocusNotRunning } from "@/lib/classroom/focusErrors";
 import {
   useClassroomLobby,
@@ -19,6 +19,7 @@ import {
 import { isFocusRunning, useFocusSession } from "@/lib/classroom/useFocusSession";
 import { resolveRosterPet, rosterDisplayName } from "@/lib/classroom/roster";
 import FocusStudentView from "@/components/classroom/FocusStudentView";
+import FocusResultCard from "@/components/classroom/FocusResultCard";
 import RosterAvatar from "@/components/classroom/RosterAvatar";
 import ClassroomQmonLoadout from "@/components/classroom/ClassroomQmonLoadout";
 import MySessionRecap from "@/components/classroom/MySessionRecap";
@@ -104,6 +105,23 @@ export default function StudentLobbyClient({
     })();
   }, [focusId, participantsLoaded, myParticipant]);
 
+  // คาบตั้งใจที่เราอยู่ในรอบนั้นจบ → ขอผล EXP + เช็ควิวัฒนาการ ครั้งเดียวต่อรอบ
+  // (EXP แจกใน SQL ตอนจบคาบแล้ว — ถ้าไม่ได้อยู่หน้านี้ตอนจบ ผลยังเห็นในสรุปห้อง และหน้า /pet เช็ควิวัฒนาการให้)
+  const focusMineIds = useRef(new Set<string>());
+  const focusResultFor = useRef<string | null>(null);
+  const [focusResult, setFocusResult] = useState<FocusResult | null>(null);
+  useEffect(() => {
+    if (focusRunning && focusSession && myParticipant) focusMineIds.current.add(focusSession.id);
+  }, [focusRunning, focusSession, myParticipant]);
+  useEffect(() => {
+    const id = focusSession?.status === "ended" ? focusSession.id : null;
+    if (!id || !focusMineIds.current.has(id) || focusResultFor.current === id) return;
+    focusResultFor.current = id;
+    void getFocusResult(id).then((res) => {
+      if (res.ok && res.data) setFocusResult(res.data);
+    });
+  }, [focusSession]);
+
   if (!session || rosterDenied) {
     return (
       <main className="mx-auto w-full max-w-sm px-4 py-12 text-center">
@@ -181,6 +199,8 @@ export default function StudentLobbyClient({
           {ended ? "จบคาบ" : connected ? "เชื่อมต่อแล้ว" : "กำลังเชื่อมต่อ…"}
         </span>
       </header>
+
+      {focusResult && <FocusResultCard result={focusResult} onClose={() => setFocusResult(null)} />}
 
       {me && (
         <section className="w-full overflow-hidden rounded-3xl border border-gold-dim bg-card">

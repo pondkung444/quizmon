@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { focusErrorMessage } from "@/lib/classroom/focusErrors";
+import { FOCUS_EXP_PER_BLOCK } from "@/lib/exp";
+import { evolvePet, type PetEvolveOutcome } from "@/lib/petEvolution";
 
 // คาบตั้งใจ (Focus Mode) Phase 1 — เขียนผ่าน RPC security definer เท่านั้น
 // คืนเป็น result object (ไม่ throw) เพราะ Next production ซ่อนข้อความของ Error ที่ throw จาก server action
@@ -60,6 +62,69 @@ export async function clearClassroomActivity(sessionId: string): Promise<FocusAc
     return fail(error.message);
   }
   return { ok: true, data: null };
+}
+
+export type FocusResult = {
+  completedBlocks: number;
+  focusedSeconds: number;
+  /** EXP ที่ได้จริงหลังหักเพดานวันนี้ */
+  expAwarded: number;
+  /** EXP ตามจำนวนก้อน ก่อนหักเพดาน (มากกว่า expAwarded = ชนเพดาน หรือไม่มีตัวที่กำลังเลี้ยง) */
+  expEarned: number;
+  hasPet: boolean;
+  evolution: PetEvolveOutcome | null;
+};
+
+// นักเรียนเรียกหลังคาบจบ: อ่านผลของตัวเอง + เช็ควิวัฒนาการของตัวที่ได้ EXP
+// (SQL แจก EXP ไปแล้วตอน finalize — ตัวนี้ไม่เขียน exp) evolvePet idempotent เรียกซ้ำได้; หน้า /pet เป็น safety net
+// data = null เมื่อไม่ได้อยู่ในรอบนั้น หรือรอบยังไม่ได้ตัดสิน EXP
+export async function getFocusResult(focusSessionId: string): Promise<FocusActionResult<FocusResult | null>> {
+  const { supabase, user } = await requireUser();
+  if (!user) return fail("ต้องเข้าสู่ระบบก่อน");
+
+  const { data: p, error } = await supabase
+    .from("classroom_focus_participants")
+    .select("completed_blocks, focused_seconds, exp_awarded, exp_awarded_at, exp_pet_id")
+    .eq("focus_session_id", focusSessionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) return fail(error.message);
+  if (!p || !p.exp_awarded_at) return { ok: true, data: null };
+
+  let evolution: PetEvolveOutcome | null = null;
+  if (p.exp_pet_id && p.exp_awarded > 0) {
+    const { data: pet } = await supabase
+      .from("pets")
+      .select("id, user_id, exp, stage, math_correct, science_correct")
+      .eq("id", p.exp_pet_id)
+      .maybeSingle();
+    if (pet && pet.user_id === user.id) {
+      evolution = await evolvePet(
+        supabase,
+        user.id,
+        {
+          id: pet.id,
+          stage: pet.stage as number,
+          math_correct: pet.math_correct as number,
+          science_correct: pet.science_correct as number,
+        },
+        pet.exp as number,
+        "/classroom"
+      );
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      completedBlocks: p.completed_blocks,
+      focusedSeconds: p.focused_seconds,
+      expAwarded: p.exp_awarded,
+      expEarned: p.completed_blocks * FOCUS_EXP_PER_BLOCK,
+      hasPet: !!p.exp_pet_id,
+      evolution,
+    },
+  };
 }
 
 export async function joinFocusSession(focusSessionId: string): Promise<FocusActionResult> {
