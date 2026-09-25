@@ -19,6 +19,7 @@ const MIGRATIONS = [
   "20260925180000_classroom_end_closes_focus.sql",
   "20260925190000_classroom_focus_mode_phase_2.sql",
   "20260925200000_classroom_focus_mode_phase_3.sql",
+  "20260925210000_classroom_focus_mode_phase_4.sql",
 ];
 
 // ผลของ RPC (jsonb) — ฟิลด์ที่ test อ่าน
@@ -37,6 +38,9 @@ export type Res = {
   exp_awarded?: number;
   exp_pending?: number;
   exp_cap_left?: number;
+  focused_students?: number;
+  focused_seconds?: number;
+  ended_reason?: string | null;
 };
 export type Part = {
   focus_state: string;
@@ -74,6 +78,10 @@ create function public.is_classroom_member(p uuid) returns boolean language sql 
   select exists (select 1 from public.classroom_participants where session_id = p and user_id = auth.uid()) $$;
 create function public.resolve_boss_raid_session(p uuid, r text) returns void language sql as $$ select $$;
 create publication supabase_realtime;
+create schema cron;
+create table cron.job (jobname text primary key, schedule text, command text);
+create function cron.schedule(n text, s text, c text) returns bigint language sql as $$
+  insert into cron.job values (n, s, c) on conflict (jobname) do update set schedule = s, command = c; select 1::bigint $$;
 insert into auth.users values ('${T}'),('${S1}'),('${S2}'),('${OUT}');
 insert into public.classroom_sessions (id, teacher_id) values ('${ROOM}', '${T}'), ('${ROOM2}', '${T}');
 insert into public.classroom_participants values ('${ROOM}','${S1}'),('${ROOM}','${S2}'),('${ROOM2}','${S1}');
@@ -119,7 +127,8 @@ insert into public.pets (id, user_id, exp, is_active) values ('${PET1}', '${S1}'
         update public.classroom_focus_participants set
           present_since = present_since - interval '${n} seconds',
           block_started_at = block_started_at - interval '${n} seconds',
-          warning_started_at = warning_started_at - interval '${n} seconds'
+          warning_started_at = warning_started_at - interval '${n} seconds',
+          joined_at = joined_at - interval '${n} seconds'
         where focus_session_id = '${focus}';
         update public.classroom_focus_heartbeats set last_heartbeat_at = last_heartbeat_at - interval '${n} seconds'
         where focus_session_id = '${focus}';

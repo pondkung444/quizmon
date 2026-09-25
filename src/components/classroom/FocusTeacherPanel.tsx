@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatElapsed, useElapsedSeconds } from "@/lib/classroom/useFocusSession";
 
@@ -9,7 +10,21 @@ import { formatElapsed, useElapsedSeconds } from "@/lib/classroom/useFocusSessio
 
 const LIVE_POLL_MS = 15_000;
 
-type LiveSummary = { total: number; focusing: number; warning: number; away: number; completed_blocks: number };
+type LiveSummary = {
+  status: "running" | "ended";
+  ended_reason: "host_ended" | "stale_timeout" | null;
+  started_at: string;
+  ended_at: string | null;
+  total: number;
+  focusing: number;
+  warning: number;
+  away: number;
+  completed_blocks: number;
+  /** คนที่ตั้งใจครบอย่างน้อย 1 รอบ 10 นาที */
+  focused_students: number;
+  focused_seconds: number;
+  exp_awarded: number;
+};
 
 export default function FocusTeacherPanel({
   focusSessionId,
@@ -25,7 +40,7 @@ export default function FocusTeacherPanel({
   onStop: () => void;
 }) {
   const elapsed = useElapsedSeconds(startedAt);
-  const live = useFocusLiveSummary(focusSessionId);
+  const live = useFocusLiveSummary(focusSessionId, LIVE_POLL_MS);
   return (
     <div className="mt-4 rounded-2xl border border-gold-dim bg-card p-4 text-center">
       <p className="text-sm text-text2">กำลังคาบตั้งใจ</p>
@@ -59,7 +74,8 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: stri
   );
 }
 
-function useFocusLiveSummary(focusSessionId: string): LiveSummary | null {
+// pollMs = null → ดึงครั้งเดียว (สรุปหลังจบคาบ ตัวเลขไม่เปลี่ยนแล้ว)
+function useFocusLiveSummary(focusSessionId: string, pollMs: number | null): LiveSummary | null {
   const supabase = useMemo(() => createClient(), []);
   const [summary, setSummary] = useState<LiveSummary | null>(null);
   useEffect(() => {
@@ -76,11 +92,46 @@ function useFocusLiveSummary(focusSessionId: string): LiveSummary | null {
       setSummary(data as LiveSummary);
     }
     void load();
-    const id = setInterval(load, LIVE_POLL_MS);
+    const id = pollMs === null ? null : setInterval(load, pollMs);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (id) clearInterval(id);
     };
-  }, [focusSessionId, supabase]);
+  }, [focusSessionId, pollMs, supabase]);
   return summary;
+}
+
+// สรุปท้ายคาบ (เอกสารออกแบบ ข้อ 17) — จำนวนรวมเท่านั้น ไม่มีชื่อ/ผลรายคน (จอครูมักขึ้นโปรเจกเตอร์)
+export function FocusSummaryCard({ focusSessionId, onClose }: { focusSessionId: string; onClose: () => void }) {
+  const s = useFocusLiveSummary(focusSessionId, null);
+  if (!s || s.status !== "ended") return null;
+  const minutes = s.ended_at
+    ? Math.round((Date.parse(s.ended_at) - Date.parse(s.started_at)) / 60_000)
+    : null;
+  const avgMinutes = s.total > 0 ? Math.round(s.focused_seconds / s.total / 60) : 0;
+  return (
+    <div className="relative mt-4 rounded-2xl border border-gold-dim bg-card p-4 text-center">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="ปิด"
+        className="absolute right-3 top-3 rounded-full p-1 text-text3 transition active:scale-90"
+      >
+        <X size={18} />
+      </button>
+      <p className="text-sm text-text2">สรุปคาบตั้งใจ{minutes !== null ? ` · ${minutes} นาที` : ""}</p>
+      <p className="mt-1 text-3xl font-bold text-gold-hi">
+        {s.focused_students}/{s.total} <span className="text-base font-normal text-text2">คน</span>
+      </p>
+      <p className="text-xs text-text3">ตั้งใจครบอย่างน้อย 1 รอบ 10 นาที</p>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Stat label="รอบ 10 นาทีรวม" value={s.completed_blocks} tone="text-gold-hi" />
+        <Stat label="EXP ที่แจก" value={s.exp_awarded} tone="text-good" />
+        <Stat label="นาทีเฉลี่ย/คน" value={avgMinutes} tone="text-text" />
+      </div>
+      {s.ended_reason === "stale_timeout" && (
+        <p className="mt-3 text-xs text-text3">ระบบปิดคาบให้อัตโนมัติ เพราะไม่มีความเคลื่อนไหวเกิน 60 นาที</p>
+      )}
+    </div>
+  );
 }
