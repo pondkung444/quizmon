@@ -1,6 +1,13 @@
 export const BASE_EXP_PER_CORRECT = 10;
 export const DAILY_EXP_CAP = 180;
 
+// ข้อยกเว้นโดยตั้งใจของหลัก "EXP มาจากการตอบคำถามเท่านั้น" — คาบตั้งใจ (Focus Mode) ให้ EXP จากเวลาโฟกัส
+// (เอกสารออกแบบคาบตั้งใจ ข้อ 1–2 ใน Notion). ก้อน 10 นาทีต่อเนื่อง = 10 EXP, เพดาน 50/วัน แยกถังจาก
+// DAILY_EXP_CAP (ไม่กินโควตากัน). SQL เป็นคนแจกจริงตอนจบคาบ (finalize_focus_session →
+// focus_award_exp ใน migration 20260925200000) เพราะคาบจบจาก trigger ปิดห้องได้ — ค่าที่นี่ต้องตรงกับใน SQL
+export const FOCUS_EXP_PER_BLOCK = 10;
+export const FOCUS_DAILY_EXP_CAP = 50;
+
 // อัตราตอบถูกใน 20 ข้อล่าสุด (จากตาราง quiz_attempts) -> ตัวคูณแต้ม
 // ตอบยังไม่ถึง 20 ข้อทั้งหมด -> ใช้ ×1.0 ไปก่อน
 export function getAccuracyMultiplier(last20: { is_correct: boolean }[]): number {

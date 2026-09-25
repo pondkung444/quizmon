@@ -28,6 +28,10 @@ export type FocusRunningState = {
   completed_blocks: number;
   focused_seconds: number;
   warned_count: number;
+  /** EXP ที่จะได้ถ้าคาบจบตอนนี้ (หักเพดานวันนี้แล้ว) */
+  exp_pending: number;
+  /** เพดาน EXP คาบตั้งใจที่เหลือวันนี้ (ไม่นับรอบนี้) */
+  exp_cap_left: number;
   server_now: string;
 };
 

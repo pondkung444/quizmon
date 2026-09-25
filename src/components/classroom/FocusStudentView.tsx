@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import type { RosterPet } from "@/lib/classroom/roster";
 import { formatElapsed } from "@/lib/classroom/useFocusSession";
 import { FOCUS_BLOCK_MS, FOCUS_GRACE_MS, FOCUS_SETTLE_MS } from "@/lib/classroom/focusRules";
-import { useFocusTracker, type WakeLockStatus } from "@/lib/classroom/useFocusTracker";
+import { FOCUS_DAILY_EXP_CAP, FOCUS_EXP_PER_BLOCK } from "@/lib/exp";
+import {
+  useFocusTracker,
+  type FocusRunningState,
+  type WakeLockStatus,
+} from "@/lib/classroom/useFocusTracker";
 
 // หน้าจอนักเรียนระหว่างคาบตั้งใจ — "จอล็อกจำลอง" (เอกสารออกแบบ ข้อ 16)
 // พื้นดำสนิททั้งจอ (จอ OLED ประหยัดแบตจริง) Wake Lock กันจอดับอยู่เบื้องหลัง
@@ -53,8 +58,9 @@ export default function FocusStudentView({
         </BlockRing>
         <p className="mt-6 font-mono text-2xl text-gold-hi/50">{formatElapsed(Math.floor(blockMs / 1000))}</p>
         <p className="mt-1 text-xs text-white/30">
-          รอบละ 10 นาที · ครบแล้ว {s.completed_blocks} รอบ
+          รอบละ 10 นาที = {FOCUS_EXP_PER_BLOCK} EXP · ครบแล้ว {s.completed_blocks} รอบ
         </p>
+        <ExpLine state={s} />
         <p className="mt-6 text-xs text-white/25">
           {s.grace_used ? "รอบนี้ใช้โอกาสแตะจอไปแล้ว — ห้ามแตะอีกนะ" : "วางไว้เฉยๆ ไม่ต้องแตะจอ"}
         </p>
@@ -94,6 +100,7 @@ export default function FocusStudentView({
         {s.completed_blocks > 0 && (
           <p className="mt-4 text-xs text-white/40">คาบนี้ตั้งใจครบแล้ว {s.completed_blocks} รอบ</p>
         )}
+        <ExpLine state={s} />
       </>
     );
   }
@@ -115,6 +122,19 @@ export default function FocusStudentView({
       )}
     </main>
   );
+}
+
+// EXP ที่จะได้เมื่อคาบจบ — ชนเพดานวันนี้แล้วบอกตรงๆ (ยังตั้งใจต่อได้ นับเป็นเวลา)
+function ExpLine({ state }: { state: FocusRunningState }) {
+  if (state.exp_cap_left <= 0) {
+    return (
+      <p className="mt-2 text-xs text-white/30">
+        วันนี้ได้ EXP จากคาบตั้งใจครบ {FOCUS_DAILY_EXP_CAP} แล้ว — ยังนับเวลาตั้งใจให้อยู่
+      </p>
+    );
+  }
+  if (state.exp_pending <= 0) return null;
+  return <p className="mt-2 text-sm font-bold text-gold-hi/60">จบคาบได้ +{state.exp_pending} EXP</p>;
 }
 
 function PetSprite({ pet, className }: { pet: RosterPet | null; className?: string }) {
