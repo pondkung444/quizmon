@@ -185,6 +185,9 @@ export default function BossRaidGame({
         loadingRef.current = false;
         return;
       }
+      // กันจอพังทั้งหน้า: payload ที่ไม่ใช่คำถาม (เช่น server เพิ่มสถานะใหม่แต่ client ยังไม่รู้จัก —
+      // เคยเกิดกับ {cooldown:true} ที่ q.choices.map พังจน Next ขึ้น "This page couldn't load")
+      if (!d || !Array.isArray(d.choices)) throw new Error("โหลดคำถามไม่สำเร็จ");
       submittedRef.current = false;
       setResult(null);
       setError(null);
