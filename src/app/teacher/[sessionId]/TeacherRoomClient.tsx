@@ -429,15 +429,17 @@ export default function TeacherRoomClient({
             disabledHint={participants.length === 0 ? "รอนักเรียนเข้าห้องก่อน" : undefined}
             onClick={() =>
               act(async () => {
-                // ลองเปิดใหม่ก่อนเสมอ — ถ้า Raid เดิมยังไม่จบ RPC จะปฏิเสธ (busy) แล้วพากลับจอ TV เดิมแทน
+                // ลองเปิดใหม่ก่อนเสมอ — ถ้า Raid เดิมยังไม่จบ RPC จะปฏิเสธ (busy) แล้วพากลับหน้าควบคุมเดิมแทน
                 // (ฝั่งครูอ่าน boss_raid_sessions.status ไม่ได้ จึงแยกเองไม่ได้ว่า Raid เดิมจบหรือยัง)
+                // ไปหน้าควบคุม /boss-raid/[id] ไม่ใช่ /tv — เลือกบทเรียน + กดเริ่มเกมอยู่ที่นั่น (กดเริ่มแล้ว
+                // LobbyClient พาไป /tv เอง). เดิม push /tv ตรง ครูไม่มีที่กดเริ่ม Raid ค้าง lobby ตลอด
                 try {
                   const { bossRaidSessionId } = await launchBossRaidFromClassroom(sessionId);
-                  router.push(`/boss-raid/${bossRaidSessionId}/tv`);
+                  router.push(`/boss-raid/${bossRaidSessionId}`);
                 } catch (e) {
                   const raidId = session.active_boss_raid_session_id;
                   if (session.current_activity === "boss_raid" && raidId) {
-                    router.push(`/boss-raid/${raidId}/tv`);
+                    router.push(`/boss-raid/${raidId}`);
                     return;
                   }
                   throw e;
