@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   useBossRaidTv,
   type TvRankedParticipant,
@@ -471,6 +472,24 @@ export default function TvClient({
             <div className="mt-[.4vw] text-[clamp(10px,1.05vw,14px)] text-white">
               คว้าโบนัสฝนดาวตกไปก่อน! −{spotlight.bonusDamage} HP บอส
             </div>
+          </div>
+        )}
+
+        {/* ===== lobby — ยังไม่เริ่มเกม: บอกชัดว่ารออยู่ (เดิมฉากรบโชว์ HP 0/0 ดูเหมือนเริ่มแล้ว)
+            + ทางกลับหน้าควบคุม เผื่อครูมาถึงจอนี้ก่อนกดเริ่ม (เลือกบทเรียน/เริ่มเกมอยู่ที่ /boss-raid/[id]) */}
+        {s.status === "lobby" && (
+          <div className="absolute inset-0 z-[55] flex flex-col items-center justify-center gap-[1.2vw] bg-[rgba(10,8,26,.72)] px-[4%] text-center">
+            <p className="text-[clamp(28px,4.5vw,56px)] font-extrabold text-white drop-shadow">รอเริ่มเกม</p>
+            <p className="text-[clamp(13px,1.6vw,20px)] text-white/85">
+              กรอกรหัส <span className="font-mono font-bold tracking-widest text-gold-hi">{s.join_code}</span> ·
+              เข้าห้องแล้ว {participantCount} คน
+            </p>
+            <Link
+              href={`/boss-raid/${sessionId}`}
+              className="mt-[.6vw] rounded-full border-2 border-gold bg-amber px-[2.4vw] py-[.9vw] text-[clamp(13px,1.5vw,19px)] font-bold text-on-amber transition active:scale-95"
+            >
+              เลือกบทเรียน + เริ่มเกม →
+            </Link>
           </div>
         )}
 
