@@ -485,6 +485,8 @@ export type RoundFinishResult = {
   petId: string;
   fromStage: number;
   toStage: number;
+  // premium phase 3a: true = รอบนี้ได้ไข่ศักดิ์ธราจากทำเป้า 2 สัปดาห์ติด (premium_check_biweekly_egg)
+  premiumBiweeklyEgg: boolean;
 };
 
 export async function finishQuizRound(
@@ -665,6 +667,29 @@ export async function finishQuizRound(
     );
   }
 
+  // Premium phase 3a: ไข่ศักดิ์ธราเมื่อทำเป้าสัปดาห์ได้ 2 สัปดาห์ติด — อ่าน guardian_goal_reached_weeks
+  // ที่ RPC ด้านบนเพิ่งเขียน เลยต้องเรียกต่อจากมันเสมอ RPC เช็คพรีเมียม/กันไข่ซ้ำเองทั้งหมด (auth.uid())
+  // false = ปกติ ไม่ใช่ error — best-effort เหมือน guardian call ด้านบน ห้ามทำให้จบ quiz รอบจริงพัง
+  let premiumBiweeklyEgg = false;
+  try {
+    const { data: eggAwarded, error: biweeklyEggError } = await supabase.rpc("premium_check_biweekly_egg");
+    if (biweeklyEggError) {
+      console.error(
+        "finishQuizRound: premium_check_biweekly_egg error (non-fatal)",
+        user.id,
+        biweeklyEggError
+      );
+    } else {
+      premiumBiweeklyEgg = eggAwarded === true;
+    }
+  } catch (err) {
+    console.error(
+      "finishQuizRound: premium_check_biweekly_egg threw (non-fatal)",
+      user.id,
+      err
+    );
+  }
+
   return {
     expAddedToPet,
     capped,
@@ -675,6 +700,7 @@ export async function finishQuizRound(
     petId: activePet.id,
     fromStage: activePet.stage,
     toStage: newStage,
+    premiumBiweeklyEgg,
   };
 }
 
