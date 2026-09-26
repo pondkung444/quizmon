@@ -319,6 +319,8 @@ export type PvpOpenChallenge = {
 export type PvpMatchListItem = {
   id: string;
   opponentName: string;
+  opponentPetName: string;
+  opponentPetImage: string | null;
   iAm: "a" | "b";
   hpMine: number;
   hpOpp: number;
@@ -327,6 +329,7 @@ export type PvpMatchListItem = {
   outcome: "a_win" | "b_win" | "draw" | null;
   iWon: boolean | null; // null = เสมอ/ถูกทิ้ง
   myTurn: boolean;
+  phase: "assigning" | "card_ready" | "answering";
   updatedAt: string;
 };
 
@@ -398,20 +401,20 @@ async function petSpriteMap(
   if (uniq.length === 0) return out;
   const { data } = await admin
     .from("pets")
-    .select("id, nickname, subline, personality, egg_types(sprite_prefix, name_th)")
+    .select("id, nickname, stage, subline, personality, egg_types(sprite_prefix, name_th)")
     .in("id", uniq);
   for (const p of data ?? []) {
     const egg = (Array.isArray(p.egg_types) ? p.egg_types[0] : p.egg_types) as
       | { sprite_prefix: string; name_th: string }
       | null;
     const line = parsePetLine(p.subline);
-    if (!egg || !line || !p.personality) continue;
+    if (!egg) continue;
     try {
       out.set(p.id, {
-        imagePath: getPetImagePath(egg.sprite_prefix, 4, line as Subline, p.personality as Personality),
+        imagePath: getPetImagePath(egg.sprite_prefix, p.stage, line, p.personality as Personality | null),
         name:
           p.nickname ??
-          getSpeciesName(egg.sprite_prefix, 4, line, p.personality as Personality, egg.name_th),
+          getSpeciesName(egg.sprite_prefix, p.stage, line, p.personality as Personality | null, egg.name_th),
       });
     } catch {
       /* skip */
@@ -485,10 +488,15 @@ export async function getPvpOverview(
 
   const chRows = challenges ?? [];
   const mRows = matches ?? [];
+  const activeRows = mRows.filter((m) => m.status === "active");
+  const recentFinishedRows = mRows.filter((m) => m.status === "finished" || m.status === "abandoned").slice(0, 20);
 
-  const names = await nameMap([
-    ...chRows.map((c) => (c.challenger_id === userId ? c.opponent_id : c.challenger_id)),
-    ...mRows.map((m) => (m.player_a_id === userId ? m.player_b_id : m.player_a_id)),
+  const [names, sprites] = await Promise.all([
+    nameMap([
+      ...chRows.map((c) => (c.challenger_id === userId ? c.opponent_id : c.challenger_id)),
+      ...mRows.map((m) => (m.player_a_id === userId ? m.player_b_id : m.player_a_id)),
+    ]),
+    petSpriteMap([...activeRows, ...recentFinishedRows].map((m) => m.player_a_id === userId ? m.pet_b_id : m.pet_a_id)),
   ]);
 
   // เสริมรูป Qmon ของผู้ท้า (สำหรับคำท้าเข้า)
@@ -556,6 +564,8 @@ export async function getPvpOverview(
     return {
       id: m.id,
       opponentName: names.get(iAm === "a" ? m.player_b_id : m.player_a_id) ?? "เพื่อน",
+      opponentPetName: sprites.get(iAm === "a" ? m.pet_b_id : m.pet_a_id)?.name ?? "Qmon คู่ต่อสู้",
+      opponentPetImage: sprites.get(iAm === "a" ? m.pet_b_id : m.pet_a_id)?.imagePath ?? null,
       iAm,
       hpMine: iAm === "a" ? m.hp_a : m.hp_b,
       hpOpp: iAm === "a" ? m.hp_b : m.hp_a,
@@ -564,15 +574,13 @@ export async function getPvpOverview(
       outcome: m.outcome,
       iWon: won,
       myTurn: m.status === "active" && turnHolder === userId,
+      phase: m.phase as PvpMatchListItem["phase"],
       updatedAt: m.last_action_at,
     };
   };
 
-  const active = mRows.filter((m) => m.status === "active").map(toItem);
-  const finished = mRows
-    .filter((m) => m.status === "finished" || m.status === "abandoned")
-    .slice(0, 20)
-    .map(toItem);
+  const active = activeRows.map(toItem);
+  const finished = recentFinishedRows.map(toItem);
 
   return {
     yourTurn: active.filter((m) => m.myTurn),

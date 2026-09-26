@@ -7,7 +7,7 @@ import PvpExpectations from "./PvpExpectations";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import type { PvpOverview, PvpMatchListItem } from "@/lib/pvp";
+import type { PvpOverview, PvpMatchListItem, PvpOpenChallenge } from "@/lib/pvp";
 import { declinePvpChallenge, cancelPvpChallenge } from "./actions";
 
 function MatchRow({ m }: { m: PvpMatchListItem }) {
@@ -45,6 +45,55 @@ function MatchRow({ m }: { m: PvpMatchListItem }) {
   );
 }
 
+function TurnCard({ m }: { m: PvpMatchListItem }) {
+  const nextStep = m.phase === "assigning"
+    ? "เลือกการ์ดส่งให้คู่ต่อสู้"
+    : m.phase === "card_ready"
+      ? "คู่ต่อสู้ส่งการ์ดมาแล้ว รอคุณเริ่มตอบ"
+      : "คำถามเริ่มแล้ว กลับไปตอบต่อ";
+  return <div className="rounded-2xl border-2 border-gold bg-amber/10 p-4 shadow-[0_0_24px_rgba(255,180,63,0.14)]">
+    <div className="flex items-center gap-4">
+      <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-track/80">
+        {m.opponentPetImage
+          ? <Image src={m.opponentPetImage} alt={m.opponentPetName} fill unoptimized className="object-contain p-2" />
+          : <span className="text-4xl" aria-hidden="true">⚔️</span>}
+      </div>
+      <div className="min-w-0">
+        <span className="inline-flex rounded-full bg-amber px-2.5 py-1 text-xs font-extrabold text-on-amber">ถึงตาคุณแล้ว</span>
+        <h3 className="mt-2 text-lg font-extrabold text-text">ประลองกับ {m.opponentName}</h3>
+        <p className="mt-1 text-sm text-text2">{m.opponentPetName} · ยกที่ {m.currentRound}</p>
+      </div>
+    </div>
+    <p className="mt-3 text-sm font-bold text-gold-hi">{nextStep}</p>
+    <Link href={`/pvp/${m.id}`} className="mt-3 flex min-h-12 items-center justify-center rounded-xl bg-amber px-4 text-base font-extrabold text-on-amber shadow-md active:scale-[0.98]">
+      เข้าเล่นต่อ →
+    </Link>
+  </div>;
+}
+
+function OpenChallengeBoard({ challenges }: { challenges: PvpOpenChallenge[] }) {
+  return <section className="mt-6" aria-label="กระดานคำท้าเปิด">
+    <h2 className="text-lg font-extrabold text-text">รับคำท้าจากผู้เล่นคนอื่น</h2>
+    <p className="mt-1 text-sm text-text2">เลือก Qmon ที่อยากสู้ แล้วกดรับคำท้าเพื่อเริ่มประลอง</p>
+    {challenges.length === 0 ? <div className="mt-3 rounded-xl border border-dashed border-gold-dim bg-card px-4 py-4 text-center">
+      <p className="text-sm font-bold text-text2">ตอนนี้ยังไม่มีใครเปิดคำท้า</p>
+      <p className="mt-1 text-xs text-text3">เปิดคำท้าของคุณไว้ให้คนอื่นมากดรับได้</p>
+    </div> : <div className="mt-3 space-y-3">{challenges.map((c) => <div key={c.id} className="rounded-2xl border border-gold-dim bg-card p-4">
+      <div className="flex items-center gap-4">
+        <div className="relative h-20 w-20 shrink-0 rounded-2xl bg-track/80">
+          <Image src={c.imagePath} alt={c.petName} fill unoptimized className="object-contain p-2" />
+        </div>
+        <div className="min-w-0">
+          <span className="text-xs font-extrabold text-gold-hi">พร้อมให้รับคำท้า</span>
+          <h3 className="mt-1 text-base font-extrabold text-text">{c.petName}</h3>
+          <p className="mt-1 text-xs text-text3">ผู้เล่นระดับเดียวกับคุณ</p>
+        </div>
+      </div>
+      <Link href={`/pvp/open/${c.id}`} className="mt-3 flex min-h-12 items-center justify-center rounded-xl bg-amber px-4 text-base font-extrabold text-on-amber active:scale-[0.98]">รับคำท้า →</Link>
+    </div>)}</div>}
+  </section>;
+}
+
 export default function PvpOverviewClient({ overview }: { overview: PvpOverview }) {
   const hasPendingOpen = overview.outgoing.some((c) => c.isOpen && c.status === "pending");
   useEffect(() => { track("pvp_open_board_view", { open_count: overview.openChallenges.length }); }, [overview.openChallenges.length]);
@@ -72,10 +121,31 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
       <h1 className="text-2xl font-bold text-gold-hi">ประลอง</h1>
-      {overview.yourTurn.length > 0 && <section className="mt-4" aria-label="เกมที่เล่นต่อได้">
-        <h2 className="text-sm font-bold text-gold-hi">ถึงตาคุณ · เล่นต่อ</h2>
-        <div className="mt-2 space-y-2">{overview.yourTurn.map(m => <MatchRow key={m.id} m={m} />)}</div>
+      {(overview.yourTurn.length > 0 || overview.incoming.length > 0) && <section className="mt-5" aria-label="รายการที่รอให้คุณเล่น">
+        <h2 className="text-lg font-extrabold text-text">รอให้คุณลงมือ</h2>
+        <p className="mt-1 text-sm text-text2">คำท้าและแมตช์ที่พร้อมเล่นตอนนี้</p>
+        <div className="mt-3 space-y-3">
+          {overview.yourTurn.map(m => <TurnCard key={m.id} m={m} />)}
+          {overview.incoming.map((c) => <div key={c.id} className="rounded-2xl border-2 border-gold bg-amber/10 p-4 shadow-[0_0_24px_rgba(255,180,63,0.14)]">
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-track/80">
+                {c.challengerPet
+                  ? <Image src={c.challengerPet.imagePath} alt={c.challengerPet.speciesName} fill unoptimized className="object-contain p-2" />
+                  : <span className="text-4xl" aria-hidden="true">⚔️</span>}
+              </div>
+              <div className="min-w-0">
+                <span className="inline-flex rounded-full bg-amber px-2.5 py-1 text-xs font-extrabold text-on-amber">คำท้าใหม่</span>
+                <h3 className="mt-2 text-lg font-extrabold text-text">{c.challengerName} ท้าประลอง</h3>
+                {c.challengerPet && <p className="mt-1 text-sm text-text2">ส่ง {c.challengerPet.speciesName} ลงสนาม</p>}
+              </div>
+            </div>
+            <Link href={`/pvp/challenge/${c.id}`} className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-amber px-4 text-base font-extrabold text-on-amber shadow-md active:scale-[0.98]">ดูและรับคำท้า →</Link>
+            <button type="button" disabled={pending} onClick={() => respond(() => declinePvpChallenge(c.id))}
+              className="mt-2 min-h-11 w-full rounded-xl border border-border text-sm font-bold text-text2 active:scale-[0.98] disabled:opacity-50">ปฏิเสธ</button>
+          </div>)}
+        </div>
       </section>}
+      {overview.openChallenges.length > 0 && <OpenChallengeBoard challenges={overview.openChallenges} />}
       <PvpExpectations />
 
       {/* เลือกวิธีเริ่มประลอง */}
@@ -146,83 +216,9 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
         </details>
       </div>
 
-      <section className="mt-6" aria-label="กระดานคำท้าเปิด">
-        <h2 className="text-base font-extrabold text-text">หรือรับคำท้าจากคนอื่น</h2>
-        <p className="mt-1 text-sm text-text2">เลือกคู่จาก Qmon ที่เห็น แล้วกดรับเพื่อเริ่มแมตช์ทันที</p>
-        {overview.openChallenges.length === 0 ? (
-          <div className="mt-3 rounded-xl border border-dashed border-gold-dim bg-card px-4 py-4 text-center">
-            <p className="text-sm font-bold text-text2">ตอนนี้ยังไม่มีใครเปิดคำท้า</p>
-            <p className="mt-1 text-xs text-text3">เปิดคำท้าของคุณไว้ให้คนอื่นมากดรับได้</p>
-          </div>
-        ) : (
-          <div className="mt-2 space-y-2">
-            {overview.openChallenges.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-                <Image src={c.imagePath} alt="" width={48} height={48} unoptimized className="rounded-lg bg-track" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-text">{c.petName}</p>
-                  <p className="text-xs text-text3">รอคนรับคำท้า</p>
-                </div>
-                <Link href={`/pvp/open/${c.id}`} className="rounded-lg border border-gold bg-amber px-3 py-2 text-sm font-bold text-on-amber">
-                  รับคำท้า
-                </Link>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {overview.openChallenges.length === 0 && <OpenChallengeBoard challenges={overview.openChallenges} />}
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
-
-      {/* คำท้าที่ถูกท้า */}
-      {overview.incoming.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-bold text-text2">คำท้าใหม่</h2>
-          <div className="mt-2 space-y-2">
-            {overview.incoming.map((c) => (
-              <div
-                key={c.id}
-                className="rounded-xl border border-gold-dim bg-card px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  {c.challengerPet && (
-                    <Image
-                      src={c.challengerPet.imagePath}
-                      alt=""
-                      width={40}
-                      height={40}
-                      className="rounded-lg bg-track"
-                      unoptimized
-                    />
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-text">{c.challengerName} ท้าประลอง</p>
-                    {c.challengerPet && (
-                      <p className="text-xs text-text3">ส่ง {c.challengerPet.speciesName} ลงสนาม</p>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Link
-                    href={`/pvp/challenge/${c.id}`}
-                    className="flex min-h-11 flex-1 items-center justify-center rounded-lg border border-gold bg-amber px-3 py-2 text-center text-sm font-bold text-on-amber active:scale-95"
-                  >
-                    รับคำท้า
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => respond(() => declinePvpChallenge(c.id))}
-                    className="min-h-11 rounded-lg border border-border px-3 py-2 text-sm text-text2 active:scale-95 disabled:opacity-50"
-                  >
-                    ปฏิเสธ
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* รอเพื่อนตอบ / คำท้าที่ส่งไป */}
       {(overview.waiting.length > 0 || overview.outgoing.length > 0) && (
