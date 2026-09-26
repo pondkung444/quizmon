@@ -8,7 +8,6 @@ import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import type { CalendarDay } from "@/lib/petCalendar";
 import { expTierClass, expTierTextClass } from "@/lib/expTier";
-import { DAILY_EXP_CAP } from "@/lib/exp";
 
 const DAY_LABEL_TH = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
 const MONTH_LABEL_TH = [
@@ -42,7 +41,7 @@ function petImagePathFor(day: CalendarDay): string | null {
   }
 }
 
-function DetailCard({ day, onClose }: { day: CalendarDay; onClose: () => void }) {
+function DetailCard({ day, dailyCap, onClose }: { day: CalendarDay; dailyCap: number; onClose: () => void }) {
   const petImagePath = petImagePathFor(day);
   const dayLabel = new Date(`${day.date}T00:00:00Z`).toLocaleDateString("th-TH", {
     day: "numeric",
@@ -50,8 +49,9 @@ function DetailCard({ day, onClose }: { day: CalendarDay; onClose: () => void })
     year: "numeric",
     timeZone: "UTC",
   });
-  const dailyProgress = Math.min(1, day.expEarned / DAILY_EXP_CAP);
-  const reachedCap = day.expEarned >= DAILY_EXP_CAP;
+  // dailyCap = เพดานของผู้ใช้ ณ วันนี้ (ไม่ใช่ของวันนั้น) — ข้อจำกัดที่ยอมรับ ดูคอมเมนต์ JourneyDay.expEarned
+  const dailyProgress = Math.min(1, dailyCap > 0 ? day.expEarned / dailyCap : 1);
+  const reachedCap = day.expEarned >= dailyCap;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
@@ -118,11 +118,13 @@ export default function PetCalendarClient({
   year,
   month,
   days,
+  dailyCap,
   isCurrentMonth,
 }: {
   year: number;
   month: number;
   days: CalendarDay[];
+  dailyCap: number;
   isCurrentMonth: boolean;
 }) {
   const router = useRouter();
@@ -191,8 +193,8 @@ export default function PetCalendarClient({
                 className={`relative flex aspect-square items-center justify-center rounded-lg border text-sm font-medium disabled:cursor-not-allowed ${
                   day.isFuture
                     ? "border-dashed border-border text-text3 opacity-40"
-                    : `border-border ${expTierTextClass(day.expEarned)}`
-                } ${day.isFuture ? "" : expTierClass(day.expEarned)} ${day.isToday ? "border-2 border-gold-hi" : ""}`}
+                    : `border-border ${expTierTextClass(day.expEarned, dailyCap)}`
+                } ${day.isFuture ? "" : expTierClass(day.expEarned, dailyCap)} ${day.isToday ? "border-2 border-gold-hi" : ""}`}
               >
                 {Number(day.date.slice(-2))}
               </button>
@@ -209,7 +211,7 @@ export default function PetCalendarClient({
         กลับไปหน้า Qmon
       </button>
 
-      {selectedDay && <DetailCard day={selectedDay} onClose={() => setSelectedDate(null)} />}
+      {selectedDay && <DetailCard day={selectedDay} dailyCap={dailyCap} onClose={() => setSelectedDate(null)} />}
     </div>
   );
 }

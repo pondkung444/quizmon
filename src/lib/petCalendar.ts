@@ -11,7 +11,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type CalendarDay = {
   date: string; // YYYY-MM-DD Bangkok
-  expEarned: number; // capped ที่ 180
+  expEarned: number; // capped ที่เพดานของผู้ใช้ ณ วันนี้ — ดูคอมเมนต์ JourneyDay.expEarned ใน weeklyJourney.ts
   hasData: boolean; // มีแถวใน quiz_attempts วันนั้นไหม (ไม่ใช่ expEarned > 0 — ดูคอมเมนต์ hasAttempts ใน weeklyJourney.ts)
   petId: string | null;
   stage: number | null;
@@ -161,14 +161,15 @@ export async function getCalendarMonth(
   supabase: SupabaseServerClient,
   userId: string,
   year: number,
-  month: number
+  month: number,
+  dailyCap: number
 ): Promise<CalendarDay[]> {
   const dateList = daysInBangkokMonth(year, month);
   const rangeStartIso = bangkokMidnightUtcIso(dateList[0]);
   const rangeEndIso = bangkokMidnightUtcIso(nextDateStr(dateList[dateList.length - 1]));
 
   const [journeyDays, gradeBand] = await Promise.all([
-    getJourneyDaysForRange(supabase, userId, dateList),
+    getJourneyDaysForRange(supabase, userId, dateList, dailyCap),
     getGradeBand(userId),
   ]);
 

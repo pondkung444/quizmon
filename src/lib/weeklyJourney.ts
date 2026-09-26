@@ -13,7 +13,9 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type JourneyDay = {
   date: string; // YYYY-MM-DD Bangkok
-  expEarned: number; // capped ที่ 180
+  // capped ที่เพดานของผู้ใช้ "ณ วันนี้" (180 ฟรี / 300 premium — ดู src/lib/dailyExpCap.ts) ข้อจำกัด
+  // ที่ยอมรับ: วันในอดีตคิดด้วยเพดานของวันนี้ ไม่ใช่ของวันนั้น (ไม่มีประวัติสิทธิ์รายวันให้ replay)
+  expEarned: number;
   petId: string | null;
   stage: number | null; // 1-4, null ถ้ายังไม่มี pet เลย
   subline: string | null;
@@ -96,7 +98,7 @@ function nextStateFromEvent(event: JourneyEvent): { petId: string | null; stage:
 // replay สูตร exp เดิม (src/lib/exp.ts, ไม่แก้ไฟล์นั้น) ทีละข้อ "ต่อวัน" ตามลำดับ created_at —
 // state (combo streak / sliding window ความแม่นยำ) เริ่มใหม่ทุกวัน ไม่ carry ข้ามวัน และใช้
 // base=10 เสมอ
-function replayExpForDay(dayAttempts: Attempt[]): number {
+function replayExpForDay(dayAttempts: Attempt[], dailyCap: number): number {
   let comboStreak = 0;
   let lastPetId: string | null = null;
   let total = 0;
@@ -115,7 +117,7 @@ function replayExpForDay(dayAttempts: Attempt[]): number {
     total += calculateExpForAnswer(attempt.is_correct, accuracyMultiplier, comboMultiplier, BASE_EXP_PER_CORRECT);
   }
 
-  return Math.min(total, DAILY_EXP_CAP);
+  return Math.min(total, dailyCap);
 }
 
 // core: replay EXP + pet/stage state ทีละวันสำหรับ "วันใดก็ได้ที่ต่อเนื่องกัน" ไม่ผูกกับขอบเขต
@@ -124,7 +126,8 @@ function replayExpForDay(dayAttempts: Attempt[]): number {
 export async function getJourneyDaysForRange(
   supabase: SupabaseServerClient,
   userId: string,
-  dateList: string[]
+  dateList: string[],
+  dailyCap: number = DAILY_EXP_CAP
 ): Promise<JourneyDay[]> {
   const rangeStartIso = bangkokMidnightUtcIso(dateList[0]);
   const rangeEndIso = bangkokMidnightUtcIso(nextDateStr(dateList[dateList.length - 1]));
@@ -237,7 +240,7 @@ export async function getJourneyDaysForRange(
     }
 
     const dayAttempts = attemptsByDay.get(date) ?? [];
-    const expEarned = replayExpForDay(dayAttempts);
+    const expEarned = replayExpForDay(dayAttempts, dailyCap);
     const pet = state.petId ? petsById.get(state.petId) ?? null : null;
     const stage = state.stage;
 
@@ -262,6 +265,10 @@ export async function getJourneyDaysForRange(
   return days;
 }
 
-export async function getWeeklyJourney(supabase: SupabaseServerClient, userId: string): Promise<JourneyDay[]> {
-  return getJourneyDaysForRange(supabase, userId, getBangkokWeekDates());
+export async function getWeeklyJourney(
+  supabase: SupabaseServerClient,
+  userId: string,
+  dailyCap: number = DAILY_EXP_CAP
+): Promise<JourneyDay[]> {
+  return getJourneyDaysForRange(supabase, userId, getBangkokWeekDates(), dailyCap);
 }
