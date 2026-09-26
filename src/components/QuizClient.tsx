@@ -33,6 +33,7 @@ import { useSfx } from "@/lib/audio/useSfx";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
 import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
+import Toast from "@/components/social/Toast";
 import QuizJourney from "@/components/quiz/QuizJourney";
 import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
 import MiniReviewRound from "@/components/quiz/MiniReviewRound";
@@ -162,6 +163,7 @@ export default function QuizClient({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveWarning, setSaveWarning] = useState<string | null>(null);
+  const [eggToastMessage, setEggToastMessage] = useState<string | null>(null);
   // ปุ่มออกกลางรอบ (ux pass 2026-07) — เดิม phase "playing" ไม่มีทางออกเลย นอกจากเล่นจบ/กด back
   // ของ browser เด็กเข้าผิดวิชาจะติดอยู่ในรอบ ใส่ confirm กันกดพลาด (submit เป็นรายข้ออยู่แล้ว
   // ข้อที่ตอบไปก่อนออกยังนับปกติ ไม่เสียอะไร)
@@ -588,6 +590,9 @@ export default function QuizClient({
       setFinalExpEarned(roundExpEarned);
       const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
       setSummary(finishResult);
+      if (finishResult.premiumBiweeklyEgg) {
+        setEggToastMessage("ทำเป้าครบ 2 สัปดาห์ติด! ได้ไข่ศักดิ์ธรา 🥚");
+      }
 
       if (missionInfo) {
         // ตรงนี้เป็นรอบที่ทำให้ answered ครบ target จริง (roundSize ถูกคำนวณเป็น target-answered
@@ -817,6 +822,7 @@ export default function QuizClient({
     return (
       <div className="flex flex-col gap-6 text-center">
         <QuizJourney completed={missionInfo?.targetCount ?? questions.length} total={missionInfo?.targetCount ?? questions.length} avatar={petAvatarPath} />
+        {eggToastMessage && <Toast message={eggToastMessage} onDone={() => setEggToastMessage(null)} />}
         <div className="flex justify-center">
           <SpeechBubble
             message={personalityMessage}
@@ -873,6 +879,7 @@ export default function QuizClient({
       <div className="flex flex-col gap-6 text-center">
         {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
         {showFeedbackModal && <FeedbackModal petId={feedbackPetId} onClose={() => setShowFeedbackModal(false)} />}
+        {eggToastMessage && <Toast message={eggToastMessage} onDone={() => setEggToastMessage(null)} />}
 
         <div className="flex justify-center">
           <SpeechBubble
@@ -946,6 +953,7 @@ export default function QuizClient({
   return (
     <div className="flex flex-col gap-6 text-center">
       {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
+      {eggToastMessage && <Toast message={eggToastMessage} onDone={() => setEggToastMessage(null)} />}
 
       <div className="flex justify-center">
         <SpeechBubble
