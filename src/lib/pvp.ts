@@ -1,4 +1,6 @@
 import { redirect } from "next/navigation";
+import { getPvpHistorySummary } from "@/lib/pvp/history";
+import type { PvpHistorySummary } from "@/lib/pvp/historyStats";
 import { getUser, type createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
@@ -339,7 +341,7 @@ export type PvpOverview = {
   incoming: PvpIncomingChallenge[];
   outgoing: PvpOutgoingChallenge[];
   openChallenges: PvpOpenChallenge[];
-  finished: PvpMatchListItem[];
+  history: PvpHistorySummary;
   ticketBalance: number; // ตั๋วประลองที่ใช้ได้ (เติมวันละ 2 + raid bonus, เพดาน 15)
 };
 
@@ -451,7 +453,7 @@ export async function getPvpOverview(
   // เติมตั๋ว lazy (daily 2 + raid bonus) — จุดเดียวกับ pvp_gc, ไม่มี cron
   await supabase.rpc("pvp_grant_tickets");
 
-  const [{ data: challenges }, { data: matches }, { count: ticketCount }, { data: board }] = await Promise.all([
+  const [{ data: challenges }, { data: matches }, { count: ticketCount }, { data: board }, history] = await Promise.all([
     supabase
       .from("pvp_challenges")
       .select("*")
@@ -460,6 +462,7 @@ export async function getPvpOverview(
     supabase
       .from("pvp_matches")
       .select("*")
+      .eq("status", "active")
       .or(`player_a_id.eq.${userId},player_b_id.eq.${userId}`)
       .order("last_action_at", { ascending: false }),
     supabase
@@ -468,6 +471,7 @@ export async function getPvpOverview(
       .eq("user_id", userId)
       .is("consumed_at", null),
     supabase.rpc("list_open_pvp_challenges"),
+    getPvpHistorySummary(supabase, userId),
   ]);
 
   const openChallenges: PvpOpenChallenge[] = [];
@@ -489,14 +493,13 @@ export async function getPvpOverview(
   const chRows = challenges ?? [];
   const mRows = matches ?? [];
   const activeRows = mRows.filter((m) => m.status === "active");
-  const recentFinishedRows = mRows.filter((m) => m.status === "finished" || m.status === "abandoned").slice(0, 20);
 
   const [names, sprites] = await Promise.all([
     nameMap([
       ...chRows.map((c) => (c.challenger_id === userId ? c.opponent_id : c.challenger_id)),
       ...mRows.map((m) => (m.player_a_id === userId ? m.player_b_id : m.player_a_id)),
     ]),
-    petSpriteMap([...activeRows, ...recentFinishedRows].map((m) => m.player_a_id === userId ? m.pet_b_id : m.pet_a_id)),
+    petSpriteMap(activeRows.map((m) => m.player_a_id === userId ? m.pet_b_id : m.pet_a_id)),
   ]);
 
   // เสริมรูป Qmon ของผู้ท้า (สำหรับคำท้าเข้า)
@@ -580,7 +583,6 @@ export async function getPvpOverview(
   };
 
   const active = activeRows.map(toItem);
-  const finished = recentFinishedRows.map(toItem);
 
   return {
     yourTurn: active.filter((m) => m.myTurn),
@@ -588,7 +590,7 @@ export async function getPvpOverview(
     incoming,
     outgoing,
     openChallenges,
-    finished,
+    history: { ...history, rivals: history.rivals.slice(0, 3) },
     ticketBalance: ticketCount ?? 0,
   };
 }
