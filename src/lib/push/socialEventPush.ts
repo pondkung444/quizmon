@@ -8,13 +8,21 @@ type AdminClient = ReturnType<typeof createAdminClient>;
 export type SocialEventType =
   | "encouragement_received"
   | "friend_request_received"
-  | "friend_request_accepted";
+  | "friend_request_accepted"
+  | "pvp_open_accepted"
+  | "pvp_your_turn";
 
 // ชุดข้อความตาม QuizMon-Push-Notification-Design.md §11 — {name} = ชื่อในเกมของผู้พูด
 // แต่ละกลุ่มหมุนเวียนแบบสุ่ม (ไม่ tracking ว่าใช้อันไหนไปแล้วเพื่อความง่าย — เพราะ event
 // เหล่านี้ยิงครั้งเดียวต่อ action ไม่ใช่ทุกวันแบบ scheduled push จึงไม่ค่อยเจอข้อความซ้ำติดกัน
 // ในทางปฏิบัติ ต่างจาก "กลับจากผจญภัย" ที่อาจเกิดถี่กว่า)
 const MESSAGE_VARIANTS: Record<SocialEventType, { title: string; body: string }[]> = {
+  pvp_open_accepted: [
+    { title: "มีคนรับคำท้าประลองแล้ว ⚔️", body: "{name} เริ่มแมตช์กับเธอแล้ว เข้าไปดูได้เลย" },
+  ],
+  pvp_your_turn: [
+    { title: "ถึงตาคุณในประลองแล้ว ⚔️", body: "{name} เล่นตาของเขาแล้ว กลับไปเล่นต่อได้เลย" },
+  ],
   encouragement_received: [
     { title: "{name} ส่งกำลังใจมาให้ ✨", body: "มีข้อความดีๆ รอเธออยู่ใน QuizMon" },
     { title: "กำลังใจจาก {name} มาถึงแล้ว 💛", body: "เข้าไปเปิดอ่านข้อความที่เพื่อนส่งมาให้กันนะ" },

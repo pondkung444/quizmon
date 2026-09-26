@@ -303,8 +303,16 @@ export type PvpIncomingChallenge = {
 export type PvpOutgoingChallenge = {
   id: string;
   opponentName: string;
+  isOpen: boolean;
   status: "pending" | "declined";
   createdAt: string;
+  expiresAt: string;
+};
+
+export type PvpOpenChallenge = {
+  id: string;
+  petName: string;
+  imagePath: string;
   expiresAt: string;
 };
 
@@ -327,6 +335,7 @@ export type PvpOverview = {
   waiting: PvpMatchListItem[];
   incoming: PvpIncomingChallenge[];
   outgoing: PvpOutgoingChallenge[];
+  openChallenges: PvpOpenChallenge[];
   finished: PvpMatchListItem[];
   ticketBalance: number; // ตั๋วประลองที่ใช้ได้ (เติมวันละ 2 + raid bonus, เพดาน 15)
 };
@@ -439,7 +448,7 @@ export async function getPvpOverview(
   // เติมตั๋ว lazy (daily 2 + raid bonus) — จุดเดียวกับ pvp_gc, ไม่มี cron
   await supabase.rpc("pvp_grant_tickets");
 
-  const [{ data: challenges }, { data: matches }, { count: ticketCount }] = await Promise.all([
+  const [{ data: challenges }, { data: matches }, { count: ticketCount }, { data: board }] = await Promise.all([
     supabase
       .from("pvp_challenges")
       .select("*")
@@ -455,7 +464,24 @@ export async function getPvpOverview(
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .is("consumed_at", null),
+    supabase.rpc("list_open_pvp_challenges"),
   ]);
+
+  const openChallenges: PvpOpenChallenge[] = [];
+  for (const row of board ?? []) {
+    const line = parsePetLine(row.pet_subline);
+    if (!line || !row.pet_personality || !row.egg_sprite_prefix) continue;
+    try {
+      openChallenges.push({
+        id: row.id,
+        petName: row.pet_name ?? getSpeciesName(row.egg_sprite_prefix, 4, line,
+          row.pet_personality as Personality, row.egg_name_th),
+        imagePath: getPetImagePath(row.egg_sprite_prefix, 4, line as Subline,
+          row.pet_personality as Personality),
+        expiresAt: row.expires_at,
+      });
+    } catch { /* invalid sprite mapping */ }
+  }
 
   const chRows = challenges ?? [];
   const mRows = matches ?? [];
@@ -511,7 +537,8 @@ export async function getPvpOverview(
     )
     .map((c) => ({
       id: c.id,
-      opponentName: names.get(c.opponent_id) ?? "เพื่อน",
+      opponentName: c.visibility === "open" ? "รอผู้รับคำท้า" : names.get(c.opponent_id) ?? "เพื่อน",
+      isOpen: c.visibility === "open",
       status: c.status as "pending" | "declined",
       createdAt: c.created_at,
       expiresAt: c.expires_at,
@@ -552,6 +579,7 @@ export async function getPvpOverview(
     waiting: active.filter((m) => !m.myTurn),
     incoming,
     outgoing,
+    openChallenges,
     finished,
     ticketBalance: ticketCount ?? 0,
   };
@@ -571,6 +599,8 @@ export type PvpDuelQuestion = {
 
 export type PvpMatchView = {
   matchId: string;
+  opponentId: string;
+  friendState: "none" | "outgoing" | "incoming" | "friends";
   status: "active" | "finished" | "abandoned";
   phase: "assigning" | "card_ready" | "answering";
   currentRound: number;
@@ -701,8 +731,27 @@ export async function getPvpMatchView(
   const won =
     m.status === "finished" && m.outcome !== "draw" ? m.winner_id === userId : null;
 
+  const opponentId = iAm === "a" ? m.player_b_id : m.player_a_id;
+  let friendState: PvpMatchView["friendState"] = "none";
+  if (m.status === "finished") {
+    const admin = createAdminClient();
+    const [low, high] = [userId, opponentId].sort();
+    const [{ data: friendship }, { data: requests }] = await Promise.all([
+      admin.from("friendships").select("user_id_low")
+        .eq("user_id_low", low).eq("user_id_high", high).maybeSingle(),
+      admin.from("friend_requests").select("requester_id, addressee_id")
+        .eq("status", "pending")
+        .or(`and(requester_id.eq.${userId},addressee_id.eq.${opponentId}),and(requester_id.eq.${opponentId},addressee_id.eq.${userId})`),
+    ]);
+    friendState = friendship ? "friends"
+      : requests?.some(r => r.requester_id === opponentId) ? "incoming"
+      : requests?.some(r => r.requester_id === userId) ? "outgoing" : "none";
+  }
+
   return {
     matchId: m.id,
+    opponentId,
+    friendState,
     status: m.status,
     phase: m.phase,
     currentRound: m.current_round,

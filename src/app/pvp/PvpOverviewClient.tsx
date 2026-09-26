@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { track } from "@/lib/analytics";
 import { usePvpResync } from "@/lib/pvp/usePvpResync";
 import PvpExpectations from "./PvpExpectations";
 import Link from "next/link";
@@ -45,6 +46,7 @@ function MatchRow({ m }: { m: PvpMatchListItem }) {
 }
 
 export default function PvpOverviewClient({ overview }: { overview: PvpOverview }) {
+  useEffect(() => { track("pvp_open_board_view", { open_count: overview.openChallenges.length }); }, [overview.openChallenges.length]);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -119,12 +121,43 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
           <span>⚔️</span>
           ท้าเพื่อนประลอง
         </Link>
+        <Link
+          href="/pvp/open/new"
+          className={`mt-2 flex items-center justify-center rounded-xl border border-gold-dim py-3 text-sm font-bold text-gold-hi ${overview.ticketBalance > 0 ? "" : "pointer-events-none opacity-50"}`}
+        >
+          เปิดคำท้าให้คนอื่นรับ
+        </Link>
         {overview.ticketBalance <= 0 && (
           <p className="mt-2 text-center text-[11px] text-text3">
             ตั๋วหมด — พรุ่งนี้ได้อีก 2 หรือไปเล่นท้าทายให้จบ
           </p>
         )}
       </div>
+
+      <section className="mt-6" aria-label="กระดานคำท้าเปิด">
+        <h2 className="text-sm font-bold text-text2">คำท้าเปิด</h2>
+        <p className="mt-1 text-xs text-text3">ผู้เล่นระดับเดียวกัน · เห็นชื่อคู่แข่งเมื่อเริ่มแมตช์</p>
+        {overview.openChallenges.length === 0 ? (
+          <p className="mt-2 rounded-xl border border-dashed border-border px-4 py-4 text-center text-xs text-text3">
+            ยังไม่มีคำท้าเปิด ลองเปิดคำท้าแรกได้เลย
+          </p>
+        ) : (
+          <div className="mt-2 space-y-2">
+            {overview.openChallenges.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                <Image src={c.imagePath} alt="" width={48} height={48} unoptimized className="rounded-lg bg-track" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-text">{c.petName}</p>
+                  <p className="text-xs text-text3">รอคนรับคำท้า</p>
+                </div>
+                <Link href={`/pvp/open/${c.id}`} className="rounded-lg border border-gold bg-amber px-3 py-2 text-sm font-bold text-on-amber">
+                  รับคำท้า
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {error && <p className="mt-4 text-sm text-red">{error}</p>}
 
@@ -194,7 +227,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                 <div>
                   <p className="text-sm font-bold text-text">{c.opponentName}</p>
                   <p className="text-xs text-text3">
-                    {c.status === "declined" ? "ปฏิเสธคำท้าแล้ว" : "รอตอบรับคำท้า"}
+                    {c.status === "declined" ? "ปฏิเสธคำท้าแล้ว" : c.isOpen ? "รอคนกดรับ · หมดอายุใน 24 ชั่วโมง" : "รอตอบรับคำท้า"}
                   </p>
                 </div>
                 {c.status === "pending" && (
