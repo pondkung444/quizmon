@@ -6,18 +6,22 @@ import AppThemeMarker from "@/components/AppThemeMarker";
 
 export const dynamic = "force-dynamic";
 
-// แผนของนักเรียน self-serve pilot — เช็ค access ที่จุดเดียวที่ layout เหมือน /guardian/[studentId]/layout.tsx
-// ไม่มี "หน้า landing" ให้เด้งไป (ไม่มี UI ขอเข้าร่วม — ปอนด์ enroll ผ่าน SQL) จึง redirect กลับหน้าแรกเมื่อไม่ได้ enroll
+// แผนของนักเรียน self-serve (พรีเมียม) — เช็ค access ที่จุดเดียวที่ layout เหมือน /guardian/[studentId]/layout.tsx
 // junior เท่านั้นในรอบนี้: current chapter ของ senior ยังไม่ branch-aware (follow-up ที่รู้กันอยู่แล้ว)
+// → senior กลับหน้าแรกเสมอ (พรีเมียมก็ยังไม่รองรับ senior พาไปหน้าปลดล็อกก็ไม่มีประโยชน์)
+// junior ที่ไม่มีสิทธิ์ (ไม่เคยซื้อ/หมดอายุ) → หน้าปลดล็อก /premium
 export default async function MyPlanLayout({ children }: { children: React.ReactNode }) {
   const access = await getSelfServeAccess();
-  if (access.status !== "ok") {
+  if (access.status === "unauthenticated") {
     redirect("/");
   }
 
   const band = await getGradeBand(access.userId);
   if (band !== "junior") {
     redirect("/");
+  }
+  if (access.status !== "ok") {
+    redirect("/premium");
   }
 
   // ธีมแอปเฉพาะฝั่งนักเรียน (/my-plan) — หน้า /guardian ใช้ component ชุดเดียวกันแต่ไม่มีป้ายนี้ จึงคงโทนเดิม

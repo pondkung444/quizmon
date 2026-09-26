@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // ชั้น UI นี้เป็น double-gate: RPC guardian_* ฝั่ง DB เช็ค enrollment ซ้ำอยู่แล้ว
 export type SelfServeAccess =
   | { status: "unauthenticated" }
-  | { status: "not_enrolled" }
+  | { status: "not_enrolled"; userId: string }
   | { status: "ok"; userId: string };
 
 export async function getSelfServeAccess(): Promise<SelfServeAccess> {
@@ -23,8 +23,33 @@ export async function getSelfServeAccess(): Promise<SelfServeAccess> {
     .gt("expires_at", new Date().toISOString())
     .maybeSingle();
 
-  if (!data) return { status: "not_enrolled" };
+  if (!data) return { status: "not_enrolled", userId: user.id };
   return { status: "ok", userId: user.id };
+}
+
+// สถานะพรีเมียมพร้อมวันหมดอายุ — ใช้กับการ์ดหน้า /pet (3 สถานะ) และหน้า /premium
+// เงื่อนไข "มีสิทธิ์" ตรงกับ getSelfServeAccess() เป๊ะ (active + now() < expires_at) แถว active ที่เลยเวลาแล้ว
+// (ยังไม่ถูกเปลี่ยน status) นับเป็น "ไม่มีสิทธิ์" ทันที — downgrade มีผล ณ วินาทีที่หมดอายุ
+export type PremiumStatus =
+  | { status: "unauthenticated" }
+  | { status: "none"; userId: string }
+  | { status: "active"; userId: string; expiresAt: string };
+
+export async function getPremiumStatus(): Promise<PremiumStatus> {
+  const user = await getUser();
+  if (!user) return { status: "unauthenticated" };
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("self_serve_enrollment")
+    .select("expires_at")
+    .eq("student_id", user.id)
+    .eq("status", "active")
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (!data) return { status: "none", userId: user.id };
+  return { status: "active", userId: user.id, expiresAt: data.expires_at as string };
 }
 
 // ข้อมูลนักเรียนเจ้าของบัญชีสำหรับหน้า /my-plan/* — เรียกหลัง layout เช็ค getSelfServeAccess() แล้ว

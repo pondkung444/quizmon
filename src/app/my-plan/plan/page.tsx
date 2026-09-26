@@ -6,7 +6,8 @@ export const dynamic = "force-dynamic";
 
 export default async function MyPlanPlanPage() {
   const access = await getSelfServeAccess();
-  if (access.status !== "ok") redirect("/");
+  // ไม่มีสิทธิ์ → หน้าปลดล็อก (defense-in-depth — layout.tsx เช็ค junior + สิทธิ์ไว้แล้ว)
+  if (access.status !== "ok") redirect(access.status === "unauthenticated" ? "/" : "/premium");
   const { studentId, username } = await getSelfServeStudent(access.userId);
 
   return <PlanWizard studentId={studentId} studentUsername={username} viewerMode="self" />;
