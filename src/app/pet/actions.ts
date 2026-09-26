@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   determinePersonality,
   computeRawStats,
@@ -36,9 +37,15 @@ export async function collectPet(): Promise<{ collected: true; petId: string }> 
   // (เฉพาะ quiz_attempts.source is null — ไม่รวม raid) ผ่าน RPC เดียว เพราะจังหวะนี้เป็นจังหวะสุดท้าย
   // ที่ตัวเลขนิ่ง (submitAnswer() หา active pet เสมอ ไม่สนใจ stage — พอ collect แล้วจะไม่มี write ใหม่
   // เข้า quiz_attempts ของ pet ตัวนี้อีก ปลอดภัยที่จะ snapshot ตรงนี้)
-  const { error: collectError } = await supabase.rpc("collect_pet_with_stats_snapshot", { p_pet_id: pet.id });
+  // RPC เป็น security invoker -> เรียกผ่าน admin (Premium 1.5d: ผู้ใช้จะไม่มีสิทธิ์ UPDATE pets เอง)
+  // pet.id มาจาก select ด้านบนที่กรอง user_id = user.id แล้ว — ห้ามส่ง pet id จาก client เข้ามาตรงนี้
+  const admin = createAdminClient();
+  const { error: collectError } = await admin.rpc("collect_pet_with_stats_snapshot", { p_pet_id: pet.id });
 
-  if (collectError) throw new Error("เก็บ Qmon เข้าฟาร์มไม่สำเร็จ: " + collectError.message);
+  if (collectError) {
+    console.error("collectPet: collect_pet_with_stats_snapshot failed", user.id, pet.id, collectError);
+    throw new Error("เก็บ Qmon เข้าฟาร์มไม่สำเร็จ: " + collectError.message);
+  }
 
   // track เฉพาะตอน update ผ่านแล้วเท่านั้น — insert ตรงจากฝั่ง server (ไม่ใช้
   // src/lib/analytics.ts track() เพราะฟังก์ชันนั้น early-return ทุกครั้งถ้า
@@ -242,7 +249,10 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
   }
   const finalStats = snapshotStats(raw, artLane(line), lockedPersonality, eggType.stat_profile);
 
-  const { error: statError } = await supabase
+  // Premium 1.5d: stat_*/evolved_at เขียนผ่าน admin client (ผู้ใช้จะเขียนได้แค่ nickname/personality)
+  // admin ข้าม RLS จึงต้อง .eq("user_id", user.id) เสมอ
+  const admin = createAdminClient();
+  const { error: statError } = await admin
     .from("pets")
     .update({
       stat_hp: finalStats.hp,
@@ -252,9 +262,11 @@ export async function choosePersonalityAfterEvolve(choiceRaw: string): Promise<C
       stat_foc: finalStats.foc,
       evolved_at: new Date().toISOString(),
     })
-    .eq("id", pet.id);
+    .eq("id", pet.id)
+    .eq("user_id", user.id);
 
   if (statError) {
+    console.error("choosePersonalityAfterEvolve: stat snapshot failed", user.id, pet.id, statError);
     throw new Error(
       "ล็อกบุคลิกสำเร็จแล้ว แต่บันทึกสเตตัสไม่สำเร็จ: " +
         statError.message +

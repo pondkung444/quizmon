@@ -6,14 +6,13 @@ import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
 import {
   BASE_EXP_PER_CORRECT,
-  DAILY_EXP_CAP,
   calculateExpForAnswer,
   getAccuracyMultiplier,
   getComboMultiplier,
   getTodayInBangkok,
 } from "@/lib/exp";
 import { getEvolutionProgress } from "@/lib/evolution";
-import { planPetEvolution } from "@/lib/petEvolution";
+import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
 import { getGradeBand, visibleBands } from "@/lib/gradeBand";
 import { type SeniorLine } from "@/lib/petLine";
 import {
@@ -450,7 +449,9 @@ export async function submitAnswer(input: {
   const scienceIncrement = isCorrect && question.subject === "science" ? 1 : 0;
 
   // insert attempt กับ RPC อัปเดต pets ไม่แตะแถวเดียวกัน — เขียนพร้อมกันได้
-  await Promise.all([
+  // RPC เป็น security invoker -> เรียกผ่าน admin (Premium 1.5d: ผู้ใช้จะไม่มีสิทธิ์ UPDATE pets เอง)
+  // activePet.id มาจาก select ด้านบนที่กรอง user_id = user.id แล้ว
+  const [, { error: petUpdateError }] = await Promise.all([
     supabase.from("quiz_attempts").insert({
       user_id: user.id,
       question_id: input.questionId,
@@ -459,7 +460,7 @@ export async function submitAnswer(input: {
       mission_id: input.missionId ?? null,
       source: input.source ?? null,
     }),
-    supabase.rpc("apply_quiz_answer_pet_update", {
+    admin.rpc("apply_quiz_answer_pet_update", {
       p_pet_id: activePet.id,
       p_new_combo: newCombo,
       p_milestone_increment: milestoneIncrement,
@@ -467,6 +468,9 @@ export async function submitAnswer(input: {
       p_science_increment: scienceIncrement,
     }),
   ]);
+  if (petUpdateError) {
+    console.error("submitAnswer: apply_quiz_answer_pet_update failed", user.id, activePet.id, petUpdateError);
+  }
 
   return { expEarned, category: question.category, subject: question.subject as Subject };
 }
@@ -495,32 +499,43 @@ export async function finishQuizRound(
 
   const { data: activePet } = await supabase
     .from("pets")
-    .select("id, exp, exp_today, exp_today_date, stage, math_correct, science_correct")
+    .select("id, exp, stage, math_correct, science_correct")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
   if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
 
   const today = getTodayInBangkok();
-  const expTodaySoFar = activePet.exp_today_date === today ? activePet.exp_today : 0;
 
-  const remainingToday = Math.max(0, DAILY_EXP_CAP - expTodaySoFar);
-  const expAddedToPet = Math.min(roundExpEarned, remainingToday);
-  const capped = expAddedToPet < roundExpEarned;
-  const newExp = activePet.exp + expAddedToPet;
+  // Premium 1.5d: บวก EXP ผ่าน award_quiz_exp() (security definer, service_role เท่านั้น) — DB ล็อกแถว
+  // บวก exp/exp_today แบบ atomic, reset วันตามเวลาไทย และอ่านเพดานรายวันของผู้ใช้เอง (ฟรี 180 /
+  // premium 300 จาก get_daily_exp_cap) ดู supabase/migrations/20260925153832_premium_1_5c_award_quiz_exp.sql
+  // activePet.id มาจาก select ด้านบนที่กรอง user_id แล้ว ไม่รับ pet id จาก client
+  const amount = Number.isFinite(roundExpEarned) ? Math.min(1000, Math.max(0, Math.floor(roundExpEarned))) : 0;
+  const admin = createAdminClient();
+  const { data: award, error: awardError } = await admin
+    .rpc("award_quiz_exp", { p_user_id: user.id, p_pet_id: activePet.id, p_amount: amount })
+    .single<{ added: number; total_exp: number; today_exp: number; daily_cap: number; was_capped: boolean }>();
+  if (awardError || !award) {
+    // บวกไม่สำเร็จ = รอบนี้ไม่ได้ EXP และไม่ evolve แต่หน้าสรุปรอบต้องไปต่อได้ ไม่ throw
+    console.error("finishQuizRound: award_quiz_exp failed", user.id, activePet.id, amount, awardError);
+  }
+  const expAddedToPet = award?.added ?? 0;
+  const capped = award?.was_capped ?? false;
+  const newExp = award?.total_exp ?? activePet.exp;
 
   // ตรรกะ "ขยับ stage + คิด subline ตอนเข้า stage 3" ย้ายไป src/lib/petEvolution.ts (จุดเดียว
-  // ใช้ร่วมกับ PvP match-end evolution) — พฤติกรรมเหมือนเดิมเป๊ะ, ยังเขียน stage คู่กับ exp
-  // ในก้อน update ก้อนเดียวด้านล่าง + guard subline .is("subline", null) เหมือนเดิม
-  const plan = await planPetEvolution(supabase, user.id, activePet, newExp);
+  // ใช้ร่วมกับ PvP match-end evolution) — คิดจาก total_exp ที่ DB คืนมาหลังบวกจริง
+  // บวกไม่สำเร็จ -> ไม่ plan เลย (ไม่ evolve) ใช้ stage เดิม
+  const plan: PetEvolvePlan = award
+    ? await planPetEvolution(supabase, user.id, activePet, newExp)
+    : { newStage: activePet.stage, evolved: false, reachedStage4: false, computedSubline: null, seniorLockCounts: null };
   const newStage = plan.newStage;
   const computedSubline = plan.computedSubline;
   const seniorLockLog: { line: SeniorLine; counts: Partial<Record<SeniorLine, number>> } | null =
     plan.seniorLockCounts && plan.computedSubline
       ? { line: plan.computedSubline as SeniorLine, counts: plan.seniorLockCounts }
       : null;
-
-  const evolutionFields: Record<string, unknown> = { stage: newStage };
 
   // stage 4 ไม่คำนวณ personality/stat_* ที่นี่แล้ว — เข้าถึง stage 4 ก่อน (stage อย่างเดียว)
   // แล้วให้ StageUpModal พาไปเลือกบุคลิกเอง จากนั้นเรียก choosePersonalityAfterEvolve()
@@ -550,29 +565,37 @@ export async function finishQuizRound(
     }
   }
 
-  await supabase
-    .from("pets")
-    .update({
-      exp: newExp,
-      exp_today: expTodaySoFar + expAddedToPet,
-      exp_today_date: today,
-      ...evolutionFields,
-    })
-    .eq("id", activePet.id);
+  // stage เขียนแยกหลัง award_quiz_exp (ฟังก์ชันนั้นไม่แตะ stage) — admin client ข้าม RLS จึงต้อง
+  // .eq("user_id") เสมอ + guard .eq("stage", เดิม) กันเขียนทับถ้ามีคำขออื่นขยับไปก่อนแล้ว
+  if (newStage !== activePet.stage) {
+    const { error: stageError } = await admin
+      .from("pets")
+      .update({ stage: newStage })
+      .eq("id", activePet.id)
+      .eq("user_id", user.id)
+      .eq("stage", activePet.stage);
+    if (stageError) {
+      console.error("finishQuizRound: stage update failed", user.id, activePet.id, newStage, stageError);
+    }
+  }
 
   if (computedSubline) {
     // idempotency guard: ล็อกได้ครั้งเดียว กันเขียนทับด้วยค่าใหม่ถ้า finishQuizRound ถูกเรียกซ้ำ
     // (สำคัญกับ senior เพราะ resolveSeniorLine() เสมอ = สุ่ม เรียกซ้ำได้ค่าไม่เหมือนเดิม)
     // pattern เดียวกับ choosePersonalityAfterEvolve() ใน src/app/pet/actions.ts ที่ใช้
-    // .is("personality", null) — แยก update นี้ออกจากก้อนบนเพราะ exp/stage ต้องเขียนเสมอ
+    // .is("personality", null) — แยก update นี้ออกจาก stage เพราะ stage ต้องเขียนเสมอ
     // ไม่ว่า guard ของ subline จะแพ้ race หรือไม่
-    const { data: lockedPet } = await supabase
+    const { data: lockedPet, error: sublineError } = await admin
       .from("pets")
       .update({ subline: computedSubline })
       .eq("id", activePet.id)
+      .eq("user_id", user.id)
       .is("subline", null)
       .select("id, subline")
       .maybeSingle();
+    if (sublineError) {
+      console.error("finishQuizRound: subline lock failed", user.id, activePet.id, sublineError);
+    }
 
     // ยิง event เฉพาะตอนล็อกสำเร็จจริง (ไม่ใช่ตอนแพ้ guard race) เก็บ counts ที่ใช้ตัดสินไว้ตรวจ
     // ย้อนหลังว่าเด็กได้สายตามเกณฑ์จริงไหม — insert ตรงๆ ไม่ใช้ track() (no-op บน server action

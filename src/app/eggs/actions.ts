@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isBlockedNickname } from "@/lib/moderation/nicknameBlocklist";
 
 export async function hatchEgg(playerEggId: string, nicknameRaw: string): Promise<{ petId: string }> {
@@ -38,8 +39,10 @@ export async function hatchEgg(playerEggId: string, nicknameRaw: string): Promis
   if (eggError || !egg) throw new Error("ไม่พบไข่ใบนี้ในคลังของคุณ");
   if (egg.hatched_at) throw new Error("ไข่ใบนี้ฟักไปแล้ว");
 
-  // 3) สร้าง pet ใหม่
-  const { data: newPet, error: petError } = await supabase
+  // 3) สร้าง pet ใหม่ — Premium 1.5d: insert ผ่าน admin client (ผู้ใช้จะไม่มีสิทธิ์ INSERT exp/stage เอง)
+  // user_id มาจาก session เท่านั้น ไข่ถูกตรวจแล้วข้างบนว่าเป็นของ user นี้และยังไม่ฟัก
+  const admin = createAdminClient();
+  const { data: newPet, error: petError } = await admin
     .from("pets")
     .insert({
       user_id: user.id,
@@ -54,7 +57,10 @@ export async function hatchEgg(playerEggId: string, nicknameRaw: string): Promis
     .select("id")
     .single();
 
-  if (petError || !newPet) throw new Error("สร้าง Qmon ใหม่ไม่สำเร็จ: " + petError?.message);
+  if (petError || !newPet) {
+    console.error("hatchEgg: pets insert failed", user.id, egg.id, petError);
+    throw new Error("สร้าง Qmon ใหม่ไม่สำเร็จ: " + petError?.message);
+  }
 
   // track เฉพาะตอน insert pets ผ่านแล้วเท่านั้น — insert ตรงจากฝั่ง server เหมือน
   // collect ใน src/app/pet/actions.ts (track() ของ src/lib/analytics.ts เป็น client-only
