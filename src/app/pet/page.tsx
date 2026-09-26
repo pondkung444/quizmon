@@ -359,7 +359,7 @@ export default async function PetPage({
           <EggsClient eggs={unhatchedEggs} hasActivePet={false} />
         </div>
       )}
-      {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (self-serve pilot: โผล่เฉพาะคนที่ enroll) */}
+      {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (junior ทุกคนเห็น: CTA พรีเมียม / แผนของฉัน / เตือนต่ออายุ — ดู SelfServePlanCard) */}
       {user && <SelfServePlanCard />}
     </main>
   );
