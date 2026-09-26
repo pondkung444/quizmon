@@ -66,3 +66,22 @@ test("mission recommendation carries remaining work into the CTA", () => {
   assert.match(action.description, /3 ข้อ/);
   assert.match(action.description, /10 EXP/);
 });
+
+test("premium daily cap (300) drives train-to-cap and capped copy", () => {
+  const premium = { ...base, dailyExpCap: 300 };
+
+  const training = resolveNextAction({ ...premium, expToday: 200 });
+  assert.equal(training.id, "train_to_cap");
+  assert.match(training.description, /200\/300 EXP/);
+  assert.match(training.meta, /100 EXP/);
+
+  const capped = resolveNextAction({ ...premium, expToday: 300 });
+  assert.equal(capped.id, "practice");
+  assert.match(capped.description, /300\/300 EXP/);
+});
+
+test("missing dailyExpCap falls back to the free cap", () => {
+  const action = resolveNextAction({ ...base, dailyExpCap: undefined, expToday: 125 });
+  assert.equal(action.id, "train_to_cap");
+  assert.match(action.description, /125\/180 EXP/);
+});

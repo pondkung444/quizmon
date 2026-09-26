@@ -1,6 +1,7 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getCalendarMonth } from "@/lib/petCalendar";
-import { getTodayInBangkok } from "@/lib/exp";
+import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getDailyExpCap } from "@/lib/dailyExpCap";
 import PetCalendarClient from "@/components/PetCalendarClient";
 import SignOutLink from "@/components/SignOutLink";
 
@@ -36,7 +37,8 @@ export default async function PetCalendarPage({
   const supabase = await createClient();
   const user = await getUser();
 
-  const days = user ? await getCalendarMonth(supabase, user.id, year, month) : [];
+  const dailyCap = user ? await getDailyExpCap(user.id) : DAILY_EXP_CAP;
+  const days = user ? await getCalendarMonth(supabase, user.id, year, month, dailyCap) : [];
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-24">
@@ -46,6 +48,7 @@ export default async function PetCalendarPage({
           year={year}
           month={month}
           days={days}
+          dailyCap={dailyCap}
           isCurrentMonth={year === todayYear && month === todayMonth}
         />
       ) : (

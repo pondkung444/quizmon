@@ -16,7 +16,7 @@ export default function EvolutionGlow({
   children,
 }: {
   progress: number; // 0-1 จาก getEvolutionProgress — 0 (เช่น stage 4 หรือเพิ่งขึ้นสเตจใหม่ๆ) = ไม่มีเอฟเฟกต์
-  dailyCapped: boolean; // exp_today ตัน DAILY_EXP_CAP แล้ว -> glow นิ่ง ไม่พัลส์ กันเด็กงงว่าทำไมตอบถูกแล้วเอฟเฟกต์ไม่ขยับ
+  dailyCapped: boolean; // exp_today ตันเพดานรายวันของผู้ใช้แล้ว (180 ฟรี / 300 premium) -> glow นิ่ง ไม่พัลส์ กันเด็กงงว่าทำไมตอบถูกแล้วเอฟเฟกต์ไม่ขยับ
   children: ReactNode;
 }) {
   const pulsing = progress > PULSE_START_PROGRESS && !dailyCapped;

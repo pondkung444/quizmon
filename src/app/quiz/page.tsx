@@ -3,6 +3,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import { getPersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, type Subline, type Personality } from "@/lib/evolution";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getDailyExpCap } from "@/lib/dailyExpCap";
 import { getGradeBand } from "@/lib/gradeBand";
 import QuizClient from "@/components/QuizClient";
 import AppThemeMarker from "@/components/AppThemeMarker";
@@ -18,6 +19,8 @@ export default async function QuizPage({
 
   const supabase = await createClient();
   const user = await getUser();
+  // เพดานของผู้ใช้ (180 ฟรี / 300 premium) — เริ่มยิงไว้ก่อน ขนานกับ query อื่น (getDailyExpCap ไม่ throw)
+  const dailyCapPromise = user ? getDailyExpCap(user.id) : Promise.resolve(DAILY_EXP_CAP);
   const gradeBand = user ? await getGradeBand(user.id) : "junior";
 
   // ระดับชั้นจริงของ user — ใช้เปิด tab เริ่มต้นในหน้าเลือกบทฝึกฝนให้ตรงชั้นตัวเอง
@@ -74,7 +77,9 @@ export default async function QuizPage({
   // ใช้ util กลางตัวเดียวกัน ไม่คำนวณซ้ำ
   const petEvolutionProgress = pet ? getEvolutionProgress(pet.stage, pet.exp) : 0;
   const petExpTodaySoFar = pet && pet.exp_today_date === getTodayInBangkok() ? pet.exp_today : 0;
-  const petDailyCapped = petExpTodaySoFar >= DAILY_EXP_CAP;
+  // glow หยุดพัลส์ที่เพดานจริงของผู้ใช้คนนั้น ไม่ใช่ 180 ตายตัว
+  const dailyCap = await dailyCapPromise;
+  const petDailyCapped = petExpTodaySoFar >= dailyCap;
 
   return (
     <main className="quiz-shell mx-auto flex min-h-screen w-full flex-col gap-6">

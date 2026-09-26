@@ -10,6 +10,7 @@ import { evolvePet } from "@/lib/petEvolution";
 import { getSpeciesName } from "@/lib/petLine";
 import { getPetImagePath } from "@/lib/petImage";
 import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getDailyExpCap } from "@/lib/dailyExpCap";
 import { getWeeklyJourney, type JourneyDay } from "@/lib/weeklyJourney";
 import { getMyWeeklyRank, type MyWeeklyRank } from "@/lib/weeklyLeaderboard";
 import { getGradeBand, type GradeBand } from "@/lib/gradeBand";
@@ -83,6 +84,7 @@ export default async function PetPage({
   let unhatchedEggs: EggListItem[] = [];
   let raidTicketCount = 0;
   let pvpTurnCount = 0;
+  let dailyCap = DAILY_EXP_CAP;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -90,6 +92,9 @@ export default async function PetPage({
     // ไม่ให้ Promise.all ทั้งก้อนพังถ้ามีอะไรผิดปกติจริงๆ) อ้าง promise เดิมซ้ำสองที่ด้านล่างไม่ทำให้
     // ยิง query ซ้ำ (resolved ค่าเดิมจากที่เดียว)
     const gradeBandPromise = getGradeBand(user.id).catch(() => "junior" as GradeBand);
+    // เพดาน EXP รายวันของผู้ใช้ (180 ฟรี / 300 premium) — แสดงผลเท่านั้น ดึงครั้งเดียวต่อ request
+    // ใช้ทั้งกับ weekly journey และส่งเป็น dailyCap ให้ PetCard (getDailyExpCap ไม่ throw อยู่แล้ว)
+    const dailyCapPromise = getDailyExpCap(user.id);
 
     const [
       { data },
@@ -104,6 +109,7 @@ export default async function PetPage({
       { data: hasAnsweredRows },
       raidTicketCountResult,
       pvpTurnCountResult,
+      dailyCapResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -119,7 +125,7 @@ export default async function PetPage({
         .eq("is_obtainable", true)
         .eq("tier", "common")
         .order("id", { ascending: true }),
-      getWeeklyJourney(supabase, user.id),
+      dailyCapPromise.then((cap) => getWeeklyJourney(supabase, user.id, cap)),
       getWeeklyTopicStats(supabase, user.id),
       // จับ error เองตรงนี้ (ไม่ปล่อยให้ throw ทะลุ Promise.all) — ภารกิจเลือกบทพังไม่ควรทำให้
       // ทั้งหน้า /pet ล่มไปด้วย (regression หลักคือ pet/EXP/สถิติ ต้องขึ้นได้เสมอแม้การ์ดภารกิจหาย)
@@ -161,6 +167,7 @@ export default async function PetPage({
         console.error("getPvpBadgeCount failed:", err);
         return 0;
       }),
+      dailyCapPromise,
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -173,6 +180,7 @@ export default async function PetPage({
     hasEverAnswered = (hasAnsweredRows?.length ?? 0) > 0;
     raidTicketCount = raidTicketCountResult;
     pvpTurnCount = pvpTurnCountResult;
+    dailyCap = dailyCapResult;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -321,7 +329,7 @@ export default async function PetPage({
           scienceCorrect={scienceCorrect}
           comboMilestones={comboMilestones}
           expToday={expToday}
-          dailyCap={DAILY_EXP_CAP}
+          dailyCap={dailyCap}
           justEvolved={justEvolved}
           eggChoices={eggChoices}
           journeyDays={journeyDays}

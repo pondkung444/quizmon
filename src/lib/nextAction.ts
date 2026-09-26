@@ -1,3 +1,5 @@
+import { DAILY_EXP_CAP } from "./exp.ts";
+
 export type NextActionId =
   | "hatch_pet"
   | "collect_evolution"
@@ -44,7 +46,7 @@ export function resolveNextAction(state: NextActionState): NextAction {
   if (state.mission && state.mission.remaining > 0) {
     return { id: "daily_mission", title: "ทำภารกิจวันนี้ต่อ", description: `เหลืออีก ${state.mission.remaining} ข้อ รับโบนัส ${state.mission.bonusExp} EXP`, cta: "เริ่มภารกิจ", href: `/quiz?mission=${state.mission.id}`, activity: "mission", meta: `${state.mission.remaining} ข้อ` };
   }
-  const dailyExpCap = state.dailyExpCap ?? 180;
+  const dailyExpCap = state.dailyExpCap ?? DAILY_EXP_CAP;
   const expToday = Math.max(0, state.expToday ?? 0);
   if (dailyExpCap > 0 && expToday < dailyExpCap) {
     const remainingExp = dailyExpCap - expToday;

@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getTodayInBangkok } from "@/lib/exp";
+import { DAILY_EXP_CAP, getTodayInBangkok } from "@/lib/exp";
+import { getDailyExpCaps } from "@/lib/dailyExpCap";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -12,6 +13,8 @@ export type EligibleRecipient = {
     /** exp_today ที่ normalize แล้ว — ถ้า exp_today_date ไม่ใช่วันนี้ (เวลาไทย) ถือว่าเป็น 0 */
     expToday: number;
   } | null;
+  /** เพดาน EXP รายวันของผู้รับคนนี้ (180 ฟรี / 300 premium) — ใช้แสดงผลในข้อความเท่านั้น */
+  dailyCap: number;
 };
 
 const RECENT_ACTIVITY_WINDOW_MINUTES = 30;
@@ -67,11 +70,14 @@ export async function getEligibleRecipients(
   const finalUserIds = userIdsWithDevice.filter((id) => !recentlyActive.has(id));
   if (finalUserIds.length === 0) return [];
 
-  const { data: pets, error: petsError } = await admin
-    .from("pets")
-    .select("user_id, nickname, stage, exp_today, exp_today_date")
-    .eq("is_active", true)
-    .in("user_id", finalUserIds);
+  const [{ data: pets, error: petsError }, dailyCaps] = await Promise.all([
+    admin
+      .from("pets")
+      .select("user_id, nickname, stage, exp_today, exp_today_date")
+      .eq("is_active", true)
+      .in("user_id", finalUserIds),
+    getDailyExpCaps(finalUserIds),
+  ]);
   if (petsError) throw petsError;
 
   const today = getTodayInBangkok();
@@ -89,5 +95,6 @@ export async function getEligibleRecipients(
     userId,
     devices: deviceMap.get(userId) ?? [],
     pet: petMap.get(userId) ?? null,
+    dailyCap: dailyCaps.get(userId) ?? DAILY_EXP_CAP,
   }));
 }
