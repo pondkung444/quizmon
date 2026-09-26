@@ -4,45 +4,27 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { track } from "@/lib/analytics";
 import { usePvpResync } from "@/lib/pvp/usePvpResync";
 import PvpExpectations from "./PvpExpectations";
+import HistorySummary from "./HistorySummary";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { PvpOverview, PvpMatchListItem, PvpOpenChallenge } from "@/lib/pvp";
 import { declinePvpChallenge, cancelPvpChallenge } from "./actions";
 
-function MatchRow({ m }: { m: PvpMatchListItem }) {
-  const label =
-    m.status === "abandoned"
-      ? "ถูกทิ้ง (หมดเวลา)"
-      : m.status === "finished"
-        ? m.iWon === null
-          ? "เสมอ"
-          : m.iWon
-            ? "ดวลมันส์มาก! ชนะไปแล้ว"
-            : "สู้ดีมากจนนาทีสุดท้าย"
-        : m.myTurn
-          ? "ถึงตาคุณ"
-          : "รอเพื่อนตอบ";
-  return (
-    <Link
-      href={`/pvp/${m.id}`}
-      className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 transition hover:border-gold-dim"
-    >
-      <div>
-        <p className="text-sm font-bold text-text">{m.opponentName}</p>
-        <p className="text-xs text-text3">
-          ยกที่ {m.currentRound} · เลือด {Math.max(0, m.hpMine)} — {Math.max(0, m.hpOpp)}
-        </p>
+function WaitingMatch({ m }: { m: PvpMatchListItem }) {
+  return <div className="rounded-xl border border-indigo/30 bg-card p-4">
+    <div className="flex items-center gap-3">
+      <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-indigo/10">
+        {m.opponentPetImage ? <Image src={m.opponentPetImage} alt={m.opponentPetName} fill unoptimized className="object-contain p-1" /> : <span aria-hidden="true" className="text-2xl">⌛</span>}
       </div>
-      <span
-        className={`text-xs font-bold ${
-          m.status === "active" && m.myTurn ? "text-gold-hi" : "text-text3"
-        }`}
-      >
-        {label}
-      </span>
-    </Link>
-  );
+      <div className="min-w-0 flex-1">
+        <span className="rounded-full bg-indigo/15 px-2 py-1 text-[11px] font-bold text-indigo-hi">แมตช์ยังดำเนินอยู่</span>
+        <h3 className="mt-2 truncate text-base font-extrabold text-text">{m.opponentName}</h3>
+        <p className="mt-1 text-xs text-text2">ยกที่ {m.currentRound} · {m.phase === "assigning" ? "รอคู่ต่อสู้เลือกการ์ด" : "รอคู่ต่อสู้ตอบ"}</p>
+      </div>
+    </div>
+    <Link href={`/pvp/${m.id}`} className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-indigo/40 bg-indigo/10 text-sm font-bold text-indigo-hi">ดูสนามประลอง →</Link>
+  </div>;
 }
 
 function TurnCard({ m }: { m: PvpMatchListItem }) {
@@ -222,18 +204,23 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
 
       {/* รอเพื่อนตอบ / คำท้าที่ส่งไป */}
       {(overview.waiting.length > 0 || overview.outgoing.length > 0) && (
-        <section id="pvp-waiting" className="mt-6">
-          <h2 className="text-sm font-bold text-text2">กำลังรอ</h2>
-          <div className="mt-2 space-y-2">
+        <section id="pvp-waiting" className="mt-6 scroll-mt-4 rounded-2xl border border-indigo/40 bg-indigo/10 p-4">
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="text-xl">⌛</span>
+            <h2 className="text-lg font-extrabold text-indigo-hi">กำลังรอ</h2>
+          </div>
+          <p className="mt-1 text-xs text-text2">รอคู่ต่อสู้ตอบหรือรับคำท้า · ระหว่างรอ เล่นแมตช์อื่นต่อได้</p>
+          <div className="mt-4 space-y-3">
             {overview.waiting.map((m) => (
-              <MatchRow key={m.id} m={m} />
+              <WaitingMatch key={m.id} m={m} />
             ))}
             {overview.outgoing.map((c) => (
               <div
                 key={c.id}
-                className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
+                className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-indigo/40 bg-card px-4 py-3"
               >
                 <div>
+                  <p className="mb-1 text-[11px] font-bold text-indigo-hi">{c.isOpen ? "คำท้าเปิดของคุณ" : "คำท้าที่ส่งไป"}</p>
                   <p className="text-sm font-bold text-text">{c.opponentName}</p>
                   <p className="text-xs text-text3">
                     {c.status === "declined" ? "ปฏิเสธคำท้าแล้ว" : c.isOpen ? "รอคนกดรับ · หมดอายุใน 24 ชั่วโมง" : "รอตอบรับคำท้า"}
@@ -244,7 +231,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
                     type="button"
                     disabled={pending}
                     onClick={() => respond(() => cancelPvpChallenge(c.id))}
-                    className="min-h-11 min-w-11 px-3 text-xs text-text3 underline active:scale-95 disabled:opacity-50"
+                    className="min-h-11 shrink-0 rounded-lg border border-border px-3 text-xs text-text2 active:scale-95 disabled:opacity-50"
                   >
                     ยกเลิก
                   </button>
@@ -255,17 +242,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
         </section>
       )}
 
-      {/* จบแล้ว */}
-      {overview.finished.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-bold text-text2">จบแล้ว</h2>
-          <div className="mt-2 space-y-2">
-            {overview.finished.map((m) => (
-              <MatchRow key={m.id} m={m} />
-            ))}
-          </div>
-        </section>
-      )}
+      <HistorySummary summary={overview.history} />
     </main>
   );
 }
