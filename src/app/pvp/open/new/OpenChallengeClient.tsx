@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import type { PvpPetPick } from "@/lib/pvp";
 import type { RaidGearItemFull } from "@/lib/raid";
 import { createOpenPvpChallenge } from "../../actions";
@@ -13,25 +12,45 @@ export default function OpenChallengeClient({ pets, ticketBalance, gearItems, lo
   pets: PvpPetPick[]; ticketBalance: number; gearItems: RaidGearItemFull[];
   lockedPetIds: string[]; hasPending: boolean;
 }) {
-  const router = useRouter();
   const [petId, setPetId] = useState<string | null>(pets[0]?.id ?? null);
   const [items, setItems] = useState(gearItems);
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [slow, setSlow] = useState(false);
   const lock = useRef(false);
   const selectedPet = pets.find(p => p.id === petId);
-  const submit = () => {
-    if (!petId || lock.current) return;
-    lock.current = true; setError(null);
-    startTransition(async () => {
-      try {
-        const result = await createOpenPvpChallenge(petId);
-        if (!result.ok) { setError(result.message); return; }
-        track("pvp_open_created", { challenge_id: result.data.challengeId }, petId);
-        router.push("/pvp"); router.refresh();
-      } catch { setError("เชื่อมต่อไม่สำเร็จ ตรวจคำท้าที่หน้าประลองก่อนลองใหม่"); }
-      finally { lock.current = false; }
-    });
+  useEffect(() => {
+    if (!pending || created) return;
+    const timeout = window.setTimeout(() => setSlow(true), 8000);
+    return () => window.clearTimeout(timeout);
+  }, [pending, created]);
+  const submit = async () => {
+    if (!petId || ticketBalance <= 0 || hasPending || lock.current) return;
+    lock.current = true;
+    setPending(true);
+    setSlow(false);
+    setError(null);
+    let saved = false;
+    try {
+      const result = await createOpenPvpChallenge(petId);
+      if (!result.ok) {
+        setError(result.message);
+        setPending(false);
+        lock.current = false;
+        return;
+      }
+      saved = true;
+      setCreated(true);
+      try { track("pvp_open_created", { challenge_id: result.data.challengeId }, petId); } catch { /* analytics must not block navigation */ }
+      window.location.replace("/pvp");
+    } catch {
+      setError(saved
+        ? "เปิดคำท้าแล้ว กดกลับหน้าประลองด้านล่างได้เลย"
+        : "เชื่อมต่อไม่สำเร็จ ตรวจคำท้าที่หน้าประลองก่อนลองใหม่");
+      setPending(false);
+      if (!saved) lock.current = false;
+    }
   };
   return <main className="mx-auto w-full max-w-xl px-4 py-8 pb-24">
     <h1 className="text-2xl font-bold text-gold-hi">เปิดคำท้าประลอง</h1>
@@ -45,9 +64,11 @@ export default function OpenChallengeClient({ pets, ticketBalance, gearItems, lo
         items={items} setItems={setItems} locked={lockedPetIds.includes(selectedPet.id)} />}
     </section>
     {error && <p className="mt-4 text-sm text-red">{error}</p>}
-    <button type="button" onClick={submit} disabled={pending || hasPending || !petId || ticketBalance <= 0}
+    {created && <p className="mt-4 text-sm text-text2">เปิดคำท้าแล้ว กำลังกลับหน้าประลอง… <button type="button" onClick={() => window.location.replace("/pvp")} className="font-bold text-gold-hi underline">กลับหน้าประลอง</button></p>}
+    {pending && slow && !created && <p className="mt-4 text-sm text-text2">รอนานกว่าปกติ <button type="button" onClick={() => window.location.replace("/pvp")} className="font-bold text-gold-hi underline">กลับหน้าประลองเพื่อตรวจคำท้า</button></p>}
+    <button type="button" onClick={submit} disabled={pending || created || hasPending || !petId || ticketBalance <= 0}
       className="mt-6 w-full rounded-2xl border border-gold bg-amber py-3 font-bold text-on-amber disabled:opacity-50">
-      {pending ? "กำลังเปิดคำท้า…" : "เปิดคำท้าและรอคนรับ"}
+      {created ? "เปิดคำท้าแล้ว" : pending ? "กำลังเปิดคำท้า…" : "เปิดคำท้าและรอคนรับ"}
     </button>
   </main>;
 }
