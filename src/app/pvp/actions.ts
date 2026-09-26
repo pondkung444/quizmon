@@ -3,6 +3,7 @@
 import { createClient, getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { evolvePet, type PetEvolveOutcome } from "@/lib/petEvolution";
+import { sendSocialEventPush } from "@/lib/push/socialEventPush";
 
 async function requireUserId(): Promise<string> {
   const user = await getUser();
@@ -76,6 +77,45 @@ export async function createPvpChallenge(
   return { ok: true, data: { challengeId: data as string } };
 }
 
+export async function createOpenPvpChallenge(
+  petId: string
+): Promise<PvpActionResult<{ challengeId: string }>> {
+  await requireUserId();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_open_pvp_challenge", { p_pet_id: petId });
+  if (error) return { ok: false, message: error.message };
+  return { ok: true, data: { challengeId: data as string } };
+}
+
+export async function acceptOpenPvpChallenge(
+  challengeId: string,
+  petId: string
+): Promise<PvpActionResult<{ matchId: string }>> {
+  const uid = await requireUserId();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("accept_open_pvp_challenge", {
+    p_challenge_id: challengeId,
+    p_pet_id: petId,
+  });
+  if (error) return { ok: false, message: error.message };
+  const matchId = data as string;
+  const { data: match } = await supabase.from("pvp_matches")
+    .select("player_a_id").eq("id", matchId).maybeSingle();
+  if (match?.player_a_id) {
+    const { data: profile } = await supabase.from("profiles")
+      .select("username").eq("id", uid).maybeSingle();
+    await sendSocialEventPush({
+      recipientUserId: match.player_a_id,
+      actorUserId: uid,
+      actorUsername: profile?.username ?? "คู่ประลอง",
+      eventType: "pvp_open_accepted",
+      deepLink: `/pvp/${matchId}`,
+      idempotencyKey: `${match.player_a_id}:pvp_open_accepted:${matchId}`,
+    });
+  }
+  return { ok: true, data: { matchId } };
+}
+
 export async function acceptPvpChallenge(
   challengeId: string,
   petId: string
@@ -144,7 +184,25 @@ export async function assignPvpCard(
     p_card_id: cardId,
   });
   if (error) return { ok: false, message: error.message };
+  const { data: match } = await supabase.from("pvp_matches")
+    .select("player_a_id, player_b_id").eq("id", matchId).maybeSingle();
+  const uid = await requireUserId();
+  const recipient = match?.player_a_id === uid ? match.player_b_id : match?.player_a_id;
+  if (recipient) await notifyPvpTurn(supabase, uid, recipient, matchId, `card:${cardId}`);
   return { ok: true, data: null };
+}
+
+async function notifyPvpTurn(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  actorId: string, recipientId: string, matchId: string, eventId: string
+) {
+  const { data: profile } = await supabase.from("profiles")
+    .select("username").eq("id", actorId).maybeSingle();
+  await sendSocialEventPush({
+    recipientUserId: recipientId, actorUserId: actorId,
+    actorUsername: profile?.username ?? "คู่ประลอง", eventType: "pvp_your_turn",
+    deepLink: `/pvp/${matchId}`, idempotencyKey: `${recipientId}:pvp_turn:${eventId}`,
+  });
 }
 
 // สไลซ์ 5 — ผู้ตอบเห็น preview การ์ด (phase='card_ready') แล้วกด "เริ่มตอบ" -> นาฬิกาเริ่มนับจริง ณ ตอนนี้
@@ -212,6 +270,13 @@ export async function submitPvpCard(
     p_answer_index: answerIndex,
   });
   if (error) return { ok: false, message: error.message };
+  const turn = data as Pick<PvpSubmitResult, "status" | "phase" | "attacker_id">;
+  if (turn.status === "active" && turn.phase === "assigning") {
+    const uid = await requireUserId();
+    if (turn.attacker_id !== uid) {
+      await notifyPvpTurn(supabase, uid, turn.attacker_id, matchId, `round:${cardId}`);
+    }
+  }
   return {
     ok: true,
     data: {

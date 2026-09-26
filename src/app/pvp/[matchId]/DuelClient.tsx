@@ -21,6 +21,8 @@ import {
 import { PvpEffectBadge, PvpEffectIcon } from "./PvpEffectBadge";
 import PersonalityDecisionModal from "@/components/PersonalityDecisionModal";
 import { useSfx } from "@/lib/audio/useSfx";
+import { sendFriendRequest } from "@/app/social/actions";
+import { track } from "@/lib/analytics";
 
 // accent ต่อ "บทบาทในแมตช์" (ไม่ใช่ต่อผู้ชม) — ทั้งสองฝั่งเห็นสีเดียวกันเสมอ
 //   player_a = ผู้ท้า (challenger) -> แดง
@@ -176,6 +178,20 @@ function PetSide({
 }
 
 export default function DuelClient({ view }: { view: PvpMatchView }) {
+  const [friendState, setFriendState] = useState(view.friendState);
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [friendError, setFriendError] = useState<string | null>(null);
+  const addFriend = async () => {
+    if (friendBusy) return;
+    setFriendBusy(true); setFriendError(null);
+    try {
+      const result = await sendFriendRequest(view.opponentId);
+      track("pvp_post_match_friend", { match_id: view.matchId, accepted: result.autoAccepted });
+      setFriendState(result.autoAccepted ? "friends" : "outgoing");
+    } catch (error) {
+      setFriendError(error instanceof Error ? error.message : "ส่งคำขอไม่สำเร็จ");
+    } finally { setFriendBusy(false); }
+  };
   const router = useRouter();
   const sfx = useSfx();
   const [error, setError] = useState<string | null>(null);
@@ -525,6 +541,19 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
               )}
             </p>
           )}
+          {!abandoned && <div className="mt-5">
+            {friendState === "friends" ? (
+              <Link href="/pvp/new" className="inline-flex rounded-xl border border-gold-dim px-4 py-2 text-sm font-bold text-gold-hi">ท้าอีกครั้ง</Link>
+            ) : friendState === "outgoing" ? (
+              <p className="text-sm text-text2">ส่งคำขอเป็นเพื่อนแล้ว</p>
+            ) : (
+              <button type="button" onClick={() => void addFriend()} disabled={friendBusy}
+                className="rounded-xl border border-gold-dim px-4 py-2 text-sm font-bold text-gold-hi disabled:opacity-50">
+                {friendState === "incoming" ? "รับเป็นเพื่อน" : "เพิ่มเป็นเพื่อน"}
+              </button>
+            )}
+            {friendError && <p className="mt-2 text-xs text-red">{friendError}</p>}
+          </div>}
         </div>
 
         {evolveResult?.evolved && !evolveResult.reachedStage4 ? (
