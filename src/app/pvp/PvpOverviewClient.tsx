@@ -46,6 +46,7 @@ function MatchRow({ m }: { m: PvpMatchListItem }) {
 }
 
 export default function PvpOverviewClient({ overview }: { overview: PvpOverview }) {
+  const hasPendingOpen = overview.outgoing.some((c) => c.isOpen && c.status === "pending");
   useEffect(() => { track("pvp_open_board_view", { open_count: overview.openChallenges.length }); }, [overview.openChallenges.length]);
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -77,7 +78,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
       </section>}
       <PvpExpectations />
 
-      {/* ตั๋ว + รางวัล + ปุ่มท้า */}
+      {/* เลือกวิธีเริ่มประลอง */}
       <div className="mt-3 rounded-2xl border border-gold-dim bg-card p-4">
         {/* จำนวนตั๋ว */}
         <div className="flex items-baseline gap-2">
@@ -92,55 +93,67 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
           <span className="rounded-full bg-track px-2 py-1">⚔️ +1 ทุกท้าทายที่จบ · ชนะ/แพ้</span>
         </div>
 
-        {/* รางวัล EXP */}
-        <div className="mt-3 space-y-2 border-t border-border pt-3 text-sm">
-          <p className="flex items-center gap-2">
-            <span>🏆</span>
-            <span className="font-extrabold text-gold-hi">ชนะ</span>
-            <span className="text-text2">— รับ EXP เต็มก้อน</span>
-          </p>
-          <p className="flex items-center gap-2">
-            <span>🔥</span>
-            <span className="font-extrabold text-amber">สู้จนจบ</span>
-            <span className="text-text2">— ยังได้ EXP ติดมือกลับไป</span>
-          </p>
-          <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2.5 py-1 text-xs font-bold text-indigo-hi">
-            ✨ ไม่กินโควตา EXP รายวัน
+        <h2 className="mt-5 text-base font-extrabold text-text">อยากเริ่มประลองแบบไหน?</h2>
+
+        <div className="mt-3 rounded-2xl border-2 border-gold bg-amber/10 p-4 shadow-[0_0_24px_rgba(255,180,63,0.12)]">
+          <span className="inline-flex rounded-full bg-amber px-2.5 py-1 text-[11px] font-extrabold text-on-amber">
+            ไม่มีเพื่อนก็เล่นได้
           </span>
+          <h3 className="mt-3 text-lg font-extrabold text-gold-hi">เปิดคำท้า รอคู่ต่อสู้</h3>
+          <p className="mt-1 text-sm leading-relaxed text-text2">
+            เลือก Qmon ของคุณ แล้วให้ผู้เล่นระดับเดียวกันมากดรับคำท้า
+          </p>
+          {hasPendingOpen ? (
+            <a href="#pvp-waiting" className="mt-4 flex min-h-12 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-base font-extrabold text-on-amber shadow-md">
+              ดูคำท้าที่เปิดไว้ →
+            </a>
+          ) : (
+            <Link
+              href="/pvp/open/new"
+              aria-disabled={overview.ticketBalance <= 0}
+              tabIndex={overview.ticketBalance > 0 ? undefined : -1}
+              className={`mt-4 flex min-h-12 items-center justify-center rounded-xl border border-gold bg-amber px-4 text-base font-extrabold text-on-amber shadow-md active:scale-[0.98] ${overview.ticketBalance > 0 ? "" : "pointer-events-none opacity-50"}`}
+            >
+              เปิดคำท้าเลย →
+            </Link>
+          )}
         </div>
 
-        {/* ปุ่มท้า */}
-        <Link
-          href="/pvp/new"
-          className={`mt-4 flex items-center justify-center gap-2 rounded-xl border py-3 text-base font-extrabold active:scale-[0.98] ${
-            overview.ticketBalance > 0
-              ? "border-gold bg-amber text-on-amber shadow-md"
-              : "pointer-events-none border-border bg-track text-text3 opacity-60"
-          }`}
-        >
-          <span>⚔️</span>
-          ท้าเพื่อนประลอง
-        </Link>
-        <Link
-          href="/pvp/open/new"
-          className={`mt-2 flex items-center justify-center rounded-xl border border-gold-dim py-3 text-sm font-bold text-gold-hi ${overview.ticketBalance > 0 ? "" : "pointer-events-none opacity-50"}`}
-        >
-          เปิดคำท้าให้คนอื่นรับ
-        </Link>
+        <div className="mt-3 rounded-xl border border-border bg-track/60 p-4">
+          <h3 className="text-sm font-bold text-text">มีเพื่อนที่อยากชวนไหม?</h3>
+          <p className="mt-1 text-xs text-text3">เลือกเพื่อนหนึ่งคน แล้วส่งคำท้าไปหาเขาโดยตรง</p>
+          <Link
+            href="/pvp/new"
+            aria-disabled={overview.ticketBalance <= 0}
+            tabIndex={overview.ticketBalance > 0 ? undefined : -1}
+            className={`mt-3 flex min-h-11 items-center justify-center rounded-xl border border-gold-dim px-4 text-sm font-bold text-gold-hi active:scale-[0.98] ${overview.ticketBalance > 0 ? "" : "pointer-events-none opacity-50"}`}
+          >
+            ท้าเพื่อนที่รู้จัก
+          </Link>
+        </div>
         {overview.ticketBalance <= 0 && (
-          <p className="mt-2 text-center text-[11px] text-text3">
+          <p className="mt-3 text-center text-xs text-text2">
             ตั๋วหมด — พรุ่งนี้ได้อีก 2 หรือไปเล่นท้าทายให้จบ
           </p>
         )}
+
+        <details className="mt-4 border-t border-border pt-3 text-xs text-text3">
+          <summary className="cursor-pointer font-bold text-text2">ดูรางวัลจากการประลอง</summary>
+          <div className="mt-2 space-y-1">
+            <p>🏆 ชนะ รับ EXP เต็มก้อน</p>
+            <p>🔥 สู้จนจบก็ได้ EXP และไม่กินโควตารายวัน</p>
+          </div>
+        </details>
       </div>
 
       <section className="mt-6" aria-label="กระดานคำท้าเปิด">
-        <h2 className="text-sm font-bold text-text2">คำท้าเปิด</h2>
-        <p className="mt-1 text-xs text-text3">ผู้เล่นระดับเดียวกัน · เห็นชื่อคู่แข่งเมื่อเริ่มแมตช์</p>
+        <h2 className="text-base font-extrabold text-text">หรือรับคำท้าจากคนอื่น</h2>
+        <p className="mt-1 text-sm text-text2">เลือกคู่จาก Qmon ที่เห็น แล้วกดรับเพื่อเริ่มแมตช์ทันที</p>
         {overview.openChallenges.length === 0 ? (
-          <p className="mt-2 rounded-xl border border-dashed border-border px-4 py-4 text-center text-xs text-text3">
-            ยังไม่มีคำท้าเปิด ลองเปิดคำท้าแรกได้เลย
-          </p>
+          <div className="mt-3 rounded-xl border border-dashed border-gold-dim bg-card px-4 py-4 text-center">
+            <p className="text-sm font-bold text-text2">ตอนนี้ยังไม่มีใครเปิดคำท้า</p>
+            <p className="mt-1 text-xs text-text3">เปิดคำท้าของคุณไว้ให้คนอื่นมากดรับได้</p>
+          </div>
         ) : (
           <div className="mt-2 space-y-2">
             {overview.openChallenges.map((c) => (
@@ -213,7 +226,7 @@ export default function PvpOverviewClient({ overview }: { overview: PvpOverview 
 
       {/* รอเพื่อนตอบ / คำท้าที่ส่งไป */}
       {(overview.waiting.length > 0 || overview.outgoing.length > 0) && (
-        <section className="mt-6">
+        <section id="pvp-waiting" className="mt-6">
           <h2 className="text-sm font-bold text-text2">กำลังรอ</h2>
           <div className="mt-2 space-y-2">
             {overview.waiting.map((m) => (
