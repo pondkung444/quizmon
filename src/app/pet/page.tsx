@@ -29,6 +29,7 @@ import type { EggChoice } from "@/components/EggChoiceModal";
 import EggsClient, { type EggListItem } from "@/components/EggsClient";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
 import SelfServePlanCard from "@/components/SelfServePlanCard";
+import { RecentPremiumOrderBanner } from "@/components/PremiumOrderBanner";
 import HomeNextAction from "@/components/HomeNextAction";
 import { resolveNextAction } from "@/lib/nextAction";
 import { getPvpBadgeCount } from "@/lib/pvp";
@@ -304,6 +305,8 @@ export default async function PetPage({
           มุมบน (หัวการ์ด PetCard มีชื่อ + ชิปสัปดาห์เต็มความกว้าง) ส่วนมุมล่างขวาว่างสนิท */}
       <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
       {user && <WeeklyRewardCelebration />}
+      {/* บนสุด: กลับจากจ่าย PromptPay แล้วแท็บ Stripe ไม่ redirect — ให้เห็นทันทีว่าปลดล็อกแล้ว/กำลังยืนยัน (เฟส 4.1) */}
+      {user && <RecentPremiumOrderBanner userId={user.id} />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
       ) : pet ? (

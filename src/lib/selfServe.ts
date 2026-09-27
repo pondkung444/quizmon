@@ -52,6 +52,47 @@ export async function getPremiumStatus(): Promise<PremiumStatus> {
   return { status: "active", userId: user.id, expiresAt: data.expires_at as string };
 }
 
+// order ล่าสุดของผู้ใช้ภายใน RECENT_ORDER_WINDOW_MS — ใช้แสดงแถบบน /pet และ /premium (เฟส 4.1)
+// เพราะจ่าย PromptPay บนมือถือเครื่องเดียว แท็บ Stripe มักค้างที่หน้า QR ไม่ redirect ไป success_url
+// ผู้ใช้จึงต้องเห็นสถานะเองเมื่อกลับมาที่แอป — อ่านจาก DB เท่านั้น (RLS premium_orders_select_own + eq student_id ซ้ำ)
+// granted (นับจาก granted_at) มาก่อน pending (นับจาก created_at)
+export type RecentPremiumOrder =
+  | { status: "pending"; orderId: string }
+  | { status: "granted"; orderId: string; expiresAt: string | null };
+
+const RECENT_ORDER_WINDOW_MS = 30 * 60 * 1000;
+
+export async function getRecentPremiumOrder(userId: string): Promise<RecentPremiumOrder | null> {
+  const since = new Date(Date.now() - RECENT_ORDER_WINDOW_MS).toISOString();
+  const supabase = await createClient();
+
+  const { data: granted } = await supabase
+    .from("premium_orders")
+    .select("id, expires_after")
+    .eq("student_id", userId)
+    .eq("status", "granted")
+    .gte("granted_at", since)
+    .order("granted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (granted) {
+    return { status: "granted", orderId: granted.id as string, expiresAt: granted.expires_after as string | null };
+  }
+
+  const { data: pending } = await supabase
+    .from("premium_orders")
+    .select("id")
+    .eq("student_id", userId)
+    .eq("status", "pending")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (pending) return { status: "pending", orderId: pending.id as string };
+
+  return null;
+}
+
 // ข้อมูลนักเรียนเจ้าของบัญชีสำหรับหน้า /my-plan/* — เรียกหลัง layout เช็ค getSelfServeAccess() แล้ว
 // อ่าน profiles ด้วย admin client ตาม pattern getGradeBand() (RLS ของ profiles เคยคืน null เงียบๆ จาก session client)
 // เฉพาะแถวของ userId ตัวเองเท่านั้น
