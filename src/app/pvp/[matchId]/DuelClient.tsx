@@ -37,16 +37,7 @@ const DMG_COLOR = "#f87171";
 const HEAL_COLOR = "#34d399";
 
 // ไอคอน/ป้ายวิชา — อ้างอิง emoji เดิมของแอป (QuizClient MODES/SENIOR_MODES)
-const SUBJECT_META: Record<string, { emoji: string; label: string }> = {
-  math: { emoji: "🧮", label: "คณิต" },
-  science: { emoji: "🔬", label: "วิทย์" },
-  physics: { emoji: "⚛️", label: "ฟิสิกส์" },
-  chemistry: { emoji: "⚗️", label: "เคมี" },
-  biology: { emoji: "🧬", label: "ชีวะ" },
-};
-function subjectMeta(subject: string): { emoji: string; label: string } {
-  return SUBJECT_META[subject] ?? { emoji: "📚", label: "วิชา" };
-}
+import LessonCardHeading, { subjectMeta } from "@/components/quiz/LessonCardHeading";
 
 const RULES_TEXT =
   "เขาตอบถูก = ไม่มีอะไรเกิดขึ้น · ตอบผิด = เสียเลือดตามพลังโจมตีของคุณ · การ์ดมีสี = มีเอฟเฟกต์พิเศษ";
@@ -666,7 +657,6 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
           <div className="mt-4 grid gap-3">
             {view.hand.map((c) => {
               const meta = pvpEffectMeta(c.effect_id);
-              const subj = subjectMeta(c.subject);
               return (
                 <button
                   key={c.id}
@@ -685,14 +675,7 @@ export default function DuelClient({ view }: { view: PvpMatchView }) {
                       : undefined
                   }
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo/15 px-2 py-0.5 text-[11px] font-bold text-indigo-hi">
-                      <span aria-hidden>{subj.emoji}</span>
-                      {subj.label} · ความยาก {c.difficulty}
-                    </span>
-                    {meta && <PvpEffectBadge id={meta.id} />}
-                  </div>
-                  <p className="mt-1.5 font-sarabun text-sm font-bold text-text">{c.chapter}</p>
+                  <LessonCardHeading subject={c.subject} chapter={c.chapter} difficulty={c.difficulty} trailing={meta && <PvpEffectBadge id={meta.id} />}/>
                   {meta && (
                     <p className="mt-0.5 text-[11px] font-medium" style={{ color: meta.color }}>
                       {meta.hintTh}

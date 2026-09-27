@@ -6,11 +6,14 @@ import { ArrowLeft, ArrowUpRight, Crosshair, Heart, Shield, Sparkles, Swords, Wi
 import { BOSSES, INTENTS, MAX_ENERGY, questionLimit, cardInfo, checkPreview, incomingDamage, phaseNumber, damageProgress, growthAdvice, type Battle, type CardId } from "@/lib/raid/cards/engine";
 import styles from "./card-battle.module.css";
 import RaidLearningPanel from "./RaidLearningPanel";
+import RaidChapterHand from "./RaidChapterHand";
+import { CHAPTER_INTENTS, type ChapterOffer } from "@/lib/raid/cards/engine";
 import type {RaidCardQuestion,RaidCardFeedback} from "@/lib/raid/cards/server";
 import {STAT_REQUIREMENTS,statPercent} from "@/lib/raid/cards/engine";
 
 const ICONS = { attack: Swords, defend: Shield, support: Sparkles };
 export type ArenaProps = {
+  offers?:ChapterOffer[]; onSelectOffer?:(id:string)=>void; onFinishExhausted?:()=>void;
   battle: Battle; petName: string; petImage: string; bestProgress: number;
   busy: boolean; error: string | null; animateTurn: number;
   onPlay: (card: CardId) => void; onReload: () => void; onExit: () => void;
@@ -18,12 +21,13 @@ export type ArenaProps = {
   question?:RaidCardQuestion|null; feedback?:RaidCardFeedback|null;
   onAnswer?:(index:number)=>void | Promise<void>; onContinue?:()=>void;
 };
-export default function CardBattleArena({ battle: b, petName, petImage, bestProgress, busy, error, animateTurn, onPlay, onReload, onExit, onReward, rewardReady, demo,question,feedback,onAnswer,onContinue }: ArenaProps) {
+export default function CardBattleArena({ battle: b, petName, petImage, bestProgress, busy, error, animateTurn, onPlay, onReload, onExit, onReward, rewardReady, demo,question,feedback,onAnswer,onContinue,offers=[],onSelectOffer,onFinishExhausted }: ArenaProps) {
   const [selected, setSelected] = useState<CardId | null>(null);
   const boss = BOSSES[b.bossId];
-  const quick = b.version === 3;
+  const quick = b.version !== 2;
+  const chapters = b.version === 4;
   const limit = questionLimit(b);
-  const intent = INTENTS[b.intent];
+  const intent = (chapters ? CHAPTER_INTENTS[b.intent] : null) ?? INTENTS[b.intent];
   const last = b.log.at(-1);
   const selection = selected && (b.hand.includes(selected) || selected === "guard" || selected === "strike") ? selected : null;
   const card = selection ? cardInfo(b, selection) : null;
@@ -82,15 +86,15 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
           </div>
           {!b.outcome && <div className={styles.intent} key={`${b.turn}-intent`}>
             <div className={styles.intentIcon}>{b.intent === "charge" || b.intent === "thunder" ? <Zap size={22} /> : b.intent === "recover" ? <Crosshair size={22} /> : <Swords size={22} />}</div>
-            <div><span>{quick ? "ตอบแล้วลุ้นพลังมอน" : "บอสเตรียมใช้"}</span><h2>{quick ? "มอนพร้อมลุย!" : intent.name}</h2><p>{quick ? "ตอบถูกโจมตีเต็มแรง ตอบผิดมอนยังช่วยตี" : intent.hint}</p></div>
-            {!quick && <strong className={styles.threat}>{incomingDamage(b) > 0 ? `~${incomingDamage(b)}` : "—"}<small>ดาเมจก่อนรับมือ</small></strong>}
+            <div><span>{quick && !chapters ? "ตอบแล้วลุ้นพลังมอน" : "บอสเตรียมใช้"}</span><h2>{quick && !chapters ? "มอนพร้อมลุย!" : intent.name}</h2><p>{quick && !chapters ? "ตอบถูกโจมตีเต็มแรง ตอบผิดมอนยังช่วยตี" : intent.hint}</p></div>
+            {(!quick || chapters) && <strong className={styles.threat}>{incomingDamage(b) > 0 ? `${incomingDamage(b)}` : "—"}<small>ดาเมจก่อนรับมือ</small></strong>}
           </div>}
         </section>
 
         <section className={styles.controls} aria-label={b.outcome ? "ผลการต่อสู้" : "เลือกการ์ดรับมือ"}>
           {error && <div className={styles.error} role="alert">{error}<button onClick={onReload} disabled={busy}>โหลดสถานะล่าสุด</button></div>}
           <p className={styles.requirements}>{quick ? `จบภายใน ${limit} ข้อ · ตอบถูกแล้ว ${b.log.filter(e=>e.answerCorrect!==false).length} ข้อ · จบรอบมีของรางวัล` : `เกณฑ์ชนะ: stat ${statPercent(b.stats).toFixed(1)} / ${STAT_REQUIREMENTS[b.bossId]}% · ตอบถูก ${b.log.filter(e=>e.answerCorrect!==false).length}/${b.log.length} (ต้อง ≥60%)`}</p>
-          {(question || feedback) ? <RaidLearningPanel key={`${(question || feedback!.question).revision}-${!!feedback}`} question={question || feedback!.question} feedback={feedback} busy={busy} shortRound={quick} turnResult={feedback ? last : null} continueLabel={b.outcome ? "ดูผลการท้าทาย" : "กลับไปเลือกท่าถัดไป"} onAnswer={onAnswer!} onContinue={onContinue!}/> : b.outcome ? (
+          {(question || feedback) ? <RaidLearningPanel key={`${(question || feedback!.question).revision}-${!!feedback}`} question={question || feedback!.question} feedback={feedback} busy={busy} shortRound={quick} chapterRound={chapters} turnResult={feedback ? last : null} continueLabel={b.outcome ? "ดูผลการท้าทาย" : "กลับไปเลือกท่าถัดไป"} onAnswer={onAnswer!} onContinue={onContinue!}/> : b.outcome ? (
             <div className={styles.summary}>
               <span className={styles.eyebrow}>{b.outcome === "win" ? "พิชิตผู้พิทักษ์" : "แผนรอบหน้าเริ่มที่นี่"}</span>
               <h2>{b.outcome === "win" ? "ทำได้แล้ว!" : quick ? "จบรอบแล้ว รับรางวัลกัน!" : b.defeatReason === "stats" || b.defeatReason === "learning" ? "ยังไม่ผ่านเกณฑ์ด่าน" : b.turn >= limit && b.hp > 0 ? "ครบเวลาท้าทายแล้ว" : "กลับมาตั้งหลักกัน"}</h2>
@@ -99,6 +103,12 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
               <button className={styles.primary} disabled={busy} onClick={onReward}>{busy ? "กำลังเปิดหีบ..." : rewardReady ? "ดูอุปกรณ์ที่ได้รับ" : demo ? "ทดลองอีกครั้ง" : "เปิดหีบรางวัล"}<ArrowUpRight size={18} /></button>
               <p className={styles.finePrint}>{demo ? "สนามทดลองไม่ใช้กุญแจและไม่แจกของจริง" : "จบรอบได้อุปกรณ์เสมอ • มอนและของเดิมยังอยู่ครบ"}</p>
             </div>
+          ) : chapters ? (
+            <>
+              {b.momentum>0 && <p className={styles.statuses}>จุดอ่อนเปิด · โจมตีข้อนี้แรงขึ้น {Math.round(b.momentum*100)}%</p>}
+              <RaidChapterHand offers={offers} busy={busy} onSelect={onSelectOffer ?? (()=>{})} onFinish={onFinishExhausted}/>
+              {last && <div className={styles.lastTurn} role="status"><span>ข้อ {last.turn}</span><p>{last.note} · ทำดาเมจ {last.dealt} / รับ {last.taken} / ฟื้น {last.healed}</p></div>}
+            </>
           ) : (
             <>
               <div className={styles.handHeader}>
@@ -139,7 +149,7 @@ export default function CardBattleArena({ battle: b, petName, petImage, bestProg
           <details className={styles.journal}><summary>บันทึกการต่อสู้ · {b.log.length} เทิร์น</summary>
             {b.log.length === 0 ? <p>ยังไม่มีเทิร์นที่เล่น</p> : b.log.toReversed().map((entry) => <p key={entry.turn}><strong>{entry.turn}. {cardInfo(b,entry.card).name}</strong>{!quick && ` → ${INTENTS[entry.intent].name}`}<br />{entry.note}{!quick && entry.roll !== null ? ` (ทอย ${entry.roll} / โอกาส ${entry.chance}%)` : ""}<br />ทำดาเมจ {entry.dealt} · รับ {entry.taken} · ฟื้น {entry.healed}</p>)}
           </details>
-          <details className={styles.journal}><summary>วิธีเล่นและสเตตัสของมอน</summary><p>{quick ? `เลือกท่าแล้วตอบคำถามไม่เกิน ${limit} ข้อ ตอบถูกโจมตีเต็มแรงและลุ้นคริติคอล ตอบผิดมอนยังช่วยโจมตี บอสล้มก่อนจบได้ทันที ครบข้อรับรางวัลตามผลงาน สเตตัสช่วยเพิ่มพลังแต่ไม่มีเกณฑ์ขั้นต่ำเพื่อชนะ` : "ลดเลือดบอสให้หมดภายใน 20 เทิร์น เลือกคำสั่งพื้นฐานได้เสมอ จบเทิร์นฟื้นพลัง 1 ตั้งแต่เทิร์น 13 บอสโจมตีแรงขึ้น การ์ดที่ใช้จะพักในกองทิ้งก่อนกลับมาจั่วได้ ไม่มี EXP จากการใช้การ์ด"}</p><p>{Object.entries(b.stats).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(" · ")}</p></details>
+          <details className={styles.journal}><summary>วิธีเล่นและสเตตัสของมอน</summary><p>{chapters ? `เลือก 1 จาก 4 บทพร้อมสกิล ตอบถูกใช้สกิลตามเงื่อนไข ตอบผิดโจมตีเบา 25% บอสบอกท่าล่วงหน้า จบภายใน ${limit} ข้อ จบรอบรับของตามผลงาน` : quick ? `เลือกท่าแล้วตอบคำถามไม่เกิน ${limit} ข้อ ตอบถูกโจมตีเต็มแรงและลุ้นคริติคอล ตอบผิดมอนยังช่วยโจมตี บอสล้มก่อนจบได้ทันที ครบข้อรับรางวัลตามผลงาน สเตตัสช่วยเพิ่มพลังแต่ไม่มีเกณฑ์ขั้นต่ำเพื่อชนะ` : "ลดเลือดบอสให้หมดภายใน 20 เทิร์น เลือกคำสั่งพื้นฐานได้เสมอ จบเทิร์นฟื้นพลัง 1 ตั้งแต่เทิร์น 13 บอสโจมตีแรงขึ้น การ์ดที่ใช้จะพักในกองทิ้งก่อนกลับมาจั่วได้ ไม่มี EXP จากการใช้การ์ด"}</p><p>{Object.entries(b.stats).map(([key, value]) => `${key.toUpperCase()} ${value}`).join(" · ")}</p></details>
         </section>
         <footer className={styles.footer}><Wind size={12} />{quick ? "ตอบนิด ลุ้นหน่อย แล้วรับของกลับบ้าน" : boss.subtitle}</footer>
       </div>
