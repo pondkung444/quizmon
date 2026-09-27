@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check, ChevronLeft, Crown, Gift, Route, Zap } from "lucide-react";
-import { getPremiumStatus } from "@/lib/selfServe";
+import { getPremiumStatus, getRecentPremiumOrder } from "@/lib/selfServe";
 import { getGradeBand } from "@/lib/gradeBand";
 import {
   FREE_DAILY_EXP_CAP,
@@ -14,6 +14,7 @@ import {
   getPremiumHeroImage,
   premiumDaysLeft,
 } from "@/lib/premium";
+import PremiumOrderBanner from "@/components/PremiumOrderBanner";
 import PremiumCtaButtons from "./PremiumCtaButtons";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export default async function PremiumPage() {
   if ((await getGradeBand(premium.userId)) !== "junior") redirect("/");
 
   const daysLeft = premium.status === "active" ? premiumDaysLeft(premium.expiresAt) : null;
+  // order ล่าสุดใน 30 นาที (เฟส 4.1) — แถบสถานะ + ถ้ายัง pending ปุ่มซื้อหลักเปลี่ยนเป็น "ดูสถานะ" กันจ่ายซ้ำ
+  const recentOrder = await getRecentPremiumOrder(premium.userId);
 
   if (premium.status === "active" && daysLeft !== null && daysLeft > PREMIUM_RENEW_WARN_DAYS) {
     const until = new Date(premium.expiresAt).toLocaleDateString("th-TH", {
@@ -53,6 +56,7 @@ export default async function PremiumPage() {
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24">
         <PremiumHeader />
+        <PremiumOrderBanner order={recentOrder} />
         <div className="flex flex-col items-center gap-3 rounded-[22px] border border-border bg-card p-6 text-center">
           <PremiumBadge />
           <p className="text-lg font-bold text-text">เธอเป็นพรีเมียมอยู่แล้ว</p>
@@ -81,6 +85,7 @@ export default async function PremiumPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24">
       <PremiumHeader />
+      <PremiumOrderBanner order={recentOrder} />
 
       {daysLeft !== null && (
         <div className="rounded-2xl border border-amber bg-amber/15 px-4 py-3 text-sm text-text">
@@ -291,7 +296,7 @@ export default async function PremiumPage() {
               </li>
             ))}
           </ul>
-          <PremiumCtaButtons />
+          <PremiumCtaButtons pendingOrderId={recentOrder?.status === "pending" ? recentOrder.orderId : null} />
           <div className="flex items-center justify-center gap-2 text-xs text-text3">
             <span className="rounded-md bg-white px-2 py-[3px] text-[11px] font-bold text-[#0a3c7d]">PromptPay</span>
             <span>สแกนจ่ายผ่านแอปธนาคาร</span>
