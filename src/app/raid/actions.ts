@@ -1,6 +1,6 @@
 "use server";
 import { mapRaidReward } from "@/lib/raid/reward";
-import { cardRaidsEnabled } from "@/lib/raid/cards/server";
+import { cardRaidsEnabled, chapterRaidsEnabled } from "@/lib/raid/cards/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { computeRollDisplay, type RaidStatKey } from "@/lib/raid/stats";
@@ -17,7 +17,7 @@ async function requireUser() {
 export async function startRaidRun(petId: string, raidTypeId: string): Promise<{ runId: string }> {
   const supabase = await requireUser();
   if (cardRaidsEnabled()) {
-    const { data, error } = await supabase.rpc("start_raid_card_run", { p_pet_id: petId, p_raid_type_id: raidTypeId });
+    const { data, error } = await supabase.rpc(chapterRaidsEnabled() ? "start_raid_chapter_run" : "start_raid_card_run", { p_pet_id: petId, p_raid_type_id: raidTypeId });
     if (error || typeof data !== "string") throw new Error(error?.message ?? "เริ่มการท้าทายไม่สำเร็จ");
     return { runId: data };
   }

@@ -48,6 +48,22 @@ export async function reloadRaidCardBattle(runId: string): Promise<CardBattleVie
   const { user } = await identity(runId);
   return readCardBattle(runId, user.id);
 }
+
+export async function selectRaidChapter(runId: string, revision: number, offerId: string): Promise<CardBattleView> {
+  const { user } = await identity(runId);
+  if (!Number.isSafeInteger(revision) || revision < 1 || !UUID.test(offerId)) throw new Error("การ์ดไม่ถูกต้อง");
+  const { error } = await createAdminClient().rpc("select_raid_chapter_offer", {p_run_id:runId,p_user_id:user.id,p_revision:revision,p_offer_id:offerId});
+  if (error) throw new Error("ยังเลือกบทไม่ได้ ลองโหลดสถานะล่าสุด");
+  return readCardBattle(runId,user.id);
+}
+
+export async function finishExhaustedRaid(runId:string,revision:number):Promise<CardBattleView> {
+  const {user}=await identity(runId);
+  if (!Number.isSafeInteger(revision) || revision<1) throw new Error("เทิร์นไม่ถูกต้อง");
+  const {error}=await createAdminClient().rpc("finish_exhausted_raid_chapters",{p_run_id:runId,p_user_id:user.id,p_revision:revision});
+  if(error) throw new Error("ยังมีโจทย์พร้อมเล่น ลองโหลดสถานะล่าสุด");
+  return readCardBattle(runId,user.id);
+}
 export async function claimRaidCardReward(runId: string): Promise<ClaimRaidRewardResult> {
   const { client } = await identity(runId);
   const { data, error } = await client.rpc("claim_raid_card_reward", { p_run_id: runId }).single();

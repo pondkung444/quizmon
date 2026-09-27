@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPetImagePath } from "@/lib/petImage";
 import type { Subline, Personality } from "@/lib/evolution";
 import { createLearningFeedback, type LearningFeedback } from "@/lib/learningFeedback";
-import { createBattle, isBossId, type Battle, type Stats } from "./engine";
+import { createBattle, createChapterBattle, isBossId, type Battle, type Stats, type ChapterOffer } from "./engine";
 
 export type CardBattleView = {
   phase: "card_battle";
@@ -16,12 +16,14 @@ export type CardBattleView = {
   bestProgress: number;
   question: RaidCardQuestion | null;
   feedback: RaidCardFeedback | null;
+  offers?: ChapterOffer[];
 };
 export type RaidCardQuestion = { revision:number; cardId:import("./engine").CardId; text:string; choices:string[]; imageUrl:string|null; subject:string; category:string };
 export type RaidCardFeedback = LearningFeedback & { revision:number; question:RaidCardQuestion };
 export function cardRaidsEnabled() { return process.env.RAID_CARD_BATTLES_ENABLED !== "false"; }
+export function chapterRaidsEnabled() { return process.env.RAID_CHAPTER_CARDS_ENABLED === "true"; }
 export const serverRandom = () => randomInt(0, 1_000_000) / 1_000_000;
-type BattleRow = { revision: number; state: Battle | null };
+type BattleRow = { revision: number; state: Battle | null; requested_ruleset?: number };
 
 // Authenticated callers pass their verified user ID, never a user ID from the browser.
 export async function readCardBattle(runId: string, userId: string): Promise<CardBattleView> {
@@ -31,7 +33,7 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
     .eq("id", runId).eq("user_id", userId).single();
   if (error || !run) throw new Error("ไม่พบรอบท้าทายนี้");
   const [{ data: row, error: rowError }, { data: type }, { data: pet }] = await Promise.all([
-    admin.from("raid_card_battles").select("revision,state").eq("run_id", runId).eq("user_id", userId).single<BattleRow>(),
+    admin.from("raid_card_battles").select("*").eq("run_id", runId).eq("user_id", userId).single<BattleRow>(),
     admin.from("raid_types").select("slug").eq("id", run.raid_type_id).single(),
     admin.from("pets").select("nickname,subline,personality,egg_types(sprite_prefix)").eq("id", run.pet_id).single(),
   ]);
@@ -39,7 +41,7 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
   let battle = row.state;
   let revision = row.revision;
   if (!battle) {
-    const initial = createBattle(type.slug, run.stat_snapshot as Stats, serverRandom);
+    const initial = (row.requested_ruleset === 4 ? createChapterBattle : createBattle)(type.slug, run.stat_snapshot as Stats, serverRandom);
     const { data, error: saveError } = await admin.rpc("commit_raid_card_turn", {
       p_run_id: runId, p_user_id: userId, p_revision: revision, p_state: initial,
     });
@@ -47,7 +49,13 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
     battle = data.state as Battle;
     revision = data.revision as number;
   }
-  if (battle.version !== 2 && battle.version !== 3) throw new Error("รอบนี้ใช้กติกาคนละรุ่น กรุณาอัปเดตหน้าเกม");
+  if (battle.version !== 2 && battle.version !== 3 && battle.version !== 4) throw new Error("รอบนี้ใช้กติกาคนละรุ่น กรุณาอัปเดตหน้าเกม");
+  let offers: ChapterOffer[] = [];
+  if (battle.version === 4 && !battle.outcome) {
+    const hand = await admin.rpc("draw_raid_chapter_hand", {p_run_id:runId,p_user_id:userId,p_revision:revision});
+    if (hand.error) throw new Error("ยังโหลดบทเรียนไม่ได้ ลองโหลดสถานะล่าสุด");
+    offers = (hand.data ?? []) as ChapterOffer[];
+  }
   const { data: best, error: bestError } = await admin.from("raid_card_battles")
     .select("progress").eq("user_id", userId).eq("raid_type_id", run.raid_type_id)
     .neq("run_id", runId).not("finished_at", "is", null).order("progress", { ascending: false }).limit(1);
@@ -63,5 +71,5 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
   if(pendingError || answerError) throw new Error("โหลดคำถามไม่สำเร็จ ลองโหลดสถานะล่าสุด");
   const question = pending ? {...pending.question,revision:pending.revision,cardId:pending.card_id} as RaidCardQuestion : null;
   const feedback = answered ? { revision:answered.revision,...createLearningFeedback(answered.answer_index,answered.correct_index,answered.explanation),question:{...answered.question,revision:answered.revision,cardId:answered.card_id} as RaidCardQuestion } : null;
-  return { phase: "card_battle", runId, revision, battle, petName: pet?.nickname || "Qmon", petImage, bestProgress: best?.[0]?.progress ?? 0,question,feedback };
+  return { phase: "card_battle", runId, revision, battle, petName: pet?.nickname || "Qmon", petImage, bestProgress: best?.[0]?.progress ?? 0,question,feedback,offers };
 }
