@@ -4,25 +4,42 @@ import { useCallback, useState } from "react";
 import { Share } from "lucide-react";
 import Toast from "@/components/social/Toast";
 
-// ปุ่มจ่ายเงิน 2 ปุ่ม — ยังไม่เชื่อมระบบจ่ายเงิน (Stripe = เฟส 4) หน้าตาเหมือนพร้อมใช้งาน แต่กดแล้วแค่ขึ้น
-// toast "เร็วๆ นี้" ห้ามลิงก์ไป checkout ใดๆ จนกว่าเฟส 4 จะมา (ตอนนั้นแทน onClick ด้วยการสร้าง order จริง)
+// ปุ่มจ่ายเงิน 2 ปุ่ม — "ปลดล็อกพรีเมียม" สร้าง order + Stripe Checkout (เฟส 4) แล้วพาไปหน้าจ่ายของ Stripe
+// ส่วน "ส่งลิงก์ให้ผู้ปกครองจ่าย" ยังไม่เปิด (ขึ้น toast "เร็วๆ นี้" เหมือนเดิม)
 export default function PremiumCtaButtons() {
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const clearToast = useCallback(() => setToast(null), []);
-  const comingSoon = () => setToast("ระบบจ่ายเงินเปิดเร็วๆ นี้ 🙏");
+  const comingSoon = () => setToast("ระบบส่งลิงก์ให้ผู้ปกครองเปิดเร็วๆ นี้ 🙏");
+
+  const startCheckout = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/premium/checkout", { method: "POST" });
+      const data = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (res.ok && data?.url) {
+        // ไม่ปลด loading — กำลังออกจากหน้า กันกดซ้ำระหว่างรอ Stripe โหลด
+        window.location.href = data.url;
+        return;
+      }
+      setToast(data?.error ?? "เปิดหน้าจ่ายเงินไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+    } catch {
+      setToast("เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้งนะ");
+    }
+    setLoading(false);
+  };
 
   return (
     <>
       <button
         type="button"
-        aria-disabled="true"
-        onClick={comingSoon}
-        className="relative h-14 rounded-[18px] bg-(--hero-cta-bg) text-lg font-bold text-(--hero-cta-text) shadow-[0_5px_0_var(--hero-cta-shadow)] transition active:translate-y-0.5 active:shadow-[0_3px_0_var(--hero-cta-shadow)]"
+        onClick={startCheckout}
+        disabled={loading}
+        aria-busy={loading}
+        className="relative h-14 rounded-[18px] bg-(--hero-cta-bg) text-lg font-bold text-(--hero-cta-text) shadow-[0_5px_0_var(--hero-cta-shadow)] transition active:translate-y-0.5 active:shadow-[0_3px_0_var(--hero-cta-shadow)] disabled:opacity-70"
       >
-        ปลดล็อกพรีเมียม
-        <span className="absolute -top-2 right-3 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold text-on-amber shadow">
-          เร็วๆ นี้
-        </span>
+        {loading ? "กำลังเปิดหน้าจ่ายเงิน…" : "ปลดล็อกพรีเมียม"}
       </button>
       <button
         type="button"
