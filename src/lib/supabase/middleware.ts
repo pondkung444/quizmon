@@ -39,6 +39,8 @@ export async function updateSession(request: NextRequest) {
   const isAuthPage = request.nextUrl.pathname.startsWith("/login");
   const isPublicAsset = request.nextUrl.pathname.startsWith("/_next");
   const isCronRoute = request.nextUrl.pathname.startsWith("/api/cron");
+  // Stripe ยิง webhook โดยไม่มี session — ยกเว้นเฉพาะ path นี้ (route verify signature เองทุกครั้ง)
+  const isStripeWebhook = request.nextUrl.pathname === "/api/webhooks/stripe";
   const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
   // หน้าเริ่มเล่นแบบไม่สมัคร (guest) — เข้าได้โดยยังไม่มี session
   const isGuestPage = request.nextUrl.pathname.startsWith("/guest");
@@ -55,6 +57,7 @@ export async function updateSession(request: NextRequest) {
     !isAuthPage &&
     !isPublicAsset &&
     !isCronRoute &&
+    !isStripeWebhook &&
     !isPrivacyPage &&
     !isGuestPage &&
     !isFriendInvite &&
