@@ -96,7 +96,7 @@ export default function QmonChatBubble() {
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={closeSheet}>
           <div
-            className="max-h-[80vh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+            className="max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />

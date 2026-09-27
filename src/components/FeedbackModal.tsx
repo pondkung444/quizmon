@@ -142,7 +142,7 @@ export default function FeedbackModal({ petId, onClose }: { petId: string | null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="relative flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-gold-dim bg-card p-6">
+      <div className="relative flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-gold-dim bg-card p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <button
           type="button"
           onClick={onClose}

@@ -76,7 +76,7 @@ export default function OfflineScreen() {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-bg px-8 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
+    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center-safe overflow-y-auto bg-bg px-8 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
       <div className="relative mb-1 flex h-[230px] w-[230px] items-center justify-center">
         <span className="absolute h-[100px] w-[100px] animate-[offline-ring_2.8s_cubic-bezier(0.2,0.6,0.4,1)_infinite] rounded-full border-[1.5px] border-indigo [animation-delay:0s]" />
         <span className="absolute h-[100px] w-[100px] animate-[offline-ring_2.8s_cubic-bezier(0.2,0.6,0.4,1)_infinite] rounded-full border-[1.5px] border-indigo [animation-delay:0.9s]" />

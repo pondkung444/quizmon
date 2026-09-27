@@ -49,7 +49,7 @@ export default function RaidGearDrawer({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[80vh] w-full max-w-xs flex-col gap-3 overflow-y-auto rounded-t-2xl border border-gold-dim bg-card p-4 sm:rounded-2xl"
+        className="flex max-h-[80dvh] w-full max-w-xs flex-col gap-3 overflow-y-auto rounded-t-2xl border border-gold-dim bg-card p-4 sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

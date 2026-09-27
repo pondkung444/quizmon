@@ -56,7 +56,7 @@ function DetailCard({ day, dailyCap, onClose }: { day: CalendarDay; dailyCap: nu
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
       <div
-        className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-6 text-center"
+        className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex w-full items-center justify-between">
