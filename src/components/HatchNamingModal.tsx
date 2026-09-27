@@ -29,7 +29,7 @@ export default function HatchNamingModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="flex flex-col items-center gap-2 text-center">
           {eggImagePath && (
             <Image src={eggImagePath} alt={eggNameTh} width={64} height={64} className="shrink-0" />

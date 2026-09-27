@@ -50,6 +50,7 @@ export default function BottomNav({
   if (pathname === "/login" || pathname === "/") return null;
   // จอครู (ฉายโปรเจกเตอร์) — เมนูของนักเรียนไม่เกี่ยว
   if (pathname?.startsWith("/teacher")) return null;
+  if (pathname?.startsWith("/login") || pathname === "/guest" || pathname?.startsWith("/admin")) return null;
 
   return (
     <nav

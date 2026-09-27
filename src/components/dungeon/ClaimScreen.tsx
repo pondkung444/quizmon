@@ -190,7 +190,7 @@ function TicketRewardModal({ onClose }: { onClose: () => void }) {
   const [iconFailed, setIconFailed] = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <p className="text-sm text-text3">🎁 กลับมาจากผจญภัยพร้อมของกำนัล!</p>
         <h2 className="text-xl font-bold text-gold-hi">ได้รับ {RAID_TICKET_NAME_TH}</h2>
         {iconFailed ? (
@@ -232,7 +232,7 @@ function EggRewardModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <p className="text-sm text-text3">✨ เจอไข่หายากระหว่างทาง!</p>
         <h2 className="text-xl font-bold text-gold-hi">ได้รับ {eggNameTh}</h2>
         <Image src={imagePath} alt={eggNameTh} width={160} height={160} className="animate-evolve-pop" />
@@ -253,7 +253,7 @@ function EggRewardModal({
 function MeterProgressModal({ pityMeter, onClose }: { pityMeter: number; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <p className="text-sm text-text3">🧭 เข้าใกล้ไข่หายากอีกขีด</p>
         <h2 className="text-xl font-bold text-gold-hi">
           ขีดสะสม {pityMeter} / {DUNGEON_PITY_GOAL}

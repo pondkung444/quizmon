@@ -207,7 +207,7 @@ export default function RaidPreDeparture({
 
       {showGearWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
-          <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5">
+          <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <p className="font-sarabun mb-2 text-base font-bold text-text">มีอุปกรณ์ที่ยังไม่ได้ใส่</p>
             <p className="mb-4 text-sm text-text2">
               Qmon ตัวนี้ยังมีของว่าง{" "}

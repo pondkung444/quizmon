@@ -58,7 +58,7 @@ export default function AchievementCelebrationModal({ items }: { items: Celebrat
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex max-h-[85vh] w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
+      <div className="flex max-h-[85dvh] w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
         <div className="flex-none text-center">
           <p className="text-sm text-text3">🎉 ปลดล็อกเหรียญใหม่</p>
           <h2 className="text-xl font-bold text-gold-hi">

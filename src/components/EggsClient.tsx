@@ -188,7 +188,7 @@ export default function EggsClient({
             aria-modal="true"
             aria-labelledby="egg-detail-title"
             onClick={(e) => e.stopPropagation()}
-            className="animate-sheet-up w-full max-w-md rounded-t-3xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-center"
+            className="animate-sheet-up w-full max-w-md rounded-t-3xl border-t border-gold-dim bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-center max-h-[85dvh] overflow-y-auto"
           >
             <div className="mb-2 flex justify-end">
               <button

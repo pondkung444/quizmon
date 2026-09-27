@@ -112,7 +112,7 @@ export default function PersonalityDecisionModal({ onClose }: { onClose: () => v
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto">
         {phase === "intro" && (
           <div className="flex flex-col items-center gap-4 py-10">
             <div className="relative flex h-28 w-28 items-center justify-center">
