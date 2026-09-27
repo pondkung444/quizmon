@@ -53,14 +53,17 @@ function ChapterCard({
   subject,
   onRemove,
   disabled,
+  readOnly,
 }: {
   c: PlacedChapter;
   subject: string;
   onRemove: (key: string) => void;
   disabled: boolean;
+  readOnly: boolean;
 }) {
   // ทุกสถานะลากได้ (ยกเว้นบทที่ผ่านมาก่อนแผน ซึ่งไม่ได้อยู่ในกริดนี้อยู่แล้ว — แยกโชว์เป็น badge ต่างหาก)
-  const draggable = !disabled;
+  // readOnly = ดูอย่างเดียว: ไม่มีปุ่มลาก/ลบเลย
+  const draggable = !disabled && !readOnly;
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: c.chapter_key,
     disabled: !draggable,
@@ -70,28 +73,32 @@ function ChapterCard({
       ref={setNodeRef}
       className={`flex items-start gap-2 rounded-xl border border-l-4 p-2.5 ${SUBJECT_BAR[subject] ?? "border-l-text3"} ${cardClass(c.status)} ${isDragging ? "opacity-30" : ""}`}
     >
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        {...attributes}
-        {...listeners}
-        disabled={!draggable}
-        aria-label={`ลากเพื่อย้ายบท ${c.chapter}`}
-        style={{ touchAction: "none" }}
-        className="-m-1 flex h-8 w-8 flex-none cursor-grab items-center justify-center rounded-lg text-text3 active:cursor-grabbing disabled:opacity-30"
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          ref={setActivatorNodeRef}
+          {...attributes}
+          {...listeners}
+          disabled={!draggable}
+          aria-label={`ลากเพื่อย้ายบท ${c.chapter}`}
+          style={{ touchAction: "none" }}
+          className="-m-1 flex h-8 w-8 flex-none cursor-grab items-center justify-center rounded-lg text-text3 active:cursor-grabbing disabled:opacity-30"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
       <CardBody c={c} />
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onRemove(c.chapter_key)}
-        aria-label={`ลบบท ${c.chapter} ออกจากแผน`}
-        className="-m-1 flex h-8 w-8 flex-none items-center justify-center rounded-lg text-red/80 disabled:opacity-30"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onRemove(c.chapter_key)}
+          aria-label={`ลบบท ${c.chapter} ออกจากแผน`}
+          className="-m-1 flex h-8 w-8 flex-none items-center justify-center rounded-lg text-red/80 disabled:opacity-30"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -102,14 +109,16 @@ function WeekColumn({
   isPast,
   onRemove,
   disabled,
+  readOnly,
 }: {
   week: WeekInfo;
   items: { c: PlacedChapter; subject: string }[];
   isPast: boolean;
   onRemove: (key: string) => void;
   disabled: boolean;
+  readOnly: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `week-${week.index}`, disabled: isPast });
+  const { setNodeRef, isOver } = useDroppable({ id: `week-${week.index}`, disabled: isPast || readOnly });
   return (
     <div
       ref={setNodeRef}
@@ -126,7 +135,7 @@ function WeekColumn({
       </div>
       <div className="flex min-h-[160px] flex-1 flex-col gap-2 p-2.5">
         {items.map(({ c, subject }) => (
-          <ChapterCard key={c.chapter_key} c={c} subject={subject} onRemove={onRemove} disabled={disabled} />
+          <ChapterCard key={c.chapter_key} c={c} subject={subject} onRemove={onRemove} disabled={disabled} readOnly={readOnly} />
         ))}
       </div>
     </div>
@@ -149,6 +158,7 @@ export default function PlanKanban({
   busy,
   onMove,
   onRemove,
+  readOnly = false,
 }: {
   weeks: WeekInfo[];
   schedules: SubjectSchedule[];
@@ -156,6 +166,8 @@ export default function PlanKanban({
   busy: boolean;
   onMove: (chapterKey: string, targetWeek: number) => void;
   onRemove: (chapterKey: string) => void;
+  // ดูอย่างเดียว (นักเรียนเปิดแผนที่ผู้ปกครองสร้าง) — ซ่อนปุ่มลาก/ลบ และปิดการวาง
+  readOnly?: boolean;
 }) {
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -182,7 +194,9 @@ export default function PlanKanban({
         <div>
           <p className="text-lg font-bold text-text">ปฏิทินแผนฝึก</p>
           <p className="text-xs text-text3">
-            ตำแหน่งสัปดาห์เป็นค่าประมาณ ปรับเองได้โดยลากบทไปมา (ลากที่ไอคอน ⋮⋮ · ย้ายได้เฉพาะในวิชาเดียวกัน)
+            {readOnly
+              ? "ตำแหน่งสัปดาห์เป็นค่าประมาณ"
+              : "ตำแหน่งสัปดาห์เป็นค่าประมาณ ปรับเองได้โดยลากบทไปมา (ลากที่ไอคอน ⋮⋮ · ย้ายได้เฉพาะในวิชาเดียวกัน)"}
           </p>
         </div>
         {exam && (
@@ -226,6 +240,7 @@ export default function PlanKanban({
               items={all.filter((x) => x.c.weekIndex === w.index)}
               onRemove={onRemove}
               disabled={busy}
+              readOnly={readOnly}
             />
           ))}
           {exam && (

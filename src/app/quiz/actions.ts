@@ -267,9 +267,10 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   // guardian_plan status='active' (ไม่สนว่าสร้างผ่านทางไหน — ผู้ปกครองสร้างให้ปกติ หรือ self-serve)
   // เฉพาะ practice mode + junior เท่านั้น (isSeniorBranchMode กันไว้แล้ว เพราะ current chapter ยัง
   // ไม่ awareของ branch)
-  // แผนที่นักเรียนสร้างเอง (self-serve: guardian_plan_create เขียน guardian_id = auth.uid() = ตัวนักเรียน)
-  // ผูกกับพรีเมียม → inject เฉพาะตอน self_serve_enrollment ยัง active + ยังไม่หมดอายุ หมดปุ๊บ (ณ วินาทีนั้น)
-  // fallback เป็นสุ่มปกติเหมือนคนไม่มีแผน ไม่ throw — แผนที่ผู้ปกครองสร้างให้ (guardian_id ≠ นักเรียน) ไม่เกี่ยว
+  // แผนที่นักเรียนสร้างเอง (self-serve: guardian_create_plan เขียน guardian_id = NULL ตั้งแต่ migration
+  // 20260920072707 — เช็ค === user.id ไว้ด้วยเผื่อแถวเก่าก่อนหน้านั้น) ผูกกับพรีเมียม → inject เฉพาะตอน
+  // self_serve_enrollment ยัง active + ยังไม่หมดอายุ หมดปุ๊บ (ณ วินาทีนั้น) fallback เป็นสุ่มปกติเหมือนคนไม่มีแผน
+  // ไม่ throw — แผนที่ผู้ปกครองสร้างให้ (guardian_id = ผู้ปกครอง) ไม่เกี่ยว
   let planInjectedIds: number[] = [];
   if (input.type === "practice" && !isSeniorBranchMode && user) {
     const { data: plan } = await admin
@@ -280,7 +281,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       .maybeSingle();
 
     let activePlan = plan;
-    if (plan && plan.guardian_id === user.id) {
+    if (plan && (plan.guardian_id === null || plan.guardian_id === user.id)) {
       const { data: enrollment } = await admin
         .from("self_serve_enrollment")
         .select("id")
