@@ -433,10 +433,14 @@ export default function PlanWizard({
   studentId,
   studentUsername,
   viewerMode = "guardian",
+  managedByGuardian = false,
 }: {
   studentId: string;
   studentUsername: string;
   viewerMode?: ViewerMode;
+  // self mode + แผน active ที่ผู้ปกครองสร้าง (guardian_id ไม่ใช่ null) → ดูอย่างเดียว
+  // guardian_set_plan_chapter_queue อนุญาตเฉพาะผู้ปกครองเจ้าของแผน (migration 20260927100000)
+  managedByGuardian?: boolean;
 }) {
   const isSelf = viewerMode === "self";
   const supabase = createClient();
@@ -491,6 +495,7 @@ export default function PlanWizard({
   }, [studentId]);
 
   const hasActivePlan = plan.length > 0 && !!plan[0].plan_id;
+  const readOnly = isSelf && managedByGuardian && hasActivePlan;
 
   function toggleChapter(key: string) {
     setSelectedKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -705,14 +710,20 @@ export default function PlanWizard({
                       ผ่านแล้ว {passedCount} จาก {total} บท
                     </p>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingReplace(true)}
-                    className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-border text-base font-semibold text-text2 transition active:scale-[0.98]"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    เปลี่ยนโหมด / สร้างแผนใหม่
-                  </button>
+                  {readOnly ? (
+                    <p className="mt-3 rounded-xl bg-(--gd-row-bg) p-3 text-center text-sm text-text2">
+                      แผนนี้ผู้ปกครองเป็นผู้จัด แก้ไขได้ที่ผู้ปกครองเท่านั้น
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingReplace(true)}
+                      className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full border border-border text-base font-semibold text-text2 transition active:scale-[0.98]"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      เปลี่ยนโหมด / สร้างแผนใหม่
+                    </button>
+                  )}
                 </div>
 
                 {dropHint && <p className="rounded-xl bg-amber/10 p-3 text-center text-sm text-amber">{dropHint}</p>}
@@ -730,12 +741,13 @@ export default function PlanWizard({
                         busy={submitting}
                         onMove={handleDropChapter}
                         onRemove={setRemovingKey}
+                        readOnly={readOnly}
                       />
                     );
                   })()}
                 </div>
 
-                {addingChapters ? (
+                {readOnly ? null : addingChapters ? (
                   <div className="gd-card flex flex-col gap-3 p-4">
                     <p className="text-base font-semibold text-text2">
                       เพิ่มบทเข้าคิว — เลือกแล้ว {addKeys.length}
