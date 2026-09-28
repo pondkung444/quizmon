@@ -4,6 +4,7 @@ import { getFriendRequestLists } from "@/lib/friendRequests";
 import { getMyFriends, getMyBlockedAccounts } from "@/lib/friends";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
 import { getRanking } from "@/lib/ranking";
+import { getGradeBand } from "@/lib/gradeBand";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
@@ -88,6 +89,11 @@ async function getGuardianLinkData(
   if (error) return null;
 
   const rows = (data ?? []) as GuardianLinkStatusRow[];
+
+  // ระบบผู้พิทักษ์เปิดแค่ ม.1–3 — senior ซ่อนหัวข้อ เว้นแต่มีผู้ปกครองผูกอยู่ (ให้เด็กถอดเองได้เสมอ)
+  if (!rows.some((r) => r.kind === "claimed") && (await getGradeBand(userId)) !== "junior") {
+    return null;
+  }
   const pending = rows.find((r) => r.kind === "pending") ?? null;
   const guardians: GuardianEntry[] = rows
     .filter((r) => r.kind === "claimed")

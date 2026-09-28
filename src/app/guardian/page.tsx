@@ -1,9 +1,24 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { getGuardianAccess, getGuardianStudents } from "@/lib/guardian";
 import GuardianLoginButton from "./GuardianLoginButton";
 import StudentPicker from "@/components/guardian/StudentPicker";
 
 export const dynamic = "force-dynamic";
+
+type UnlinkedStudentRow = { student_username: string; revoked_at: string };
+
+// เด็กที่ถอดผู้ปกครองคนนี้แล้วและยังไม่ผูกกลับ — RPC error คืน [] เงียบๆ (ไม่แสดงกล่อง ไม่พังหน้า)
+async function getUnlinkedStudents(): Promise<UnlinkedStudentRow[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("guardian_get_unlinked_students");
+    if (error) return [];
+    return (data ?? []) as UnlinkedStudentRow[];
+  } catch {
+    return [];
+  }
+}
 
 export default async function GuardianPage({
   searchParams,
@@ -12,7 +27,10 @@ export default async function GuardianPage({
 }) {
   const { error } = await searchParams;
   const access = await getGuardianAccess();
-  const students = access.status === "ok" ? await getGuardianStudents() : [];
+  const [students, unlinked] =
+    access.status === "ok"
+      ? await Promise.all([getGuardianStudents(), getUnlinkedStudents()])
+      : [[], []];
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center gap-6 bg-bg p-6 text-text">
@@ -49,6 +67,20 @@ export default async function GuardianPage({
             <p className="text-sm text-text2">
               ยินดีต้อนรับ{access.displayName ? ` ${access.displayName}` : ""}
             </p>
+
+            {unlinked.map((u) => (
+              <div
+                key={`${u.student_username}-${u.revoked_at}`}
+                className="rounded-lg border border-border bg-bg p-4"
+              >
+                <p className="text-sm font-semibold text-text">
+                  การเชื่อมต่อกับน้อง{u.student_username}สิ้นสุดแล้ว
+                </p>
+                <p className="mt-1 text-sm text-text2">
+                  น้องเป็นคนจัดการการเชื่อมต่อนี้เองได้เสมอ ถ้าอยากดูข้อมูลอีกครั้ง ลองคุยกับน้องและขอรหัสใหม่ได้
+                </p>
+              </div>
+            ))}
 
             {students.length > 0 && (
               <StudentPicker students={students} hrefFor={(id) => `/guardian/${id}`} />
