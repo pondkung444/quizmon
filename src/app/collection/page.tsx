@@ -63,7 +63,7 @@ export default async function CollectionFarmPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
+    <main data-app-wide className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24 lg:max-w-[var(--app-frame-w)]">
       <FarmEggsTabs active="farm" />
       <SignOutLink />
       <div className="flex items-start justify-between gap-4">
@@ -84,7 +84,7 @@ export default async function CollectionFarmPage() {
           ยังไม่มี Qmon ในฟาร์ม — เลี้ยงจนโตเต็มที่แล้วเก็บเข้าฟาร์มดูสิ
         </p>
       ) : (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
           {pets.map((pet) => (
             <Link
               key={pet.id}

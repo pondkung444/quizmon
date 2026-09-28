@@ -32,6 +32,38 @@ const TABS = [
   },
 ];
 
+// ป้ายบนไอคอน — ใช้ร่วมกันทั้งแถบล่าง (มือถือ) และ rail ข้างกรอบ (≥ lg)
+function TabIcon({
+  tab,
+  active,
+  hasUnreadEncouragements,
+  pvpBadgeCount,
+}: {
+  tab: (typeof TABS)[number];
+  active: boolean;
+  hasUnreadEncouragements: boolean;
+  pvpBadgeCount: number;
+}) {
+  return (
+    <span className="relative h-6 w-6">
+      {tab.icon(active)}
+      {/* จุดสีส้ม (§8.1) — มีข้อความกำลังใจใหม่ที่ยังไม่อ่าน หายไปหลังเปิด S08 (read_at ถูกเซ็ต) */}
+      {tab.href === "/social" && hasUnreadEncouragements && (
+        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber" />
+      )}
+      {/* ตัวเลขแดง (สไลซ์ 5 §7) — ถึงตาเรา (รวม card_ready ที่ต้องกดเริ่มตอบ) + คำท้าที่รับเข้ามารอตอบรับ */}
+      {tab.href === "/pvp" && pvpBadgeCount > 0 && (
+        <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-card bg-red px-1 text-[9px] font-extrabold leading-none text-track">
+          {pvpBadgeCount > 9 ? "9+" : pvpBadgeCount}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// rail (≥ lg) ไม่ render บนจอครู/TV/โปรเจกเตอร์และพื้นที่ผู้ปกครอง — แถบล่างมือถือยังเป็นพฤติกรรมเดิม
+const NO_RAIL_PREFIXES = ["/boss-raid", "/classroom", "/my-plan", "/guardian"];
+
 export default function BottomNav({
   hasUnreadEncouragements = false,
   pvpBadgeCount = 0,
@@ -52,9 +84,12 @@ export default function BottomNav({
   if (pathname?.startsWith("/teacher")) return null;
   if (pathname?.startsWith("/login") || pathname === "/guest" || pathname?.startsWith("/admin")) return null;
 
+  const showRail = !NO_RAIL_PREFIXES.some((p) => pathname?.startsWith(p));
+
   return (
+    <>
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card"
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card ${showRail ? "lg:hidden" : ""}`}
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto flex max-w-xl items-stretch justify-around">
@@ -68,24 +103,35 @@ export default function BottomNav({
                 active ? "text-amber" : "text-text3"
               }`}
             >
-              <span className="relative h-6 w-6">
-                {tab.icon(!!active)}
-                {/* จุดสีส้ม (§8.1) — มีข้อความกำลังใจใหม่ที่ยังไม่อ่าน หายไปหลังเปิด S08 (read_at ถูกเซ็ต) */}
-                {tab.href === "/social" && hasUnreadEncouragements && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber" />
-                )}
-                {/* ตัวเลขแดง (สไลซ์ 5 §7) — ถึงตาเรา (รวม card_ready ที่ต้องกดเริ่มตอบ) + คำท้าที่รับเข้ามารอตอบรับ */}
-                {tab.href === "/pvp" && pvpBadgeCount > 0 && (
-                  <span className="absolute -right-1.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-card bg-red px-1 text-[9px] font-extrabold leading-none text-track">
-                    {pvpBadgeCount > 9 ? "9+" : pvpBadgeCount}
-                  </span>
-                )}
-              </span>
+              <TabIcon tab={tab} active={!!active} hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
               {tab.label}
             </Link>
           );
         })}
       </div>
     </nav>
+    {showRail && (
+      <nav
+        className="fixed top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-1 rounded-2xl border border-gold-dim bg-card p-1.5 lg:flex"
+        style={{ left: "calc(50% - var(--app-frame-w) / 2 - var(--app-rail-w) - var(--app-rail-gap))", width: "var(--app-rail-w)" }}
+      >
+        {TABS.map((tab) => {
+          const active = pathname === tab.href || pathname?.startsWith(tab.href + "/");
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`flex flex-col items-center gap-1 rounded-xl py-3 text-xs font-medium transition-colors ${
+                active ? "bg-bg text-amber" : "text-text3"
+              }`}
+            >
+              <TabIcon tab={tab} active={!!active} hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
+    )}
+    </>
   );
 }

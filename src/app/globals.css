@@ -1003,7 +1003,76 @@ body {
   background-color: var(--background);
   background-image: var(--pet-page-bg);
   background-repeat: no-repeat;
-  background-size: 100% 100vh;
+  background-size: 100% 100lvh;
+}
+
+/* จอแนวนอน/จอกว้าง — กรอบแอป + โลกของ Qmon (WorldBackdrop.tsx) + ความสูงแถบเมนูล่าง
+   auth (420) / quiz-shell (840) ใช้ค่าของตัวเอง ไม่ผูกกับ token ชุดนี้ */
+:root {
+  --app-max-w: 576px;
+  --app-max-w-wide: 1100px;
+  --app-frame-w: var(--app-max-w);
+  /* BottomNav: py-2.5 + ไอคอน 24px + gap + label text-xs + border-t = 65px */
+  --bottom-nav-h: calc(65px + env(safe-area-inset-bottom));
+  /* side rail (BottomNav.tsx ≥ lg) ติดซ้ายของกรอบ */
+  --app-rail-w: 5.5rem;
+  --app-rail-gap: 1rem;
+}
+/* หน้า wide: เว้นที่ rail + gap ทั้งสองฝั่ง (กรอบอยู่กลางจอ) → ที่ 1024px rail ไม่ชนเนื้อหา */
+:root:has([data-app-wide]) {
+  --app-frame-w: min(var(--app-max-w-wide), 100vw - 2 * (var(--app-rail-w) + var(--app-rail-gap)));
+}
+@media (min-width: 64rem) {
+  :root {
+    --bottom-nav-h: 0px;
+  }
+}
+
+.world-backdrop {
+  display: none;
+}
+@media (min-width: 64rem) {
+  :root:has([data-app-theme]) .world-backdrop {
+    display: block;
+  }
+  /* ฉากเป็นพื้นแทน body — ห้ามผูกกับ [data-app-theme] อย่างเดียว (boss-raid/classroom/my-plan มี marker แต่ไม่มีฉาก) */
+  :root:has([data-world-backdrop]):has([data-app-theme]) body {
+    background: transparent;
+  }
+}
+.world-clouds svg {
+  animation: world-cloud-drift 120s linear infinite;
+}
+@keyframes world-cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .world-clouds svg {
+    animation: none;
+  }
+}
+:root:has([data-app-theme="dusk"]) {
+  --world-sky: linear-gradient(180deg, #2a1f5c 0%, #4a3a8a 55%, #8a5a9a 100%);
+  --world-cloud: rgba(200, 180, 255, 0.25);
+  --world-hill-far: #3a3170;
+  --world-hill-near: #2c2a5e;
+  --world-building: #251f4a;
+  --world-roof: #5a3a6a;
+  --world-ground: #23244f;
+  --world-fence: #4a3f7a;
+  --world-haze: rgba(21, 25, 58, 0.35);
+}
+:root:has([data-app-theme="day"]) {
+  --world-sky: linear-gradient(180deg, #9ad8ff 0%, #cdeeff 60%, #eaf8ff 100%);
+  --world-cloud: rgba(255, 255, 255, 0.8);
+  --world-hill-far: #a8d99a;
+  --world-hill-near: #8cc97c;
+  --world-building: #f3e3c8;
+  --world-roof: #d9826a;
+  --world-ground: #7dbf6a;
+  --world-fence: #b58a5c;
+  --world-haze: rgba(253, 248, 238, 0.35);
 }
 
 /* ฉากหลัง Qmon: ท้องฟ้า + เนิน + แท่นเรืองแสง + ประกายลอย (PetCard.tsx) */
