@@ -119,9 +119,7 @@ export default async function RootLayout({
         <Analytics />
         <SpeedInsights />
         {children}
-        {!pathname.startsWith("/guardian") && (
-          <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
-        )}
+        <BottomNav hasUnreadEncouragements={hasUnreadEncouragements} pvpBadgeCount={pvpBadgeCount} />
         {isAnonymous && !guestPendingEmail && activePetStage !== null && activePetStage >= 2 && (
           <GuestUpgradeGate petName={activePetName ?? ""} />
         )}
