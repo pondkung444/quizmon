@@ -764,7 +764,7 @@ export default function LoginPage() {
             aria-modal="true"
             aria-label={mode === "login" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
             tabIndex={-1}
-            className="relative w-full max-w-[420px] rounded-t-2xl border border-border bg-card p-6 pb-8 shadow-2xl max-h-[92vh] overflow-y-auto animate-sheet-up focus:outline-none"
+            className="relative w-full max-w-[420px] rounded-t-2xl border border-border bg-card p-6 pb-8 shadow-2xl max-h-[92dvh] overflow-y-auto animate-sheet-up focus:outline-none"
             onTouchStart={(e) => {
               touchStartYRef.current = e.touches[0].clientY;
             }}

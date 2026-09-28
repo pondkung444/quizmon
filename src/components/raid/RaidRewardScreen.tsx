@@ -164,7 +164,7 @@ function RaidEggRewardModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center">
+      <div className="flex w-full max-w-sm flex-col items-center gap-5 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <p className="text-sm text-text3">✨ ของรางวัลพิเศษจากการท้าทาย!</p>
         <h2 className="text-xl font-bold text-gold-hi">ได้รับ {eggNameTh}</h2>
         <Image src={imagePath} alt={eggNameTh} width={160} height={160} className="animate-evolve-pop" />

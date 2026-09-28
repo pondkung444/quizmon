@@ -62,7 +62,7 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
             <h2 className="text-sm font-bold text-gold-hi">{section.eggNameTh}</h2>
             {section.subtitle && <p className="text-xs text-text3">{section.subtitle}</p>}
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
             {section.slots.map((slot, index) => {
               const card = (
                 <div
@@ -143,7 +143,7 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
           onClick={() => setPreviewSlot(null)}
         >
           <div
-            className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-6 text-center"
+            className="flex w-full max-w-xs flex-col items-center gap-4 rounded-2xl border border-gold-dim bg-card p-6 text-center max-h-[calc(100dvh-2rem)] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative flex h-24 w-24 items-center justify-center">

@@ -28,7 +28,7 @@ export default function EggChoiceModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="text-center">
           <h2 className="text-lg font-bold text-gold-hi">เก็บสำเร็จ! เลือกไข่ใบต่อไป</h2>
           <p className="text-sm text-text3">เลือกไข่ที่อยากได้เก็บเข้าคลัง (เลือกชนิดเดิมซ้ำได้)</p>

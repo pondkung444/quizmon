@@ -23,7 +23,7 @@ export default function ConfirmActionModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6">
+      <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-gold-dim bg-card p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <div className="text-center">
           <h2 className="text-lg font-bold text-gold-hi">{title}</h2>
           <p className="mt-1 text-sm text-text3">{description}</p>

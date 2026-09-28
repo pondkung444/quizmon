@@ -68,7 +68,7 @@ export function QuestionImage({ src }: { src: string }) {
         src={src}
         alt="รูปประกอบโจทย์"
         onError={() => setFailed(true)}
-        className="mx-auto max-h-[45vh] w-full object-contain"
+        className="mx-auto max-h-[45dvh] w-full object-contain"
       />
     </div>
   );

@@ -35,7 +35,7 @@ export default function BottomSheet({
         onClick={handleClose}
       />
       <div
-        className={`relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-t-3xl border-t border-gold-dim bg-card transition-transform duration-200 ${
+        className={`relative flex max-h-[85dvh] w-full max-w-xl flex-col rounded-t-3xl border-t border-gold-dim bg-card transition-transform duration-200 ${
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
