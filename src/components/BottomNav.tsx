@@ -83,6 +83,8 @@ export default function BottomNav({
   // จอครู (ฉายโปรเจกเตอร์) — เมนูของนักเรียนไม่เกี่ยว
   if (pathname?.startsWith("/teacher")) return null;
   if (pathname?.startsWith("/login") || pathname === "/guest" || pathname?.startsWith("/admin")) return null;
+  // พื้นที่ผู้ปกครอง — ตัดสินฝั่ง client (root layout ไม่ re-render ตอน soft-nav จึงอ่าน x-pathname ไม่ได้)
+  if (pathname?.startsWith("/guardian")) return null;
 
   const showRail = !NO_RAIL_PREFIXES.some((p) => pathname?.startsWith(p));
 
