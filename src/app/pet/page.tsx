@@ -303,7 +303,7 @@ export default async function PetPage({
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-4 pb-24 sm:p-6 sm:pb-24">
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมล่างขวาเหนือแถบเมนูล่าง (เหมือน RaidClient) แทน
           มุมบน (หัวการ์ด PetCard มีชื่อ + ชิปสัปดาห์เต็มความกว้าง) ส่วนมุมล่างขวาว่างสนิท */}
-      <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]" />
+      <BgmMuteButton className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)] lg:bottom-[calc(var(--bottom-nav-h)+1rem)]" />
       {user && <WeeklyRewardCelebration />}
       {/* บนสุด: กลับจากจ่าย PromptPay แล้วแท็บ Stripe ไม่ redirect — ให้เห็นทันทีว่าปลดล็อกแล้ว/กำลังยืนยัน (เฟส 4.1) */}
       {user && <RecentPremiumOrderBanner userId={user.id} />}

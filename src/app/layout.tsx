@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import WorldBackdrop from "@/components/WorldBackdrop";
 import GuestUpgradeGate, { GUEST_PW_PENDING_META } from "@/components/GuestUpgradeGate";
 import GuestConfirmEmailBanner from "@/components/GuestConfirmEmailBanner";
 import GuestSchoolPrompt from "@/components/GuestSchoolPrompt";
@@ -109,6 +110,7 @@ export default async function RootLayout({
   return (
     <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-bg text-text">
+        <WorldBackdrop />
         <NativeAppSetup />
         <SoundProvider />
         <OfflineScreen />

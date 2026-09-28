@@ -35,7 +35,7 @@ export default function RaidClient({ view }: { view: RaidView }) {
       <RaidPhaseScreen view={view} />
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — mount จุดเดียวครอบทุก phase ของ raid
           มุมล่างขวา เหนือแถบเมนูล่าง (จอบอสเป็น fixed inset-0 z-50 -> z-[70] อยู่บนสุดได้) */}
-      <BgmMuteButton className={view.phase === "card_battle" ? "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-[70]" : "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70]"} />
+      <BgmMuteButton className={view.phase === "card_battle" ? "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)]" : "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)] lg:bottom-[calc(var(--bottom-nav-h)+1rem)]"} />
     </>
   );
 }

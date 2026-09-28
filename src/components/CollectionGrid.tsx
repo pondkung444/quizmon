@@ -62,7 +62,7 @@ export default function CollectionGrid({ sections }: { sections: CollectionSecti
             <h2 className="text-sm font-bold text-gold-hi">{section.eggNameTh}</h2>
             {section.subtitle && <p className="text-xs text-text3">{section.subtitle}</p>}
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 lg:grid-cols-6">
             {section.slots.map((slot, index) => {
               const card = (
                 <div
