@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +29,13 @@ export default function CompleteProfilePage() {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privacyError, setPrivacyError] = useState(false);
+  const privacyRef = useRef<HTMLInputElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [error]);
 
   useEffect(() => {
     setHeroBaby(HERO_BABY_SPRITES[Math.floor(Math.random() * HERO_BABY_SPRITES.length)]);
@@ -71,7 +78,14 @@ export default function CompleteProfilePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || loading) return;
+
+    if (!privacyAccepted) {
+      setPrivacyError(true);
+      privacyRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      privacyRef.current?.focus({ preventScroll: true });
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -87,14 +101,18 @@ export default function CompleteProfilePage() {
       return;
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .update({ username, school, grade_level: gradeLevel, privacy_accepted_at: new Date().toISOString() })
-      .eq("id", userId);
-    setLoading(false);
+      .eq("id", userId)
+      .select("id");
 
-    if (error) {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+    // RLS ที่ปัดตกไม่คืน error แต่ได้ 0 แถว — ต้องถือว่าล้มเหลว ไม่งั้นจะเด้งกลับมาเงียบ ๆ
+    if (error || !data || data.length === 0) {
+      const code = error?.code ?? "NO_ROWS";
+      console.error("[complete-profile] profile update failed", { code });
+      setLoading(false);
+      setError(`บันทึกไม่สำเร็จ ลองกดบันทึกใหม่อีกครั้งนะ ถ้ายังไม่ได้ให้แจ้งครู (รหัส: ${code})`);
       return;
     }
 
@@ -160,12 +178,23 @@ export default function CompleteProfilePage() {
 
           <SchoolAutocomplete value={school} onChange={setSchool} required />
 
-          <label className="flex items-start gap-2 text-xs text-text2">
+          <div className="flex flex-col gap-1">
+          <label
+            className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-md border p-2 text-sm text-text2 ${
+              privacyError ? "border-red" : "border-transparent"
+            }`}
+          >
             <input
+              ref={privacyRef}
               type="checkbox"
               checked={privacyAccepted}
-              onChange={(e) => setPrivacyAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-amber"
+              onChange={(e) => {
+                setPrivacyAccepted(e.target.checked);
+                if (e.target.checked) setPrivacyError(false);
+              }}
+              aria-invalid={privacyError}
+              aria-describedby={privacyError ? "privacy-error" : undefined}
+              className="h-5 w-5 shrink-0 accent-amber"
             />
             <span>
               รับทราบ{" "}
@@ -181,15 +210,25 @@ export default function CompleteProfilePage() {
               ของ QuizMon
             </span>
           </label>
+          {privacyError && (
+            <p id="privacy-error" className="text-sm text-red animate-speech-pop">
+              กรุณาติ๊กยอมรับนโยบายความเป็นส่วนตัวก่อน
+            </p>
+          )}
+          </div>
 
-          {error && <p className="text-sm text-red animate-speech-pop">{error}</p>}
+          {error && (
+            <p ref={errorRef} role="alert" className="text-sm text-red animate-speech-pop">
+              {error}
+            </p>
+          )}
 
           <button
             type="submit"
-            disabled={loading || !privacyAccepted}
+            disabled={loading}
             className="rounded-full border border-gold bg-amber py-2 font-medium text-on-amber transition hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? "กำลังดำเนินการ..." : "เริ่มการผจญภัย"}
+            {loading ? "กำลังบันทึก…" : "เริ่มการผจญภัย"}
           </button>
         </form>
       </div>
