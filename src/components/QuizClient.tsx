@@ -55,6 +55,9 @@ const QUIZ_EVENT_PRIORITY: Partial<Record<PersonalityEventKey, number>> = {
 
 const THAI_LETTERS = ["ก", "ข", "ค", "ง"];
 
+// จอกว้าง (≥ lg) ตัวเลือกเรียง 2×2 ได้เมื่อทุกตัวยาวไม่เกินนี้ · มีตัวใดยาวเกิน → 1 คอลัมน์เหมือนมือถือ
+const CHOICE_GRID_MAX_CHARS = 40;
+
 // รูปประกอบโจทย์ — วางไว้ระหว่างตัวคำถามกับตัวเลือก รับได้ทั้ง data URI (ค่าปัจจุบัน) และ external
 // URL (เช่น Supabase Storage ในอนาคต) เลยใช้ <img> ธรรมดา ไม่ผ่าน next/image (ไม่ต้องตั้ง
 // remotePatterns / ไม่ optimize data URI อยู่แล้ว) ถ้าโหลดรูปไม่ขึ้นให้ซ่อนไปเงียบๆ ไม่ให้หน้าพัง
@@ -695,9 +698,12 @@ export default function QuizClient({
     const isLastQuestion = index + 1 >= questions.length;
     const journeyTotal = missionInfo?.targetCount ?? questions.length;
     const journeyCompleted = (missionInfo?.answeredCountBefore ?? 0) + index + (arrived ? 1 : 0);
+    // ตัดสินครั้งเดียวต่อข้อจากข้อมูลข้อนั้น — ไม่เปลี่ยนระหว่างตอบ
+    const choicesInGrid = current.choices.every((c) => c.length <= CHOICE_GRID_MAX_CHARS);
 
     return (
-      <div className="quiz-play flex flex-col gap-4">
+      // data-app-wide: ≥ lg ขยายกรอบ (quiz-shell + ฉาก + BGM) ผ่าน --app-frame-w · 2 panel ดู .quiz-split ใน globals.css
+      <div data-app-wide className="quiz-play flex flex-col gap-4">
         <div className="flex justify-end">
           <button
             type="button"
@@ -736,6 +742,8 @@ export default function QuizClient({
 
         <QuizJourney completed={journeyCompleted} total={journeyTotal} avatar={petAvatarPath} />
         <div className="quiz-question-card flex flex-col gap-4">
+        <div className="quiz-split" data-answered={result ? "" : undefined}>
+        <div className="quiz-split-main">
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text2">
           <span className="quiz-question-label">{missionInfo ? "ภารกิจวันนี้" : "ฝึกฝน"} · ข้อ {(missionInfo?.answeredCountBefore ?? 0) + index + 1}/{journeyTotal}</span>
           <span>{current.category}</span>
@@ -744,7 +752,34 @@ export default function QuizClient({
 
         {current.image_url && <QuizQuestionImage key={current.id} src={current.image_url} />}
 
-        <div className="flex flex-col gap-3">
+        {result && (
+          <div
+            role="status"
+            className={`quiz-split-result rounded-2xl border p-4 text-center ${
+              result.correct ? "border-correct/40 bg-correct/10 text-correct-text" : "border-border bg-track/40 text-text"
+            }`}
+          >
+            {result.correct ? (
+              <p className="font-sarabun text-lg font-bold">
+                ถูกต้อง! 🎉 ได้ +{result.expEarned} EXP
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <p className="font-sarabun text-lg font-bold">ยังไม่ถูกนะ ไม่เป็นไร!</p>
+                <p className="font-sarabun text-sm">
+                  เฉลย: {THAI_LETTERS[result.correctIndex]}. {current.choices[result.correctIndex]}
+                </p>
+
+              </div>
+            )}
+            {result.explanation && <p className="mt-3 text-left font-sarabun text-sm leading-relaxed text-text2">{result.explanation}</p>}
+          </div>
+        )}
+        {errorMessage && <div role="alert" className="quiz-split-result text-sm text-amber"><p>{errorMessage}</p><button type="button" onClick={() => router.push("/pet")} className="mt-2 min-h-11 underline">กลับไปหา Qmon</button></div>}
+        </div>
+
+        <div className="quiz-split-answers">
+        <div className={`flex flex-col gap-3 ${choicesInGrid ? "lg:grid lg:grid-cols-2 lg:auto-rows-fr" : ""}`}>
           {current.choices.map((choiceText, choiceIndex) => {
             const isSelected = selectedChoice === choiceIndex;
             const isCorrectChoice = result && choiceIndex === result.correctIndex;
@@ -780,39 +815,17 @@ export default function QuizClient({
         </div>
 
         {result && (
-          <div
-            role="status"
-            className={`rounded-2xl border p-4 text-center ${
-              result.correct ? "border-correct/40 bg-correct/10 text-correct-text" : "border-border bg-track/40 text-text"
-            }`}
-          >
-            {result.correct ? (
-              <p className="font-sarabun text-lg font-bold">
-                ถูกต้อง! 🎉 ได้ +{result.expEarned} EXP
-              </p>
-            ) : (
-              <div className="flex flex-col gap-1">
-                <p className="font-sarabun text-lg font-bold">ยังไม่ถูกนะ ไม่เป็นไร!</p>
-                <p className="font-sarabun text-sm">
-                  เฉลย: {THAI_LETTERS[result.correctIndex]}. {current.choices[result.correctIndex]}
-                </p>
-
-              </div>
-            )}
-            {result.explanation && <p className="mt-3 text-left font-sarabun text-sm leading-relaxed text-text2">{result.explanation}</p>}
-          </div>
-        )}
-        {errorMessage && <div role="alert" className="text-sm text-amber"><p>{errorMessage}</p><button type="button" onClick={() => router.push("/pet")} className="mt-2 min-h-11 underline">กลับไปหา Qmon</button></div>}
-        {result && (
           <button
             type="button"
             onClick={handleNext}
             disabled={isPending || arrived}
-            className="rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
+            className="quiz-split-next rounded-2xl border border-gold bg-amber py-4 text-lg font-bold text-on-amber shadow-lg transition active:scale-95 disabled:opacity-50"
           >
             {isPending ? "ถึงปลายทางแล้ว · กำลังบันทึก..." : isLastQuestion ? "ถึงปลายทาง · ดูสรุป" : "ไปต่อ →"}
           </button>
         )}
+        </div>
+        </div>
         </div>
       </div>
     );

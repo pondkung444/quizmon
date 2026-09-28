@@ -86,7 +86,7 @@ export default async function QuizPage({
       {/* ธีมแอป (dusk/day) — สีเฉพาะหน้านี้อยู่ที่ --quiz-* / --color-correct ใน globals.css */}
       <AppThemeMarker />
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — มุมบนซ้าย (มุมบนขวาเป็นปุ่มออกจากรอบของ QuizClient) */}
-      <BgmMuteButton className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[70]" />
+      <BgmMuteButton className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[70] lg:left-[calc(50%-var(--app-frame-w)/2+0.75rem)]" />
       <QuizClient
         personalityKey={personalityKey}
         petAvatarPath={petAvatarPath}

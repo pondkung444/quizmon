@@ -709,6 +709,23 @@ body {
 .quiz-image-expanded { display: block; width: 200%; max-width: none; height: auto; }
 @media (min-width: 640px) { .quiz-shell { padding-top: 24px; } .quiz-question-card { padding: 28px; } .quiz-journey { padding-inline: 40px; } .quiz-route { height: 90px; } }
 @media (prefers-reduced-motion: reduce) { .quiz-play *, .quiz-play *::before, .quiz-play *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+/* Quiz 2-panel (phase playing, ≥ lg) — scope ใต้ .quiz-play/.quiz-split เท่านั้น ไม่แตะ .quiz-question-card /
+   .quiz-image* เดิม (boss-raid ใช้ร่วม) · < lg: wrapper เป็น display: contents + order → ลำดับที่เห็นเหมือนเดิม */
+@media (max-width: 63.99rem) {
+  .quiz-split, .quiz-split-main, .quiz-split-answers { display: contents; }
+  .quiz-split-result { order: 1; }
+  .quiz-split-next { order: 2; }
+}
+@media (min-width: 64rem) {
+  /* playing ไม่มี rail จึงไม่ต้องเว้น rail+gap — ฉาก/BGM/เนื้อหาใช้ค่าเดียวกัน */
+  :root:has(.quiz-play[data-app-wide]) { --app-frame-w: min(1100px, calc(100vw - 2rem)); }
+  .quiz-shell:has(> .quiz-play[data-app-wide]) { max-width: var(--app-frame-w); }
+  .quiz-play .quiz-split { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .quiz-play .quiz-split-main { position: sticky; top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+  .quiz-play .quiz-split-answers { display: flex; flex-direction: column; gap: 1rem; }
+  .quiz-play .quiz-split-main .quiz-image-fit { max-height: 42svh; }
+  .quiz-play .quiz-split[data-answered] .quiz-split-main .quiz-image-fit { max-height: 26svh; }
+}
 
 /* Guardian: หน้า data-dense (ภาพรวม/รายงาน/แผน/เป้า) ใช้พื้นทึบ + การ์ดเรียบ อ่านตัวเลขง่าย —
    ไล่เฉด/เรืองแสงแบบหน้า quiz (.quiz-journey) เก็บไว้เฉพาะ hero card เดียวในภาพรวม (.gd-card-hero) เพราะ
@@ -1018,13 +1035,14 @@ body {
   --app-rail-w: 5.5rem;
   --app-rail-gap: 1rem;
 }
-/* หน้า wide: เว้นที่ rail + gap ทั้งสองฝั่ง (กรอบอยู่กลางจอ) → ที่ 1024px rail ไม่ชนเนื้อหา */
-:root:has([data-app-wide]) {
-  --app-frame-w: min(var(--app-max-w-wide), 100vw - 2 * (var(--app-rail-w) + var(--app-rail-gap)));
-}
 @media (min-width: 64rem) {
   :root {
     --bottom-nav-h: 0px;
+  }
+  /* หน้า wide: เว้นที่ rail + gap ทั้งสองฝั่ง (กรอบอยู่กลางจอ) → ที่ 1024px rail ไม่ชนเนื้อหา
+     อยู่ใน lg เท่านั้น — มือถือ --app-frame-w คง 576 เสมอ */
+  :root:has([data-app-wide]) {
+    --app-frame-w: min(var(--app-max-w-wide), 100vw - 2 * (var(--app-rail-w) + var(--app-rail-gap)));
   }
 }
 
