@@ -4,6 +4,12 @@ import { useState } from "react";
 import { Shield, Copy, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import BottomSheet from "@/components/social/BottomSheet";
+import {
+  GuardianGoalPanel,
+  GuardianPlanPanel,
+  GuardianVisibilityNote,
+} from "@/components/social/GuardianHubPanels";
+import type { GuardianHub } from "@/lib/guardianHub";
 
 export type GuardianEntry = {
   linkId: string;
@@ -15,6 +21,8 @@ export type GuardianLinkData = {
   pendingInviteCode: string | null;
   pendingExpiresAt: string | null;
   guardians: GuardianEntry[];
+  // null = ไม่มี claimed หรือ RPC error → แสดงแค่ส่วนเดิม
+  hub: GuardianHub | null;
 };
 
 function formatExpiry(iso: string): string {
@@ -30,8 +38,8 @@ function formatExpiry(iso: string): string {
 // หัวข้อ "ผู้พิทักษ์" ในแท็บสังคม (§7.1-7.2 ของเอกสารออกแบบ) — ขอบเขตรอบนี้ (entry flow เท่านั้น
 // ตามที่เคาะใน Notion 2026-09-16): ปุ่มสร้าง/สร้างใหม่รหัสเชิญ 8 หลัก + เห็นสถานะผูกทันที + ปุ่มถอด
 // การเชื่อม รองรับผู้พิทักษ์มากกว่า 1 คน (ตัดสินใจร่วมกับปอนด์ 2026-09-16) — เด็กกดสร้างรหัสใหม่ได้
-// เสมอแม้มีผู้พิทักษ์ claimed อยู่แล้ว ส่วนเป้า/ภารกิจ/"สิ่งที่ผู้พิทักษ์เห็น" (อีก 3 ส่วนใน §7.2) อยู่
-// นอกสโคปรอบนี้ — รอคิว UX/UI ตามลำดับที่ล็อกไว้ (entry flow → UX/UI → reward)
+// เสมอแม้มีผู้พิทักษ์ claimed อยู่แล้ว เฟส 1 (2026-09-29) เพิ่มศูนย์อ่านอย่างเดียวจาก guardian_get_my_hub:
+// เป้าสัปดาห์ / กำลังทบทวน / สิ่งที่ผู้พิทักษ์เห็น (ดู GuardianHubPanels.tsx)
 export default function GuardianLinkSection({
   initialData,
   onToast,
@@ -99,6 +107,14 @@ export default function GuardianLinkSection({
         <Shield className="h-4 w-4 text-gold-hi" />
         <h2 className="text-sm font-bold text-gold-hi">ผู้พิทักษ์</h2>
       </div>
+
+      {/* §7.2 ส่วน 1-2: เฉพาะเด็กที่มีผู้พิทักษ์ claimed (ถอดครบแล้วซ่อนทันที) */}
+      {guardians.length > 0 && initialData.hub && (
+        <>
+          <GuardianGoalPanel goal={initialData.hub.goal} reward={initialData.hub.reward} />
+          <GuardianPlanPanel plan={initialData.hub.plan} />
+        </>
+      )}
 
       {guardians.length === 0 && !pendingCode && (
         <div className="flex flex-col items-center gap-3 rounded-2xl border border-gold-dim bg-card p-6 text-center">
@@ -169,6 +185,9 @@ export default function GuardianLinkSection({
           {loading ? "กำลังสร้าง..." : "+ เชิญผู้พิทักษ์อีกคน"}
         </button>
       )}
+
+      {/* §7.2 ส่วน 4 */}
+      {guardians.length > 0 && <GuardianVisibilityNote />}
 
       {error && <p className="text-sm text-red">{error}</p>}
 

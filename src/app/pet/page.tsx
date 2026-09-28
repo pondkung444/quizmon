@@ -21,6 +21,8 @@ import { getPersonalityKey } from "@/lib/personality";
 import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
 import { getRaidTicketCount } from "@/lib/raid";
 import Link from "next/link";
+import { Suspense } from "react";
+import GuardianHubLink from "@/components/guardian/GuardianHubLink";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
@@ -363,6 +365,12 @@ export default async function PetPage({
         </div>
       )}
       {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (junior ทุกคนเห็น: CTA พรีเมียม / แผนของฉัน / เตือนต่ออายุ — ดู SelfServePlanCard) */}
+      {/* ทางเข้าศูนย์ผู้พิทักษ์ (เฟส 1) — แถวเล็ก เฉพาะเด็กที่มีผู้พิทักษ์ claimed, streamed ไม่ถ่วงหน้า */}
+      {user && (
+        <Suspense fallback={null}>
+          <GuardianHubLink userId={user.id} />
+        </Suspense>
+      )}
       {user && <SelfServePlanCard />}
     </main>
   );
