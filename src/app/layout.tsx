@@ -16,6 +16,7 @@ import SeenAuthFlag from "@/components/SeenAuthFlag";
 import NativeAppSetup from "@/components/NativeAppSetup";
 import SoundProvider from "@/components/SoundProvider";
 import OfflineScreen from "@/components/OfflineScreen";
+import ProfileGate from "@/components/ProfileGate";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
 import { getPvpBadgeCount } from "@/lib/pvp";
@@ -71,6 +72,7 @@ export default async function RootLayout({
   let hasUnreadEncouragements = false;
   let pvpBadgeCount = 0;
   let profileSchool: string | null = null;
+  let profileIncomplete = false;
   // guest (anonymous). สถานะการผูกไอดี (เช็คจาก is_anonymous + new_email + metadata flag):
   //   a) ยังไม่ผูก (anon, ไม่มี new_email) + pet ระยะ >= 2  -> full-screen block (GuestUpgradeGate)
   //   b) กรอกอีเมลแล้วรอกดลิงก์ยืนยัน (anon, มี new_email)  -> banner ไม่บล็อก (GuestConfirmEmailBanner)
@@ -93,6 +95,7 @@ export default async function RootLayout({
     hasUnreadEncouragements = unreadCount > 0;
     pvpBadgeCount = badgeCount;
     profileSchool = (profile?.school ?? null) || null;
+    profileIncomplete = !profile?.username || !profile?.grade_level;
 
     // บังคับให้กรอก complete-profile ให้เสร็จก่อนเข้าหน้าอื่นในแอป (กันเคส Google OAuth
     // signup ที่ profile ยังไม่ครบแล้วหนีไปหน้าอื่นได้เฉยๆ โดยไม่ผ่านฟอร์ม)
@@ -101,7 +104,8 @@ export default async function RootLayout({
     if (
       !pathname.startsWith("/login") &&
       !pathname.startsWith("/guardian") &&
-      (!profile?.username || !profile?.grade_level)
+      !pathname.startsWith("/privacy") &&
+      profileIncomplete
     ) {
       redirect("/login/complete-profile");
     }
@@ -114,6 +118,7 @@ export default async function RootLayout({
         <NativeAppSetup />
         <SoundProvider />
         <OfflineScreen />
+        <ProfileGate incomplete={profileIncomplete} />
         <AnalyticsTracker activePetStage={activePetStage} activePetSubline={activePetSubline} />
         <SeenAuthFlag authed={!!user && !isAnonymous} />
         <Analytics />
