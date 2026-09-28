@@ -1014,9 +1014,13 @@ body {
   --app-frame-w: var(--app-max-w);
   /* BottomNav: py-2.5 + ไอคอน 24px + gap + label text-xs + border-t = 65px */
   --bottom-nav-h: calc(65px + env(safe-area-inset-bottom));
+  /* side rail (BottomNav.tsx ≥ lg) ติดซ้ายของกรอบ */
+  --app-rail-w: 5.5rem;
+  --app-rail-gap: 1rem;
 }
+/* หน้า wide: เว้นที่ rail + gap ทั้งสองฝั่ง (กรอบอยู่กลางจอ) → ที่ 1024px rail ไม่ชนเนื้อหา */
 :root:has([data-app-wide]) {
-  --app-frame-w: min(var(--app-max-w-wide), 100vw - 2rem);
+  --app-frame-w: min(var(--app-max-w-wide), 100vw - 2 * (var(--app-rail-w) + var(--app-rail-gap)));
 }
 @media (min-width: 64rem) {
   :root {
