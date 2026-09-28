@@ -3,16 +3,17 @@
 import { useRef, useState } from "react";
 import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
 import type { RaidCardQuestion, RaidCardFeedback } from "@/lib/raid/cards/server";
-import { CARDS, QUICK_CARDS, type TurnLog } from "@/lib/raid/cards/engine";
+import { CARDS, QUICK_CARDS, CHAPTER_CARDS, type TurnLog } from "@/lib/raid/cards/engine";
 import styles from "./card-battle.module.css";
 
 const ANSWER_LABELS = ["ก", "ข", "ค", "ง"];
 
-export default function RaidLearningPanel({ question, feedback, busy, shortRound = false, turnResult, continueLabel = "กลับไปเลือกท่าถัดไป", onAnswer, onContinue }: {
+export default function RaidLearningPanel({ question, feedback, busy, shortRound = false, chapterRound = false, turnResult, continueLabel = "กลับไปเลือกท่าถัดไป", onAnswer, onContinue }: {
   question: RaidCardQuestion;
   feedback?: RaidCardFeedback | null;
   busy: boolean;
   shortRound?: boolean;
+  chapterRound?: boolean;
   turnResult?: TurnLog | null;
   continueLabel?: string;
   onAnswer: (index: number) => void | Promise<void>;
@@ -20,7 +21,7 @@ export default function RaidLearningPanel({ question, feedback, busy, shortRound
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const answerLock = useRef(false);
-  const card = shortRound ? QUICK_CARDS[question.cardId] ?? CARDS[question.cardId] : CARDS[question.cardId];
+  const card = chapterRound ? CHAPTER_CARDS[question.cardId] ?? CARDS[question.cardId] : shortRound ? QUICK_CARDS[question.cardId] ?? CARDS[question.cardId] : CARDS[question.cardId];
 
   async function submit(index: number) {
     if (busy || feedback || answerLock.current) return;
@@ -65,6 +66,7 @@ export default function RaidLearningPanel({ question, feedback, busy, shortRound
         </div>
         {turnResult && <div className={styles.moveResult} aria-label="ผลของท่านี้">
           <strong>{card.name}{turnResult.critical ? " · คริติคอล!" : ""}</strong>
+          <p>{turnResult.note}</p>
           <div>
             <span>ลดเลือดบอส <b>−{turnResult.dealt}</b></span>
             <span>Qmon เสียเลือด <b>−{turnResult.taken}</b></span>

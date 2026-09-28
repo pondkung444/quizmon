@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { createBattle, resolveTurn, type Battle } from "../../src/lib/raid/cards/engineV2.ts";
 import { createBattle as createShortBattle, resolveTurn as resolveShortTurn, QUESTION_LIMITS, type Battle as AnyBattle } from "../../src/lib/raid/cards/engine.ts";
+import { createChapterBattle, type ChapterOffer } from "../../src/lib/raid/cards/engine.ts";
 
 // Run the actual migration and existing production start/reward functions against PostgreSQL.
 // Only the surrounding schema/data is reduced; no reward or permission RPC is mocked.
@@ -132,11 +133,15 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
     await db.exec("alter table questions add column branch text");
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910114449_raid_card_question_mix.sql",import.meta.url),"utf8"));
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910155157_raid_short_rounds_v3.sql",import.meta.url),"utf8"));
+    await db.exec("alter table questions add column chapter text; alter table questions add column difficulty integer default 1; update questions set chapter='บท '||(id%6)::text");
+    await db.exec(readFileSync(new URL("../../supabase/migrations/20260927162425_raid_four_chapter_hands.sql",import.meta.url),"utf8"));
     await as("authenticated");
     const learningRun=(await start())!;
+    assert.equal(await scalar("select start_raid_chapter_run($1,$2) as value",[pet,mist]),learningRun);
     await assert.rejects(db.query("select * from raid_card_questions"),/permission denied/);
     await as("service_role");
     let learning=createBattle("ridge_mist",{hp:130,atk:130,def:130,spd:130,foc:130},()=>0.5);
+    assert.equal(await scalar("select requested_ruleset::text as value from raid_card_battles where run_id=$1",[learningRun]),"3");
     let rev=(await commit(learningRun,0,learning)).revision;
     await assert.rejects(commit(learningRun,rev,resolveTurn(learning,"strike",()=>0.5)),/Answer a question/);
     while(!learning.outcome) {
@@ -186,6 +191,70 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
         assert.deepEqual((await db.query("select * from claim_raid_card_reward($1)",[shortRun])).rows,reward.rows);
         assert.equal(reward.rows.length,1);
       }
+    }
+    // Real v4 RPCs: locked offers, snapshots, ownership, one selection and reward retry.
+    await as("authenticated",other);
+    await assert.rejects(db.query("select * from raid_chapter_offers"),/permission denied/);
+    await assert.rejects(db.query("select draw_raid_chapter_hand($1,$2,1)",[learningRun,user]),/permission denied/);
+    for (const [boss,type] of [["ridge_mist",mist],["ridge_gale",gale],["ridge_storm",storm]] as const) {
+      await as("authenticated");
+      const run=(await scalar("select start_raid_chapter_run($1,$2) as value",[pet,type]))!;
+      assert.equal(await scalar("select start_raid_chapter_run($1,$2) as value",[pet,type]),run);
+      await as("service_role");
+      assert.equal(await scalar("select requested_ruleset::text as value from raid_card_battles where run_id=$1",[run]),"4");
+      const snapshot=(await db.query<{stat_snapshot:Battle["stats"]}>("select stat_snapshot from raid_runs where id=$1",[run])).rows[0].stat_snapshot;
+      let battle:AnyBattle=createChapterBattle(boss,snapshot,()=>0.4);
+      let revision=(await db.query<{value:{revision:number}}>("select commit_raid_card_turn($1,$2,0,$3) as value",[run,user,JSON.stringify(battle)])).rows[0].value.revision;
+      while(!battle.outcome) {
+        const hand=(await db.query<{value:ChapterOffer[]}>("select draw_raid_chapter_hand($1,$2,$3) as value",[run,user,revision])).rows[0].value;
+        assert.equal(hand.length,4);assert.equal(new Set(hand.map(c=>c.chapter)).size,4);
+        assert.ok(hand.every(c=>!("question_id" in c) && !("correct_index" in c) && !("question" in c)));
+        assert.deepEqual((await db.query<{value:ChapterOffer[]}>("select draw_raid_chapter_hand($1,$2,$3) as value",[run,user,revision])).rows[0].value,hand);
+        await assert.rejects(db.query("select finish_exhausted_raid_chapters($1,$2,$3)",[run,user,revision]),/พร้อมเล่น/);
+        await assert.rejects(db.query("select prepare_raid_card_question($1,$2,$3,'strike')",[run,user,revision]),/Select a chapter/);
+        await assert.rejects(db.query("select select_raid_chapter_offer($1,$2,$3,$4)",[run,other,revision,hand[0].id]),/ไม่พบรอบ/);
+        await db.query("select select_raid_chapter_offer($1,$2,$3,$4)",[run,user,revision,hand[0].id]);
+        await db.query("select select_raid_chapter_offer($1,$2,$3,$4)",[run,user,revision,hand[1].id]);
+        const chosen=(await db.query<{card_id:string}>("select card_id from raid_card_questions where run_id=$1 and revision=$2",[run,revision])).rows[0];
+        assert.equal(chosen.card_id,hand[0].cardId);
+        const next=resolveShortTurn(battle,hand[0].cardId,()=>0.4,true);
+        const result=await db.query<{value:{revision:number}}>("select answer_raid_card_question($1,$2,$3,0,$4) as value",[run,user,revision,JSON.stringify(next)]);
+        assert.deepEqual((await db.query("select answer_raid_card_question($1,$2,$3,0,$4) as value",[run,user,revision,JSON.stringify(next)])).rows,result.rows);
+        battle=next;revision=result.rows[0].value.revision;
+      }
+      await as("authenticated");
+      const reward=await db.query("select * from claim_raid_card_reward($1)",[run]);
+      assert.deepEqual((await db.query("select * from claim_raid_card_reward($1)",[run])).rows,reward.rows);
+    }
+    await as("service_role");
+    {
+    await db.query("insert into raid_tickets(user_id,zone_id) select $1,$2 from generate_series(1,3)",[user,mist]);
+    await db.exec("update questions set chapter='บท '||(id%2)::text");
+    await as("authenticated");
+    const scarce=(await scalar("select start_raid_chapter_run($1,$2) as value",[pet,mist]))!;
+    await as("service_role");
+    const snap=(await db.query<{stat_snapshot:Battle["stats"]}>("select stat_snapshot from raid_runs where id=$1",[scarce])).rows[0].stat_snapshot;
+    const state=createChapterBattle("ridge_mist",snap,()=>0.4);
+    await db.query("select commit_raid_card_turn($1,$2,0,$3)",[scarce,user,JSON.stringify(state)]);
+    const hand=(await db.query<{value:ChapterOffer[]}>("select draw_raid_chapter_hand($1,$2,1) as value",[scarce,user])).rows[0].value;
+    assert.equal(hand.length,2,"only two distinct chapters remain");
+    // Offered questions are immutable even if an editor changes the live question.
+    await db.exec("update questions set status='inactive',correct_index=1,question_text='CHANGED'");
+    await db.query("select select_raid_chapter_offer($1,$2,1,$3)",[scarce,user,hand[0].id]);
+    assert.equal(await scalar("select correct_index::text as value from raid_card_questions where run_id=$1",[scarce]),"0");
+    const next=resolveShortTurn(state,hand[0].cardId,()=>0.4,true);
+    await db.query("select answer_raid_card_question($1,$2,1,0,$3)",[scarce,user,JSON.stringify(next)]);
+    assert.deepEqual((await db.query<{value:unknown[]}>("select draw_raid_chapter_hand($1,$2,2) as value",[scarce,user])).rows[0].value,[]);
+    await db.query("select finish_exhausted_raid_chapters($1,$2,2)",[scarce,user]);
+    await db.query("select finish_exhausted_raid_chapters($1,$2,2)",[scarce,user]);
+    await as("authenticated");
+    await db.query("select * from claim_raid_card_reward($1)",[scarce]);
+    await as("service_role");
+    const tickets=await scalar("select count(*)::text as value from raid_tickets where consumed_at is not null");
+    await as("authenticated");
+    await assert.rejects(db.query("select start_raid_chapter_run($1,$2)",[pet,mist]),/ไม่พอ/);
+    await as("service_role");
+    assert.equal(await scalar("select count(*)::text as value from raid_tickets where consumed_at is not null"),tickets);
     }
   } finally { await db.close(); }
 });

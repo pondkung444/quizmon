@@ -13,6 +13,7 @@ import { getPetImagePath } from "@/lib/petImage";
 import RaidGearIcon from "./RaidGearIcon";
 import { RAID_GEAR_QUALITY_COLOR, RAID_GEAR_SLOT_ANATOMY_TH } from "@/lib/raid/labels";
 import CardBattleArena from "./CardBattleArena";
+import { selectRaidChapter, finishExhaustedRaid } from "@/app/raid/card-actions";
 import styles from "./card-battle.module.css";
 
 export default function RaidCardBattle({ view }: { view: CardBattleView }) {
@@ -50,6 +51,14 @@ export default function RaidCardBattle({ view }: { view: CardBattleView }) {
     catch (e) { setError(e instanceof Error ? e.message : "ยังโหลดไม่ได้"); }
     finally { setBusy(false); lock.current = false; }
   }
+  async function selectOffer(id?:string) {
+    if (lock.current) return;
+    lock.current=true; setBusy(true); setError(null);
+    try {
+      setCurrent(id ? await selectRaidChapter(current.runId,current.revision,id) : await finishExhaustedRaid(current.runId,current.revision));
+    } catch(e) { setError(e instanceof Error ? e.message : "ยังเลือกบทไม่ได้"); }
+    finally {lock.current=false;setBusy(false);}
+  }
   async function answer(index:number) {
     if(lock.current) return;
     lock.current=true;setBusy(true);setError(null);
@@ -81,6 +90,7 @@ export default function RaidCardBattle({ view }: { view: CardBattleView }) {
   }
   return <>
     <CardBattleArena {...current} busy={busy} error={error} animateTurn={animateTurn} onPlay={play} onReload={reload}
+      onSelectOffer={(id)=>void selectOffer(id)} onFinishExhausted={()=>void selectOffer()}
       feedback={!current.question && current.feedback && current.feedback.revision>dismissed?current.feedback:null} onAnswer={answer} onContinue={()=>setDismissed(current.feedback?.revision??-1)}
       onExit={() => router.push("/pet")} onReward={claim} rewardReady={!!reward} />
     {showReward && reward && <dialog ref={rewardDialog} className={styles.rewardOverlay} aria-labelledby="raid-reward-title" onCancel={(event) => event.preventDefault()}>
