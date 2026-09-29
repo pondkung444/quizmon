@@ -47,16 +47,21 @@ export async function generateDigest(
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (attempt > 0 && Date.now() - started > TOTAL_BUDGET_MS - CALL_TIMEOUT_MS) break;
       try {
+        // 6000: prompt ยาว+ข้อห้ามเยอะ → โมเดลคิดนาน และ thinking tokens นับรวมในงบนี้
+        // (2000 เดิมน่าจะโดนตัดตอนคิดจน content ว่าง) · คำตอบไทย 3–5 ประโยคใช้ไม่ถึง 1000
         const candidate = await callGemini(prompt, {
           timeoutMs: CALL_TIMEOUT_MS,
-          maxOutputTokens: 2000,
+          maxOutputTokens: 6000,
           temperature: 0.7,
         });
         text = candidate;
         warnings = validateDigestBody(candidate).warnings;
         if (warnings.length === 0) break;
       } catch (e) {
-        console.error("[teacher/guardian] gemini failed:", errMsg(e));
+        console.error(
+          `[teacher/guardian] gemini failed (attempt ${attempt + 1}, ${Date.now() - started}ms):`,
+          errMsg(e)
+        );
         if (text) break; // มีข้อความที่มี warning อยู่แล้ว ใช้อันนั้น
       }
     }
