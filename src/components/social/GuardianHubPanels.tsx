@@ -87,6 +87,17 @@ export function GuardianPlanPanel({
   );
 }
 
+// เฟส 4 — ข้อความ preset จากผู้พิทักษ์ (อ่านซ้ำได้) ห้ามมีคำว่าเห็น/ดู ไม่มีเวลา ไม่มีปุ่มตอบ (§10.1)
+export function GuardianQuestMessageCard({ message }: { message: GuardianHub["quest_message"] }) {
+  if (!message) return null;
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl border border-gold-dim bg-card p-4">
+      <p className="text-xs text-text3">ข้อความจากผู้พิทักษ์</p>
+      <p className="text-sm font-bold text-gold-hi">{message}</p>
+    </div>
+  );
+}
+
 // ส่วนที่ 4 ของ §7.2 — ข้อความคงที่ ตรวจกับ RPC ฝั่งผู้ปกครองแล้ว (ยอดรวมทั้งหมด ไม่มีรายข้อ)
 // ห้ามแสดงเวลาที่ผู้พิทักษ์เปิดดู (§10.1)
 export function GuardianVisibilityNote() {

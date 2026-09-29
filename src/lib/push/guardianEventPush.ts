@@ -5,14 +5,24 @@ import { getTodayInBangkok } from "@/lib/exp";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
-const NOTIFICATION_TYPE = "guardian_goal_set";
 const DEEP_LINK = "/social?tab=profile";
 const DEFERRED_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-// ข้อความคงที่ — ใช้คำกลาง "ผู้พิทักษ์" เสมอ ไม่มีชื่อ ไม่มีตัวเลข และไม่ดึงข้อความที่ผู้ปกครองพิมพ์
-// (Q6: ห้ามใส่ guardians.display_name หรือข้อความใดๆ ของผู้ปกครองลง push)
-const TITLE = "ผู้พิทักษ์ตั้งเป้าให้สัปดาห์นี้แล้ว 🎯";
-const BODY = "แวะดูเป้าและรางวัลได้ในหน้าสังคม";
+// ข้อความคงที่ต่อชนิด — ใช้คำกลาง "ผู้พิทักษ์" เสมอ ไม่มีชื่อ ไม่มีตัวเลข และไม่ดึงข้อความที่ผู้ปกครองพิมพ์/เลือก
+// (Q6: ห้ามใส่ guardians.display_name หรือข้อความ preset ใดๆ ลง push · §10.1 ห้ามมีนัย "เห็น/ดู" ข้อมูลเด็ก)
+const PUSH_KINDS = {
+  guardian_goal_set: {
+    title: "ผู้พิทักษ์ตั้งเป้าให้สัปดาห์นี้แล้ว 🎯",
+    body: "แวะดูเป้าและรางวัลได้ในหน้าสังคม",
+  },
+  guardian_quest_message: {
+    title: "ผู้พิทักษ์ฝากข้อความไว้ให้ ✉️",
+    body: "แวะดูได้ในหน้าสังคม",
+  },
+} as const;
+
+type GuardianPushKind = keyof typeof PUSH_KINDS;
+const PUSH_KIND_KEYS = Object.keys(PUSH_KINDS) as GuardianPushKind[];
 
 type DeviceRow = { id: string; fcm_token: string };
 
@@ -23,7 +33,8 @@ type DeviceRow = { id: string; fcm_token: string };
 async function deliver(
   admin: AdminClient,
   jobId: string,
-  devices: DeviceRow[]
+  devices: DeviceRow[],
+  content: { title: string; body: string }
 ): Promise<{ anySuccess: boolean; lastError: string | null }> {
   let anySuccess = false;
   let lastError: string | null = null;
@@ -32,8 +43,8 @@ async function deliver(
     try {
       const result = await sendPushToDevice({
         token: device.fcm_token,
-        title: TITLE,
-        body: BODY,
+        title: content.title,
+        body: content.body,
         deepLink: DEEP_LINK,
       });
       if (result.ok) {
@@ -78,15 +89,17 @@ async function deliver(
 }
 
 /**
- * แจ้งเด็กว่าผู้พิทักษ์ตั้งเป้าให้ — เรียกจาก server action หลัง guardian_set_goal สำเร็จ
+ * ตัวกลางของ push ผู้พิทักษ์ทุกชนิด (ดู sendGuardianGoalSetPush / sendGuardianQuestMessagePush)
  *
  * - idempotency ต่อเด็กต่อวัน (เวลาไทย): ผู้ปกครองเปลี่ยนระดับหลายรอบในวันเดียวได้ push ครั้งเดียว
  * - อยู่ในช่วงพักกลางคืน → เก็บเป็น job `pending` แล้ว cron เช้ารอบแรกส่งให้ (Q10: ไม่ทิ้ง)
  * - ไม่ throw ออกนอกฟังก์ชัน — push พังต้องไม่ทำให้การตั้งเป้าล้ม
  */
-export async function sendGuardianGoalSetPush(
-  studentId: string
+async function sendGuardianPush(
+  studentId: string,
+  kind: GuardianPushKind
 ): Promise<{ sent: boolean; deferred?: boolean; reason?: string }> {
+  const content = PUSH_KINDS[kind];
   try {
     const admin = createAdminClient();
 
@@ -115,11 +128,11 @@ export async function sendGuardianGoalSetPush(
       .upsert(
         {
           user_id: studentId,
-          notification_type: NOTIFICATION_TYPE,
-          title: TITLE,
-          body: BODY,
+          notification_type: kind,
+          title: content.title,
+          body: content.body,
           deep_link: DEEP_LINK,
-          idempotency_key: `${NOTIFICATION_TYPE}:${studentId}:${getTodayInBangkok()}`,
+          idempotency_key: `${kind}:${studentId}:${getTodayInBangkok()}`,
           status: "pending",
         },
         { onConflict: "idempotency_key", ignoreDuplicates: true }
@@ -131,16 +144,32 @@ export async function sendGuardianGoalSetPush(
 
     if (quiet) return { sent: false, deferred: true };
 
-    const { anySuccess } = await deliver(admin, inserted.id as string, devices as DeviceRow[]);
+    const { anySuccess } = await deliver(admin, inserted.id as string, devices as DeviceRow[], content);
     return { sent: anySuccess };
   } catch (err) {
-    console.error("[push] sendGuardianGoalSetPush failed:", err);
+    console.error(`[push] sendGuardianPush(${kind}) failed:`, err);
     return { sent: false, reason: err instanceof Error ? err.message : "unknown error" };
   }
 }
 
 /**
- * cron เช้า: ส่ง job guardian_goal_set ที่ค้าง pending เพราะตั้งเป้าตอนช่วงพัก
+ * แจ้งเด็กว่าผู้พิทักษ์ตั้งเป้าให้ — เรียกจาก server action หลัง guardian_set_goal สำเร็จ
+ * ไม่ throw — push พังต้องไม่ทำให้การตั้งเป้าล้ม
+ */
+export function sendGuardianGoalSetPush(studentId: string) {
+  return sendGuardianPush(studentId, "guardian_goal_set");
+}
+
+/**
+ * แจ้งเด็กว่าผู้พิทักษ์ฝากข้อความ (เลือก preset) — เรียกหลัง guardian_set_quest_message สำเร็จ
+ * ข้อความคงที่ ไม่มีเนื้อหา preset · idempotency ต่อเด็กต่อวัน · ไม่ throw
+ */
+export function sendGuardianQuestMessagePush(studentId: string) {
+  return sendGuardianPush(studentId, "guardian_quest_message");
+}
+
+/**
+ * cron เช้า: ส่ง job ผู้พิทักษ์ (goal_set / quest_message) ที่ค้าง pending เพราะเกิดตอนช่วงพัก
  * - เกิน 24 ชม. → skipped (expired)
  * - เช็ค preference + ลิงก์ผู้พิทักษ์ ณ ตอนส่งจริง ไม่ผ่าน → skipped
  * ไม่ throw — คืน summary เสมอ
@@ -152,8 +181,8 @@ export async function flushDeferredGuardianPushes(
   try {
     const { data: jobs, error } = await admin
       .from("notification_jobs")
-      .select("id, user_id, created_at")
-      .eq("notification_type", NOTIFICATION_TYPE)
+      .select("id, user_id, created_at, notification_type")
+      .in("notification_type", PUSH_KIND_KEYS)
       .eq("status", "pending");
     if (error) throw error;
 
@@ -204,7 +233,12 @@ export async function flushDeferredGuardianPushes(
           continue;
         }
 
-        const { anySuccess } = await deliver(admin, jobId, devices as DeviceRow[]);
+        const { anySuccess } = await deliver(
+          admin,
+          jobId,
+          devices as DeviceRow[],
+          PUSH_KINDS[job.notification_type as GuardianPushKind]
+        );
         if (anySuccess) summary.sent += 1;
       } catch (err) {
         console.error("[push] flushDeferredGuardianPushes job failed:", err);

@@ -7,6 +7,7 @@ import BottomSheet from "@/components/social/BottomSheet";
 import {
   GuardianGoalPanel,
   GuardianPlanPanel,
+  GuardianQuestMessageCard,
   GuardianVisibilityNote,
 } from "@/components/social/GuardianHubPanels";
 import type { GuardianHub } from "@/lib/guardianHub";
@@ -116,6 +117,7 @@ export default function GuardianLinkSection({
             plan={initialData.hub.plan}
             reviewPausedToday={initialData.hub.review_paused_today}
           />
+          <GuardianQuestMessageCard message={initialData.hub.quest_message} />
         </>
       )}
 
