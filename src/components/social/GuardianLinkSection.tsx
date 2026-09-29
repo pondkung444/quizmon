@@ -112,7 +112,10 @@ export default function GuardianLinkSection({
       {guardians.length > 0 && initialData.hub && (
         <>
           <GuardianGoalPanel goal={initialData.hub.goal} reward={initialData.hub.reward} />
-          <GuardianPlanPanel plan={initialData.hub.plan} />
+          <GuardianPlanPanel
+            plan={initialData.hub.plan}
+            reviewPausedToday={initialData.hub.review_paused_today}
+          />
         </>
       )}
 

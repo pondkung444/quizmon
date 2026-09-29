@@ -50,12 +50,21 @@ export function GuardianGoalPanel({ goal, reward }: Pick<GuardianHub, "goal" | "
 
 // ส่วนที่ 2 ของ §7.2 — คิวลำดับบท ไม่ใช่ปฏิทิน (§5.3): ห้ามมี "ช้ากว่าแผน" / สัปดาห์เป้าหมาย
 // ไม่มีลิงก์ไป /my-plan (เด็กไม่มี Premium จะเด้งไปหน้าซื้อ)
-export function GuardianPlanPanel({ plan }: Pick<GuardianHub, "plan">) {
+export function GuardianPlanPanel({
+  plan,
+  reviewPausedToday,
+}: Pick<GuardianHub, "plan"> & { reviewPausedToday?: GuardianHub["review_paused_today"] }) {
   if (!plan || plan.subjects.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-gold-dim bg-card p-4">
       <p className="text-xs text-text3">กำลังทบทวน</p>
+      {reviewPausedToday === "chapter_passed" && (
+        <p className="text-xs text-text2">วันนี้ผ่านบทแล้ว พรุ่งนี้ไปต่อบทถัดไป</p>
+      )}
+      {reviewPausedToday === "student_closed" && (
+        <p className="text-xs text-text2">วันนี้พักโหมดทบทวนไว้ พรุ่งนี้กลับมาต่อ</p>
+      )}
       {plan.subjects.map((s) => (
         <div key={s.subject} className="flex flex-col gap-0.5">
           <p className="text-xs font-bold text-gold-hi">{SUBJECT_LABEL_TH[s.subject] ?? s.subject}</p>

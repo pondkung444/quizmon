@@ -27,6 +27,8 @@ export type GuardianHub = {
     exam_date: string | null;
     subjects: GuardianHubPlanSubject[];
   } | null;
+  // เฟส 2: วันนี้พักโหมดทบทวนอยู่ไหม (เวลาไทย) — เด็กกดพักเอง หรือผ่านบทแล้ว
+  review_paused_today: "student_closed" | "chapter_passed" | null;
 };
 
 export const SUBJECT_LABEL_TH: Record<string, string> = {
@@ -46,6 +48,7 @@ export async function getMyGuardianHub(
       goal: data.goal ?? null,
       reward: data.reward ?? null,
       plan: data.plan ?? null,
+      review_paused_today: data.review_paused_today ?? null,
     };
   } catch {
     return null;

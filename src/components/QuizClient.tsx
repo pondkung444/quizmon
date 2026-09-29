@@ -11,6 +11,7 @@ import {
   finishQuizRound,
   claimMissionBonus,
   getTopicChapters,
+  pauseReviewToday,
   type RoundFinishResult,
   type MissionRoundInfo,
   type ChapterOption,
@@ -35,6 +36,7 @@ import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
 import Toast from "@/components/social/Toast";
 import QuizJourney from "@/components/quiz/QuizJourney";
+import GuardianRoundRewards from "@/components/quiz/GuardianRoundRewards";
 import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
 import MiniReviewRound from "@/components/quiz/MiniReviewRound";
 import { selectMissedQuestions } from "@/lib/learningFeedback";
@@ -173,6 +175,11 @@ export default function QuizClient({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   // ไม่ null เฉพาะตอนเล่นภารกิจประจำวัน (ผ่าน /quiz?mission=<id>) — practice mode ปกติเป็น null ตลอด
   const [missionInfo, setMissionInfo] = useState<MissionRoundInfo | null>(null);
+  // เฟส 2 โหมดทบทวน: ไม่ null เฉพาะรอบฝึกที่ดึงข้อจากแผนจริง (ป้าย "กำลังทบทวน: {บท}" + ปุ่มพักวันนี้)
+  // กดพักสำเร็จ → เซ็ต null (ซ่อนป้าย) ข้อที่โหลดไว้แล้วเล่นต่อตามเดิม มีผลรอบถัดไป
+  const [planInfo, setPlanInfo] = useState<{ chapterLabel: string } | null>(null);
+  const [pauseToastMessage, setPauseToastMessage] = useState<string | null>(null);
+  const [pausingReview, setPausingReview] = useState(false);
   // ผลจากเช็ค+เคลมโบนัสตอนจบภารกิจ (claimMissionBonus) — null ถ้ายังไม่เรียก/เรียกไม่สำเร็จ
   const [missionClaim, setMissionClaim] = useState<ClaimMissionBonusResult | null>(null);
   const [missionClaimFailed, setMissionClaimFailed] = useState(false);
@@ -241,6 +248,8 @@ export default function QuizClient({
     setErrorMessage(null);
     setSaveWarning(null);
     setMissionInfo(null);
+    setPlanInfo(null);
+    setPausingReview(false);
     setTopicFilter(null);
     setMissionClaim(null);
     setMissionClaimFailed(false);
@@ -344,7 +353,12 @@ export default function QuizClient({
     setPhase("loading");
     startTransition(async () => {
       try {
-        const { questions: round, currentCombo, lastAttemptBeforeRound } = await startQuizRound({
+        const {
+          questions: round,
+          currentCombo,
+          lastAttemptBeforeRound,
+          planInfo: roundPlanInfo,
+        } = await startQuizRound({
           type: "practice",
           mode: nextMode,
         });
@@ -354,6 +368,7 @@ export default function QuizClient({
           return;
         }
         setQuestions(round);
+        setPlanInfo(roundPlanInfo);
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
@@ -614,6 +629,21 @@ export default function QuizClient({
     });
   }
 
+  // "พักวันนี้" — พักโหมดทบทวนถึงสิ้นวัน ข้อที่โหลดแล้วเล่นต่อตามเดิม (ห้ามสลับข้อกลางรอบ)
+  // ล้มเหลว → toast กลาง ไม่ขึ้น error น่ากลัว
+  async function handlePauseReview() {
+    if (pausingReview) return;
+    setPausingReview(true);
+    const ok = await pauseReviewToday();
+    setPausingReview(false);
+    if (ok) {
+      setPlanInfo(null);
+      setPauseToastMessage("วันนี้พักโหมดทบทวนแล้ว พรุ่งนี้กลับมาต่อนะ");
+    } else {
+      setPauseToastMessage("ลองใหม่อีกครั้งนะ");
+    }
+  }
+
   function handlePlayAgain() {
     if (topicFilter) handleSelectTopic(topicFilter);
     else if (mode) handleSelectMode(mode);
@@ -704,6 +734,7 @@ export default function QuizClient({
     return (
       // data-app-wide: ≥ lg ขยายกรอบ (quiz-shell + ฉาก + BGM) ผ่าน --app-frame-w · 2 panel ดู .quiz-split ใน globals.css
       <div data-app-wide className="quiz-play flex flex-col gap-4">
+        {pauseToastMessage && <Toast message={pauseToastMessage} onDone={() => setPauseToastMessage(null)} />}
         <div className="flex justify-end">
           <button
             type="button"
@@ -748,6 +779,19 @@ export default function QuizClient({
           <span className="quiz-question-label">{missionInfo ? "ภารกิจวันนี้" : "ฝึกฝน"} · ข้อ {(missionInfo?.answeredCountBefore ?? 0) + index + 1}/{journeyTotal}</span>
           <span>{current.category}</span>
         </div>
+        {planInfo && (
+          <div className="flex items-center justify-between gap-2 text-xs text-text3">
+            <span className="min-w-0 truncate">กำลังทบทวน: {planInfo.chapterLabel}</span>
+            <button
+              type="button"
+              onClick={handlePauseReview}
+              disabled={pausingReview}
+              className="flex-none rounded-full border border-border px-3 py-1 text-xs text-text2 transition active:scale-95 disabled:opacity-50"
+            >
+              พักวันนี้
+            </button>
+          </div>
+        )}
         <h2 className="font-sarabun text-lg sm:text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
 
         {current.image_url && <QuizQuestionImage key={current.id} src={current.image_url} />}
@@ -910,6 +954,8 @@ export default function QuizClient({
           <p className="mt-2 text-sm text-text2">กลับหน้าแรกเพื่อดูว่าเหลือ EXP อีกเท่าไร ก่อนครบเป้าหมายฝึกวันนี้</p>
         </div>
 
+        {summary && <GuardianRoundRewards summary={summary} />}
+
         <div className="rounded-3xl border border-gold-dim bg-card p-6">
           {/* ห้ามแปลงเป็น % และห้ามเทียบกับ baseline เป็นลูกศรขึ้น/ลง */}
           <p className="text-lg text-text">
@@ -981,6 +1027,8 @@ export default function QuizClient({
         <p className="text-6xl">{correctCount >= questions.length ? "🏆" : correctCount > 0 ? "🎊" : "💪"}</p>
         <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">จบรอบแล้ว!</h1>
       </div>
+
+      {summary && <GuardianRoundRewards summary={summary} />}
 
       <div className="rounded-3xl border border-gold-dim bg-card p-6">
         <p className="text-lg text-text">

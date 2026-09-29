@@ -133,6 +133,9 @@ export type StartQuizRoundResult = {
   currentCombo: number;
   lastAttemptBeforeRound: string | null;
   missionInfo: MissionRoundInfo | null;
+  // เฟส 2 (โหมดทบทวน): ไม่ null เฉพาะเมื่อรอบนี้ดึงข้อจากแผนจริง — ป้าย "กำลังทบทวน: {บท}" บน QuizClient
+  // ห้ามส่ง paused/reduced ให้ client (เด็กต้องไม่รู้ว่าถูกลดสัดส่วน — ไม่ลงโทษทางอ้อม)
+  planInfo: { chapterLabel: string } | null;
 };
 
 export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQuizRoundResult> {
@@ -169,7 +172,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
 
     const candidateIds = idRows.map((r) => r.id);
     if (candidateIds.length === 0) {
-      return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo: null };
+      return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null };
     }
     const pickedIds = shuffle(candidateIds).slice(0, ROUND_SIZE);
     const { data: rows, error } = await admin
@@ -194,7 +197,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       ])
     );
     const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
-    return { questions, currentCombo, lastAttemptBeforeRound, missionInfo: null };
+    return { questions, currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null };
   }
 
   let mode: QuizMode;
@@ -272,6 +275,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   // self_serve_enrollment ยัง active + ยังไม่หมดอายุ หมดปุ๊บ (ณ วินาทีนั้น) fallback เป็นสุ่มปกติเหมือนคนไม่มีแผน
   // ไม่ throw — แผนที่ผู้ปกครองสร้างให้ (guardian_id = ผู้ปกครอง) ไม่เกี่ยว
   let planInjectedIds: number[] = [];
+  let planChapterLabel: string | null = null;
   if (input.type === "practice" && !isSeniorBranchMode && user) {
     const { data: plan } = await admin
       .from("guardian_plan")
@@ -308,7 +312,28 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
           .eq("chapter_key", currentChapter.chapter_key)
           .single();
 
-        if (cc) {
+        // เฟส 2: วันนี้พัก (เด็กกดเอง/ผ่านบท) → ไม่ดึงจากแผนเลย · reduced (ถูก <40% ใน 3 วันล่าสุดที่เล่น)
+        // → ดึง 1 ข้อแทน 3/5 · RPC error/ไม่มีแถว → ทำแบบเดิม ห้าม throw (service_role เท่านั้นจึงผ่าน admin)
+        // เรียกเฉพาะเมื่อมี activePlan + current chapter ของวิชานี้ — คนไม่มีแผนไม่มี query เพิ่ม
+        let reviewPaused = false;
+        let reviewReduced = false;
+        try {
+          const { data: stateRows, error: stateError } = await admin.rpc("guardian_get_injection_state", {
+            p_student_id: user.id,
+            p_subject: mode,
+          });
+          if (stateError) {
+            console.error("startQuizRound: guardian_get_injection_state error (non-fatal)", user.id, stateError);
+          } else {
+            const state = Array.isArray(stateRows) ? stateRows[0] : stateRows;
+            reviewPaused = state?.paused === true;
+            reviewReduced = state?.reduced === true;
+          }
+        } catch (err) {
+          console.error("startQuizRound: guardian_get_injection_state threw (non-fatal)", user.id, err);
+        }
+
+        if (cc && !reviewPaused) {
           const chapterRows = await fetchAllRows<{ id: number }>((from, to) => {
             let q = admin
               .from("questions")
@@ -324,8 +349,9 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
             return q.range(from, to);
           });
           const chapterIds = chapterRows.map((r) => r.id).filter((id) => !excludeIds.has(id));
-          const PLAN_COUNT = Math.ceil(roundSize / 2); // roundSize=5 → 3 จากแผน (ปัดขึ้นตามที่ตกลง)
+          const PLAN_COUNT = reviewReduced ? 1 : Math.ceil(roundSize / 2); // roundSize=5 → 3 จากแผน (ปัดขึ้นตามที่ตกลง) · reduced → 1
           planInjectedIds = shuffle(chapterIds).slice(0, Math.min(PLAN_COUNT, chapterIds.length));
+          planChapterLabel = cc.chapter;
         }
       }
     }
@@ -356,7 +382,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   }
 
   if (roundSize === 0 || candidateIds.length === 0) {
-    return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo };
+    return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo, planInfo: null };
   }
 
   // คนที่ไม่มี plan injection (คนส่วนใหญ่ทั้งหมด) เดินโค้ดบรรทัดเดิมเป๊ะ ไม่มีอะไรเปลี่ยนแม้แต่นิดเดียว
@@ -394,7 +420,30 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     ])
   );
   const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
-  return { questions, currentCombo, lastAttemptBeforeRound, missionInfo };
+  return {
+    questions,
+    currentCombo,
+    lastAttemptBeforeRound,
+    missionInfo,
+    planInfo: planInjectedIds.length > 0 && planChapterLabel ? { chapterLabel: planChapterLabel } : null,
+  };
+}
+
+// เด็กกด "พักวันนี้" บนหน้ารอบเล่น — พักโหมดทบทวนถึงสิ้นวัน (เวลาไทย) DB รีเซ็ตเองพรุ่งนี้
+// best-effort: error → log + false ห้าม throw
+export async function pauseReviewToday(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("guardian_pause_review_today");
+    if (error) {
+      console.error("pauseReviewToday: guardian_pause_review_today error", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("pauseReviewToday: threw", err);
+    return false;
+  }
 }
 
 export type SubmitAnswerResult = {
@@ -503,6 +552,11 @@ export type RoundFinishResult = {
   toStage: number;
   // premium phase 3a: true = รอบนี้ได้ไข่ศักดิ์ธราจากทำเป้า 2 สัปดาห์ติด (premium_check_biweekly_egg)
   premiumBiweeklyEgg: boolean;
+  // เฟส 2: แจ้งผ่านบท/ไข่/กรอบบนหน้าสรุปรอบ (GuardianRoundRewards) — ค่าเริ่มต้น [] / false / null
+  // แถว 'stuck' ไม่ส่งให้เด็ก (บอกผู้ปกครองเท่านั้น §5.5)
+  planPassed: { chapterName: string }[];
+  planEggAwarded: boolean;
+  goalFrameAwarded: "guardian_basic" | "guardian_mid" | null;
 };
 
 export async function finishQuizRound(
@@ -642,8 +696,10 @@ export async function finishQuizRound(
   // ไม่ throw ไม่ block ไม่มี UI signal ใดๆ (ยังไม่ทำ UX/reward pass ตอนนี้ตามที่ปอนด์สั่งแยกเฟส)
   // pattern เดียวกับ tryClaimBonusSilently ใน src/lib/missions.ts (กลืน error เงียบๆ) แต่ log ไว้ด้วย
   // แบบ getEligiblePets/getEligibleRaidPets (src/lib/dungeon.ts, src/lib/raid.ts) เพื่อยัง debug ได้
+  let planPassed: { chapterName: string }[] = [];
+  let planEggAwarded = false;
   try {
-    const { error: advanceError } = await supabase.rpc("guardian_advance_plan_if_passed", {
+    const { data: advanceRows, error: advanceError } = await supabase.rpc("guardian_advance_plan_if_passed", {
       p_student_id: user.id,
     });
     if (advanceError) {
@@ -652,6 +708,25 @@ export async function finishQuizRound(
         user.id,
         advanceError
       );
+    } else {
+      // เฟส 2: เก็บเฉพาะแถวที่ผ่านบท (new_status = 'passed') — 'stuck' ไม่ส่งให้เด็ก
+      const rows = (advanceRows ?? []) as {
+        affected_chapter_key: string;
+        new_status: string;
+        egg_awarded: boolean | null;
+      }[];
+      const passedRows = rows.filter((r) => r.new_status === "passed");
+      planEggAwarded = passedRows.some((r) => r.egg_awarded === true);
+      if (passedRows.length > 0) {
+        const { data: chapterNames } = await admin
+          .from("curriculum_chapters")
+          .select("chapter_key, chapter")
+          .in("chapter_key", passedRows.map((r) => r.affected_chapter_key));
+        const nameByKey = new Map((chapterNames ?? []).map((c) => [c.chapter_key, c.chapter as string]));
+        planPassed = passedRows.map((r) => ({
+          chapterName: nameByKey.get(r.affected_chapter_key) ?? r.affected_chapter_key,
+        }));
+      }
     }
   } catch (err) {
     console.error(
@@ -666,14 +741,17 @@ export async function finishQuizRound(
   // มีเป้าตั้งไว้สัปดาห์นี้ไหม (ไม่มี = no-op เงียบๆ) ไม่ต้อง exists-check ซ้ำที่นี่ — best-effort
   // เหมือน guardian_advance_plan_if_passed ด้านบนเป๊ะ ห้าม side effect ของฟีเจอร์นี้ทำให้จบ quiz
   // รอบจริงพัง
+  let goalFrameAwarded: "guardian_basic" | "guardian_mid" | null = null;
   try {
-    const { error: goalRewardError } = await supabase.rpc("guardian_check_weekly_goal_reward");
+    const { data: frameId, error: goalRewardError } = await supabase.rpc("guardian_check_weekly_goal_reward");
     if (goalRewardError) {
       console.error(
         "finishQuizRound: guardian_check_weekly_goal_reward error (non-fatal)",
         user.id,
         goalRewardError
       );
+    } else if (frameId === "guardian_basic" || frameId === "guardian_mid") {
+      goalFrameAwarded = frameId;
     }
   } catch (err) {
     console.error(
@@ -717,6 +795,9 @@ export async function finishQuizRound(
     fromStage: activePet.stage,
     toStage: newStage,
     premiumBiweeklyEgg,
+    planPassed,
+    planEggAwarded,
+    goalFrameAwarded,
   };
 }
 
