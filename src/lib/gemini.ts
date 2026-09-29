@@ -46,10 +46,23 @@ export async function callGemini(
     const json = await res.json();
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (typeof text !== "string" || text.trim().length === 0) {
-      throw new Error("Gemini ไม่ตอบข้อความกลับมา");
+      // ใส่เฉพาะ metadata (ไม่มีเนื้อ prompt/คำตอบ) — ให้ log บอกได้ทันทีว่าเป็น MAX_TOKENS
+      // (thinking กินงบหมด) / SAFETY / อื่นๆ แทนที่จะเดาจากเวลา
+      const usage = json?.usageMetadata ?? {};
+      throw new Error(
+        `Gemini ไม่ตอบข้อความกลับมา (finishReason=${json?.candidates?.[0]?.finishReason ?? "none"}, ` +
+          `blockReason=${json?.promptFeedback?.blockReason ?? "none"}, ` +
+          `thoughts=${usage.thoughtsTokenCount ?? "?"}, output=${usage.candidatesTokenCount ?? "?"}, ` +
+          `prompt=${usage.promptTokenCount ?? "?"}, max=${maxOutputTokens})`
+      );
     }
 
     return text.trim();
+  } catch (e) {
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(`Gemini timeout หลัง ${timeoutMs}ms`);
+    }
+    throw e;
   } finally {
     clearTimeout(timeoutId);
   }
