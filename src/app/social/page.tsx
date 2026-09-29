@@ -5,6 +5,7 @@ import { getMyFriends, getMyBlockedAccounts } from "@/lib/friends";
 import { getUnreadEncouragementCount } from "@/lib/encouragements";
 import { getRanking } from "@/lib/ranking";
 import { getGradeBand } from "@/lib/gradeBand";
+import { getMyGuardianHub } from "@/lib/guardianHub";
 import type { AchievementCardData, AchievementTier } from "@/components/AchievementCard";
 import type { PetSummary } from "@/components/social/petSummary";
 import type { EquippedGearSummary, ProfileTabData } from "@/components/social/MyProfileTab";
@@ -103,10 +104,14 @@ async function getGuardianLinkData(
       displayName: r.guardian_display_name,
     }));
 
+  // ศูนย์ผู้พิทักษ์ (เป้า/แผน) — เรียกเฉพาะเมื่อมี claimed; error → null แสดงแค่ส่วนเดิม
+  const hub = guardians.length > 0 ? await getMyGuardianHub(supabase) : null;
+
   return {
     pendingInviteCode: pending?.link_invite_code ?? null,
     pendingExpiresAt: pending?.link_expires_at ?? null,
     guardians,
+    hub,
   };
 }
 
