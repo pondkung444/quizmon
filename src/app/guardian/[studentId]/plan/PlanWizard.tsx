@@ -10,6 +10,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { guardianSetGoal } from "@/app/guardian/actions";
 import BottomSheet from "@/components/social/BottomSheet";
 import type { ViewerMode } from "@/components/guardian/viewerMode";
 import { accuracyTextClass, gradeLabel } from "../overview/shared";
@@ -532,10 +533,10 @@ export default function PlanWizard({
     if (submitting) return;
     setSubmitting(true);
     setError(null);
-    const { error } = await supabase.rpc("guardian_set_goal", { p_student_id: studentId, p_level: level });
+    const { error } = await guardianSetGoal(studentId, level);
     setSubmitting(false);
     if (error) {
-      setError(error.message);
+      setError(error);
       return;
     }
     setJustSetGoalLabel(label);

@@ -21,8 +21,17 @@ export default async function SettingsPage() {
   // แต่กัน edge case ไว้ด้วยค่า default ปลอดภัยถ้าหาไม่เจอจริงๆ
   const { data: prefs } = await supabase
     .from("push_preferences")
-    .select("push_enabled, daily_quest_enabled, daily_exp_enabled, adventure_enabled, social_enabled")
+    .select("push_enabled, daily_quest_enabled, daily_exp_enabled, adventure_enabled, social_enabled, guardian_enabled")
     .eq("user_id", user?.id ?? "")
+    .maybeSingle();
+
+  // แสดงปุ่ม "ผู้พิทักษ์" เฉพาะเด็กที่มีลิงก์ claimed (RLS guardian_links_select_own ให้เด็กอ่านลิงก์ตัวเองได้)
+  const { data: guardianLink } = await supabase
+    .from("guardian_links")
+    .select("id")
+    .eq("student_id", user?.id ?? "")
+    .eq("status", "claimed")
+    .limit(1)
     .maybeSingle();
 
   const { data: activePet } = await supabase
@@ -48,7 +57,9 @@ export default async function SettingsPage() {
           daily_exp_enabled: prefs?.daily_exp_enabled ?? true,
           adventure_enabled: prefs?.adventure_enabled ?? true,
           social_enabled: prefs?.social_enabled ?? true,
+          guardian_enabled: prefs?.guardian_enabled ?? true,
         }}
+        showGuardian={!!guardianLink}
       />
 
       <AppThemeSettings initial={appTheme} />
