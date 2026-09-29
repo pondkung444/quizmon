@@ -11,6 +11,7 @@ export type PushPreferencesUpdate = Partial<{
   daily_exp_enabled: boolean;
   adventure_enabled: boolean;
   social_enabled: boolean;
+  guardian_enabled: boolean;
 }>;
 
 export async function updatePushPreferences(update: PushPreferencesUpdate) {

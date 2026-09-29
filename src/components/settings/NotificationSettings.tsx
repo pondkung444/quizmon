@@ -10,9 +10,16 @@ type Preferences = {
   daily_exp_enabled: boolean;
   adventure_enabled: boolean;
   social_enabled: boolean;
+  guardian_enabled: boolean;
 };
 
-export default function NotificationSettings({ initial }: { initial: Preferences }) {
+export default function NotificationSettings({
+  initial,
+  showGuardian = false,
+}: {
+  initial: Preferences;
+  showGuardian?: boolean;
+}) {
   const [prefs, setPrefs] = useState(initial);
   const [, startTransition] = useTransition();
   const [error, setError] = useState(false);
@@ -85,6 +92,18 @@ export default function NotificationSettings({ initial }: { initial: Preferences
           label="เพื่อนและกำลังใจ"
         />
       </div>
+
+      {showGuardian && (
+        <div className="flex items-center justify-between py-2">
+          <span className={`text-sm ${prefs.push_enabled ? "text-text2" : "text-text3"}`}>ผู้พิทักษ์</span>
+          <Toggle
+            checked={prefs.guardian_enabled}
+            onChange={(next) => update({ guardian_enabled: next })}
+            disabled={!prefs.push_enabled}
+            label="ผู้พิทักษ์"
+          />
+        </div>
+      )}
 
       {error && <p className="mt-2 text-xs text-red">บันทึกไม่สำเร็จ ลองอีกครั้งนะ</p>}
     </section>

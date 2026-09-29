@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, Feather, Gauge, Flame, Trophy, ListChecks } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { guardianSetGoal } from "@/app/guardian/actions";
 import type { ViewerMode } from "@/components/guardian/viewerMode";
 
 type GoalProgress = {
@@ -94,13 +95,10 @@ export default function GoalPanel({
     if (submitting) return;
     setSubmitting(true);
     setError(null);
-    const { error } = await supabase.rpc("guardian_set_goal", {
-      p_student_id: studentId,
-      p_level: level,
-    });
+    const { error } = await guardianSetGoal(studentId, level);
     setSubmitting(false);
     if (error) {
-      setError(error.message);
+      setError(error);
       return;
     }
     setJustSetLabel(label);
