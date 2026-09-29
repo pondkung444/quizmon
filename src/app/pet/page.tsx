@@ -41,8 +41,11 @@ export default async function PetPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { evolved } = await searchParams;
+  const { evolved, anim, blend } = await searchParams;
   const justEvolved = evolved === "1";
+  // โหมดทดลอง Qmon Animation v1: เปิดเฉพาะ ?anim=idle และไม่ใช่ production (local/preview เท่านั้น)
+  const idleSpritePreview = anim === "idle" && process.env.VERCEL_ENV !== "production";
+  const idleSpriteBlend = idleSpritePreview && blend !== "0";
 
   const supabase = await createClient();
   const user = await getUser();
@@ -349,6 +352,8 @@ export default async function PetPage({
           dungeonCard={dungeonCard}
           raidTicketCount={raidTicketCount}
           pvpTurnCount={pvpTurnCount}
+          idleSpritePreview={idleSpritePreview}
+          idleSpriteBlend={idleSpriteBlend}
         />
         </>
       ) : (

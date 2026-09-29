@@ -14,6 +14,8 @@ import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, STAGE_LABEL_TH } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
+import QmonIdleSprite from "@/components/QmonIdleSprite";
+import { dragonPrototype } from "@/lib/qmonAnimation";
 import { useSfx } from "@/lib/audio/useSfx";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
@@ -42,6 +44,8 @@ const SCENE_SPARKS = [
   { left: "90%", top: "70%", size: 4, delay: "1.5s" },
 ];
 
+// โหมดทดลอง: แตะครั้งที่ 1 = Happy, ครั้งที่ 2 = React, วนต่อ (ค่าคงที่ระดับ module กัน effect ใน sprite รันซ้ำ)
+const IDLE_PRELOAD = [dragonPrototype.happy, dragonPrototype.react];
 
 export default function PetCard({
   petId,
@@ -78,6 +82,8 @@ export default function PetCard({
   dungeonCard,
   raidTicketCount,
   pvpTurnCount,
+  idleSpritePreview = false,
+  idleSpriteBlend = false,
 }: {
   petId: string;
   stage: number;
@@ -113,6 +119,9 @@ export default function PetCard({
   dungeonCard: DungeonCardState;
   raidTicketCount: number;
   pvpTurnCount: number;
+  // โหมดทดลอง Qmon Animation v1 (?anim=idle, ไม่ใช่ production) — ลบได้เมื่อมี renderer จริง
+  idleSpritePreview?: boolean;
+  idleSpriteBlend?: boolean;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -172,6 +181,8 @@ export default function PetCard({
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
 
   const idleAnimClass = stage === 1 ? "animate-egg-wobble" : "animate-pet-bob";
+  // โหมดทดลอง: ใช้ sprite Idle แทนรูปนิ่ง (ยกเว้นตอน justEvolved) — sprite ขยับเองแล้ว จึงปิด bob/wobble ไม่ให้ซ้อน
+  const useIdleSprite = idleSpritePreview && !justEvolved;
   const evolutionProgress = getEvolutionProgress(stage, exp);
 
   // segmented evolution bar (ux pass 2026-07): แถบเดิมเป็น smooth bar สีเดียวกับหลอด "พลังวันนี้"
@@ -251,9 +262,19 @@ export default function PetCard({
           aria-expanded={expanded}
           aria-label={`แตะ ${displayName}`}
         >
-          <div className={`relative flex items-center justify-center ${!justEvolved ? idleAnimClass : ""}`}>
+          <div className={`relative flex items-center justify-center ${!justEvolved && !useIdleSprite ? idleAnimClass : ""}`}>
             <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
-              {petImagePath ? (
+              {useIdleSprite ? (
+                <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
+                  <QmonIdleSprite
+                    clip={dragonPrototype.idle}
+                    size={180}
+                    blend={idleSpriteBlend}
+                    playClip={tapPulse === 0 ? null : tapPulse % 2 === 1 ? dragonPrototype.happy : dragonPrototype.react}
+                    preload={IDLE_PRELOAD}
+                  />
+                </EvolutionGlow>
+              ) : petImagePath ? (
                 <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
                   <Image
                     src={petImagePath}
