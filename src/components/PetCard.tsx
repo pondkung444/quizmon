@@ -83,7 +83,6 @@ export default function PetCard({
   raidTicketCount,
   pvpTurnCount,
   idleSpritePreview = false,
-  idleSpriteBlend = false,
 }: {
   petId: string;
   stage: number;
@@ -121,7 +120,6 @@ export default function PetCard({
   pvpTurnCount: number;
   // โหมดทดลอง Qmon Animation v1 (?anim=idle, ไม่ใช่ production) — ลบได้เมื่อมี renderer จริง
   idleSpritePreview?: boolean;
-  idleSpriteBlend?: boolean;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -269,7 +267,6 @@ export default function PetCard({
                   <QmonIdleSprite
                     clip={dragonPrototype.idle}
                     size={180}
-                    blend={idleSpriteBlend}
                     playClip={tapPulse === 0 ? null : tapPulse % 2 === 1 ? dragonPrototype.happy : dragonPrototype.react}
                     preload={IDLE_PRELOAD}
                   />

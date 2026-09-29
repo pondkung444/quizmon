@@ -34,17 +34,15 @@ function loadSheet(clip: SpriteClip): Promise<HTMLImageElement> {
 }
 
 // clip = Idle (วนตลอด) · playClip = ท่าที่เล่นรอบเดียวตอนเริ่ม แล้วกลับ Idle (PetCard remount ตัวนี้ทุกครั้งที่แตะ
-// จึงได้เล่นจากเฟรม 0 ทุกครั้ง) · blend: crossfade เฟรมปัจจุบัน→ถัดไปด้วย globalAlpha (ต้องวาดทุก rAF)
+// จึงได้เล่นจากเฟรม 0 ทุกครั้ง)
 export default function QmonIdleSprite({
   clip,
   size,
-  blend = false,
   playClip = null,
   preload,
 }: {
   clip: SpriteClip;
   size: number;
-  blend?: boolean;
   playClip?: SpriteClip | null;
   preload?: SpriteClip[];
 }) {
@@ -65,17 +63,10 @@ export default function QmonIdleSprite({
       const ctx = canvas?.getContext("2d");
       if (!canvas || !ctx) throw new Error("สร้าง canvas ไม่ได้");
 
-      const draw = (c: SpriteClip, img: HTMLImageElement, frame: number, next?: number, mix = 0) => {
+      const draw = (c: SpriteClip, img: HTMLImageElement, frame: number) => {
         const r = frameRect(c, frame);
         ctx.clearRect(0, 0, c.frameSize, c.frameSize);
-        ctx.globalAlpha = 1;
         ctx.drawImage(img, r.x, r.y, r.size, r.size, 0, 0, c.frameSize, c.frameSize);
-        if (next !== undefined && mix > 0) {
-          const n = frameRect(c, next);
-          ctx.globalAlpha = mix;
-          ctx.drawImage(img, n.x, n.y, n.size, n.size, 0, 0, c.frameSize, c.frameSize);
-          ctx.globalAlpha = 1;
-        }
       };
 
       draw(clip, idleImg, 0); // ระหว่างรอ sheet ของท่าที่แตะ ให้เห็น Idle ไปก่อน ไม่ให้จอว่าง
@@ -100,15 +91,10 @@ export default function QmonIdleSprite({
           frame = 0;
           shown = "";
         }
-        if (blend) {
-          const nextFrame = seg.loop ? (frame + 1) % seg.clip.frames : frame + 1 < seg.clip.frames ? frame + 1 : undefined;
-          draw(seg.clip, seg.img, frame, nextFrame, (elapsed * seg.clip.fps / 1000) % 1);
-        } else {
-          const key = `${seg.clip.src}:${frame}`;
-          if (key !== shown) {
-            shown = key;
-            draw(seg.clip, seg.img, frame);
-          }
+        const key = `${seg.clip.src}:${frame}`;
+        if (key !== shown) {
+          shown = key;
+          draw(seg.clip, seg.img, frame);
         }
         raf = requestAnimationFrame(tick);
       };
@@ -133,7 +119,7 @@ export default function QmonIdleSprite({
       cancelAnimationFrame(raf);
       cleanup();
     };
-  }, [clip, playClip, blend, preload]);
+  }, [clip, playClip, preload]);
 
   if (failed) {
     return (
