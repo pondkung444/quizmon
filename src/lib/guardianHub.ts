@@ -29,6 +29,8 @@ export type GuardianHub = {
   } | null;
   // เฟส 2: วันนี้พักโหมดทบทวนอยู่ไหม (เวลาไทย) — เด็กกดพักเอง หรือผ่านบทแล้ว
   review_paused_today: "student_closed" | "chapter_passed" | null;
+  // เฟส 4: ข้อความ preset ที่ผู้พิทักษ์เลือกไว้ (อ่านซ้ำได้) — null = ไม่ได้เลือก
+  quest_message: string | null;
 };
 
 export const SUBJECT_LABEL_TH: Record<string, string> = {
@@ -49,6 +51,7 @@ export async function getMyGuardianHub(
       reward: data.reward ?? null,
       plan: data.plan ?? null,
       review_paused_today: data.review_paused_today ?? null,
+      quest_message: data.quest_message ?? null,
     };
   } catch {
     return null;

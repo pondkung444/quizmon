@@ -136,6 +136,8 @@ export type StartQuizRoundResult = {
   // เฟส 2 (โหมดทบทวน): ไม่ null เฉพาะเมื่อรอบนี้ดึงข้อจากแผนจริง — ป้าย "กำลังทบทวน: {บท}" บน QuizClient
   // ห้ามส่ง paused/reduced ให้ client (เด็กต้องไม่รู้ว่าถูกลดสัดส่วน — ไม่ลงโทษทางอ้อม)
   planInfo: { chapterLabel: string } | null;
+  // เฟส 4 (โจทย์จากผู้พิทักษ์): ข้อที่มีกรอบ ⊂ ข้อที่ inject จากแผน · null เมื่อไม่มี (ห้ามส่ง paused/reduced ให้ client)
+  guardianQuest: { questionIds: number[]; message: string | null } | null;
 };
 
 export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQuizRoundResult> {
@@ -172,7 +174,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
 
     const candidateIds = idRows.map((r) => r.id);
     if (candidateIds.length === 0) {
-      return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null };
+      return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null, guardianQuest: null };
     }
     const pickedIds = shuffle(candidateIds).slice(0, ROUND_SIZE);
     const { data: rows, error } = await admin
@@ -197,7 +199,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
       ])
     );
     const questions = pickedIds.map((id) => byId.get(id)).filter((q): q is QuizRoundQuestion => !!q);
-    return { questions, currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null };
+    return { questions, currentCombo, lastAttemptBeforeRound, missionInfo: null, planInfo: null, guardianQuest: null };
   }
 
   let mode: QuizMode;
@@ -382,7 +384,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   }
 
   if (roundSize === 0 || candidateIds.length === 0) {
-    return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo, planInfo: null };
+    return { questions: [], currentCombo, lastAttemptBeforeRound, missionInfo, planInfo: null, guardianQuest: null };
   }
 
   // คนที่ไม่มี plan injection (คนส่วนใหญ่ทั้งหมด) เดินโค้ดบรรทัดเดิมเป๊ะ ไม่มีอะไรเปลี่ยนแม้แต่นิดเดียว
@@ -396,6 +398,24 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
           ),
         ])
       : shuffle(candidateIds).slice(0, roundSize);
+
+  // เฟส 4: จองข้อที่มีกรอบ (สูงสุด 2/วัน) จากข้อที่ inject จากแผน — non-fatal · ไม่มีแผน = ไม่เรียก RPC เลย
+  let guardianQuest: StartQuizRoundResult["guardianQuest"] = null;
+  if (planInjectedIds.length > 0 && user) {
+    try {
+      const { data: quest, error: questError } = await admin.rpc("guardian_reserve_quest_slots", {
+        p_student_id: user.id,
+        p_candidate_ids: planInjectedIds,
+      });
+      if (questError) throw questError;
+      const framedIds = Array.isArray(quest?.framed_ids) ? (quest.framed_ids as number[]) : [];
+      if (framedIds.length > 0) {
+        guardianQuest = { questionIds: framedIds, message: (quest?.message as string | null) ?? null };
+      }
+    } catch (err) {
+      console.error("[quiz] guardian_reserve_quest_slots failed:", err);
+    }
+  }
 
   const { data: rows, error } = await admin
     .from("questions")
@@ -426,6 +446,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     lastAttemptBeforeRound,
     missionInfo,
     planInfo: planInjectedIds.length > 0 && planChapterLabel ? { chapterLabel: planChapterLabel } : null,
+    guardianQuest,
   };
 }
 

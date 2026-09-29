@@ -178,6 +178,8 @@ export default function QuizClient({
   // เฟส 2 โหมดทบทวน: ไม่ null เฉพาะรอบฝึกที่ดึงข้อจากแผนจริง (ป้าย "กำลังทบทวน: {บท}" + ปุ่มพักวันนี้)
   // กดพักสำเร็จ → เซ็ต null (ซ่อนป้าย) ข้อที่โหลดไว้แล้วเล่นต่อตามเดิม มีผลรอบถัดไป
   const [planInfo, setPlanInfo] = useState<{ chapterLabel: string } | null>(null);
+  // เฟส 4: ข้อที่ผู้พิทักษ์ส่งมา (⊂ ข้อจากแผน) — ล้างทุกรอบใหม่ · ไม่เกี่ยวกับ planInfo/พักวันนี้ · ห้ามส่งค่านี้ไปกับ submit/analytics
+  const [guardianQuest, setGuardianQuest] = useState<{ questionIds: number[]; message: string | null } | null>(null);
   const [pauseToastMessage, setPauseToastMessage] = useState<string | null>(null);
   const [pausingReview, setPausingReview] = useState(false);
   // ผลจากเช็ค+เคลมโบนัสตอนจบภารกิจ (claimMissionBonus) — null ถ้ายังไม่เรียก/เรียกไม่สำเร็จ
@@ -249,6 +251,7 @@ export default function QuizClient({
     setSaveWarning(null);
     setMissionInfo(null);
     setPlanInfo(null);
+    setGuardianQuest(null);
     setPausingReview(false);
     setTopicFilter(null);
     setMissionClaim(null);
@@ -358,6 +361,7 @@ export default function QuizClient({
           currentCombo,
           lastAttemptBeforeRound,
           planInfo: roundPlanInfo,
+          guardianQuest: roundGuardianQuest,
         } = await startQuizRound({
           type: "practice",
           mode: nextMode,
@@ -369,6 +373,7 @@ export default function QuizClient({
         }
         setQuestions(round);
         setPlanInfo(roundPlanInfo);
+        setGuardianQuest(roundGuardianQuest);
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
@@ -790,6 +795,18 @@ export default function QuizClient({
             >
               พักวันนี้
             </button>
+          </div>
+        )}
+        {guardianQuest?.questionIds.includes(current.id) && (
+          <div className="rounded-xl border border-gold-dim bg-gold-hi/10 px-3 py-2 text-xs">
+            {guardianQuest.message ? (
+              <>
+                <p className="font-bold text-gold-hi">⟡ ผู้พิทักษ์ส่งมา</p>
+                <p className="mt-0.5 text-text2">{guardianQuest.message}</p>
+              </>
+            ) : (
+              <p className="font-bold text-gold-hi">จากผู้พิทักษ์</p>
+            )}
           </div>
         )}
         <h2 className="font-sarabun text-lg sm:text-xl font-bold leading-relaxed text-text">{current.question_text}</h2>
