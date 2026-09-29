@@ -10,7 +10,7 @@ function formatExamDate(isoDate: string): string {
   });
 }
 
-// frame_definitions.id → tier ของ CSS .guardian-frame-{tier} (guardian_basic → basic)
+// frame_definitions.id → tier ของ PetAvatarFrame (guardian_basic → basic)
 function frameTier(frameId: string): string {
   return frameId.replace(/^guardian_/, "");
 }
