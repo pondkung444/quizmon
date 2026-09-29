@@ -79,12 +79,12 @@ export default function FriendListSection({ friends }: { friends: FriendListItem
                 <div
                   className={
                     friend.equippedFrameTier
-                      ? "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-track"
+                      ? "flex h-12 w-12 flex-none items-center justify-center"
                       : "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track"
                   }
                 >
                   {imagePath && (
-                    <PetAvatarFrame tier={friend.equippedFrameTier} size={44}>
+                    <PetAvatarFrame tier={friend.equippedFrameTier} size={48}>
                       <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
                     </PetAvatarFrame>
                   )}

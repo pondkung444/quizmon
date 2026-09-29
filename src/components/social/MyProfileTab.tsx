@@ -69,13 +69,13 @@ function PrideQmonRow({
         <div
           className={
             equippedFrameTier
-              ? "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-track"
+              ? "flex h-24 w-24 items-center justify-center"
               : "flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-track"
           }
         >
           {imagePath && (
-            <PetAvatarFrame tier={equippedFrameTier} size={80}>
-              <Image src={imagePath} alt={speciesName} width={80} height={80} className="h-20 w-20 object-contain" />
+            <PetAvatarFrame tier={equippedFrameTier} size={96}>
+              <Image src={imagePath} alt={speciesName} width={80} height={80} className={equippedFrameTier ? "h-full w-full object-contain" : "h-20 w-20 object-contain"} />
             </PetAvatarFrame>
           )}
         </div>

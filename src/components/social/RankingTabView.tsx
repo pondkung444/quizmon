@@ -42,12 +42,12 @@ function RankingRowItem({ row, scope, suffix }: { row: RankingRow; scope: Rankin
       <div
         className={
           row.equippedFrameTier
-            ? "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full bg-track"
+            ? "flex h-12 w-12 flex-none items-center justify-center"
             : "flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-full border border-gold-dim bg-track"
         }
       >
         {imagePath && (
-          <PetAvatarFrame tier={row.equippedFrameTier} size={44}>
+          <PetAvatarFrame tier={row.equippedFrameTier} size={48}>
             <Image src={imagePath} alt={speciesName} width={40} height={40} className="h-full w-full object-contain" />
           </PetAvatarFrame>
         )}
