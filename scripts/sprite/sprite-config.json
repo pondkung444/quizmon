@@ -1,0 +1,6 @@
+{
+  "egg2_stage3_balance_happy": { "pairScale": 1.0736 },
+  "egg3_stage3_balance_happy": { "pairScale": 1.0768 },
+  "egg4_stage3_balance_happy": { "pairScale": 1.1174 },
+  "egg4_stage3_math_idle": { "pingPong": true }
+}
