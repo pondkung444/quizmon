@@ -16,3 +16,20 @@ export async function getGradeBand(userId: string): Promise<GradeBand> {
 }
 
 export const visibleBands = (band: GradeBand) => VISIBLE[band];
+
+// อ่าน grade_band + grade_level ในการ query เดียว (ใช้ admin client เหตุผลเดียวกับ getGradeBand ด้านบน)
+// ระดับชั้นเชิงลึกกว่า band ใช้จำกัดโจทย์ junior ตามชั้น — ดู src/lib/gradeLevel.ts
+export async function getGradeProfile(
+  userId: string
+): Promise<{ band: GradeBand; gradeLevel: string | null }> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("profiles")
+    .select("grade_band, grade_level")
+    .eq("id", userId)
+    .single();
+  return {
+    band: (data?.grade_band as GradeBand) ?? "junior",
+    gradeLevel: data?.grade_level ?? null,
+  };
+}

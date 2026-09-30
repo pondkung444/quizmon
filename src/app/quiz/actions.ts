@@ -13,7 +13,8 @@ import {
 } from "@/lib/exp";
 import { getEvolutionProgress } from "@/lib/evolution";
 import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
-import { getGradeBand, visibleBands } from "@/lib/gradeBand";
+import { getGradeProfile, visibleBands } from "@/lib/gradeBand";
+import { gradeLevelOrFilter, visibleJuniorGradeLevels } from "@/lib/gradeLevel";
 import { type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
@@ -146,7 +147,10 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     data: { user },
   } = await supabase.auth.getUser();
   const admin = createAdminClient();
-  const band = user ? await getGradeBand(user.id) : "junior";
+  const { band, gradeLevel } = user ? await getGradeProfile(user.id) : { band: "junior" as const, gradeLevel: null };
+  // จำกัดโจทย์สุ่มตามชั้นของผู้เล่น junior (ม.1 เห็นแค่ ม.1, ม.2 เห็น ม.1-2, ม.3 เห็นทุกชั้น) — null = ไม่กรอง
+  // ใช้กับโหมดฝึกปกติและภารกิจเท่านั้น โหมดเลือกบทฝึกฝน (type: "topic") เปิดข้ามชั้นเหมือนเดิมโดยตั้งใจ
+  const gradeLevels = band === "junior" ? visibleJuniorGradeLevels(gradeLevel) : null;
 
   // โหมดเลือกบทฝึกฝน: cross-grade เต็มรูปแบบ ไม่ filter ตาม band/subject ของ user — query ตรงจาก
   // บทที่เลือก โดย filter ครบทั้ง 4 field เสมอ (ดู TopicFilter) ไม่ยุ่งกับ category/difficulty
@@ -250,6 +254,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
     q = isSeniorBranchMode ? q.eq("branch", mode) : q.eq("subject", mode);
     if (categoryFilter) q = q.eq("category", categoryFilter);
     if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
+    if (gradeLevels) q = q.or(gradeLevelOrFilter(gradeLevels));
     return q.range(from, to);
   };
 
@@ -373,6 +378,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
         .eq("subject", mode)
         .in("grade_band", visibleBands(band));
       if (difficultyFilter !== null) q = q.eq("difficulty", difficultyFilter);
+      if (gradeLevels) q = q.or(gradeLevelOrFilter(gradeLevels));
       return q.range(from, to);
     });
 

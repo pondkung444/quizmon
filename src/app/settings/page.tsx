@@ -8,6 +8,8 @@ import AppThemeSettings from "@/components/settings/AppThemeSettings";
 import { cookies } from "next/headers";
 import { APP_THEME_COOKIE, parseAppTheme } from "@/lib/appTheme";
 import FeedbackRow from "@/components/settings/FeedbackRow";
+import GradeLevelSetting from "@/components/settings/GradeLevelSetting";
+import { getGradeProfile } from "@/lib/gradeBand";
 import GuestLinkAccountRow from "@/components/settings/GuestLinkAccountRow";
 import packageJson from "../../../package.json";
 
@@ -41,6 +43,8 @@ export default async function SettingsPage() {
     .eq("is_active", true)
     .maybeSingle();
 
+  const { gradeLevel } = user ? await getGradeProfile(user.id) : { gradeLevel: null };
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-6 pb-24">
       <div className="flex items-center gap-2">
@@ -65,6 +69,8 @@ export default async function SettingsPage() {
       <AppThemeSettings initial={appTheme} />
 
       <SoundSettings />
+
+      <GradeLevelSetting current={gradeLevel} />
 
       <section className="rounded-2xl border border-gold-dim bg-card p-4">
         <h2 className="mb-1 text-sm font-bold text-gold-hi">บัญชี</h2>

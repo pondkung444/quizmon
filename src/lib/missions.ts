@@ -4,7 +4,8 @@ import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { Subject } from "@/types/quiz";
 import { getTodayInBangkok } from "@/lib/exp";
 import { bangkokMidnightUtcIso, daysBeforeStr, nextDateStr } from "@/lib/topicStats";
-import { getGradeBand, visibleBands, type GradeBand } from "@/lib/gradeBand";
+import { getGradeProfile, visibleBands, type GradeBand } from "@/lib/gradeBand";
+import { gradeLevelOrFilter, visibleJuniorGradeLevels } from "@/lib/gradeLevel";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -92,8 +93,10 @@ export async function getOrCreateTodayMission(
 
   let mission = await fetchMissionByDate(supabase, userId, today);
   if (!mission) {
-    const band = await getGradeBand(userId);
-    mission = await createTodayMission(supabase, userId, today, band);
+    const { band, gradeLevel } = await getGradeProfile(userId);
+    // เลือกบทภารกิจจากโจทย์ที่ผู้เล่นเห็นได้ตามชั้นเท่านั้น (junior) ไม่งั้นอาจได้บทที่โจทย์ทั้งหมดอยู่ชั้นที่ล็อกไว้
+    const gradeLevels = band === "junior" ? visibleJuniorGradeLevels(gradeLevel) : null;
+    mission = await createTodayMission(supabase, userId, today, band, gradeLevels);
   }
 
   const missionAttempts = await fetchMissionAttempts(supabase, mission.id);
@@ -147,9 +150,10 @@ async function createTodayMission(
   supabase: SupabaseServerClient,
   userId: string,
   today: string,
-  band: GradeBand
+  band: GradeBand,
+  gradeLevels: string[] | null
 ): Promise<TodayMission> {
-  const draft = await buildMissionDraft(supabase, userId, today, band);
+  const draft = await buildMissionDraft(supabase, userId, today, band, gradeLevels);
 
   const { data, error } = await supabase
     .from("daily_missions")
@@ -258,7 +262,8 @@ async function buildMissionDraft(
   supabase: SupabaseServerClient,
   userId: string,
   today: string,
-  band: GradeBand
+  band: GradeBand,
+  gradeLevels: string[] | null
 ): Promise<MissionDraft> {
   const admin = createAdminClient();
 
@@ -283,7 +288,7 @@ async function buildMissionDraft(
   // ได้หรือไม่ (ต่างจาก skew ratio ข้างล่างที่ต้องรู้ subject ถึงจะนับได้)
   if (attempts14.length < COLD_START_MIN_ATTEMPTS) {
     const subject = pickSubjectWithFewerAttempts(0, 0, today);
-    return pickExplorationMission(admin, subject, recentCategories, band);
+    return pickExplorationMission(admin, subject, recentCategories, band, gradeLevels);
   }
 
   const questionById = await fetchQuestionMeta(admin, attempts14, band);
@@ -315,7 +320,7 @@ async function buildMissionDraft(
         (m) => m.mission_type === "exploration" && m.subject === missingSubject
       );
       if (!hasRecentExplorationInMissingSubject) {
-        return pickExplorationMission(admin, missingSubject, recentCategories, band);
+        return pickExplorationMission(admin, missingSubject, recentCategories, band, gradeLevels);
       }
 
       // มีแล้วเมื่อไม่นาน — วันนี้ personalized ตามปกติ แต่ล็อกแค่วิชาที่เขาเล่นอยู่จริง
@@ -330,7 +335,7 @@ async function buildMissionDraft(
   const attempts7 = attempts14.filter((a) => new Date(a.created_at).getTime() >= narrowStartMs);
 
   const categoryAgg = aggregateByCategory(attempts7, questionById, personalizedSubjectFilter);
-  const chosen = await selectEligibleCategory(admin, categoryAgg, recentCategories, band);
+  const chosen = await selectEligibleCategory(admin, categoryAgg, recentCategories, band, gradeLevels);
   if (chosen) {
     return {
       mission_type: "personalized",
@@ -344,7 +349,7 @@ async function buildMissionDraft(
 
   // ไม่มีบทไหนผ่านเกณฑ์เลยแม้ลดเป็น >=4 แล้ว — ภารกิจสำรวจ (คงวิชาเดิมถ้าเพิ่งตัดสินใจไว้จาก
   // Step 3 ว่าวันนี้อยู่ในวิชาที่เขาเล่นอยู่ ไม่งั้นใช้กติกา "วิชาที่ตอบน้อยกว่า")
-  return pickExplorationMission(admin, explorationFallbackSubject, recentCategories, band);
+  return pickExplorationMission(admin, explorationFallbackSubject, recentCategories, band, gradeLevels);
 }
 
 async function getRecentMissions(
@@ -405,7 +410,8 @@ async function selectEligibleCategory(
   admin: AdminClient,
   categoryAgg: Map<string, CategoryAgg>,
   recentCategories: Set<string>,
-  band: GradeBand
+  band: GradeBand,
+  gradeLevels: string[] | null
 ): Promise<{ subject: Subject; category: string; pct: number } | null> {
   for (const minAttempts of [ELIGIBLE_MIN_ATTEMPTS_PRIMARY, ELIGIBLE_MIN_ATTEMPTS_FALLBACK]) {
     const candidates: { subject: Subject; category: string; pct: number }[] = [];
@@ -417,7 +423,7 @@ async function selectEligibleCategory(
       const pct = Math.round((agg.correct / agg.attempted) * 100);
       if (pct >= ELIGIBLE_MAX_ACCURACY) continue;
 
-      const activeCount = await countActiveQuestions(admin, agg.subject, category, band);
+      const activeCount = await countActiveQuestions(admin, agg.subject, category, band, gradeLevels);
       if (activeCount < MIN_ACTIVE_QUESTIONS_IN_CATEGORY) continue;
 
       candidates.push({ subject: agg.subject, category, pct });
@@ -441,18 +447,21 @@ async function countActiveQuestions(
   admin: AdminClient,
   subject: Subject,
   category: string,
-  band: GradeBand
+  band: GradeBand,
+  gradeLevels: string[] | null
 ): Promise<number> {
   // head:true = ขอแค่ count (COUNT(*) ฝั่ง DB) ไม่ขอแถวจริง — เลี่ยง PostgREST max-rows (default
   // 1000; survey เฟส 0 เจอคำถาม active จริง 1,118 แถว ถ้า select ตรงๆ ไม่ใส่ count จะโดนตัดเงียบ
   // ได้ตัวเลขผิดแบบเดียวกับที่เจอตอน survey)
-  const { count } = await admin
+  let query = admin
     .from("questions")
     .select("id", { count: "exact", head: true })
     .eq("subject", subject)
     .eq("category", category)
     .eq("status", "active")
     .in("grade_band", visibleBands(band));
+  if (gradeLevels) query = query.or(gradeLevelOrFilter(gradeLevels));
+  const { count } = await query;
   return count ?? 0;
 }
 
@@ -460,18 +469,20 @@ async function pickExplorationMission(
   admin: AdminClient,
   subject: Subject,
   recentCategories: Set<string>,
-  band: GradeBand
+  band: GradeBand,
+  gradeLevels: string[] | null
 ): Promise<MissionDraft> {
-  const rows = await fetchAllRows<{ category: string }>((from, to) =>
-    admin
+  const rows = await fetchAllRows<{ category: string }>((from, to) => {
+    let q = admin
       .from("questions")
       .select("category")
       .eq("subject", subject)
       .eq("status", "active")
       .eq("difficulty", EXPLORATION_DIFFICULTY)
-      .in("grade_band", visibleBands(band))
-      .range(from, to)
-  );
+      .in("grade_band", visibleBands(band));
+    if (gradeLevels) q = q.or(gradeLevelOrFilter(gradeLevels));
+    return q.range(from, to);
+  });
 
   const counts = new Map<string, number>();
   for (const row of rows) {
