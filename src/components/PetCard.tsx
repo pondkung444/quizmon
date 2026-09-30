@@ -273,6 +273,7 @@ export default function PetCard({
           aria-label={`แตะ ${displayName}`}
         >
           <div className={`relative flex items-center justify-center ${!justEvolved && !useSprite ? idleAnimClass : ""}`}>
+            {/* TODO เฟส 4: key={tapPulse} remount ลูกทุกแตะ — ถ้าผูก "แตะ = playHappy()" Happy จะหาย ต้องย้าย key/animation ออกจากตัวที่ครอบ QmonSprite */}
             <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
               {avatarPath ? (
                 <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
