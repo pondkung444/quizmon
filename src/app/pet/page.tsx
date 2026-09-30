@@ -48,10 +48,9 @@ export default async function PetPage({
   const supabase = await createClient();
   const user = await getUser();
 
-  // Qmon Animation v1: เปิด sprite เมื่อไม่ใช่ production (local + preview) หรือ user id อยู่ใน env QMON_ANIM_USER_IDS (คั่นด้วยจุลภาค)
+  // Qmon Animation v1: เปิด sprite ให้ทุกคนทุก environment · ปิดฉุกเฉิน = ตั้ง QMON_ANIM_DISABLED=1 บน Vercel แล้ว redeploy
   // ตัวช่วยตรวจ ?animKey=<key>&animClip=idle|happy ใช้เฉพาะที่ไม่ใช่ production — production ไม่สนใจ param นี้
-  const animAllowIds = (process.env.QMON_ANIM_USER_IDS ?? "").split(",").map((v) => v.trim()).filter(Boolean);
-  const qmonSpriteEnabled = !isProduction || (!!user && animAllowIds.includes(user.id));
+  const qmonSpriteEnabled = process.env.QMON_ANIM_DISABLED !== "1";
   const animKeyParam = typeof animKey === "string" && /^egg[1-5]_stage[23]_[a-z]+$/.test(animKey) ? animKey : null;
   const spriteDebug =
     !isProduction && animKeyParam ? { key: animKeyParam, clip: animClip === "happy" ? ("happy" as const) : ("idle" as const) } : null;
