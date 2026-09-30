@@ -1,6 +1,6 @@
 "use client";
 
-import { useImperativeHandle, useLayoutEffect, useRef, type Ref } from "react";
+import { useImperativeHandle, useLayoutEffect, useMemo, useRef, type Ref } from "react";
 import { createSpritePlayer, frameRect, sheetSize, validateClip, type SpriteClip, type SpriteFrameRef, type SpriteGeometry } from "@/lib/qmonAnimation";
 import type { SpriteSet } from "@/lib/qmonSprites";
 
@@ -53,6 +53,7 @@ export default function QmonSprite({
   onReady,
   onError,
   loopClip = "idle",
+  fpsOverride = null,
   ref,
 }: {
   set: SpriteSet;
@@ -61,6 +62,7 @@ export default function QmonSprite({
   onReady?: () => void; // วาดเฟรมแรกลง canvas แล้ว
   onError?: () => void; // โหลดไม่สำเร็จ (ผู้เรียกใช้รูปนิ่งต่อ)
   loopClip?: "idle" | "happy"; // ตัวช่วยตรวจบน preview: วนท่านี้ตลอด
+  fpsOverride?: number | null; // ตัวช่วยตรวจบน preview: override fps ของท่าที่วนอยู่
   ref?: Ref<QmonSpriteHandle>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -75,7 +77,8 @@ export default function QmonSprite({
   useImperativeHandle(ref, () => ({ playHappy: () => requestHappyRef.current() }), []);
 
   const { geometry: geo, idle, happy, staticFit, key } = set;
-  const main = loopClip === "happy" ? happy : idle;
+  const mainBase = loopClip === "happy" ? happy : idle;
+  const main = useMemo(() => (fpsOverride ? { ...mainBase, fps: fpsOverride } : mainBase), [mainBase, fpsOverride]);
   const other = loopClip === "happy" ? idle : happy;
 
   useLayoutEffect(() => {

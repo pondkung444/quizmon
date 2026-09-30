@@ -84,6 +84,7 @@ export default function PetCard({
   pvpTurnCount,
   qmonSpriteEnabled = false,
   spriteDebug = null,
+  spriteFps = null,
 }: {
   petId: string;
   stage: number;
@@ -123,6 +124,8 @@ export default function PetCard({
   qmonSpriteEnabled?: boolean;
   // ตัวช่วยตรวจบน preview (?animKey&animClip, ไม่ใช่ production): ใช้ sprite ของ key นั้นแทนตัวที่เลี้ยง
   spriteDebug?: { key: string; clip: "idle" | "happy" } | null;
+  // ตัวช่วยตรวจบน preview (?animFps, ไม่ใช่ production): override fps ของท่าที่กำลังวนอยู่
+  spriteFps?: number | null;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -296,6 +299,7 @@ export default function PetCard({
                         size={AVATAR_SIZE}
                         visible={spriteReady}
                         loopClip={spriteDebug?.clip}
+                        fpsOverride={spriteFps}
                         onReady={() => setSpriteReadyKey(spriteSet.key)}
                         onError={() => setSpriteFailedKey(spriteSet.key)}
                       />

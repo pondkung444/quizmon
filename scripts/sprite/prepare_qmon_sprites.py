@@ -50,7 +50,7 @@ FOOT_BAND = 0.2       # anchor แนวนอน = กึ่งกลางข�
 MARGIN = 4            # ขอบเผื่อรอบ extents ทั้งชุด
 SEAM_LIMIT = 2.0
 DEFAULTS = {
-    "idle": {"lockBaseline": True, "pingPong": False, "fps": 8, "pairScale": 1.0},
+    "idle": {"lockBaseline": True, "pingPong": False, "fps": 5, "pairScale": 1.0},
     "happy": {"lockBaseline": False, "pingPong": False, "fps": 12, "pairScale": 1.0},
 }
 NAME_RE = re.compile(r"^(egg[1-5]_stage[23]_(?:baby|math|science|balance))_(idle|happy)\.png$")

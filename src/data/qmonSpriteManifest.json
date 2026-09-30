@@ -9,7 +9,7 @@
       "idle": {
         "src": "/pets/anim/egg1_stage2_baby_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -28,7 +28,7 @@
       "idle": {
         "src": "/pets/anim/egg1_stage3_balance_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -47,7 +47,7 @@
       "idle": {
         "src": "/pets/anim/egg1_stage3_math_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -66,7 +66,7 @@
       "idle": {
         "src": "/pets/anim/egg1_stage3_science_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -85,7 +85,7 @@
       "idle": {
         "src": "/pets/anim/egg2_stage2_baby_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -104,7 +104,7 @@
       "idle": {
         "src": "/pets/anim/egg2_stage3_balance_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -123,7 +123,7 @@
       "idle": {
         "src": "/pets/anim/egg2_stage3_math_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -142,7 +142,7 @@
       "idle": {
         "src": "/pets/anim/egg2_stage3_science_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -161,7 +161,7 @@
       "idle": {
         "src": "/pets/anim/egg3_stage2_baby_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -180,7 +180,7 @@
       "idle": {
         "src": "/pets/anim/egg3_stage3_balance_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -199,7 +199,7 @@
       "idle": {
         "src": "/pets/anim/egg3_stage3_math_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -218,7 +218,7 @@
       "idle": {
         "src": "/pets/anim/egg3_stage3_science_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -237,7 +237,7 @@
       "idle": {
         "src": "/pets/anim/egg4_stage2_baby_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -256,7 +256,7 @@
       "idle": {
         "src": "/pets/anim/egg4_stage3_balance_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -275,7 +275,7 @@
       "idle": {
         "src": "/pets/anim/egg4_stage3_math_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": true
       },
       "happy": {
@@ -294,7 +294,7 @@
       "idle": {
         "src": "/pets/anim/egg4_stage3_science_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -313,7 +313,7 @@
       "idle": {
         "src": "/pets/anim/egg5_stage2_baby_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -332,7 +332,7 @@
       "idle": {
         "src": "/pets/anim/egg5_stage3_balance_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -351,7 +351,7 @@
       "idle": {
         "src": "/pets/anim/egg5_stage3_math_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
@@ -370,7 +370,7 @@
       "idle": {
         "src": "/pets/anim/egg5_stage3_science_idle.webp",
         "frames": 16,
-        "fps": 8,
+        "fps": 5,
         "pingPong": false
       },
       "happy": {
