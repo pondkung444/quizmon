@@ -14,8 +14,8 @@ import { usePersonalityMessage } from "@/hooks/usePersonalityMessage";
 import type { PersonalityKey } from "@/lib/personality";
 import { getEvolutionProgress, STAGE_LABEL_TH } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
-import QmonIdleSprite from "@/components/QmonIdleSprite";
-import { dragonPrototype } from "@/lib/qmonAnimation";
+import QmonSprite, { type QmonSpriteHandle } from "@/components/QmonSprite";
+import { getSpriteSet } from "@/lib/qmonSprites";
 import { useSfx } from "@/lib/audio/useSfx";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
@@ -44,8 +44,8 @@ const SCENE_SPARKS = [
   { left: "90%", top: "70%", size: 4, delay: "1.5s" },
 ];
 
-// โหมดทดลอง: แตะครั้งที่ 1 = Happy, ครั้งที่ 2 = React, วนต่อ (ค่าคงที่ระดับ module กัน effect ใน sprite รันซ้ำ)
-const IDLE_PRELOAD = [dragonPrototype.happy, dragonPrototype.react];
+// ขนาดกรอบรูปนิ่งของ avatar (px) — sprite วางตาม staticFit เทียบกรอบนี้
+const AVATAR_SIZE = 180;
 
 export default function PetCard({
   petId,
@@ -82,7 +82,9 @@ export default function PetCard({
   dungeonCard,
   raidTicketCount,
   pvpTurnCount,
-  idleSpritePreview = false,
+  qmonSpriteEnabled = false,
+  spriteDebug = null,
+  spriteFps = null,
 }: {
   petId: string;
   stage: number;
@@ -118,8 +120,12 @@ export default function PetCard({
   dungeonCard: DungeonCardState;
   raidTicketCount: number;
   pvpTurnCount: number;
-  // โหมดทดลอง Qmon Animation v1 (?anim=idle, ไม่ใช่ production) — ลบได้เมื่อมี renderer จริง
-  idleSpritePreview?: boolean;
+  // Qmon Animation v1: เปิด sprite Idle แทนรูปนิ่ง (flag อ่านฝั่ง server ใน pet/page.tsx)
+  qmonSpriteEnabled?: boolean;
+  // ตัวช่วยตรวจบน preview (?animKey&animClip, ไม่ใช่ production): ใช้ sprite ของ key นั้นแทนตัวที่เลี้ยง
+  spriteDebug?: { key: string; clip: "idle" | "happy" } | null;
+  // ตัวช่วยตรวจบน preview (?animFps, ไม่ใช่ production): override fps ของท่าที่กำลังวนอยู่
+  spriteFps?: number | null;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -179,8 +185,17 @@ export default function PetCard({
     statHp != null && statAtk != null && statDef != null && statSpd != null && statFoc != null;
 
   const idleAnimClass = stage === 1 ? "animate-egg-wobble" : "animate-pet-bob";
-  // โหมดทดลอง: ใช้ sprite Idle แทนรูปนิ่ง (ยกเว้นตอน justEvolved) — sprite ขยับเองแล้ว จึงปิด bob/wobble ไม่ให้ซ้อน
-  const useIdleSprite = idleSpritePreview && !justEvolved;
+  // เลือก sprite หรือรูปนิ่ง: sprite เฉพาะเมื่อเปิด flag, ไม่ใช่ justEvolved (ต้องเห็นรูปนิ่งเด้งตอนวิวัฒนาการ) และ
+  // key ของรูปนิ่งมีใน manifest (stage 2-3) — ไม่เข้าเงื่อนไข/โหลดพลาด = รูปนิ่งเหมือนเดิมทุกพิกเซล
+  // sprite ขยับเองแล้ว จึงปิด bob/wobble ของ wrapper ไม่ให้ซ้อน
+  const avatarPath = spriteDebug ? `/pets/${spriteDebug.key}.png` : petImagePath;
+  const spriteSet = qmonSpriteEnabled && !justEvolved ? getSpriteSet(avatarPath) : null;
+  const [spriteReadyKey, setSpriteReadyKey] = useState<string | null>(null);
+  const [spriteFailedKey, setSpriteFailedKey] = useState<string | null>(null);
+  const useSprite = spriteSet !== null && spriteFailedKey !== spriteSet.key;
+  const spriteReady = useSprite && spriteReadyKey === spriteSet.key;
+  // เฟส 4 จะเรียก spriteRef.current?.playHappy() ตอนแตะ/สุ่ม/กลับจาก quiz (ตอนนี้ยังไม่ผูก trigger)
+  const spriteRef = useRef<QmonSpriteHandle>(null);
   const evolutionProgress = getEvolutionProgress(stage, exp);
 
   // segmented evolution bar (ux pass 2026-07): แถบเดิมเป็น smooth bar สีเดียวกับหลอด "พลังวันนี้"
@@ -260,27 +275,45 @@ export default function PetCard({
           aria-expanded={expanded}
           aria-label={`แตะ ${displayName}`}
         >
-          <div className={`relative flex items-center justify-center ${!justEvolved && !useIdleSprite ? idleAnimClass : ""}`}>
+          <div className={`relative flex items-center justify-center ${!justEvolved && !useSprite ? idleAnimClass : ""}`}>
+            {/* TODO เฟส 4: key={tapPulse} remount ลูกทุกแตะ — ถ้าผูก "แตะ = playHappy()" Happy จะหาย ต้องย้าย key/animation ออกจากตัวที่ครอบ QmonSprite */}
             <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
-              {useIdleSprite ? (
+              {avatarPath ? (
                 <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
-                  <QmonIdleSprite
-                    clip={dragonPrototype.idle}
-                    size={180}
-                    playClip={tapPulse === 0 ? null : tapPulse % 2 === 1 ? dragonPrototype.happy : dragonPrototype.react}
-                    preload={IDLE_PRELOAD}
-                  />
-                </EvolutionGlow>
-              ) : petImagePath ? (
-                <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
-                  <Image
-                    src={petImagePath}
-                    alt="ภาพ Qmon"
-                    width={180}
-                    height={180}
-                    priority
-                    className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
-                  />
+                  {useSprite ? (
+                    // ห่อรูปนิ่ง + sprite ด้วยกรอบ relative เท่ารูปนิ่ง เพื่อให้ staticFit วางตำแหน่งได้ตรง (ไม่พึ่ง filter ของ .evo-glow)
+                    <div className="relative" style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}>
+                      <Image
+                        src={avatarPath}
+                        alt="ภาพ Qmon"
+                        width={AVATAR_SIZE}
+                        height={AVATAR_SIZE}
+                        priority
+                        // รูปนิ่งอยู่ใต้ sprite ตลอด (กันเลย์เอาต์ขยับ) แล้ว fade ออกเมื่อ sprite วาดเฟรมแรกแล้ว
+                        className={`relative transition-opacity duration-200 ${spriteReady ? "opacity-0" : ""}`}
+                      />
+                      <QmonSprite
+                        key={spriteSet.key}
+                        ref={spriteRef}
+                        set={spriteSet}
+                        size={AVATAR_SIZE}
+                        visible={spriteReady}
+                        loopClip={spriteDebug?.clip}
+                        fpsOverride={spriteFps}
+                        onReady={() => setSpriteReadyKey(spriteSet.key)}
+                        onError={() => setSpriteFailedKey(spriteSet.key)}
+                      />
+                    </div>
+                  ) : (
+                    <Image
+                      src={avatarPath}
+                      alt="ภาพ Qmon"
+                      width={AVATAR_SIZE}
+                      height={AVATAR_SIZE}
+                      priority
+                      className={`relative ${justEvolved ? "animate-evolve-pop" : ""}`}
+                    />
+                  )}
                 </EvolutionGlow>
               ) : (
                 <div

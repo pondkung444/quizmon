@@ -1,0 +1,389 @@
+{
+  "version": 1,
+  "cell": 588,
+  "gutter": 2,
+  "columns": 4,
+  "rows": 4,
+  "sprites": {
+    "egg1_stage2_baby": {
+      "idle": {
+        "src": "/pets/anim/egg1_stage2_baby_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg1_stage2_baby_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.10734,
+        "dx": -0.04708,
+        "dy": -0.01695
+      }
+    },
+    "egg1_stage3_balance": {
+      "idle": {
+        "src": "/pets/anim/egg1_stage3_balance_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg1_stage3_balance_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.1831,
+        "dx": -0.0664,
+        "dy": -0.06237
+      }
+    },
+    "egg1_stage3_math": {
+      "idle": {
+        "src": "/pets/anim/egg1_stage3_math_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg1_stage3_math_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.23013,
+        "dx": -0.12552,
+        "dy": -0.08159
+      }
+    },
+    "egg1_stage3_science": {
+      "idle": {
+        "src": "/pets/anim/egg1_stage3_science_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg1_stage3_science_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.21488,
+        "dx": -0.09298,
+        "dy": -0.08471
+      }
+    },
+    "egg2_stage2_baby": {
+      "idle": {
+        "src": "/pets/anim/egg2_stage2_baby_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg2_stage2_baby_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.10526,
+        "dx": -0.02632,
+        "dy": -0.04323
+      }
+    },
+    "egg2_stage3_balance": {
+      "idle": {
+        "src": "/pets/anim/egg2_stage3_balance_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg2_stage3_balance_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 0.86854,
+        "dx": 0.07829,
+        "dy": 0.08863
+      }
+    },
+    "egg2_stage3_math": {
+      "idle": {
+        "src": "/pets/anim/egg2_stage3_math_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg2_stage3_math_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.09294,
+        "dx": -0.04089,
+        "dy": -0.01487
+      }
+    },
+    "egg2_stage3_science": {
+      "idle": {
+        "src": "/pets/anim/egg2_stage3_science_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg2_stage3_science_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.09497,
+        "dx": 0.04283,
+        "dy": -0.05028
+      }
+    },
+    "egg3_stage2_baby": {
+      "idle": {
+        "src": "/pets/anim/egg3_stage2_baby_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg3_stage2_baby_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.07299,
+        "dx": -0.02007,
+        "dy": -0.0073
+      }
+    },
+    "egg3_stage3_balance": {
+      "idle": {
+        "src": "/pets/anim/egg3_stage3_balance_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg3_stage3_balance_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.23529,
+        "dx": -0.14286,
+        "dy": -0.12395
+      }
+    },
+    "egg3_stage3_math": {
+      "idle": {
+        "src": "/pets/anim/egg3_stage3_math_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg3_stage3_math_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.21739,
+        "dx": -0.12836,
+        "dy": -0.13043
+      }
+    },
+    "egg3_stage3_science": {
+      "idle": {
+        "src": "/pets/anim/egg3_stage3_science_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg3_stage3_science_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.28384,
+        "dx": -0.13319,
+        "dy": -0.20742
+      }
+    },
+    "egg4_stage2_baby": {
+      "idle": {
+        "src": "/pets/anim/egg4_stage2_baby_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg4_stage2_baby_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.07299,
+        "dx": -0.05657,
+        "dy": -0.00182
+      }
+    },
+    "egg4_stage3_balance": {
+      "idle": {
+        "src": "/pets/anim/egg4_stage3_balance_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg4_stage3_balance_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 0.9703,
+        "dx": -0.0099,
+        "dy": 0.04785
+      }
+    },
+    "egg4_stage3_math": {
+      "idle": {
+        "src": "/pets/anim/egg4_stage3_math_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": true
+      },
+      "happy": {
+        "src": "/pets/anim/egg4_stage3_math_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.13077,
+        "dx": -0.04038,
+        "dy": -0.05962
+      }
+    },
+    "egg4_stage3_science": {
+      "idle": {
+        "src": "/pets/anim/egg4_stage3_science_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg4_stage3_science_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.10112,
+        "dx": -0.08052,
+        "dy": -0.02622
+      }
+    },
+    "egg5_stage2_baby": {
+      "idle": {
+        "src": "/pets/anim/egg5_stage2_baby_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg5_stage2_baby_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.12,
+        "dx": -0.05333,
+        "dy": -0.03619
+      }
+    },
+    "egg5_stage3_balance": {
+      "idle": {
+        "src": "/pets/anim/egg5_stage3_balance_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg5_stage3_balance_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.16206,
+        "dx": -0.06719,
+        "dy": -0.02372
+      }
+    },
+    "egg5_stage3_math": {
+      "idle": {
+        "src": "/pets/anim/egg5_stage3_math_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg5_stage3_math_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 1.17365,
+        "dx": -0.07186,
+        "dy": -0.03593
+      }
+    },
+    "egg5_stage3_science": {
+      "idle": {
+        "src": "/pets/anim/egg5_stage3_science_idle.webp",
+        "frames": 16,
+        "fps": 5,
+        "pingPong": false
+      },
+      "happy": {
+        "src": "/pets/anim/egg5_stage3_science_happy.webp",
+        "frames": 16,
+        "fps": 12,
+        "pingPong": false
+      },
+      "staticFit": {
+        "scale": 0.86598,
+        "dx": 0.12224,
+        "dy": 0.07364
+      }
+    }
+  }
+}

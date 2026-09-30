@@ -41,13 +41,23 @@ export default async function PetPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { evolved, anim } = await searchParams;
+  const { evolved, animKey, animClip, animFps } = await searchParams;
   const justEvolved = evolved === "1";
-  // โหมดทดลอง Qmon Animation v1: เปิดเฉพาะ ?anim=idle และไม่ใช่ production (local/preview เท่านั้น)
-  const idleSpritePreview = anim === "idle" && process.env.VERCEL_ENV !== "production";
+  const isProduction = process.env.VERCEL_ENV === "production";
 
   const supabase = await createClient();
   const user = await getUser();
+
+  // Qmon Animation v1: เปิด sprite เมื่อไม่ใช่ production (local + preview) หรือ user id อยู่ใน env QMON_ANIM_USER_IDS (คั่นด้วยจุลภาค)
+  // ตัวช่วยตรวจ ?animKey=<key>&animClip=idle|happy ใช้เฉพาะที่ไม่ใช่ production — production ไม่สนใจ param นี้
+  const animAllowIds = (process.env.QMON_ANIM_USER_IDS ?? "").split(",").map((v) => v.trim()).filter(Boolean);
+  const qmonSpriteEnabled = !isProduction || (!!user && animAllowIds.includes(user.id));
+  const animKeyParam = typeof animKey === "string" && /^egg[1-5]_stage[23]_[a-z]+$/.test(animKey) ? animKey : null;
+  const spriteDebug =
+    !isProduction && animKeyParam ? { key: animKeyParam, clip: animClip === "happy" ? ("happy" as const) : ("idle" as const) } : null;
+  // ?animFps=2-15 (ไม่ใช่ production เท่านั้น): override fps ของท่าที่กำลังวนอยู่ ไว้ลองค่าบน preview โดยไม่ต้อง deploy ใหม่
+  const animFpsNum = typeof animFps === "string" ? Number(animFps) : NaN;
+  const spriteFps = !isProduction && Number.isFinite(animFpsNum) && animFpsNum >= 2 && animFpsNum <= 15 ? animFpsNum : null;
 
   let pet: {
     id: string;
@@ -351,7 +361,9 @@ export default async function PetPage({
           dungeonCard={dungeonCard}
           raidTicketCount={raidTicketCount}
           pvpTurnCount={pvpTurnCount}
-          idleSpritePreview={idleSpritePreview}
+          qmonSpriteEnabled={qmonSpriteEnabled}
+          spriteDebug={spriteDebug}
+          spriteFps={spriteFps}
         />
         </>
       ) : (
