@@ -38,30 +38,61 @@ export function frameRect(geo: SpriteGeometry, frame: number) {
   return { x: col * (geo.cell + geo.gutter), y: row * (geo.cell + geo.gutter), size: geo.cell };
 }
 
+// จำนวนสเต็ปต่อ 1 รอบของท่าที่วน (pingPong = 2*(N-1))
+export function loopPeriodSteps(clip: SpriteClip) {
+  return clip.pingPong && clip.frames > 1 ? 2 * (clip.frames - 1) : clip.frames;
+}
+
 // ตัวควบคุมการเล่น (state machine ล้วน ไม่มี DOM — ทดสอบด้วย node ได้)
 // main = ท่าที่วนตลอด (Idle) · other = ท่าที่เล่น 1 รอบแล้วกลับ main (Happy)
 // - requestOther() ระหว่าง other กำลังเล่น/รอเล่นอยู่ = false (แตะซ้ำไม่เริ่มใหม่)
+//   ยกเว้นคำขอแบบทันทีที่แทรกระหว่างรอ atLoopEnd -> ยกระดับเป็นเริ่มทันที (true)
+// - atLoopEnd: รอ main ครบรอบ (ข้ามจุด wrap) แล้วค่อยเริ่ม other เฟรม 0 · คำขอที่มาจาก onMainLoop
+//   (หลัง wrap แล้ว) จึงรอรอบถัดไป ไม่เริ่มทันที
 // - other จบ -> กลับ main ที่ elapsed 0 (เฟรม 0 = ท่าเดียวกับรูปต้นฉบับ)
 export type SpriteFrameRef = { clip: "main" | "other"; frame: number };
+export type SpritePlayerEvents = {
+  onMainLoop?: () => void; // main ครบรอบ 1 รอบ (เรียกทุกครั้งที่ข้ามจุด wrap)
+  onOtherEnd?: () => void; // other เล่นจบและกลับ main แล้ว
+};
 export type SpritePlayer = {
   tick(dtMs: number): SpriteFrameRef;
-  requestOther(): boolean;
+  requestOther(opts?: { atLoopEnd?: boolean }): boolean;
   readonly mainElapsed: number; // เวลาที่ main เล่นไปแล้ว (เก็บข้ามการ remount)
 };
 
-export function createSpritePlayer(main: SpriteClip, other: SpriteClip, startElapsed = 0): SpritePlayer {
+export function createSpritePlayer(
+  main: SpriteClip,
+  other: SpriteClip,
+  startElapsed = 0,
+  events: SpritePlayerEvents = {},
+): SpritePlayer {
+  const period = loopPeriodSteps(main);
+  const loopIndex = (ms: number) => Math.floor((Math.max(0, ms) * main.fps) / 1000 / period);
   let mode: "main" | "other" = "main";
   let mainElapsed = startElapsed;
+  let lastLoop = loopIndex(startElapsed);
   let otherElapsed = 0;
-  let pending = false;
+  let pending: "now" | "loopEnd" | null = null;
   return {
     tick(dtMs) {
-      if (mode === "main" && pending) {
-        pending = false;
+      if (mode === "main" && pending === "now") {
+        pending = null;
         mode = "other";
         otherElapsed = 0;
       } else if (mode === "main") {
         mainElapsed += dtMs;
+        const idx = loopIndex(mainElapsed);
+        if (idx > lastLoop) {
+          lastLoop = idx;
+          const startOther = pending === "loopEnd"; // เช็คก่อน callback: คำขอที่มาจาก callback ต้องรอรอบหน้า
+          events.onMainLoop?.();
+          if (startOther) {
+            pending = null;
+            mode = "other";
+            otherElapsed = 0;
+          }
+        }
       } else {
         otherElapsed += dtMs;
       }
@@ -70,13 +101,19 @@ export function createSpritePlayer(main: SpriteClip, other: SpriteClip, startEla
         if (!step.done) return { clip: "other", frame: step.frame };
         mode = "main";
         mainElapsed = 0;
+        lastLoop = 0;
+        events.onOtherEnd?.();
       }
       return { clip: "main", frame: animationFrame(main, mainElapsed, true).frame };
     },
-    requestOther() {
-      if (mode === "other" || pending) return false;
-      pending = true;
-      return true;
+    requestOther(opts) {
+      if (mode === "other") return false;
+      const kind = opts?.atLoopEnd ? "loopEnd" : "now";
+      if (pending === null || (pending === "loopEnd" && kind === "now")) {
+        pending = kind;
+        return true;
+      }
+      return false;
     },
     get mainElapsed() {
       return mainElapsed;

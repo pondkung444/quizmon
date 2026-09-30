@@ -16,6 +16,7 @@ import { getEvolutionProgress, STAGE_LABEL_TH } from "@/lib/evolution";
 import EvolutionGlow from "@/components/EvolutionGlow";
 import QmonSprite, { type QmonSpriteHandle } from "@/components/QmonSprite";
 import { getSpriteSet } from "@/lib/qmonSprites";
+import { useQmonHappyTriggers } from "@/hooks/useQmonHappyTriggers";
 import { useSfx } from "@/lib/audio/useSfx";
 import type { JourneyDay } from "@/lib/weeklyJourney";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
@@ -85,6 +86,8 @@ export default function PetCard({
   qmonSpriteEnabled = false,
   spriteDebug = null,
   spriteFps = null,
+  spriteRandomFast = false,
+  spriteQuizHappy = false,
 }: {
   petId: string;
   stage: number;
@@ -126,12 +129,17 @@ export default function PetCard({
   spriteDebug?: { key: string; clip: "idle" | "happy" } | null;
   // ตัวช่วยตรวจบน preview (?animFps, ไม่ใช่ production): override fps ของท่าที่กำลังวนอยู่
   spriteFps?: number | null;
+  // ตัวช่วยตรวจบน preview (?animRandom=fast, ไม่ใช่ production): สุ่ม Happy ถี่ (เริ่ม 2 วิ / โอกาส 100% / cooldown 6 วิ)
+  spriteRandomFast?: boolean;
+  // ตัวช่วยตรวจบน preview (?animQuizHappy=1, ไม่ใช่ production): ทำเหมือนกลับจาก quiz โดยไม่ต้องทำ quiz จริง
+  spriteQuizHappy?: boolean;
 }) {
   const router = useRouter();
   const sfx = useSfx();
   const evolveSfxRef = useRef(false);
   const [expanded, setExpanded] = useState(false);
   const [tapPulse, setTapPulse] = useState(0);
+  const tapRef = useRef<HTMLDivElement>(null);
   const [showTopicStats, setShowTopicStats] = useState(false);
   // ปุ่มถาวรเปิด feedback popup เอง — คนละกลไกกับ auto-trigger หลังภารกิจใน QuizClient.tsx (ไม่เช็ค
   // ADMIN_EMAILS/เคยตอบไปหรือยัง เปิดได้ไม่จำกัดจำนวนครั้ง)
@@ -194,8 +202,17 @@ export default function PetCard({
   const [spriteFailedKey, setSpriteFailedKey] = useState<string | null>(null);
   const useSprite = spriteSet !== null && spriteFailedKey !== spriteSet.key;
   const spriteReady = useSprite && spriteReadyKey === spriteSet.key;
-  // เฟส 4 จะเรียก spriteRef.current?.playHappy() ตอนแตะ/สุ่ม/กลับจาก quiz (ตอนนี้ยังไม่ผูก trigger)
+  // Happy 3 trigger: แตะ / สุ่มตอนจบรอบ Idle / กลับจาก quiz (ดู useQmonHappyTriggers) — no-op เมื่อไม่ได้ใช้ sprite
   const spriteRef = useRef<QmonSpriteHandle>(null);
+  const happy = useQmonHappyTriggers({
+    spriteRef,
+    spriteKey: spriteSet?.key ?? null,
+    spriteActive: useSprite,
+    spriteReady,
+    justEvolved,
+    fastRandom: spriteRandomFast,
+    forceQuizHappy: spriteQuizHappy,
+  });
   const evolutionProgress = getEvolutionProgress(stage, exp);
 
   // segmented evolution bar (ux pass 2026-07): แถบเดิมเป็น smooth bar สีเดียวกับหลอด "พลังวันนี้"
@@ -270,14 +287,25 @@ export default function PetCard({
             setExpanded((v) => !v);
             setTapPulse((n) => n + 1);
             triggerPersonalityEvent("tapQmon");
+            if (useSprite) {
+              happy.onTap();
+              // เล่น tap pulse ซ้ำโดยไม่ remount sprite (ลบ class -> reflow -> ใส่คืน)
+              const el = tapRef.current;
+              if (el) {
+                el.classList.remove("animate-pet-tap");
+                void el.offsetWidth;
+                el.classList.add("animate-pet-tap");
+              }
+            }
           }}
           className="absolute inset-x-0 bottom-[26px] mx-auto flex h-[190px] w-[200px] items-end justify-center"
           aria-expanded={expanded}
           aria-label={`แตะ ${displayName}`}
         >
           <div className={`relative flex items-center justify-center ${!justEvolved && !useSprite ? idleAnimClass : ""}`}>
-            {/* TODO เฟส 4: key={tapPulse} remount ลูกทุกแตะ — ถ้าผูก "แตะ = playHappy()" Happy จะหาย ต้องย้าย key/animation ออกจากตัวที่ครอบ QmonSprite */}
-            <div key={tapPulse} className={tapPulse > 0 ? "animate-pet-tap" : ""}>
+            {/* รูปนิ่ง: remount ด้วย key={tapPulse} เล่น tap pulse ใหม่ทุกแตะ (เหมือนเดิม) · sprite: key คงที่ ห้าม remount
+                (ไม่งั้น Happy หาย) แล้ว onClick เล่น class animate-pet-tap ซ้ำผ่าน tapRef แทน */}
+            <div key={useSprite ? "sprite" : tapPulse} ref={tapRef} className={!useSprite && tapPulse > 0 ? "animate-pet-tap" : ""}>
               {avatarPath ? (
                 <EvolutionGlow progress={evolutionProgress} dailyCapped={cappedToday}>
                   {useSprite ? (
@@ -302,6 +330,9 @@ export default function PetCard({
                         fpsOverride={spriteFps}
                         onReady={() => setSpriteReadyKey(spriteSet.key)}
                         onError={() => setSpriteFailedKey(spriteSet.key)}
+                        onHappyReady={happy.onHappyReady}
+                        onIdleLoop={happy.onIdleLoop}
+                        onHappyEnd={happy.onHappyEnd}
                       />
                     </div>
                   ) : (

@@ -41,7 +41,7 @@ export default async function PetPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { evolved, animKey, animClip, animFps } = await searchParams;
+  const { evolved, animKey, animClip, animFps, animRandom, animQuizHappy } = await searchParams;
   const justEvolved = evolved === "1";
   const isProduction = process.env.VERCEL_ENV === "production";
 
@@ -58,6 +58,10 @@ export default async function PetPage({
   // ?animFps=2-15 (ไม่ใช่ production เท่านั้น): override fps ของท่าที่กำลังวนอยู่ ไว้ลองค่าบน preview โดยไม่ต้อง deploy ใหม่
   const animFpsNum = typeof animFps === "string" ? Number(animFps) : NaN;
   const spriteFps = !isProduction && Number.isFinite(animFpsNum) && animFpsNum >= 2 && animFpsNum <= 15 ? animFpsNum : null;
+
+  // ?animRandom=fast / ?animQuizHappy=1 (ไม่ใช่ production เท่านั้น): ตัวช่วยตรวจ trigger Happy บน preview
+  const spriteRandomFast = !isProduction && animRandom === "fast";
+  const spriteQuizHappy = !isProduction && animQuizHappy === "1";
 
   let pet: {
     id: string;
@@ -364,6 +368,8 @@ export default async function PetPage({
           qmonSpriteEnabled={qmonSpriteEnabled}
           spriteDebug={spriteDebug}
           spriteFps={spriteFps}
+          spriteRandomFast={spriteRandomFast}
+          spriteQuizHappy={spriteQuizHappy}
         />
         </>
       ) : (
