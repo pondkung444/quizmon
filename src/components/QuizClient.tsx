@@ -38,6 +38,7 @@ import Toast from "@/components/social/Toast";
 import QuizJourney from "@/components/quiz/QuizJourney";
 import GuardianRoundRewards from "@/components/quiz/GuardianRoundRewards";
 import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
+import { getSessionStorage, markQuizHappy } from "@/lib/qmonHappyTriggers";
 import MiniReviewRound from "@/components/quiz/MiniReviewRound";
 import { selectMissedQuestions } from "@/lib/learningFeedback";
 
@@ -613,6 +614,7 @@ export default function QuizClient({
       setFinalExpEarned(roundExpEarned);
       const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
       setSummary(finishResult);
+      markQuizHappy(getSessionStorage(), Date.now()); // ให้ /pet เล่น Happy ตอนกลับมา (เขียนทุกรอบ ไม่ขึ้นกับคะแนน)
       if (finishResult.premiumBiweeklyEgg) {
         setEggToastMessage("ทำเป้าครบ 2 สัปดาห์ติด! ได้ไข่ศักดิ์ธรา 🥚");
       }

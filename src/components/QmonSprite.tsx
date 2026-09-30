@@ -10,11 +10,12 @@ import type { SpriteSet } from "@/lib/qmonSprites";
 // (ไม่พึ่ง filter ของ .evo-glow เป็น containing block) เพื่อให้มุมซ้ายบนของ wrapper = มุมของรูปนิ่ง
 
 export type QmonSpriteHandle = {
-  // เล่น Happy 1 รอบแล้วกลับ Idle · คืน false ถ้า Happy กำลังเล่นอยู่ (แตะซ้ำไม่เริ่มใหม่)/sheet ยังโหลดไม่เสร็จ/ปิดแอนิเมชัน (เฟส 4 ผูก trigger)
-  playHappy: () => boolean;
+  // เล่น Happy 1 รอบแล้วกลับ Idle · คืน false ถ้า Happy กำลังเล่น/รอเล่นอยู่ (แตะซ้ำไม่เริ่มใหม่)/sheet ยังโหลดไม่เสร็จ/reduced-motion
+  // atLoopEnd: รอ Idle ครบรอบก่อนค่อยเริ่ม (ใช้กับการสุ่ม) · ไม่ใส่ = เริ่มทันที
+  playHappy: (opts?: { atLoopEnd?: boolean }) => boolean;
 };
 
-// cache ระดับ module: wrapper key={tapPulse} ใน PetCard remount ลูกทุกครั้งที่แตะ ห้าม decode sheet ใหม่
+// cache ระดับ module: remount (เปลี่ยน sprite/ออกจากหน้าแล้วกลับ) ห้าม decode sheet ใหม่
 const pending = new Map<string, Promise<HTMLImageElement>>();
 const loaded = new Map<string, HTMLImageElement>(); // decode เสร็จแล้ว — remount วาดเฟรมแรกแบบ sync ได้ ไม่มีจังหวะว่าง
 const idlePhase = new Map<string, number>(); // เวลา Idle ที่เล่นไปแล้วต่อ sheet — remount แล้วเล่นต่อ ไม่กลับเฟรม 0
@@ -52,6 +53,9 @@ export default function QmonSprite({
   visible,
   onReady,
   onError,
+  onHappyReady,
+  onIdleLoop,
+  onHappyEnd,
   loopClip = "idle",
   fpsOverride = null,
   ref,
@@ -61,20 +65,29 @@ export default function QmonSprite({
   visible: boolean; // fade เข้า/ออก (~200ms) คุมโดยผู้เรียก — รูปนิ่งควร fade ออกพร้อมกัน
   onReady?: () => void; // วาดเฟรมแรกลง canvas แล้ว
   onError?: () => void; // โหลดไม่สำเร็จ (ผู้เรียกใช้รูปนิ่งต่อ)
+  onHappyReady?: () => void; // sheet Happy โหลด+decode เสร็จ (หรือทันทีถ้าอยู่ใน cache แล้ว) — ไม่เรียกเมื่อ reduced-motion
+  onIdleLoop?: () => void; // Idle ครบรอบ 1 รอบ (ไม่เรียกตอน loopClip="happy")
+  onHappyEnd?: () => void; // Happy เล่นจบและกลับ Idle แล้ว
   loopClip?: "idle" | "happy"; // ตัวช่วยตรวจบน preview: วนท่านี้ตลอด
   fpsOverride?: number | null; // ตัวช่วยตรวจบน preview: override fps ของท่าที่วนอยู่
   ref?: Ref<QmonSpriteHandle>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const requestHappyRef = useRef<() => boolean>(() => false);
+  const requestHappyRef = useRef<(opts?: { atLoopEnd?: boolean }) => boolean>(() => false);
   const onReadyRef = useRef(onReady);
   const onErrorRef = useRef(onError);
+  const onHappyReadyRef = useRef(onHappyReady);
+  const onIdleLoopRef = useRef(onIdleLoop);
+  const onHappyEndRef = useRef(onHappyEnd);
   useLayoutEffect(() => {
     onReadyRef.current = onReady;
     onErrorRef.current = onError;
+    onHappyReadyRef.current = onHappyReady;
+    onIdleLoopRef.current = onIdleLoop;
+    onHappyEndRef.current = onHappyEnd;
   });
 
-  useImperativeHandle(ref, () => ({ playHappy: () => requestHappyRef.current() }), []);
+  useImperativeHandle(ref, () => ({ playHappy: (opts) => requestHappyRef.current(opts) }), []);
 
   const { geometry: geo, idle, happy, staticFit, key } = set;
   const mainBase = loopClip === "happy" ? happy : idle;
@@ -104,7 +117,15 @@ export default function QmonSprite({
 
     const start = (mainImg: HTMLImageElement) => {
       validateClip(geo, main);
-      const player = createSpritePlayer(main, other, loopClip === "idle" ? idlePhase.get(main.src) ?? 0 : 0);
+      // callback เฉพาะโหมดปกติ (main = Idle): โหมดตรวจ loopClip="happy" ไม่มีการสุ่ม/นับจบ Happy
+      const player = createSpritePlayer(main, other, loopClip === "idle" ? idlePhase.get(main.src) ?? 0 : 0, {
+        onMainLoop: () => {
+          if (loopClip === "idle") onIdleLoopRef.current?.();
+        },
+        onOtherEnd: () => {
+          if (loopClip === "idle") onHappyEndRef.current?.();
+        },
+      });
       let shown = "";
       const paint = (r: SpriteFrameRef) => {
         const k = `${r.clip}:${r.frame}`;
@@ -117,7 +138,7 @@ export default function QmonSprite({
       if (reduced) return;
 
       // คืน false ถ้า Happy กำลังเล่น/รอเล่นอยู่ (แตะซ้ำไม่เริ่มใหม่) หรือ sheet Happy ยังโหลดไม่เสร็จ
-      requestHappyRef.current = () => loopClip === "idle" && !!loaded.get(other.src) && player.requestOther();
+      requestHappyRef.current = (opts) => loopClip === "idle" && !!loaded.get(other.src) && player.requestOther(opts);
       let last: number | null = null;
       const tick = (now: number) => {
         const dt = last !== null && !document.hidden ? now - last : 0;
@@ -136,7 +157,13 @@ export default function QmonSprite({
 
     const preloadOther = () => {
       // โหลดอีกท่าหลัง main เล่นแล้ว (ไม่แย่ง bandwidth ตอนโหลดแรก) พลาดก็ไม่เป็นไร
-      const go = () => loadSheet(geo, other).catch(() => {});
+      const go = () =>
+        loadSheet(geo, other).then(
+          () => {
+            if (!cancelled && loopClip === "idle") onHappyReadyRef.current?.();
+          },
+          () => {},
+        );
       if (typeof window.requestIdleCallback === "function") {
         const id = window.requestIdleCallback(go, { timeout: 3000 });
         cleanup = ((prev) => () => { prev(); window.cancelIdleCallback(id); })(cleanup);
@@ -147,8 +174,12 @@ export default function QmonSprite({
 
     const ready = loaded.get(main.src);
     if (ready) {
-      start(ready); // remount (แตะแล้ว key เปลี่ยน): วาดแบบ sync ก่อน paint ไม่กระพริบ
-      if (!cancelled && !reduced) preloadOther();
+      start(ready); // remount (เช่น กลับเข้าหน้า): วาดแบบ sync ก่อน paint ไม่กระพริบ
+      if (!cancelled && !reduced) {
+        if (loaded.has(other.src)) {
+          if (loopClip === "idle") onHappyReadyRef.current?.(); // Happy อยู่ใน cache แล้ว
+        } else preloadOther();
+      }
     } else {
       loadSheet(geo, main).then(
         (img) => {
