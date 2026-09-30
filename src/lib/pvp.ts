@@ -141,6 +141,7 @@ export type ChallengeableFriend = {
   username: string;
   gradeBand: string;
   matchCount: number; // จำนวนแมตช์ที่เคยเล่นจริงกับเพื่อนคนนี้ (all-time) — ใช้เรียงแถว "ท้าบ่อยล่าสุด"
+  activeMatchId: string | null; // แมตช์ที่ยังไม่จบกับเพื่อนคนนี้ — ถ้ามี ท้าซ้ำไม่ได้จนกว่าจะจบ
   friendsSince: string; // fallback sort เมื่อยังไม่มีประวัติแมตช์เลย (บัญชีใหม่)
   pet: (PetDisplayInput & { nickname: string | null }) | null; // Qmon ที่ภูมิใจของเพื่อน (fallback: ตัวที่ active)
 };
@@ -172,7 +173,7 @@ export async function getChallengeableFriends(userId: string): Promise<Challenge
     admin.from("pets").select("id, user_id").in("user_id", friendIds).eq("is_active", true),
     admin
       .from("pvp_matches")
-      .select("player_a_id, player_b_id")
+      .select("id, player_a_id, player_b_id, status")
       .or(
         `and(player_a_id.eq.${userId},player_b_id.in.(${friendIds.join(",")})),and(player_b_id.eq.${userId},player_a_id.in.(${friendIds.join(",")}))`
       ),
@@ -214,8 +215,10 @@ export async function getChallengeableFriends(userId: string): Promise<Challenge
   }
 
   const matchCountByFriend = new Map<string, number>();
+  const activeMatchByFriend = new Map<string, string>();
   for (const m of matches ?? []) {
     const friendId = m.player_a_id === userId ? m.player_b_id : m.player_a_id;
+    if (m.status === "active") activeMatchByFriend.set(friendId, m.id as string);
     matchCountByFriend.set(friendId, (matchCountByFriend.get(friendId) ?? 0) + 1);
   }
 
@@ -226,6 +229,7 @@ export async function getChallengeableFriends(userId: string): Promise<Challenge
       username: p.username ?? "เพื่อน",
       gradeBand: p.grade_band as string,
       matchCount: matchCountByFriend.get(p.id) ?? 0,
+      activeMatchId: activeMatchByFriend.get(p.id) ?? null,
       friendsSince: friendsSinceById.get(p.id) ?? new Date(0).toISOString(),
       pet: showcasePetId ? (petDetailById.get(showcasePetId) ?? null) : null,
     };

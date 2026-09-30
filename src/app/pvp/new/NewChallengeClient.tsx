@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import type { ChallengeableFriend, PvpPetPick } from "@/lib/pvp";
 import type { RaidGearItemFull } from "@/lib/raid";
 import { resolvePetDisplay } from "@/components/social/petSummary";
@@ -45,7 +46,9 @@ export default function NewChallengeClient({
 }) {
   const router = useRouter();
   const sfx = useSfx();
-  const [friendId, setFriendId] = useState<string | null>(friends[0]?.userId ?? null);
+  const [friendId, setFriendId] = useState<string | null>(
+    friends.find((f) => !f.activeMatchId)?.userId ?? null
+  );
   const [petId, setPetId] = useState<string | null>(pets[0]?.id ?? null);
   const [items, setItems] = useState<RaidGearItemFull[]>(gearItems);
   const [error, setError] = useState<string | null>(null);
@@ -119,7 +122,8 @@ export default function NewChallengeClient({
                   key={f.userId}
                   type="button"
                   onClick={() => selectFriend(f.userId)}
-                  className="flex w-16 shrink-0 flex-col items-center gap-1.5"
+                  disabled={!!f.activeMatchId}
+                  className="flex w-16 shrink-0 flex-col items-center gap-1.5 disabled:opacity-50"
                 >
                   <span
                     className={`rounded-full ${
@@ -129,6 +133,9 @@ export default function NewChallengeClient({
                     <FriendAvatar friend={f} />
                   </span>
                   <span className="w-16 truncate text-center text-[11px] text-text">{f.username}</span>
+                  {f.activeMatchId && (
+                    <span className="-mt-1 text-[10px] font-bold text-gold-dim">⚔️ กำลังสู้</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -147,7 +154,25 @@ export default function NewChallengeClient({
                   {filteredFriends.length === 0 ? (
                     <p className="px-2 py-3 text-center text-xs text-text3">ไม่พบเพื่อน</p>
                   ) : (
-                    filteredFriends.map((f) => (
+                    filteredFriends.map((f) => f.activeMatchId ? (
+                      <div
+                        key={f.userId}
+                        className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 opacity-80"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-text2">{f.username}</span>
+                          <span className="block text-[11px] text-text3">
+                            ⚔️ กำลังประลองกัน · จบแมตช์นี้ก่อน แล้วท้าใหม่ได้
+                          </span>
+                        </span>
+                        <Link
+                          href={`/pvp/${f.activeMatchId}`}
+                          className="shrink-0 rounded-lg border border-gold-dim px-3 py-2 text-xs font-bold text-gold-hi"
+                        >
+                          เข้าเล่นต่อ →
+                        </Link>
+                      </div>
+                    ) : (
                       <button
                         key={f.userId}
                         type="button"
