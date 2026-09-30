@@ -2,7 +2,7 @@
 """เตรียม sprite Qmon: PNG master (2048x2048, 16 เฟรม) -> WebP ที่จัดเฟรมแล้ว + manifest + รายงาน QC
 
 ใช้:  scripts/sprite/.venv/Scripts/python scripts/sprite/prepare_qmon_sprites.py [--only egg1_stage2_baby ...]
-      [--cell N] [--out-scale 0.75] [--quality 85] [--plan-only] [--max-cell 576]
+      [--cell N] [--out-scale 0.75] [--quality 85] [--plan-only] [--max-cell 600]
 
 ลำดับ: (pass 1) แยกเฟรมทั้ง 40 sheet + คำนวณ extents -> เลือก cell/baseline กลางตัวเดียวทุก key
        (pass 2) ตรึงเท้า/จับคู่ Idle<->Happy -> วางลงช่อง -> ล้าง alpha -> WebP + manifest -> รายงาน QC
