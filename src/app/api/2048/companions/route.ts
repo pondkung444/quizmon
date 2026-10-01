@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { forestCompanion, ownedForestPets } from "@/lib/forest2048/companions";
+import { forestCompanion, forestCompanionIdentity, ownedForestPets } from "@/lib/forest2048/companions";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store" };
@@ -14,7 +14,9 @@ export async function GET() {
     const companions = pets.map(pet => {
       try { return forestCompanion(pet); }
       catch (error) {
-        return { id: pet.id, name: pet.nickname || "Qmon", stage: pet.stage,
+        let identity;
+        try { identity = forestCompanionIdentity(pet); } catch { identity = { id: pet.id, name: pet.nickname || "Qmon", stage: pet.stage }; }
+        return { ...identity,
           disabled: true, reason: error instanceof Error ? error.message : "ข้อมูลคู่หูยังไม่ครบ" };
       }
     });

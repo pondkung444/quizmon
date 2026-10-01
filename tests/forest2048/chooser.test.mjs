@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const ctx=vm.createContext({});
+vm.runInContext(fs.readFileSync(new URL('../../public/2048/chooser.js',import.meta.url),'utf8'),ctx);
+const pets=[{id:'b',name:'nickname',speciesName:'B',eggName:'ธาร',eggPrefix:'egg4',lane:'science',stage:4,isActive:false,personality:'B',stats:{atk:70}},{id:'a',name:'a',speciesName:'A',eggName:'ทิพย์',eggPrefix:'egg3',lane:'math',stage:4,isActive:false,personality:'A',stats:{atk:20}},{id:'c',name:'c',speciesName:'C',eggName:'เพลิง',eggPrefix:'egg1',lane:'balanced',stage:2,isActive:true,stats:{atk:50}}];
+const ids=x=>Array.from(x,p=>p.id);
+assert.deepEqual(ids(ctx.pickerSort(pets)),['c','a','b']);
+assert.deepEqual(ids(ctx.pickerSort(pets,'atk')),['b','c','a']);
+assert.deepEqual(ids(ctx.pickerSort(pets,'name')),['a','b','c']);
+const base={q:'',egg:'',tier:'',lane:'',stage:'',sort:'default'};
+assert.deepEqual(ids(ctx.pickerFilter(pets,{...base,q:'ธาร',tier:'Rare',lane:'science',stage:'4'})),['b']);
+assert.equal(ctx.pickerFilter(pets,{...base,egg:'egg3',stage:'2'}).length,0);
+assert.equal(ctx.pickerEscape('<img onerror="x">'), '&lt;img onerror=&quot;x&quot;&gt;');
+assert.deepEqual(pets.map(p=>p.id),['b','a','c']);
+console.log('PASS: active-first / rarity / names / stats ordering, combined filters, empty result, escaped names, immutable input');
