@@ -1,0 +1,870 @@
+{
+  "generated_at": "2026-10-01T14:44:17.375Z",
+  "node": "v24.18.0",
+  "elapsed_seconds": 458.3,
+  "command": "C:\\Users\\ASUS FX505\\Documents\\study-pet-game\\output\\2048-sim\\sim.mjs --seeds 200 --label main-p0.7",
+  "parameters": {
+    "seeds": 200,
+    "policies": [
+      "random",
+      "greedy",
+      "greedy-egg"
+    ],
+    "quizP": 0.7,
+    "maxSwipes": 6000,
+    "filter": "",
+    "control": true,
+    "secondsPerSwipe": [
+      1.5,
+      2.5
+    ],
+    "secondsPerNonBattleRoom": 10
+  },
+  "engine_source": {
+    "repo": "pondkung444/quizmon",
+    "commit": "2fc089631c037e172d9d4dd5e122d4516a3879a7",
+    "branch": "main (merge #264)",
+    "note": "verbatim copies from origin/main; do not edit. public/2048/{engine,runes,skills,run}.js and src/lib/forest2048/stats.ts",
+    "files": {
+      "engine.js": "e579dcd545b646860875f52f188837266c785736f7f6670c411cdf068c803d55",
+      "run.js": "27e45a23192c1c600dfb6b411b454104f2a32cbebc3c8b452305433f72a8773c",
+      "runes.js": "bdd1c42eb9fead5c2c09176783ddd1a26ab60429956fe9234a3a36fc200b82af",
+      "skills.js": "3063a0c6ebe862308c4b9d85a1599064d6236bb2de94ec348f418901d45fc035",
+      "stats.ts": "5ccfbc96da2d3c95db8267c7b450e335fa18b3ac9962457760d40038d2e81e6d"
+    }
+  },
+  "rules": {
+    "engine": "verbatim copy of quizmon main 2fc0896 (see engine/SOURCE.json). Real run.js/engine.js/skills.js/runes.js executed in node:vm; only UI functions are stubbed.",
+    "config": "forestConfig() imported from the real stats.ts; no gear; no cap clipping (averages assumed below caps).",
+    "seeds": "game seed (run.seed) = hash(seedIndex) identical across forms and policies; bot RNG = mulberry32(hash(seedIndex, policy)), separate from game RNG.",
+    "policies": {
+      "random": "uniform among directions whose slide() changes the board",
+      "greedy": "max number of merges this swipe; ties broken by bot RNG",
+      "greedy-egg": "max number of merges whose result tile type is the egg rune (x); then max merges; ties by bot RNG"
+    },
+    "nonSwipeDecisions": {
+      "doors": "uniform random among offered doors",
+      "relicChoice": "uniform random among offered relics (so win-rate-with-relic is not selection-biased)",
+      "shop": "while any not-owned offer is affordable (40 coins), buy a uniformly random affordable one; then leave",
+      "rest": "always rest (the only action)",
+      "quiz": "each question answered correctly with probability quizP, otherwise a uniformly random wrong option",
+      "quizReward": "if quiz passed: take a relic when any is still available, otherwise 25 coins",
+      "revive": "always accept the revive quiz (needs 3/3 correct)"
+    },
+    "inlineActionsReimplemented": "rest, shop-buy, quizReward, revivePrompt and empty-relic-coin actions are inline closures inside showPhase() in run.js and cannot be called; they are re-implemented 1:1 in ctx-driver.js (search \"MIRROR run.js\").",
+    "attribution": {
+      "skill_dmg": "effective enemy HP removed inside autoTick/autoMergeEffects/autoPostMerges/autoSpark/autoAfterAttack/autoCast (clamped by remaining enemy HP, after beetle stance)",
+      "ord_dmg": "total effective enemy HP removed in the swipe minus skill_dmg = ordinary rune/merge damage + rune periodic burn + quake counter + thorn relic",
+      "skill_armor": "gross armor added inside the same skill functions (includes overflow-heal armor)",
+      "ord_armor": "gross armor from ordinary merges, parsed from the swipe log line",
+      "skill_heal": "effective HP healed inside the skill functions",
+      "ord_heal": "effective HP healed by ordinary merges + bloom periodic, parsed from the swipe log line",
+      "note": "armor is gross (before it is reset to 0 by the next enemy attack); it is NOT armor actually used."
+    },
+    "jam": "recover() called with canMove()==false: HP -ceil(0.25*maxHP) ignoring armor, lowest half of tiles cleared.",
+    "roots": "only the stag (room 8) adds roots. applied = new f==2 tiles at the stag-attack log line; hits/released from slide() preview (release = f reaches 0).",
+    "timeEstimate": "seconds = swipes*secondsPerSwipe + (nonbattle_rooms + revive_used)*secondsPerNonBattleRoom (nonbattle_rooms = rest/shop/quiz doors entered). Door-choice time, animation and reading time are NOT modelled. Assumption only.",
+    "stage1to3Control": "stats 50 each, stage 3, skillIdentity()==null so autoCast never fires; runes + relics + rooms identical."
+  },
+  "forms": [
+    {
+      "form_id": "egg1-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "คมเพลิงต่อเนื่อง",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg1-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "ปราการแก้วอัคคี",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg1-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "ลาวาปะทุ",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg1-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "อัสนีอัคคี",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg1-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "คำรามราชัน",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg1-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "เกราะสุริยัน",
+      "stats": {
+        "hp": 71,
+        "atk": 57,
+        "def": 64,
+        "spd": 72,
+        "foc": 72
+      }
+    },
+    {
+      "form_id": "egg2-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "งาหนามทะลวง",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg2-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "เปลือกไม้ซ้อนชั้น",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg2-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "บุปผาระเบิด",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg2-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "รากหล่อเลี้ยง",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg2-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "พรแห่งพงไพร",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg2-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "พฤกษ์ค้ำจุน",
+      "stats": {
+        "hp": 50,
+        "atk": 33,
+        "def": 40,
+        "spd": 36,
+        "foc": 44
+      }
+    },
+    {
+      "form_id": "egg4-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "คมผลึกเยือกแข็ง",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg4-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "ปราการน้ำแข็ง",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg4-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "คำรามเยือกสะท้าน",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg4-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "ธารเย็นหล่อเลี้ยง",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg4-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "พายุหิมะ",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg4-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "ผลึกเหมันต์พิทักษ์",
+      "stats": {
+        "hp": 77,
+        "atk": 37,
+        "def": 45,
+        "spd": 55,
+        "foc": 63
+      }
+    },
+    {
+      "form_id": "egg5-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "อัสนีทวีคม",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg5-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "ประจุพิทักษ์",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg5-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "เมฆาคำราม",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg5-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "ม่านเมฆอัมพาต",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg5-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "อัสนีแปรรูน",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg5-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "อัสนีประสานฟ้า",
+      "stats": {
+        "hp": 75,
+        "atk": 26,
+        "def": 38,
+        "spd": 58,
+        "foc": 66
+      }
+    },
+    {
+      "form_id": "egg6-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "ศรแกนศิลา",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg6-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "ตราปราการ",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg6-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "แผ่นดินคำราม",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg6-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "มหาปราการ",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg6-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "พรแห่งผืนดิน",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg6-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "ฌานยกระดับศิลา",
+      "stats": {
+        "hp": 67,
+        "atk": 44,
+        "def": 52,
+        "spd": 59,
+        "foc": 62
+      }
+    },
+    {
+      "form_id": "egg3-math-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "math",
+      "personality": "A",
+      "skill_index": 0,
+      "skill_name": "รังสีพิพากษา",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg3-math-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "math",
+      "personality": "B",
+      "skill_index": 1,
+      "skill_name": "ตราอนันต์",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg3-science-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "science",
+      "personality": "A",
+      "skill_index": 2,
+      "skill_name": "พฤกษ์แปรทิพย์",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg3-science-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "science",
+      "personality": "B",
+      "skill_index": 3,
+      "skill_name": "สวนทิพย์ผลิบาน",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg3-balanced-A",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": 4,
+      "skill_name": "เพลิงยกระดับ",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg3-balanced-B",
+      "group": "stage4",
+      "stage": 4,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "balanced",
+      "personality": "B",
+      "skill_index": 5,
+      "skill_name": "ตรามหาพร",
+      "stats": {
+        "hp": 87,
+        "atk": 33,
+        "def": 51,
+        "spd": 67,
+        "foc": 61
+      }
+    },
+    {
+      "form_id": "egg1-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg1",
+      "egg_name": "เพลิง",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    },
+    {
+      "form_id": "egg2-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg2",
+      "egg_name": "พฤกษ์",
+      "rarity": "Common",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    },
+    {
+      "form_id": "egg4-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg4",
+      "egg_name": "ธาร",
+      "rarity": "Rare",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    },
+    {
+      "form_id": "egg5-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg5",
+      "egg_name": "นภา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    },
+    {
+      "form_id": "egg6-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg6",
+      "egg_name": "ธรา",
+      "rarity": "Epic",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    },
+    {
+      "form_id": "egg3-control",
+      "group": "control_stage1-3",
+      "stage": 3,
+      "egg": "egg3",
+      "egg_name": "เทพ",
+      "rarity": "Legendary",
+      "lane": "balanced",
+      "personality": "A",
+      "skill_index": null,
+      "skill_name": null,
+      "stats": {
+        "hp": 50,
+        "atk": 50,
+        "def": 50,
+        "spd": 50,
+        "foc": 50
+      }
+    }
+  ],
+  "total_runs": 25200
+}

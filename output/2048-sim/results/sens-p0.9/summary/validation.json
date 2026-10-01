@@ -1,0 +1,47 @@
+[
+  {
+    "name": "every run finished with win/loss (no timeout/stuck/guard/bad_phase)",
+    "ok": true,
+    "detail": "{\"loss\":22383,\"win\":2817}"
+  },
+  {
+    "name": "runs.swipes == sum(rooms.moves) for every run",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "skill_dmg <= total_dmg and ord_dmg >= 0",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "control group never casts Auto",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "stage-4 forms cast at least once in >=90% of runs",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "no run lost with 0 recorded death",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "roots only appear when the stag was reached",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "roots_released <= root_hits",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "name": "runs per (form,policy) equal",
+    "ok": true,
+    "detail": ""
+  }
+]
