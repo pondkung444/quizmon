@@ -4,13 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyGuardianHub } from "@/lib/guardianHub";
 
 // ทางเข้าศูนย์ผู้พิทักษ์จาก /pet (เฟส 1) — async server component ห่อด้วย Suspense ที่ /pet
-// จึงไม่ถ่วง render หน้าหลัก เด็กที่ไม่อยู่ใน allowlist ยิงแค่ is_guardian_admin แล้วคืน null
-// (ไม่เรียก hub) ไม่มี claimed / error → null ไม่มีอะไรเปลี่ยนบนหน้า
-export default async function GuardianHubLink({ userId }: { userId: string }) {
+// จึงไม่ถ่วง render หน้าหลัก เปิดให้เด็กทุกคน (ไม่มี allowlist ฝั่งเด็กแล้ว)
+// ไม่มี claimed / error → null ไม่มีอะไรเปลี่ยนบนหน้า
+export default async function GuardianHubLink() {
   const supabase = await createClient();
-  const { data: isEnabled } = await supabase.rpc("is_guardian_admin", { p_user_id: userId });
-  if (!isEnabled) return null;
-
   const hub = await getMyGuardianHub(supabase);
   if (!hub) return null;
 

@@ -77,15 +77,12 @@ type GuardianLinkStatusRow = {
   guardian_display_name: string | null;
 };
 
-// หัวข้อ "ผู้พิทักษ์" ในแท็บสังคม — gate ด้วย is_guardian_admin ก่อนเสมอ (ชั้น UI ซ้ำกับ RPC layer
-// ตาม pattern "allowlist มี 2 ชั้นเสมอ") คืน null แปลว่าซ่อนหัวข้อทั้งหมด ไม่ใช่แค่ปุ่มว่าง (§7.3)
+// หัวข้อ "ผู้พิทักษ์" ในแท็บสังคม — เปิดให้เด็กทุกคนโดยไม่ต้องอยู่ใน allowlist (ฝั่งผู้ปกครองยังมี guardian_admin)
+// คืน null แปลว่าซ่อนหัวข้อทั้งหมด (เช่น senior ที่ไม่มีผู้ปกครองผูกอยู่) ไม่ใช่แค่ปุ่มว่าง (§7.3)
 async function getGuardianLinkData(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
 ): Promise<GuardianLinkData | null> {
-  const { data: isEnabled } = await supabase.rpc("is_guardian_admin", { p_user_id: userId });
-  if (!isEnabled) return null;
-
   const { data, error } = await supabase.rpc("guardian_get_link_status");
   if (error) return null;
 
