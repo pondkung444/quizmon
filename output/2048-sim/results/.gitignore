@@ -1,0 +1,5 @@
+# raw per-run data is large (~20 MB/set); regenerate with sim.mjs (see ../README.md)
+*/runs.csv
+*/rooms.csv
+*/relic_events.csv
+*/runs.jsonl
