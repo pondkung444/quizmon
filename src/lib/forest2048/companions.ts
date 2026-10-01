@@ -32,6 +32,7 @@ export function forestCompanion(pet: ForestPet) {
     id: pet.id,
     name: pet.nickname || getSpeciesName(egg.sprite_prefix, pet.stage, line, personality, egg.name_th),
     stage: pet.stage,
+    eggPrefix: egg.sprite_prefix,
     isActive: pet.is_active,
     lane: line ? artLane(line) : "balanced",
     image: getPetImagePath(egg.sprite_prefix, pet.stage, line, personality),
