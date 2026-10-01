@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sendGuardianGoalSetPush, sendGuardianQuestMessagePush } from "@/lib/push/guardianEventPush";
 
@@ -53,5 +54,18 @@ export async function guardianSetQuestMessage(
       await sendGuardianQuestMessagePush(studentId);
     }
   }
+  return { error: null };
+}
+
+// เปิดบัญชีผู้ปกครอง (แถว guardians) ให้คนที่ล็อกอินอยู่แล้วแต่ยังไม่มีแถว — เช่นเข้าด้วย Google ก่อนมี
+// callback ที่สร้างให้ หรือเป็นบัญชีนักเรียนเดิมที่อยากใช้ดูแลคนอื่นด้วย (RPC idempotent)
+// ไม่ได้เปิดสิทธิ์ใช้ฟีเจอร์ — allowlist ยังเช็คที่ getGuardianAccess() แยกต่างหาก
+export async function guardianEnsureAccount(displayName: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("guardian_ensure_account", {
+    p_display_name: displayName.trim().slice(0, 60) || null,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/guardian");
   return { error: null };
 }
