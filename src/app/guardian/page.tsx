@@ -5,6 +5,8 @@ import GuardianAuthForm from "./GuardianAuthForm";
 import GuardianEnableAccount from "./GuardianEnableAccount";
 import { guardianSignOut } from "./actions";
 import StudentPicker from "@/components/guardian/StudentPicker";
+import ClassOverview from "./ClassOverview";
+import { getClassOverview } from "@/lib/guardianClassOverview";
 
 export const dynamic = "force-dynamic";
 
@@ -35,14 +37,58 @@ function SignOutButton() {
 export default async function GuardianPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; grade?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, grade: gradeParam } = await searchParams;
   const access = await getGuardianAccess();
   const [students, unlinked] =
     access.status === "ok"
       ? await Promise.all([getGuardianStudents(), getUnlinkedStudents()])
       : [[], []];
+
+  // ผู้ปกครอง/ครูที่มีนักเรียนผูกอยู่ → หน้าแรกเป็นภาพรวมนักเรียนทุกคน (กดชื่อเข้าหน้ารายคนเดิมได้)
+  // RPC ล้ม → ตกกลับไปรายชื่อเด็กแบบเดิม (ด้านล่าง) ไม่ให้หน้าล่ม
+  if (access.status === "ok" && students.length > 0) {
+    const supabase = await createClient();
+    const allGrades = await getClassOverview(supabase, null);
+    const grade = gradeParam && allGrades?.grades.includes(gradeParam) ? gradeParam : null;
+    const overview = grade === null ? allGrades : await getClassOverview(supabase, grade);
+    if (overview) {
+      return (
+        <main className="gd-shell min-h-screen text-text">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-4 lg:p-8">
+            <header className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-bold text-gold-hi">ภาพรวมนักเรียน</h1>
+                <p className="text-xs text-text3">
+                  {access.displayName ? `${access.displayName} · ` : ""}ดูแล {students.length} คน
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link href="/guardian/link" className="text-sm font-semibold text-gold-hi hover:underline">
+                  + เชื่อมบัญชีนักเรียนเพิ่ม
+                </Link>
+                <SignOutButton />
+              </div>
+            </header>
+
+            {unlinked.map((u) => (
+              <div key={`${u.student_username}-${u.revoked_at}`} className="gd-row p-4">
+                <p className="text-sm font-semibold text-text">
+                  การเชื่อมต่อกับน้อง{u.student_username}สิ้นสุดแล้ว
+                </p>
+                <p className="mt-1 text-sm text-text2">
+                  น้องเป็นคนจัดการการเชื่อมต่อนี้เองได้เสมอ ถ้าอยากดูข้อมูลอีกครั้ง ลองคุยกับน้องและขอรหัสใหม่ได้
+                </p>
+              </div>
+            ))}
+
+            <ClassOverview data={overview} grade={grade} />
+          </div>
+        </main>
+      );
+    }
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[420px] flex-col justify-center gap-6 bg-bg p-6 text-text">
