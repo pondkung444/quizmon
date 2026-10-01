@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChartBar, Route, Target, ClipboardList, ChevronDown, LogOut, ArrowLeft } from "lucide-react";
+import { ChartBar, Route, Target, ClipboardList, ChevronDown, LogOut, ArrowLeft, LayoutDashboard } from "lucide-react";
 import BottomSheet from "@/components/social/BottomSheet";
 import { guardianSignOut } from "@/app/guardian/actions";
 import { guardianBasePath, type ViewerMode } from "./viewerMode";
@@ -63,6 +63,12 @@ export default function GuardianShell({
       <aside className="hidden w-56 flex-none flex-col gap-6 border-r border-border p-5 lg:flex">
         {isSelf && <p className="text-sm font-bold text-text">แผนของฉัน</p>}
         {!isSelf && (
+          <Link href="/guardian" className="flex items-center gap-2 text-xs text-text3 hover:text-gold-hi">
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            ภาพรวมนักเรียนทั้งหมด
+          </Link>
+        )}
+        {!isSelf && (
         <div>
           <p className="text-xs text-text3">กำลังดูของ</p>
           <button
@@ -119,11 +125,16 @@ export default function GuardianShell({
           </>
         )}
         {!isSelf && (
+          <Link href="/guardian" aria-label="กลับไปภาพรวมนักเรียนทั้งหมด" className="mr-3 text-text3 hover:text-gold-hi">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        )}
+        {!isSelf && (
         <button
           type="button"
           onClick={() => hasMultipleStudents && setSwitcherOpen(true)}
           disabled={!hasMultipleStudents}
-          className="flex items-center gap-1 disabled:cursor-default"
+          className="flex flex-1 items-center gap-1 disabled:cursor-default"
         >
           <div className="text-left">
             <p className="text-[11px] text-text3">กำลังดูของ</p>
