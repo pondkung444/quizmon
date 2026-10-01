@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getGuardianAccess, getGuardianStudents } from "@/lib/guardian";
-import GuardianLoginButton from "./GuardianLoginButton";
+import GuardianAuthForm from "./GuardianAuthForm";
+import GuardianEnableAccount from "./GuardianEnableAccount";
+import { guardianSignOut } from "./actions";
 import StudentPicker from "@/components/guardian/StudentPicker";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,16 @@ async function getUnlinkedStudents(): Promise<UnlinkedStudentRow[]> {
   } catch {
     return [];
   }
+}
+
+function SignOutButton() {
+  return (
+    <form action={guardianSignOut} className="text-center">
+      <button type="submit" className="text-xs text-text3 hover:text-red">
+        ออกจากระบบ
+      </button>
+    </form>
+  );
 }
 
 export default async function GuardianPage({
@@ -43,23 +55,27 @@ export default async function GuardianPage({
         {access.status === "unauthenticated" && (
           <div className="flex flex-col gap-4">
             {error === "oauth_failed" && (
-              <p className="text-sm text-red">เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่</p>
+              <p className="text-sm text-red">เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่</p>
             )}
-            <p className="text-sm text-text2">เข้าสู่ระบบด้วยบัญชี Google เพื่อเริ่มต้น</p>
-            <GuardianLoginButton />
+            <GuardianAuthForm />
           </div>
         )}
 
         {access.status === "not_enabled" && (
-          <p className="text-sm text-text2">
-            ฟีเจอร์นี้ยังไม่เปิดให้ใช้งานสำหรับบัญชีนี้ กรุณาติดต่อทีมงาน QuizMon
-          </p>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text2">
+              เข้าสู่ระบบสำเร็จแล้ว แต่ฟีเจอร์ผู้ปกครองยังไม่เปิดให้ใช้งานสำหรับบัญชีนี้ กรุณาติดต่อทีมงาน QuizMon
+              เพื่อขอเปิดสิทธิ์ แล้วกลับมาที่หน้านี้อีกครั้ง
+            </p>
+            <SignOutButton />
+          </div>
         )}
 
         {access.status === "no_guardian_row" && (
-          <p className="text-sm text-text2">
-            บัญชีนี้ยังไม่ได้ตั้งค่าเป็นบัญชีผู้ปกครอง กรุณาติดต่อทีมงาน QuizMon
-          </p>
+          <div className="flex flex-col gap-4">
+            <GuardianEnableAccount />
+            <SignOutButton />
+          </div>
         )}
 
         {access.status === "ok" && (
