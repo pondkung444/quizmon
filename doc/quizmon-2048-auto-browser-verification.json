@@ -1,0 +1,50 @@
+{
+  "viewports": [
+    {
+      "width": 320,
+      "height": 480,
+      "window": 320,
+      "boardBottom": 402,
+      "windowHeight": 480,
+      "mark": true,
+      "markOpacity": "1",
+      "markWidth": 31.671875,
+      "statuses": 1
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "window": 320,
+      "boardBottom": 490,
+      "windowHeight": 568,
+      "mark": true,
+      "markOpacity": "1",
+      "markWidth": 51.03125,
+      "statuses": 1
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "window": 390,
+      "boardBottom": 718,
+      "windowHeight": 844,
+      "mark": true,
+      "markOpacity": "1",
+      "markWidth": 79.62498474121094,
+      "statuses": 1
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "window": 430,
+      "boardBottom": 782,
+      "windowHeight": 932,
+      "mark": true,
+      "markOpacity": "1",
+      "markWidth": 88.43751525878906,
+      "statuses": 1
+    }
+  ],
+  "casts": 36,
+  "errors": []
+}
