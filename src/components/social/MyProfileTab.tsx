@@ -43,8 +43,7 @@ export type ProfileTabData = {
   blockedCount: number;
   likeCount: number;
   friendCode: string;
-  // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (ยังไม่ allowlist ใน guardian_admin — §7.3 ของเอกสารออกแบบ:
-  // เด็กที่ไม่ได้อยู่ใน pilot ต้องไม่เห็นหัวข้อนี้แม้แต่น้อย)
+  // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (ไม่ใช่ ม.1–3 และไม่มีผู้ปกครองผูกอยู่)
   guardianLinkData: GuardianLinkData | null;
   // กรอบโปรไฟล์ผู้พิทักษ์ (frame_definitions.tier) — null = ยังไม่ได้ปลดล็อก/ใส่กรอบไหนเลย
   equippedFrameTier: string | null;

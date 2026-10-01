@@ -388,7 +388,7 @@ export default async function PetPage({
       {/* ทางเข้าศูนย์ผู้พิทักษ์ (เฟส 1) — แถวเล็ก เฉพาะเด็กที่มีผู้พิทักษ์ claimed, streamed ไม่ถ่วงหน้า */}
       {user && (
         <Suspense fallback={null}>
-          <GuardianHubLink userId={user.id} />
+          <GuardianHubLink />
         </Suspense>
       )}
       {user && <SelfServePlanCard />}

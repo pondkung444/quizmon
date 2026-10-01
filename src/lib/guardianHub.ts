@@ -38,8 +38,7 @@ export const SUBJECT_LABEL_TH: Record<string, string> = {
   science: "วิทยาศาสตร์",
 };
 
-// คืน null ถ้า error / ไม่มีผู้พิทักษ์ claimed — ผู้เรียกต้องเช็ค is_guardian_admin ก่อนเรียกเสมอ
-// (RPC raise ถ้าไม่อยู่ใน allowlist) ห้าม throw: ศูนย์นี้เป็นของเสริม พังต้องไม่ลากหน้าหลักล่ม
+// คืน null ถ้า error / ไม่มีผู้พิทักษ์ claimed — ห้าม throw: ศูนย์นี้เป็นของเสริม พังต้องไม่ลากหน้าหลักล่ม
 export async function getMyGuardianHub(
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<GuardianHub | null> {
