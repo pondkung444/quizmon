@@ -11,27 +11,27 @@ const AUTO_SKILLS={
 const MARK_ICONS={arrow:'➶',guard:'⬡',double:'Ⅱ',number:'×2',garden:'❀',blessing:'Ⅲ'};
 function skillIdentity(p){if(!p||p.stage!==4||!AUTO_SKILLS[p.eggPrefix]||!['A','B'].includes(p.personality))return null;const lane=['math','science','balanced'].indexOf(p.lane);return lane<0?null:{egg:p.eggPrefix,index:lane*2+(p.personality==='B'?1:0)};}
 function skillInfo(s){const id=s.cfg.autoSkill;return id?AUTO_SKILLS[id.egg]?.[id.index]:null;}
-function autoState(s){return s.auto??={buffs:{},mark:null,serial:0,event:null};}
+function autoState(s){const a=s.auto??={buffs:{},marks:[],serial:0,event:null};if(!a.marks){a.marks=a.mark?[a.mark]:[];}delete a.mark;return a;}
 function autoPower(s,value=16){const c=s.cfg.skillBase||s.cfg;const k=(value/4)**.8;return{a:k*c.attack,d:k*c.armor,h:k*c.hp*c.heal/100};}
 function autoHit(s,power){const n=Math.floor(power);s.enemyHp=Math.max(0,s.enemyHp-(s.enemy==='beetle'&&!s.heavy?Math.ceil(n/2):n));}
 function autoHeal(s,power,overflow=false){const n=Math.floor(power),heal=Math.min(s.cfg.hp-s.hp,n);s.hp+=heal;if(overflow)s.armor+=n-heal;}
 function autoBuff(s,key,extra={}){autoState(s).buffs[key]={remaining:3,...extra};}
-function autoMark(s,kind,rng){const a=autoState(s);if(!a.mark)a.mark={cell:Math.min(15,Math.floor(rng()*16)),kind};}
+function autoMark(s,kind,rng){const a=autoState(s),occupied=new Set(a.marks.map(m=>m.cell)),available=Array.from({length:16},(_,i)=>i).filter(i=>!occupied.has(i));if(available.length)a.marks.push({cell:available[Math.min(available.length-1,Math.floor(rng()*available.length))],kind});}
 function autoTargets(s,predicate,n){return s.board.map((t,i)=>t&&predicate(t)?i:null).filter(i=>i!==null).sort((a,b)=>s.board[a].v-s.board[b].v||a-b).slice(0,n);}
 function autoRaise(t){if(t)t.v=Math.min(2**30,t.v*2);}
 function autoTick(s){const a=autoState(s);a.event=null;for(const key of ['burn','storm','regen']){const b=a.buffs[key];if(!b)continue;if(key==='regen')autoHeal(s,b.power,true);else autoHit(s,b.power);}}
 function autoAge(s){const bs=autoState(s).buffs;for(const [k,b]of Object.entries(bs))if(Number.isFinite(b.remaining)&&--b.remaining<=0)delete bs[k];}
 function autoRuneBuff(s){return autoState(s).buffs.rune;}
 function autoRuneMerge(s,t,factor,critical,baseMerge){const b=autoState(s).buffs.rune,r=runeState(s),n=r.quake.length;if(!b)return baseMerge(s,t,factor,critical);const view={...s,cfg:{...s.cfg,attack:s.cfg.attack*(1+(b.attack||0)),armor:s.cfg.armor*(1+(b.armor||0)),heal:s.cfg.heal*(1+(b.heal||0))}};const out=baseMerge(view,t,factor,critical);for(const g of r.quake.slice(n))g.power*=1+(b.counter||0);return out;}
-function autoPrepareMerges(s,r){const mark=autoState(s).mark;if(!mark)return null;const j=r.merged.indexOf(mark.cell);if(j<0)return null;const t=r.merges[j];if(mark.kind==='number'){autoRaise(t);if(t.t==='x'&&s.cfg.rune==='egg3'&&t.v>=64)t.awake=true;}if(['garden','blessing'].includes(mark.kind)){t.t='x';t.awake=mark.kind==='blessing'||!!s.board[mark.cell]?.awake||t.v>=64;}Object.assign(s.board[mark.cell],t);autoState(s).mark=null;return{...mark,merge:j};}
-function autoMergeEffects(s,t,index,mark){const a=autoState(s),b=a.buffs,p=autoPower(s,t.v);if(b.follow&&b.follow.quota>0&&(!b.follow.defensive||t.t==='d'||t.t==='x')){autoHit(s,b.follow.power);b.follow.quota--;}
+function autoPrepareMerges(s,r){const a=autoState(s),triggered=[];a.marks=a.marks.filter(mark=>{const j=r.merged.indexOf(mark.cell);if(j<0)return true;const t=r.merges[j];if(mark.kind==='number'){autoRaise(t);if(t.t==='x'&&s.cfg.rune==='egg3'&&t.v>=64)t.awake=true;}if(['garden','blessing'].includes(mark.kind)){t.t='x';t.awake=mark.kind==='blessing'||!!s.board[mark.cell]?.awake||t.v>=64;}Object.assign(s.board[mark.cell],t);triggered.push({...mark,merge:j});return false;});return triggered;}
+function autoMergeEffects(s,t,index,marks){const mark=marks.find(m=>m.merge===index),a=autoState(s),b=a.buffs,p=autoPower(s,t.v);if(b.follow&&b.follow.quota>0&&(!b.follow.defensive||t.t==='d'||t.t==='x')){autoHit(s,b.follow.power);b.follow.quota--;}
  if(t.t==='x'&&b.water){if(b.water.heal)autoHeal(s,p.h*.4,true);else autoHit(s,p.a*.4);}
  if(mark&&mark.merge===index){if(mark.kind==='arrow')autoHit(s,p.a*1.5);if(mark.kind==='guard')s.armor+=Math.floor(p.d*1.5);
  if(mark.kind==='double'){runeState(s);const view={...s,cfg:{...s.cfg,...s.cfg.skillBase}};const e=t.t==='x'?runeMerge(view,t,1,1):{a:t.t==='a'?p.a:0,d:t.t==='d'?p.d:0,h:t.t==='h'?p.h:0};autoHit(s,e.a);s.armor+=Math.floor(e.d);autoHeal(s,e.h);}
  // The ordinary merge emits the first 2 awake rounds; add one unboosted round to total 3.
  if(mark.kind==='blessing'){autoHit(s,p.a);s.armor+=Math.floor(p.d*.7);autoHeal(s,p.h*.4);}
  }}
-function autoPostMerges(s,mark){if(mark?.kind==='garden'){const row=Math.floor(mark.cell/4),col=mark.cell%4;for(const i of [row>0?mark.cell-4:null,row<3?mark.cell+4:null,col>0?mark.cell-1:null,col<3?mark.cell+1:null])if(i!==null)autoRaise(s.board[i]);}if(mark){const a=autoState(s);a.markEvent={...mark,move:s.moves};}}
+function autoPostMerges(s,marks){for(const mark of marks){if(mark.kind==='garden'){const row=Math.floor(mark.cell/4),col=mark.cell%4;for(const i of [row>0?mark.cell-4:null,row<3?mark.cell+4:null,col>0?mark.cell-1:null,col<3?mark.cell+1:null])if(i!==null)autoRaise(s.board[i]);}}if(marks.length)autoState(s).markEvents=marks.map(mark=>({...mark,move:s.moves}));}
 function autoSpark(s){const b=autoState(s).buffs.spark;if(b&&b.quota>0){s.armor+=Math.floor(autoPower(s).d*.6);b.quota--;}}
 function autoReduction(s,power){const b=autoState(s).buffs.reduce;if(!b)return power;delete autoState(s).buffs.reduce;return Math.floor(power*(1-b.amount));}
 function autoAfterAttack(s){const b=autoState(s).buffs,p=autoPower(s);if(b.counter){autoHit(s,b.counter.power);delete b.counter;}if(b.rebuild){s.armor+=Math.floor(p.d*.3);delete b.rebuild;}}
