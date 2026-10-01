@@ -21,23 +21,28 @@ export async function ownedForestPets(supabase: Awaited<ReturnType<typeof create
   return (data ?? []) as unknown as ForestPet[];
 }
 
-export function forestCompanion(pet: ForestPet) {
+export function forestCompanionIdentity(pet: ForestPet) {
   const line = parsePetLine(pet.subline);
   const personality = pet.personality === "A" || pet.personality === "B" ? pet.personality as Personality : null;
   const egg = pet.egg_types;
   if (!egg?.sprite_prefix) throw new Error("ข้อมูลภาพคู่หูยังไม่ครบ");
   if (pet.stage >= 3 && !line) throw new Error("ข้อมูลสายของคู่หูยังไม่ครบ");
-  const stats = readForestStats(pet, egg.stat_profile?.caps ?? {} as ForestStats);
   return {
     id: pet.id,
     name: pet.nickname || getSpeciesName(egg.sprite_prefix, pet.stage, line, personality, egg.name_th),
+    speciesName: getSpeciesName(egg.sprite_prefix, pet.stage, line, personality, egg.name_th),
+    eggName: egg.name_th,
+    personality,
     stage: pet.stage,
     eggPrefix: egg.sprite_prefix,
     isActive: pet.is_active,
     lane: line ? artLane(line) : "balanced",
     image: getPetImagePath(egg.sprite_prefix, pet.stage, line, personality),
-    stats,
-    statSource: pet.stage < 4 ? "temporary-50" : "pet-only",
-    config: forestConfig(stats),
   };
+}
+
+export function forestCompanion(pet: ForestPet) {
+  const identity = forestCompanionIdentity(pet);
+  const stats = readForestStats(pet, pet.egg_types.stat_profile?.caps ?? {} as ForestStats);
+  return { ...identity, stats, statSource: pet.stage < 4 ? "temporary-50" : "pet-only", config: forestConfig(stats) };
 }
