@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Crown } from "lucide-react";
 import { loadMoreHallOfFame } from "@/app/hall-of-fame/actions";
 import type { HallOfFameWeek, HallOfFameWinner } from "@/lib/hallOfFame";
+import { LEADERBOARD_BAND_LABEL_TH } from "@/lib/gradeLevel";
 
 function formatWeekLabel(weekStartDate: string): string {
   const start = new Date(weekStartDate + "T00:00:00+07:00");
@@ -129,10 +130,10 @@ export default function HallOfFameList({
               <WeekDivider label={formatWeekLabel(week.weekStartDate)} />
               <div className="flex flex-col gap-2">
                 {week.junior.map((w) => (
-                  <WinnerRow key={w.userId} winner={w} bandLabel="ม.ต้น" isCurrentUser={w.userId === currentUserId} />
+                  <WinnerRow key={w.userId} winner={w} bandLabel={LEADERBOARD_BAND_LABEL_TH.junior} isCurrentUser={w.userId === currentUserId} />
                 ))}
                 {week.senior.map((w) => (
-                  <WinnerRow key={w.userId} winner={w} bandLabel="ม.ปลาย" isCurrentUser={w.userId === currentUserId} />
+                  <WinnerRow key={w.userId} winner={w} bandLabel={LEADERBOARD_BAND_LABEL_TH.senior} isCurrentUser={w.userId === currentUserId} />
                 ))}
               </div>
             </section>

@@ -12,7 +12,7 @@ export async function forestQuestions(userId: string) {
   const admin = createAdminClient();
   const { data: profile, error: profileError } = await admin.from("profiles")
     .select("grade_band").eq("id", userId).single();
-  if (profileError || !["junior", "senior"].includes(profile?.grade_band)) {
+  if (profileError || !["primary", "junior", "senior"].includes(profile?.grade_band)) {
     throw new Error("ไม่พบระดับคำถามของบัญชี กรุณาตรวจข้อมูลโปรไฟล์");
   }
   const ids = await fetchAllRows<{ id: number }>((from, to) => admin.from("questions")

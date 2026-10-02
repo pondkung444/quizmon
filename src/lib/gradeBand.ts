@@ -1,8 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeGradeBand } from "@/lib/gradeLevel";
 
-export type GradeBand = "junior" | "senior";
+// primary = ป.4–6 (คณิต+วิทย์) — เนื้อหา/pet ฝั่ง client ใช้ชุดเดียวกับ junior แต่ถามโจทย์จาก grade_band = primary ตรงๆ
+export type GradeBand = "primary" | "junior" | "senior";
 
 const VISIBLE: Record<GradeBand, GradeBand[]> = {
+  primary: ["primary"],
   junior: ["junior"],
   senior: ["senior"],
 };
@@ -12,7 +15,8 @@ const VISIBLE: Record<GradeBand, GradeBand[]> = {
 export async function getGradeBand(userId: string): Promise<GradeBand> {
   const admin = createAdminClient();
   const { data } = await admin.from("profiles").select("grade_band").eq("id", userId).single();
-  return (data?.grade_band as GradeBand) ?? "junior";
+  // fallback เฉพาะค่า null/ไม่รู้จัก — 'primary' ต้องลอดผ่านตามจริง
+  return normalizeGradeBand(data?.grade_band) ?? "junior";
 }
 
 export const visibleBands = (band: GradeBand) => VISIBLE[band];
@@ -29,7 +33,7 @@ export async function getGradeProfile(
     .eq("id", userId)
     .single();
   return {
-    band: (data?.grade_band as GradeBand) ?? "junior",
+    band: normalizeGradeBand(data?.grade_band) ?? "junior",
     gradeLevel: data?.grade_level ?? null,
   };
 }

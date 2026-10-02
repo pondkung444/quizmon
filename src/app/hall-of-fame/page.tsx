@@ -2,6 +2,7 @@ import { createClient, getUser } from "@/lib/supabase/server";
 import { getHallOfFamePage } from "@/lib/hallOfFame";
 import SignOutLink from "@/components/SignOutLink";
 import HallOfFameList from "@/components/HallOfFameList";
+import { LEADERBOARD_BAND_LABEL_TH } from "@/lib/gradeLevel";
 
 // เฟส 8: ตัด currentWeek ออก (ย้ายไปหมวด "การฝึกประจำสัปดาห์" ขอบเขต "ทั้งหมด" ในแท็บ "อันดับ"
 // แทนตามที่ตกลงไว้ตั้งแต่เฟส 1) เหลือแค่ประวัติแชมป์ที่จบแล้ว — getCurrentWeekLeaders ใน
@@ -27,7 +28,7 @@ export default async function HallOfFamePage() {
       <SignOutLink />
       <div>
         <h1 className="text-2xl font-bold text-gold-hi">Hall of Fame</h1>
-        <p className="text-sm text-text3">แชมป์อันดับ 1 กระดานผู้นำประจำสัปดาห์ — ม.ต้น และ ม.ปลาย</p>
+        <p className="text-sm text-text3">แชมป์อันดับ 1 กระดานผู้นำประจำสัปดาห์ — {LEADERBOARD_BAND_LABEL_TH.junior} และ {LEADERBOARD_BAND_LABEL_TH.senior}</p>
       </div>
 
       {!user ? (

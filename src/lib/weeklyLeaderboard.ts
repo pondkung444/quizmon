@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { GradeBand } from "@/lib/gradeBand";
+import { leaderboardBandOf } from "@/lib/gradeLevel";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -40,7 +41,7 @@ export async function getMyWeeklyRank(
 ): Promise<MyWeeklyRank> {
   const { data, error } = await supabase.rpc("get_my_weekly_rank", {
     p_user_id: userId,
-    p_grade_band: gradeBand,
+    p_grade_band: leaderboardBandOf(gradeBand), // primary รวมกับ junior
   });
   if (error) throw new Error("ดึงอันดับสัปดาห์นี้ไม่สำเร็จ: " + error.message);
 
@@ -82,7 +83,7 @@ export async function getWeeklyLeaderboard(
   gradeBand?: GradeBand
 ): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase.rpc("get_weekly_leaderboard", {
-    p_grade_band: gradeBand ?? null,
+    p_grade_band: gradeBand ? leaderboardBandOf(gradeBand) : null,
   });
   if (error) throw new Error("ดึง leaderboard ไม่สำเร็จ: " + error.message);
   return (data ?? []) as LeaderboardEntry[];
@@ -107,7 +108,7 @@ export async function getWeeklyLeaderboardTopN(
   userIdFilter?: Set<string> | null
 ): Promise<LeaderboardEntry[]> {
   const { data, error } = await supabase.rpc("weekly_scores_bkk", {
-    p_grade_band: gradeBand ?? null,
+    p_grade_band: gradeBand ? leaderboardBandOf(gradeBand) : null,
   });
   if (error) throw new Error("ดึง weekly leaderboard ไม่สำเร็จ: " + error.message);
 

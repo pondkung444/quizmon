@@ -2,6 +2,7 @@ import type { createClient } from "@/lib/supabase/server";
 import type { Personality } from "@/lib/evolution";
 import { getPetImagePath } from "@/lib/petImage";
 import { getSpeciesName, parsePetLine } from "@/lib/petLine";
+import { leaderboardBucketOf } from "@/lib/gradeLevel";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -81,7 +82,7 @@ async function fetchEggTypes(supabase: SupabaseServerClient): Promise<Map<string
 
 type RpcRow = {
   week_start_date: string;
-  grade_band: "junior" | "senior";
+  grade_band: string; // junior | senior | primary (รวมเข้า junior) — ค่าอื่นถูกข้าม
   user_id: string;
   username: string;
   total_points: number;
@@ -121,13 +122,15 @@ export async function getHallOfFamePage(
   const byWeek = new Map<string, HallOfFameWeek>();
   const weekOrder: string[] = [];
   for (const row of rows) {
+    const bucket = leaderboardBucketOf(row.grade_band);
+    if (!bucket) continue;
     let week = byWeek.get(row.week_start_date);
     if (!week) {
       week = { weekStartDate: row.week_start_date, junior: [], senior: [] };
       byWeek.set(row.week_start_date, week);
       weekOrder.push(row.week_start_date);
     }
-    week[row.grade_band].push({
+    week[bucket].push({
       userId: row.user_id,
       username: row.username,
       totalPoints: row.total_points,
@@ -145,7 +148,7 @@ export async function getHallOfFamePage(
 type CurrentWeekRpcRow = {
   week_start: string;
   week_end: string;
-  grade_band: "junior" | "senior";
+  grade_band: string; // เหมือน RpcRow
   user_id: string;
   username: string;
   total_points: number;
@@ -169,8 +172,10 @@ export async function getCurrentWeekLeaders(supabase: SupabaseServerClient): Pro
 
   const result: CurrentWeekLeaders = { weekEnd: null, junior: [], senior: [] };
   for (const row of rows) {
+    const bucket = leaderboardBucketOf(row.grade_band);
+    if (!bucket) continue;
     result.weekEnd = row.week_end;
-    result[row.grade_band].push({
+    result[bucket].push({
       userId: row.user_id,
       username: row.username,
       totalPoints: row.total_points,
