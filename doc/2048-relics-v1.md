@@ -39,8 +39,10 @@ The entire battle snapshot stores per-room relic state, marks/remaining uses, pr
 ## Verification
 
 - Run: `node --test tests/forest2048/*.test.mjs` (eight programs, original seven plus relic behavior suite).
+- Build: `npm run build` passed compilation, TypeScript, page data and static generation. Installed locked dependencies using npm ci --ignore-scripts in this checkout. The initial attempt using the owner's older parent dependencies failed on missing unrelated packages; no dependency manifest or application code outside /2048 was changed.
 - Browser: `node tests/forest2048/relics-browser.cjs` with Playwright available; Edge API fixtures at 320x568, 390x844, 430x844. Start, reward, shop purchase, reload, inspect, input, stag Epic offer, level 2, reload; no page error/horizontal overflow. Evidence in output/relic-verification/browser.json and mobile screenshots.
 - Browser tests deliberately set some room outcomes and use fixture accounts. They are flow verification, not owner balance playtest, real authenticated account verification, physical-device testing or production verification.
+- Browser input uses Edge CDP touch events through the game's actual gesture handlers. Agent-browser was unavailable on PATH, so the existing project Playwright/Edge verification route was used.
 - Existing simulator does not load relic-engine/relic-run. Its old no-relic results are not relic balance evidence. No relic balance claim is made; owner playtest comes next.
 
 ## Start owner testing
