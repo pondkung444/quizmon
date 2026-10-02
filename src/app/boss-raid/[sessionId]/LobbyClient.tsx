@@ -650,6 +650,9 @@ function ConfigPanel({
     void supabase
       .from("curriculum_chapters")
       .select("id, grade_band, grade_level, subject_label, chapter")
+      // ซ่อนบท primary (ป.4–6) ชั่วคราว: raid กรองโจทย์ด้วย grade_band ของผู้เล่น → นักเรียน ม. จะได้ 0 ข้อจากบทนี้
+      // เอาออกเมื่อเปิด raid ให้ primary
+      .neq("grade_band", "primary")
       .order("grade_order", { ascending: true })
       .order("chapter_order", { ascending: true })
       .then(({ data }) => setChapters((data ?? []) as ChapterRow[]));

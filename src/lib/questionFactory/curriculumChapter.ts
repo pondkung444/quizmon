@@ -9,10 +9,10 @@ export const CURRICULUM_CHAPTER_KEY_PATTERN = /^cc_[0-9a-f]{24}$/;
 
 export type CurriculumChapterProductSubject = "math" | "science";
 export type CurriculumChapterBranch = "physics" | "chemistry" | "biology";
-export type CurriculumChapterGradeLevel = "ม.1" | "ม.2" | "ม.3" | "ม.4" | "ม.5" | "ม.6";
+export type CurriculumChapterGradeLevel = "ป.4" | "ป.5" | "ป.6" | "ม.1" | "ม.2" | "ม.3" | "ม.4" | "ม.5" | "ม.6";
 
 export type CurriculumChapterRoute = {
-  gradeBand: "junior" | "senior";
+  gradeBand: "primary" | "junior" | "senior";
   gradeLevel: CurriculumChapterGradeLevel;
   productSubject: CurriculumChapterProductSubject;
   branch: CurriculumChapterBranch | null;
@@ -44,6 +44,18 @@ export function factoryCurriculumRoute(input: {
   grade: QuestionFactoryScope["grade"];
   subject: QuestionFactorySubject;
 }): CurriculumChapterRoute {
+  if (input.stage === "primary" && input.grade >= 4 && input.grade <= 6) {
+    if (input.subject !== "math" && input.subject !== "science") {
+      throw new Error("Primary curriculum chapters require math or science");
+    }
+    return {
+      gradeBand: "primary",
+      gradeLevel: `ป.${input.grade}` as CurriculumChapterGradeLevel,
+      productSubject: input.subject,
+      branch: null,
+    };
+  }
+
   const gradeLevel = `ม.${input.grade - 6}` as CurriculumChapterGradeLevel;
 
   if (input.stage === "lower_secondary" && input.grade >= 7 && input.grade <= 9) {

@@ -32,7 +32,7 @@ export type ResolvedCurriculumChapterSnapshot = {
   schemaVersion: "curriculum-chapter/v1";
   curriculumChapterId: number;
   curriculumChapterKey: string;
-  gradeBand: "junior" | "senior";
+  gradeBand: "primary" | "junior" | "senior";
   gradeLevel: CurriculumChapterGradeLevel;
   gradeOrder: number;
   factorySubject: QuestionFactorySubject;

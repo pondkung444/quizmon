@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeGradeBand } from "@/lib/gradeLevel";
 
+// pure + test ได้ใน gradeLevel.ts (ไฟล์นี้ import admin client จึงรันใน node:test ตรงๆ ไม่ได้) — re-export ไว้ให้ใช้ที่เดียวกับ visibleBands
+export { topicBandsFor, isTopicBandAllowed } from "@/lib/gradeLevel";
+
 // primary = ป.4–6 (คณิต+วิทย์) — เนื้อหา/pet ฝั่ง client ใช้ชุดเดียวกับ junior แต่ถามโจทย์จาก grade_band = primary ตรงๆ
 export type GradeBand = "primary" | "junior" | "senior";
 
