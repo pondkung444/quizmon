@@ -54,6 +54,22 @@ export function leaderboardBucketOf(raw: unknown): "junior" | "senior" | null {
   return band ? leaderboardBandOf(band) : null;
 }
 
+// โหมด "เลือกบทฝึกฝน": band ของบทที่ผู้เล่นเปิดดู/ฝึกได้ — primary แยกวงของตัวเอง (เห็นเฉพาะบท ป.)
+// junior/senior ยังข้ามกันได้ (cross-grade ม.↔ม. ตามเดิม) แต่ห้ามเห็นบท primary
+// ค่าที่ไม่รู้จัก → [] (ไม่ตกเป็น junior เงียบๆ; ผู้เรียกที่ต้องการ fallback ต้องทำเองก่อนเรียก)
+export function topicBandsFor(band: unknown): GradeBand[] {
+  const b = normalizeGradeBand(band);
+  if (b === "primary") return ["primary"];
+  if (b === "junior" || b === "senior") return ["junior", "senior"];
+  return [];
+}
+
+// ผู้เล่น band นี้เปิดบทของ band ปลายทางได้ไหม — ใช้ guard ค่า tf.gradeBand ที่ client ส่งมาใน startQuizRound
+export function isTopicBandAllowed(userBand: unknown, topicBand: unknown): boolean {
+  const b = normalizeGradeBand(topicBand);
+  return b !== null && topicBandsFor(userBand).includes(b);
+}
+
 // ชั้นของโจทย์ที่ผู้เล่นควรเจอในการสุ่มปกติ (ภายใน band ของตัวเองเท่านั้น ไม่ข้ามไป ม.):
 //   junior: ม.1 -> [ม.1], ม.2 -> [ม.1, ม.2], ม.3 -> [ม.1, ม.2, ม.3]
 //   primary: ป.4 -> [ป.4], ป.5 -> [ป.4, ป.5], ป.6 -> [ป.4, ป.5, ป.6]

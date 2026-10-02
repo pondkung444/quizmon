@@ -3,14 +3,14 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildCurriculumChapterScopeKey } from "@/lib/questionFactory/curriculumChapter";
-import type { QuestionFactoryEducationStage, QuestionFactorySubject } from "@/lib/questionFactory/scopeKey";
+import type { QuestionFactoryEducationStage, QuestionFactoryScope, QuestionFactorySubject } from "@/lib/questionFactory/scopeKey";
 
 type JsonObject = Record<string, unknown>;
 
 export type FactoryCommandOption = {
   mappingId: string; chapterKey: string; topicId: string; stage: QuestionFactoryEducationStage;
-  subject: QuestionFactorySubject; grade: number; gradeLevel: string; subjectLabel: string;
-  chapter: string; category: string;
+  subject: QuestionFactorySubject; grade: QuestionFactoryScope["grade"]; gradeLevel: string; subjectLabel: string;
+  chapter: string; category: string; gradeOrder: number;
 };
 
 export type FactoryCommandCenterSnapshot = {
@@ -27,10 +27,12 @@ function canonicalJson(value: unknown): string {
 function checksum(value: unknown): string {
   return `sha256:${createHash("sha256").update(canonicalJson(value)).digest("hex")}`;
 }
-function gradeNumber(label: string): number {
-  const value=Number(label.replace("ม.",""))+6;
-  if (!Number.isInteger(value) || value<7 || value>12) throw new Error("Unsupported curriculum grade");
-  return value;
+function gradeNumber(label: string): QuestionFactoryScope["grade"] {
+  const primary=/^ป\.([4-6])$/.exec(label);
+  const secondary=/^ม\.([1-6])$/.exec(label);
+  const value=primary ? Number(primary[1]) : secondary ? Number(secondary[1])+6 : NaN;
+  if (!Number.isInteger(value) || value<4 || value>12) throw new Error("Unsupported curriculum grade");
+  return value as QuestionFactoryScope["grade"];
 }
 
 export async function loadFactoryCommandCenter(): Promise<FactoryCommandCenterSnapshot> {
@@ -39,7 +41,7 @@ export async function loadFactoryCommandCenter(): Promise<FactoryCommandCenterSn
     admin.from("question_factory_runs").select("id, run_key, status, scope_key, state_version")
       .in("status",["created","running","paused","waiting_human_review"]).order("id").limit(1).maybeSingle(),
     admin.from("question_factory_category_registry").select("mapping_id, chapter_key, topic_id, education_stage, factory_subject, product_category"),
-    admin.from("curriculum_chapters").select("chapter_key, grade_level, subject_label, chapter"),
+    admin.from("curriculum_chapters").select("chapter_key, grade_level, grade_order, subject_label, chapter"),
   ]);
   if(open.error||mappings.error||chapters.error) throw new Error("Unable to load Factory command preflight");
   const chapterByKey=new Map((chapters.data??[]).map((row) => [String(row.chapter_key),row]));
@@ -51,9 +53,9 @@ export async function loadFactoryCommandCenter(): Promise<FactoryCommandCenterSn
       stage:String(row.education_stage) as QuestionFactoryEducationStage,
       subject:String(row.factory_subject) as QuestionFactorySubject,grade:gradeNumber(String(chapter.grade_level)),
       gradeLevel:String(chapter.grade_level),subjectLabel:String(chapter.subject_label),chapter:String(chapter.chapter),
-      category:String(row.product_category),
+      category:String(row.product_category),gradeOrder:Number(chapter.grade_order),
     }];
-  }).sort((a,b)=>a.grade-b.grade||a.subjectLabel.localeCompare(b.subjectLabel,"th")||a.chapter.localeCompare(b.chapter,"th"));
+  }).sort((a,b)=>a.gradeOrder-b.gradeOrder||a.subjectLabel.localeCompare(b.subjectLabel,"th")||a.chapter.localeCompare(b.chapter,"th"));
   const blocker=open.data as {id:number;run_key:string;status:string;scope_key:string;state_version:number}|null;
   return {blockedBy:blocker?{runId:blocker.id,runKey:blocker.run_key,status:blocker.status,
     scopeKey:blocker.scope_key,stateVersion:blocker.state_version}:null,options};
@@ -79,7 +81,7 @@ export async function commandFactoryRun(input: {
       cognitiveDemand:difficulty===1?"understand":difficulty===2?"apply":"analyze",
       questionArchetype:`coverage_slot_${String(index+1).padStart(3,"0")}`,representationType:"none",answerType:"single_choice"}}));
   const scopeKey=buildCurriculumChapterScopeKey({chapterKey:option.chapterKey,stage:option.stage,
-    grade:option.grade as 7|8|9|10|11|12,subject:option.subject});
+    grade:option.grade,subject:option.subject});
   const profile={schemaVersion:"question-factory-profile/v1",scope:{stage:option.stage,grade:option.grade,
     subject:option.subject,unit:option.chapterKey},curriculumChapter:{curriculumChapterKey:option.chapterKey,
     gradeLevel:option.gradeLevel,subjectLabel:option.subjectLabel,chapter:option.chapter},categoryMapping:{

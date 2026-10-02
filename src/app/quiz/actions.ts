@@ -14,7 +14,7 @@ import {
 import { getEvolutionProgress } from "@/lib/evolution";
 import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
 import { getGradeProfile, visibleBands } from "@/lib/gradeBand";
-import { gradeLevelOrFilter, visibleGradeLevels } from "@/lib/gradeLevel";
+import { gradeLevelOrFilter, isTopicBandAllowed, topicBandsFor, visibleGradeLevels } from "@/lib/gradeLevel";
 import { type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
@@ -157,6 +157,8 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   // บทที่เลือก โดย filter ครบทั้ง 4 field เสมอ (ดู TopicFilter) ไม่ยุ่งกับ category/difficulty
   if (input.type === "topic") {
     const tf = input.topicFilter;
+    // primary ↔ ไม่ใช่ primary ข้ามกันไม่ได้ทั้งสองทิศ (client ส่ง gradeBand มาเอง ห้ามเชื่อ)
+    if (!isTopicBandAllowed(band, tf.gradeBand)) throw new Error("บทที่เลือกไม่ถูกต้อง");
     const [currentCombo, lastAttemptBeforeRound, idRows] = await Promise.all([
       (async () => {
         if (!user) return 0;
@@ -848,15 +850,23 @@ export type ChapterOption = {
   isAvailable: boolean;
 };
 
-// ดึงบททั้งหมดสำหรับหน้าเลือกบท — ไม่ filter ตาม band/subject ของ user (เปิดให้ทุกคนเห็นหมด
-// ตามดีไซน์ cross-grade) เรียงตาม grade_order, subject_label, chapter_order
+// ดึงบทสำหรับหน้าเลือกบท — ไม่ filter ตามวิชา/ชั้นย่อยของ user (cross-grade ม.↔ม. ตามดีไซน์) แต่ primary
+// แยกวง: primary เห็นเฉพาะบท ป. · junior/senior เห็นบทที่ไม่ใช่ primary (ดู topicBandsFor)
+// เรียงตาม grade_order, subject_label, chapter_order
 export async function getTopicChapters(): Promise<ChapterOption[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  // ไม่ล็อกอิน → junior เหมือน startQuizRound
+  const { band } = user ? await getGradeProfile(user.id) : { band: "junior" as const };
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("curriculum_chapter_availability")
     .select(
       "grade_band, grade_level, grade_order, subject, branch, subject_label, chapter, chapter_order, question_count, is_available"
     )
+    .in("grade_band", topicBandsFor(band))
     .order("grade_order", { ascending: true })
     .order("subject_label", { ascending: true })
     .order("chapter_order", { ascending: true });

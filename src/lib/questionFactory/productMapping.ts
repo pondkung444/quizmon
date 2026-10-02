@@ -22,7 +22,7 @@ export type ProductCategoryMappingEntry = {
   stage: QuestionFactoryEducationStage;
   subject: QuestionFactorySubject;
   topicId: string;
-  gradeBand: "junior" | "senior";
+  gradeBand: "primary" | "junior" | "senior";
   productSubject: "math" | "science";
   branch: "physics" | "chemistry" | "biology" | null;
   category: string;
@@ -43,7 +43,7 @@ export type ProductMappingCandidate = {
   curriculumChapterChecksum: string;
   questionRevision: number;
   productRow: {
-    grade_band: "junior" | "senior";
+    grade_band: "primary" | "junior" | "senior";
     subject: "math" | "science";
     branch: "physics" | "chemistry" | "biology" | null;
     category: string;

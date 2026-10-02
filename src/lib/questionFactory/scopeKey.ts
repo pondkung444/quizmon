@@ -1,21 +1,26 @@
 export const QUESTION_FACTORY_SCOPE_KEY_VERSION = "v1" as const;
 
-export type QuestionFactoryEducationStage = "lower_secondary" | "upper_secondary";
+export type QuestionFactoryEducationStage = "primary" | "lower_secondary" | "upper_secondary";
 export type QuestionFactorySubject = "math" | "science" | "physics" | "chemistry" | "biology";
 
 export type QuestionFactoryScope = {
   stage: QuestionFactoryEducationStage;
-  grade: 7 | 8 | 9 | 10 | 11 | 12;
+  grade: 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
   subject: QuestionFactorySubject;
   unit: string;
 };
 
 const SCOPE_KEY_PATTERN =
-  /^qf:v1\|stage=(lower_secondary|upper_secondary)\|grade=(7|8|9|10|11|12)\|subject=(math|science|physics|chemistry|biology)\|unit=([a-z0-9]+(?:_[a-z0-9]+)*)$/;
+  /^qf:v1\|stage=(primary|lower_secondary|upper_secondary)\|grade=(4|5|6|7|8|9|10|11|12)\|subject=(math|science|physics|chemistry|biology)\|unit=([a-z0-9]+(?:_[a-z0-9]+)*)$/;
 const UNIT_ID_PATTERN = /^[a-z0-9]+(?:_[a-z0-9]+)*$/;
 const MAX_UNIT_ID_LENGTH = 64;
 
 function assertCompatibleScope(scope: Omit<QuestionFactoryScope, "unit">): void {
+  const isPrimary =
+    scope.stage === "primary" &&
+    scope.grade >= 4 &&
+    scope.grade <= 6 &&
+    (scope.subject === "math" || scope.subject === "science");
   const isLowerSecondary =
     scope.stage === "lower_secondary" &&
     scope.grade >= 7 &&
@@ -27,7 +32,7 @@ function assertCompatibleScope(scope: Omit<QuestionFactoryScope, "unit">): void 
     scope.grade <= 12 &&
     (scope.subject === "physics" || scope.subject === "chemistry" || scope.subject === "biology");
 
-  if (!isLowerSecondary && !isUpperSecondary) {
+  if (!isPrimary && !isLowerSecondary && !isUpperSecondary) {
     throw new Error("Question Factory scope has an incompatible stage, grade, and subject combination");
   }
 }
