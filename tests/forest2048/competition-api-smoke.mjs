@@ -13,7 +13,7 @@ try{
  const login=await auth.auth.signInWithPassword({email,password});if(login.error)throw Error(login.error.message);
  const {data:egg,error:eggError}=await admin.from('egg_types').select('id').eq('sprite_prefix','egg1').single();if(eggError)throw Error(eggError.message);
  const {data:pet,error:petError}=await admin.from('pets').insert({user_id:userId,egg_type_id:egg.id,stage:1,nickname:'Forest smoke disposable'}).select('id,exp,math_correct,science_correct').single();if(petError)throw Error(petError.message);
- const start=await api('start',{petId:pet.id});assert.equal(start.status,200,JSON.stringify(start.data));assert.ok(start.data.initial.state.board.length===16);
+ const start=await api('start',{petId:pet.id,balanceVersion:4});assert.equal(start.status,200,JSON.stringify(start.data));assert.ok(start.data.initial.state.board.length===16);assert.equal(start.data.initial.run.balanceVersion,4);
  const id=start.data.competition.id,s=start.data.initial.state;
  // A direction that moves one of the two starting tiles. Reject no-op trials safely.
  let accepted,event;for(const dir of ['left','right','up','down']){event={type:'swipe',value:dir};const result=await api('competition',{id,from:0,events:[event]});if(result.status===200){accepted=result;break;}assert.equal(result.status,422);}
@@ -23,7 +23,8 @@ try{
  const foreign=await api('competition',{id:'99999999-9999-4999-8999-999999999999',from:0,events:[{type:'end'}]});assert.equal(foreign.status,404);
  assert.equal((await api('competition',{id,from:1,events:[{type:'end'}]},false)).status,401);
  const finish=await api('competition',{id,from:1,events:[{type:'end'}]});assert.equal(finish.status,200);assert.equal(finish.data.status,'ended');
- const board=await api('competition');assert.equal(board.status,200);assert.equal(board.data.stats.runs,1);assert.equal(board.data.stats.swipes,1);assert.equal(board.data.stats.finished,1);assert.equal(board.data.board.mine,null);
+ const old=await api('start',{petId:pet.id});assert.equal(old.status,200);assert.equal(old.data.initial.run.balanceVersion,3);assert.equal((await api('competition',{id:old.data.competition.id,from:0,events:[{type:'end'}]})).status,200);
+ const board=await api('competition');assert.equal(board.status,200);assert.equal(board.data.stats.runs,2);assert.equal(board.data.stats.swipes,1);assert.equal(board.data.stats.finished,2);assert.equal(board.data.board.mine,null);
  const {data:after}=await admin.from('pets').select('exp,math_correct,science_correct').eq('id',pet.id).single();assert.deepEqual(after,{exp:pet.exp,math_correct:pet.math_correct,science_correct:pet.science_correct});
- console.log(JSON.stringify({actualApi:true,serverEngineFiles:true,authenticatedStart:true,idempotentRetry:true,forgedScoreRejected:true,foreignRunRejected:true,unauthenticatedWriteRejected:true,summaryStats:true,petCountersUnchanged:true,rooms:0}));
+ console.log(JSON.stringify({actualApi:true,serverEngineFiles:true,authenticatedStart:true,newBalanceVersion4:true,oldTabsVersion3:true,idempotentRetry:true,forgedScoreRejected:true,foreignRunRejected:true,unauthenticatedWriteRejected:true,summaryStats:true,petCountersUnchanged:true,rooms:0}));
 }finally{if(userId){const {error}=await admin.auth.admin.deleteUser(userId);if(error)throw Error('Disposable account cleanup failed: '+error.message);console.log('Disposable account and test runs removed');}}
