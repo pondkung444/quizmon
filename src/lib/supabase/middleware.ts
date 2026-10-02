@@ -42,10 +42,11 @@ export async function updateSession(request: NextRequest) {
   // Stripe ยิง webhook โดยไม่มี session — ยกเว้นเฉพาะ path นี้ (route verify signature เองทุกครั้ง)
   const isStripeWebhook = request.nextUrl.pathname === "/api/webhooks/stripe";
   const isPrivacyPage = request.nextUrl.pathname.startsWith("/privacy");
-  // These two handlers verify getUser and ownership themselves and return JSON
+  // These handlers verify getUser and ownership themselves and return JSON
   // 401 instead of redirecting a fetch request to an HTML login page.
   const isForestApi = request.nextUrl.pathname === "/api/2048/companions" ||
-    request.nextUrl.pathname === "/api/2048/start";
+    request.nextUrl.pathname === "/api/2048/start" ||
+    request.nextUrl.pathname === "/api/2048/competition";
   // หน้าเริ่มเล่นแบบไม่สมัคร (guest) — เข้าได้โดยยังไม่มี session
   const isGuestPage = request.nextUrl.pathname.startsWith("/guest");
   // Only the invite handoff is public; friend lookup still authenticates server-side.
