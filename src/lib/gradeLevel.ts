@@ -24,6 +24,22 @@ export function isGradeLevel(value: unknown): value is SelectableGradeLevel {
   return typeof value === "string" && (SELECTABLE_GRADE_LEVELS as readonly string[]).includes(value);
 }
 
+// รับทุกชั้นที่ระบบรู้จัก (รวม ป.x) — ใช้เฉพาะเมื่อผู้ใช้ปัจจุบันเป็น ป.x อยู่แล้ว (ดู gradeChangeKind)
+export function isAnyGradeLevel(value: unknown): value is GradeLevel {
+  return typeof value === "string" && (ALL_GRADE_LEVELS as readonly string[]).includes(value);
+}
+
+export type GradeChangeKind = "invalid" | "same" | "within_band" | "cross_band";
+
+// จัดประเภทการเปลี่ยนชั้น (ฟังก์ชันล้วน ให้ server action ใช้และเทสต์ได้)
+// ผู้ใช้ ม.x เลือก ป.x เองไม่ได้ (invalid) — ผู้ใช้ ป.x เลือกได้ทั้ง ป.4-6 และ ม.1-6 (ข้ามกลุ่ม = cross_band)
+export function gradeChangeKind(currentLevel: string | null, currentBand: GradeBand | null, next: string): GradeChangeKind {
+  const fromPrimary = typeof currentLevel === "string" && currentLevel.startsWith("ป.");
+  if (!isAnyGradeLevel(next) || (!fromPrimary && !isGradeLevel(next))) return "invalid";
+  if (currentLevel === next) return "same";
+  return gradeBandOf(next) !== currentBand ? "cross_band" : "within_band";
+}
+
 // guard ค่า grade_band ที่ DB คืนมา (ไม่ใช่ runtime-checked ที่ต้นทาง) — คืน null ถ้าไม่รู้จัก
 export function normalizeGradeBand(value: unknown): GradeBand | null {
   return value === "primary" || value === "junior" || value === "senior" ? value : null;
