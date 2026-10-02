@@ -2,7 +2,7 @@
 
 25 recorded runs across 6 accounts: 8 reached room 3 and died there, 9 died at room 4. These are repeated runs, not 25 children. Room-3 deaths had average previous-room finishing HP 37.5/111; room-4 deaths 42.3/106.7. The latter lasted 9 swipes on average with 72.3% enemy HP remaining. No recent board-block penalty appeared in the room-4 death logs. Leaderboard distance 3 means three completed rooms, so its wall is often room 4.
 
-New server-created runs use `balanceVersion:4`. Existing v3 checkpoints retain their exact rules and replay. No pet stats, account scores or saved runs are rewritten.
+Refreshed clients request `balanceVersion:4` for new server-created runs. Tabs loaded before deployment omit that request and receive v3, preventing a mismatch with their already-loaded engine. Existing v3 checkpoints retain their exact rules and replay. No pet stats, account scores or saved runs are rewritten.
 
 - Win rooms 1–3: recover ceil(20% maximum HP), capped at full HP, once before recording history and offering rewards/doors.
 - Room 3 offers mushroom/beetle only, with the existing early-room damage 10/13. New striker species enter from room 5 onward.
