@@ -2,8 +2,8 @@
 // New journeys use the medium experiment. Legacy eight-room saves keep their rules.
 ENEMY.slow_striker={name:'ผลึกหนัก',hp:150,damage:22,interval:4};
 ENEMY.glass_striker={name:'ผลึกฉับไว',hp:60,damage:18,interval:2};
-DOOR_ART.slow_striker='crystal-golem.png';
-DOOR_ART.glass_striker='crystal-mushroom-v1.png';
+DOOR_ART.slow_striker='crystal-heavy-v1.webp';
+DOOR_ART.glass_striker='crystal-swift-v1.webp';
 DOOR_KIND.slow_striker=DOOR_KIND.glass_striker='ต่อสู้';
 DOORS.slow_striker=['ผลึกหนัก','HP 150 · ตี 22 ทุก 4 ปัด'];
 DOORS.glass_striker=['ผลึกฉับไว','HP 60 · ตี 18 ทุก 2 ปัด'];

@@ -1,0 +1,1 @@
+{"base":"42f991a5d47dda0c93b76dadad82e2204cdb89a1","tests":{"command":"node --test tests/forest2048/*.test.mjs","programs":8,"passed":8},"syntax":"passed for all four new JavaScript files","diff":"passed","build":{"command":"npm run build","status":"passed","compile":true,"typescript":true,"staticGeneration":true},"ownerPlaytest":false,"physicalDevice":false,"production":false}

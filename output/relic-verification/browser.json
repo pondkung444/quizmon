@@ -1,0 +1,24 @@
+{
+  "fixture": true,
+  "production": false,
+  "results": [
+    {
+      "width": 320,
+      "dedicatedEnemySprites": true,
+      "flow": "new run/reward/shop/purchase/reload/inspect/swipe/boss/level2/reload",
+      "errors": []
+    },
+    {
+      "width": 390,
+      "dedicatedEnemySprites": true,
+      "flow": "new run/reward/shop/purchase/reload/inspect/swipe/boss/level2/reload",
+      "errors": []
+    },
+    {
+      "width": 430,
+      "dedicatedEnemySprites": true,
+      "flow": "new run/reward/shop/purchase/reload/inspect/swipe/boss/level2/reload",
+      "errors": []
+    }
+  ]
+}
