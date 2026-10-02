@@ -8,8 +8,11 @@ function saveOutbox(){try{localStorage.setItem(outboxKey(),JSON.stringify(outbox
 function loadOutbox(){try{outbox=JSON.parse(localStorage.getItem(outboxKey()))||[];if(!Array.isArray(outbox))outbox=[];}catch{outbox=[];}}
 function syncText(){return syncError||(outbox.some(q=>q.blocked)?'ผลรันก่อนหน้าตรวจสอบไม่ได้ · รันใหม่ยังแข่งได้':outbox.some(q=>q.events.length)?'เก็บผลในเครื่องแล้ว · กำลังส่งอันดับ':'บันทึกผลแล้ว');}
 async function loadCompetition(){try{competitionData=await forestRequest('/api/2048/competition');}catch{competitionData={...competitionData,loadError:'ยังโหลดอันดับไม่ได้'};}}
+let competitionTimer;
+function scheduleCompetition(){if(competitionTimer)return;competitionTimer=setTimeout(()=>{competitionTimer=null;flushCompetition();},650);}
 async function flushCompetition(){
  if(sending||!forestAccount||!outbox.some(q=>q.events.length&&!q.blocked))return sending;
+ clearTimeout(competitionTimer);competitionTimer=null;
  const account=forestAccount.accountId;
  sending=(async()=>{try{while(outbox.some(q=>q.events.length)){
   const q=outbox.find(q=>q.events.length&&!q.blocked);if(!q)break;const events=q.events.slice(0,256);
@@ -19,16 +22,19 @@ async function flushCompetition(){
   if(!accepted)throw Error('ยังบันทึกผลไม่ได้');q.events.splice(0,accepted);q.from=ack.revision;
   outbox=outbox.filter(x=>x.events.length||x.id===run?.competition?.id);saveOutbox();syncError='';
   document.querySelectorAll('[data-sync]').forEach(n=>n.textContent=syncText());
- }await loadCompetition();if(screen==='summary')showSummary(false);}
+ }if(screen!=='game'){await loadCompetition();if(screen==='summary')showSummary(false);}}
  catch(error){if(error.status===422){const q=outbox.find(q=>q.events.length&&!q.blocked);if(q)q.blocked=true;saveOutbox();}
   syncError=error.status===422?'ผลรันนี้ตรวจสอบไม่ได้ · เริ่มรันใหม่เพื่อแข่งต่อ':error.status===409?'ยังจัดลำดับผลไม่ได้ · เก็บในเครื่องแล้ว':error.status===401?'เข้าสู่ระบบอีกครั้งเพื่อส่งผล':'ออฟไลน์ · เก็บผลไว้ส่งเมื่อเชื่อมต่อ';document.querySelectorAll('[data-sync]').forEach(n=>n.textContent=syncText());}
  finally{sending=null;}})();return sending;
 }
 let tracking=0,phaseRendering=0;
+const checkpointPersist=persist;
+// Ranked actions save once after metrics and journal are updated; legacy runs still save normally.
+persist=function(){if(tracking&&run?.competition)return;checkpointPersist();};
 function track(event,action){const outer=tracking===0;tracking++;let result;try{result=action();}finally{tracking--;}
  if(outer&&run?.competition){run.runMetrics.maxRune=Math.max(run.runMetrics.maxRune,...state.board.filter(Boolean).map(t=>t.v));let q=outbox.find(q=>q.id===run.competition.id);if(!q){q={id:run.competition.id,from:0,events:[]};outbox.push(q);}q.events.push(event);saveOutbox();persist();
   // A microtask runs after the current choice has finished rendering its next phase.
-  queueMicrotask(()=>{flushCompetition();document.querySelectorAll('[data-sync]').forEach(n=>n.textContent=syncText());});}
+  queueMicrotask(()=>{if(event.type==='swipe')scheduleCompetition();else flushCompetition();document.querySelectorAll('[data-sync]').forEach(n=>n.textContent=syncText());});}
  return result;
 }
 const oldSwipe=runSwipe;
@@ -55,8 +61,8 @@ panel=function(title,text,choices){screen='game';const phase=run?.phase;
  });oldPanel(title,text,mapped);
  if(phaseRendering){const nav=node('div',undefined,'phase-navigation');const pause=button('พัก',()=>showGameMenu());pause.setAttribute('aria-label','เมนูพักการเดินทาง');nav.append(button('หน้าแรก',showHome),pause);document.querySelector('#run-content').prepend(nav);}
 };
-const oldHUD=runHUD;
-runHUD=function(){oldHUD();document.querySelector('#run-hud').replaceChildren();
+const oldHUD=runHUD;let relicHUDKey;
+runHUD=function(){const key=JSON.stringify([run.coins,run.relics]);if(key===relicHUDKey&&document.querySelector('#relics .forest-wallet'))return;relicHUDKey=key;oldHUD();document.querySelector('#run-hud').replaceChildren();
  const collection=document.querySelector('#relics');const wallet=document.createElement('span');wallet.className='forest-wallet';wallet.textContent='◈ '+run.coins;wallet.setAttribute('aria-label',run.coins+' เหรียญ');wallet.title='เหรียญสำหรับร้านนักเดินทาง';collection.prepend(wallet);
 };
 const oldPhase=showPhase;
@@ -119,5 +125,6 @@ document.querySelector('#reset').onclick=showGameMenu;
 const soundButton=document.querySelector('#sound-toggle'),soundAction=soundButton.onclick;
 soundButton.onclick=()=>{soundAction();soundButton.textContent=sound?'🔊':'🔈';soundButton.setAttribute('aria-label',sound?'ปิดเสียง':'เปิดเสียง');};soundButton.textContent='🔈';soundButton.setAttribute('aria-label','เปิดเสียง');
 window.addEventListener('online',()=>flushCompetition());window.addEventListener('pagehide',()=>{persist();if(forestAccount)saveOutbox();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){persist();if(forestAccount){saveOutbox();flushCompetition();}}});
 setInterval(()=>flushCompetition(),15000);
 initRun();

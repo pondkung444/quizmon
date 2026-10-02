@@ -43,13 +43,17 @@ const results=[];try{for(const width of [320,390,430]){
  const bounds=await page.locator('#board').boundingBox();assert.ok(bounds.width>210);assert.ok(bounds.y+bounds.height<= (width===320?568:844));
  assert.equal(await page.locator('#run-hud').isVisible(),false);assert.ok(await page.locator('.forest-wallet').isVisible());
  await page.screenshot({path:path.join(out,'game-'+width+'.png')});await page.locator('#skill').click();await page.locator('.auto-info .picker-skill').waitFor();await page.screenshot({path:path.join(out,'auto-info-'+width+'.png')});await page.getByRole('button',{name:'กลับไปการเดินทาง',exact:true}).click();
+ // Ranked moves save one full checkpoint after metrics/journal update, even before network acknowledgement.
+ await page.evaluate(()=>{window.saveWrites=0;window.originalSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key===saveKey())window.saveWrites++;return window.originalSetItem.call(this,key,value);};window.walletBefore=document.querySelector('.forest-wallet');});
  // Real touch input, then a small deterministic bot uses the same browser actions.
  const dir=await page.evaluate(()=>DIRS.find(d=>slide(state.board,d,state.cfg.rune).changed));
  const cdp=await context.newCDPSession(page),cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2,dx=dir==='left'?-60:dir==='right'?60:0,dy=dir==='up'?-60:dir==='down'?60:0;
  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx-dx/2,y:cy-dy/2}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx+dx/2,y:cy+dy/2}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForFunction(()=>state.moves===1&&!busy);
+ const durable=await page.evaluate(()=>{Storage.prototype.setItem=window.originalSetItem;const saved=JSON.parse(localStorage.getItem(saveKey()));return{writes:window.saveWrites,moves:saved.battle.moves,swipes:saved.runMetrics.swipes,walletReused:window.walletBefore===document.querySelector('.forest-wallet')};});assert.deepEqual(durable,{writes:1,moves:1,swipes:1,walletReused:true});
  fail=true;
  await page.evaluate(()=>{runSwipe(DIRS.find(d=>slide(state.board,d,state.cfg.rune).changed));render();settleRun();});await page.waitForFunction(()=>syncError);
  await (await page.locator('#run-panel').isVisible()?page.locator('.phase-navigation button').last():page.locator('#reset')).click();await page.getByRole('button',{name:'หน้าแรก · ดูอันดับ',exact:true}).click();await page.reload();await page.getByRole('button',{name:'เล่นต่อ',exact:true}).click();assert.equal(await page.evaluate(()=>run.runMetrics.swipes),2);
+ const tiles=await page.evaluate(()=>({expected:state.board.flatMap((t,i)=>t?[{cell:i,value:String(t.v),frozen:!!t.f}]:[]),actual:[...document.querySelectorAll('#board .tile')].map(el=>({cell:Number(el.dataset.cell),value:el.querySelector('.rune-number').textContent,frozen:el.classList.contains('frozen')})).sort((a,b)=>a.cell-b.cell)}));assert.deepEqual(tiles.actual,tiles.expected);
  fail=false;drop=true;await page.evaluate(()=>flushCompetition()); // Server accepted, response lost: retry must deduplicate.
  await page.evaluate(()=>flushCompetition());await page.waitForFunction(()=>outbox.every(q=>!q.events.length));
  for(let n=0;n<500&&await page.evaluate(()=>distance()<9&&!terminal());n++){
