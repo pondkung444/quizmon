@@ -4,7 +4,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let state,busy=false,sound=false,audioContext,activeAudio=[],pointer=null,queuedDir=null;
 const $=id=>document.getElementById(id),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const heroImages={math:'math',science:'science',balanced:'balance'};
-const enemyImages={slow_striker:'crystal-golem.png',glass_striker:'crystal-mushroom-v1.png',brute:'crystal-golem.png',mushroom:'crystal-mushroom-v1.png',beetle:'crystal-beetle-v1.png',stag:'divine-stag-guardian-v3.png'};
+const enemyImages={slow_striker:'crystal-heavy-v1.webp',glass_striker:'crystal-swift-v1.webp',brute:'crystal-golem.png',mushroom:'crystal-mushroom-v1.png',beetle:'crystal-beetle-v1.png',stag:'divine-stag-guardian-v3.png'};
 const enemyLabels={slow_striker:'ผลึกหนัก',glass_striker:'ผลึกฉับไว',brute:'โกเล็มหินผลึก · แกร่ง',mushroom:'เห็ดผลึก',beetle:'ด้วงแก้ว',stag:'กวางเทพพิทักษ์'};
 const typeClass={a:'attack',d:'shield',h:'heal',x:'special'},typeLabel={a:'ดาบ โจมตี',d:'โล่ เกราะ',h:'ฟื้นพลัง',x:'รูนพิเศษ'};
 function position(el,index){const row=Math.floor(index/4),col=index%4;el.style.transform=`translate(${(col*24.5+2)/22*100}%,${(row*24.5+2)/22*100}%)`;}
