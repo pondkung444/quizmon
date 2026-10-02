@@ -472,6 +472,25 @@ async function pickExplorationMission(
   band: GradeBand,
   gradeLevels: string[] | null
 ): Promise<MissionDraft> {
+  const draft = await tryPickExplorationMission(admin, subject, recentCategories, band, gradeLevels);
+  if (draft) return draft;
+  // วิชาที่เลือกไม่มีบทที่มีโจทย์พอ (เช่น primary ที่ยังไม่มีโจทย์วิทย์) — ลองอีกวิชาก่อนยอมไม่มีภารกิจ
+  const other: Subject = subject === "math" ? "science" : "math";
+  const fallback = await tryPickExplorationMission(admin, other, recentCategories, band, gradeLevels);
+  if (fallback) return fallback;
+  throw new Error(
+    `ไม่มีบทวิชา ${subject} ที่มีคำถาม active difficulty=1 ครบ ${MIN_ACTIVE_QUESTIONS_IN_CATEGORY} ข้อเลยสักบท`
+  );
+}
+
+// คืน null เมื่อวิชานี้ไม่มีบทที่มีโจทย์ difficulty=1 ครบเกณฑ์เลย
+async function tryPickExplorationMission(
+  admin: AdminClient,
+  subject: Subject,
+  recentCategories: Set<string>,
+  band: GradeBand,
+  gradeLevels: string[] | null
+): Promise<MissionDraft | null> {
   const rows = await fetchAllRows<{ category: string }>((from, to) => {
     let q = admin
       .from("questions")
@@ -496,11 +515,7 @@ async function pickExplorationMission(
     // บทเดิมดีกว่าไม่มีภารกิจให้เลย
     candidates = eligible;
   }
-  if (candidates.length === 0) {
-    throw new Error(
-      `ไม่มีบทวิชา ${subject} ที่มีคำถาม active difficulty=1 ครบ ${MIN_ACTIVE_QUESTIONS_IN_CATEGORY} ข้อเลยสักบท`
-    );
-  }
+  if (candidates.length === 0) return null;
 
   const [category] = candidates[Math.floor(Math.random() * candidates.length)];
   return {
