@@ -5,7 +5,7 @@ import type { Subject } from "@/types/quiz";
 import { getTodayInBangkok } from "@/lib/exp";
 import { bangkokMidnightUtcIso, daysBeforeStr, nextDateStr } from "@/lib/topicStats";
 import { getGradeProfile, visibleBands, type GradeBand } from "@/lib/gradeBand";
-import { gradeLevelOrFilter, visibleJuniorGradeLevels } from "@/lib/gradeLevel";
+import { gradeLevelOrFilter, visibleGradeLevels } from "@/lib/gradeLevel";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -94,8 +94,8 @@ export async function getOrCreateTodayMission(
   let mission = await fetchMissionByDate(supabase, userId, today);
   if (!mission) {
     const { band, gradeLevel } = await getGradeProfile(userId);
-    // เลือกบทภารกิจจากโจทย์ที่ผู้เล่นเห็นได้ตามชั้นเท่านั้น (junior) ไม่งั้นอาจได้บทที่โจทย์ทั้งหมดอยู่ชั้นที่ล็อกไว้
-    const gradeLevels = band === "junior" ? visibleJuniorGradeLevels(gradeLevel) : null;
+    // เลือกบทภารกิจจากโจทย์ที่ผู้เล่นเห็นได้ตามชั้นเท่านั้น (primary/junior) ไม่งั้นอาจได้บทที่โจทย์ทั้งหมดอยู่ชั้นที่ล็อกไว้
+    const gradeLevels = visibleGradeLevels(band, gradeLevel);
     mission = await createTodayMission(supabase, userId, today, band, gradeLevels);
   }
 

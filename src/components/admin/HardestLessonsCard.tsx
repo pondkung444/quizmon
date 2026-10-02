@@ -27,7 +27,8 @@ export default function HardestLessonsCard({
   minConfidence: number;
 }) {
   const [band, setBand] = useState<Band>("all");
-  const rows = band === "all" ? all : band === "junior" ? junior : senior;
+  // ตัวเลือกแท็บมีแค่ 3 ค่า — เช็ค senior ตรงๆ ไม่ใช้ else ค้างให้ค่าใหม่ตกไป senior เงียบๆ
+  const rows = band === "all" ? all : band === "senior" ? senior : junior;
 
   return (
     <div className="rounded-2xl border border-gold-dim bg-card p-5">

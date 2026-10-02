@@ -35,7 +35,7 @@ export default async function CollectionAlbumPage() {
   // (ดูหมวด 8.6) pet เก่าที่ subline ไม่อยู่ใน SUBLINE_ORDER ของ band ปัจจุบันจะหาคอมโบไม่เจอใน
   // firstPetIdByCombo แล้วไม่โชว์ในกริดเงียบๆ (ไม่ throw เพราะ loop ด้านล่างเรียกฟังก์ชันด้วยค่าจาก
   // SUBLINE_ORDER เองเท่านั้น ไม่เคยส่ง raw pet.subline เข้า getSpeciesName/getPetImagePath ตรงๆ)
-  const SUBLINE_ORDER: PetLine[] = band === "senior" ? SENIOR_LINE_ORDER : JUNIOR_LINE_ORDER;
+  const SUBLINE_ORDER: PetLine[] = band === "senior" ? SENIOR_LINE_ORDER : JUNIOR_LINE_ORDER; // primary ใช้ชุด junior
 
   let eggTypes: { id: string; name_th: string; sprite_prefix: string; tier: string }[] = [];
   // combo (eggTypeId_subline_personality) -> id ของ "ตัวแรกที่เก็บ" (evolved_at เก่าสุด)

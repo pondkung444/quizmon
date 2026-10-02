@@ -5,14 +5,11 @@ import { ChevronRight, X } from "lucide-react";
 import { getWeeklyLeaderboardTop5 } from "@/app/pet/actions";
 import type { LeaderboardEntry, MyWeeklyRank } from "@/lib/weeklyLeaderboard";
 import type { GradeBand } from "@/lib/gradeBand";
+import { LEADERBOARD_BAND_LABEL_TH, leaderboardBandOf } from "@/lib/gradeLevel";
 import { useSfx } from "@/lib/audio/useSfx";
 
-// ข้อความ ม.ต้น/ม.ปลาย ต้องตรงกับ bandLabel() ใน src/app/admin/analytics/page.tsx เป๊ะๆ (คนละไฟล์
-// ไม่มี export กลางให้ import ร่วมกัน — ห้ามคิด wording ใหม่ถ้าจะแก้ ให้ sync คู่กับที่นั่นด้วย)
-const GRADE_BAND_LABEL_TH: Record<GradeBand, string> = {
-  junior: "ม.ต้น",
-  senior: "ม.ปลาย",
-};
+// ป้ายกลุ่มมาจาก LEADERBOARD_BAND_LABEL_TH (primary รวมอยู่ใน junior pool ของกระดาน) — admin analytics
+// bandLabel() ยังใช้ "ม.ต้น" อยู่ (เฟส 4) ไม่ได้ sync คู่กันอีกต่อไป
 
 // แถบอันดับสัปดาห์ — อยู่บนสุดของหน้า /pet ใต้ชื่อน้อง (จัดใหม่ 2026-09 เดิมเป็นการ์ดพับได้ล่างสุด)
 // สีเป็นก้อนของตัวเอง ใช้ค่าเดียวกันทั้งธีมค่ำ/สว่าง (.rank-strip-* ใน globals.css) แบ่ง 4 ระดับ:
@@ -36,9 +33,10 @@ export default function WeeklyLeaderboardCard({
   const [top5, setTop5] = useState<LeaderboardEntry[] | null>(null);
   const [loadingTop5, setLoadingTop5] = useState(false);
 
-  // gradeBand ("junior"/"senior") มาจาก profiles คนละความหมายกับ band ของ myWeeklyRank
+  // gradeBand ("primary"/"junior"/"senior") มาจาก profiles คนละความหมายกับ band ของ myWeeklyRank
   // (percentile tier "top"/"mid"/"start") — null fallback เป็น junior ให้ตรงกับ default ของ getGradeBand()
-  const groupLabelTh = GRADE_BAND_LABEL_TH[gradeBand ?? "junior"];
+  // primary แปลงเป็น junior ก่อน เพราะกระดานรวมสองกลุ่มนี้
+  const groupLabelTh = LEADERBOARD_BAND_LABEL_TH[leaderboardBandOf(gradeBand ?? "junior")];
 
   useEffect(() => {
     if (!open) return;

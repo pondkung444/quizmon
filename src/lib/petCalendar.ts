@@ -19,7 +19,7 @@ export type CalendarDay = {
   personality: string | null;
   spritePrefix: string | null;
   formName: string | null; // จาก getSpeciesName() — null ถ้ายังไม่มี pet วันนั้น
-  // junior: คณิต/วิทย์/รวม (3 entries) · senior: ฟิสิกส์/เคมี/ชีวะ (3 entries ไม่มี "รวม")
+  // junior/primary: คณิต/วิทย์/รวม (3 entries) · senior: ฟิสิกส์/เคมี/ชีวะ (3 entries ไม่มี "รวม")
   statBreakdown: { key: string; label: string; count: number }[];
   isToday: boolean;
   isFuture: boolean;
@@ -174,7 +174,7 @@ export async function getCalendarMonth(
   ]);
 
   const subjectCountsByDay =
-    gradeBand === "junior" ? await getSubjectCountsByDay(supabase, userId, rangeStartIso, rangeEndIso) : null;
+    gradeBand !== "senior" ? await getSubjectCountsByDay(supabase, userId, rangeStartIso, rangeEndIso) : null;
   const branchCountsByDay =
     gradeBand === "senior" ? await getBranchCountsByDay(supabase, userId, rangeStartIso, rangeEndIso) : null;
 

@@ -50,7 +50,8 @@ export async function planPetEvolution(
 
   if (pet.stage < 3 && newStage === 3) {
     const band = await getGradeBand(userId);
-    if (band === "junior") {
+    // primary ใช้เส้น junior (คณิต/วิทย์/สมดุล) — senior เท่านั้นที่ใช้สายฟิสิกส์/เคมี/ชีวะ
+    if (band === "junior" || band === "primary") {
       computedSubline = determineSubline(pet.math_correct, pet.science_correct);
     } else {
       const { data: branchCounts } = await supabase.rpc("get_pet_branch_counts", {

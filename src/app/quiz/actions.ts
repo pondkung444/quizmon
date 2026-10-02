@@ -14,7 +14,7 @@ import {
 import { getEvolutionProgress } from "@/lib/evolution";
 import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
 import { getGradeProfile, visibleBands } from "@/lib/gradeBand";
-import { gradeLevelOrFilter, visibleJuniorGradeLevels } from "@/lib/gradeLevel";
+import { gradeLevelOrFilter, visibleGradeLevels } from "@/lib/gradeLevel";
 import { type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
@@ -118,7 +118,7 @@ export type MissionRoundInfo = {
 // ต้อง filter ครบทั้ง 4 field พร้อมกันเสมอ: ฟิสิกส์กับคณิต ม.ต้น ใช้ subject='math' ร่วมกัน
 // filter ไม่ครบมีโอกาสดึงข้อผิดวิชาปนมา
 export type TopicFilter = {
-  gradeBand: string; // 'junior' | 'senior'
+  gradeBand: string; // 'primary' | 'junior' | 'senior'
   subject: string; // 'math' | 'science'
   branch: string | null;
   chapter: string;
@@ -148,9 +148,10 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   } = await supabase.auth.getUser();
   const admin = createAdminClient();
   const { band, gradeLevel } = user ? await getGradeProfile(user.id) : { band: "junior" as const, gradeLevel: null };
-  // จำกัดโจทย์สุ่มตามชั้นของผู้เล่น junior (ม.1 เห็นแค่ ม.1, ม.2 เห็น ม.1-2, ม.3 เห็นทุกชั้น) — null = ไม่กรอง
+  // จำกัดโจทย์สุ่มตามชั้นของผู้เล่น junior/primary (ม.1 เห็นแค่ ม.1, ม.2 เห็น ม.1-2, ม.3 เห็นทุกชั้น; ป.4-6 ทำนองเดียวกัน
+  // ภายในกลุ่ม ป. เท่านั้น) — null = ไม่กรอง
   // ใช้กับโหมดฝึกปกติและภารกิจเท่านั้น โหมดเลือกบทฝึกฝน (type: "topic") เปิดข้ามชั้นเหมือนเดิมโดยตั้งใจ
-  const gradeLevels = band === "junior" ? visibleJuniorGradeLevels(gradeLevel) : null;
+  const gradeLevels = visibleGradeLevels(band, gradeLevel);
 
   // โหมดเลือกบทฝึกฝน: cross-grade เต็มรูปแบบ ไม่ filter ตาม band/subject ของ user — query ตรงจาก
   // บทที่เลือก โดย filter ครบทั้ง 4 field เสมอ (ดู TopicFilter) ไม่ยุ่งกับ category/difficulty
@@ -239,6 +240,7 @@ export async function startQuizRound(input: StartQuizRoundInput): Promise<StartQ
   // เท่านั้น ไม่ใช่ subject เพราะเคมี/ชีวะ subject เดียวกัน (science) กรองด้วย subject จะได้โจทย์ปนสาย
   const isSeniorBranchMode = mode === "physics" || mode === "chemistry" || mode === "biology";
 
+  // เฉพาะ senior เท่านั้นที่ใช้โหมดสาย — primary/junior ตกเส้น else (math/science) ตามตั้งใจ
   if (input.type === "practice" && band === "senior") {
     if (!isSeniorBranchMode) throw new Error("โหมดไม่ถูกต้อง");
   } else if (isSeniorBranchMode || (mode !== "math" && mode !== "science")) {

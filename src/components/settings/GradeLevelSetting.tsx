@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateGradeLevel } from "@/app/settings/actions";
-import { ALL_GRADE_LEVELS } from "@/lib/gradeLevel";
+import { SELECTABLE_GRADE_LEVELS } from "@/lib/gradeLevel";
 
 type Feedback =
   | { kind: "saved" }
@@ -69,7 +69,7 @@ export default function GradeLevelSetting({ current }: { current: string | null 
         className="w-full rounded-md border border-border bg-track px-3 py-2 text-sm text-text focus:border-gold focus:outline-none disabled:opacity-60"
       >
         {saved === null && <option value="">-- เลือกระดับชั้น --</option>}
-        {ALL_GRADE_LEVELS.map((level) => (
+        {SELECTABLE_GRADE_LEVELS.map((level) => (
           <option key={level} value={level}>
             {level}
           </option>
