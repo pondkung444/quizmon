@@ -34,11 +34,15 @@ const results=[];try{for(const width of [320,390,430]){
  const context=await browser.newContext({viewport:{width,height:width===320?568:844},isMobile:true,hasTouch:true});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port+'/2048/');if(width===320)await page.getByRole('button',{name:'ลองเชื่อมใหม่',exact:true}).click();await page.waitForFunction(()=>competitionData.board.leaders.length>0);
  await page.screenshot({path:path.join(out,'home-'+width+'.png')});await page.getByRole('button',{name:'ดูอันดับทั้งหมด',exact:true}).click();await page.getByRole('heading',{name:'นักสำรวจไปไกลสุด'}).waitFor();
- await page.getByRole('button',{name:'หน้าแรก',exact:true}).click();await page.getByRole('button',{name:'เลือกคู่หู · เริ่มสำรวจ',exact:true}).click();await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='battle'&&run.competition);
+ await page.getByRole('button',{name:'หน้าแรก',exact:true}).click();await page.getByRole('button',{name:'เลือกคู่หู · เริ่มสำรวจ',exact:true}).click();await page.locator('.picker-skill').waitFor();
+ const skillMetrics=await page.locator('.picker-skill').evaluate(el=>({font:parseFloat(getComputedStyle(el.querySelector('.picker-skill-effect')).fontSize),title:parseFloat(getComputedStyle(el.querySelector('h3')).fontSize),overflow:el.scrollWidth>el.clientWidth+1}));assert.ok(skillMetrics.font>=16&&skillMetrics.title>=22&&!skillMetrics.overflow);
+ await page.screenshot({path:path.join(out,'auto-picker-'+width+'.png')});
+ if(width===390){const checked=await page.evaluate(()=>{const cards=[];for(const egg of Object.keys(AUTO_SKILLS))for(const lane of ['math','science','balanced'])for(const personality of ['A','B']){const pet={...forestAccount.companions[0],eggPrefix:egg,lane,personality,stage:4};showCompanionPicker({...forestAccount,companions:[pet]},startRun,showHome);const el=document.querySelector('.picker-skill');cards.push({name:el.querySelector('h3').textContent,overflow:el.scrollWidth>el.clientWidth+1});}showCompanions();return cards;});assert.equal(checked.length,36);assert.ok(checked.every(c=>c.name&&!c.overflow));}
+ await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='battle'&&run.competition);
  const id=await page.evaluate(()=>run.competition.id);
  const bounds=await page.locator('#board').boundingBox();assert.ok(bounds.width>210);assert.ok(bounds.y+bounds.height<= (width===320?568:844));
  assert.equal(await page.locator('#run-hud').isVisible(),false);assert.ok(await page.locator('.forest-wallet').isVisible());
- await page.screenshot({path:path.join(out,'game-'+width+'.png')});
+ await page.screenshot({path:path.join(out,'game-'+width+'.png')});await page.locator('#skill').click();await page.locator('.auto-info .picker-skill').waitFor();await page.screenshot({path:path.join(out,'auto-info-'+width+'.png')});await page.getByRole('button',{name:'กลับไปการเดินทาง',exact:true}).click();
  // Real touch input, then a small deterministic bot uses the same browser actions.
  const dir=await page.evaluate(()=>DIRS.find(d=>slide(state.board,d,state.cfg.rune).changed));
  const cdp=await context.newCDPSession(page),cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2,dx=dir==='left'?-60:dir==='right'?60:0,dy=dir==='up'?-60:dir==='down'?60:0;

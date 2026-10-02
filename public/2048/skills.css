@@ -1,8 +1,8 @@
-.battle .qmon-skill{background:linear-gradient(90deg,#77653680 var(--charge,0%),#102e2ef2 var(--charge,0%));cursor:pointer;font-size:clamp(9px,2.8vw,12px)}
+.battle .qmon-skill{background:linear-gradient(90deg,#77653680 var(--charge,0%),#102e2ef2 var(--charge,0%));cursor:pointer;font-size:clamp(12px,3.1vw,14px);font-weight:700;color:#ffe6a6;border-color:#d4b65c}
 .auto-statuses{position:absolute;top:4%;display:flex;gap:3px;width:47%;overflow-x:auto;scrollbar-width:none;z-index:9;padding:2px;max-height:28px}
 #auto-hero-status{left:0}#auto-enemy-status{right:0;justify-content:flex-start}
 .auto-status{flex:0 0 auto;padding:2px 4px;min-width:24px;min-height:24px;border:1px solid #d5c17499;border-radius:6px;background:#082724ed;color:#fff4cf;font-size:11px;line-height:17px}
-.auto-banner{position:absolute;left:0;top:27%;max-width:95%;z-index:12;pointer-events:none;padding:5px 10px;border-radius:8px;border:1px solid #ffe3a0;background:#12322df2;color:#fff2c8;font-weight:700;font-size:clamp(11px,3.3vw,16px);box-shadow:0 0 14px #ffb85d66;animation:auto-banner .8s ease-out forwards}
+.auto-banner{position:absolute;left:0;top:27%;max-width:95%;z-index:12;pointer-events:none;padding:8px 12px;border-radius:8px;border:1px solid #ffe3a0;background:#12322df2;color:#fff2c8;font-weight:700;font-size:clamp(16px,4vw,19px);box-shadow:0 0 14px #ffb85d66;animation:auto-banner 1.6s ease-out forwards}
 .auto-banner.epic{border-color:#d8b6ff;box-shadow:0 0 20px #ac83ff99}.auto-banner.legendary{border:2px solid #ffec9f;box-shadow:0 0 25px #ffdd6899}
 .auto-mark,.mark-burst{position:absolute;left:0;top:0;width:22%;height:22%;z-index:6;box-sizing:border-box;border:2px dashed #ffe3a0;border-radius:12px;background:transparent;color:#fff5b0;box-shadow:inset 0 0 12px #ffcb4755,0 0 8px #ffe3a080;font:bold 17px sans-serif;padding:0;display:flex;align-items:flex-start;justify-content:flex-end;text-shadow:0 1px 3px #000}
 .auto-mark{animation:mark-arrive .35s ease-out}.mark-burst{pointer-events:none;border-style:solid;animation:mark-burst .65s ease-out forwards}
