@@ -11,7 +11,7 @@ const server=http.createServer(async(req,res)=>{try{
   if(req.url.includes('companions')){if(companionFailures){companionFailures--;res.writeHead(503);return res.end(JSON.stringify({error:'fixture connection failed'}));}return res.end(JSON.stringify({accountId:account,companions:[companion]}));}
   if(req.url.includes('/start')){
    const id='44444444-4444-4444-8444-'+String(++count).padStart(12,'0');
-   const initial=newReplay({version:3,runeVersion:1,balanceVersion:3,endlessVersion:1,relicVersion:1,skillVersion:1,accountId:account,companion,questions,hero:'math',seed:12345,routeSeed:12345,room:1,coins:0,relics:[],phase:'battle',revived:false,history:[]});runs.set(id,{s:initial,revision:0});
+   const initial=newReplay({version:3,runeVersion:1,balanceVersion:4,endlessVersion:1,relicVersion:1,skillVersion:1,accountId:account,companion,questions,hero:'math',seed:12345,routeSeed:12345,room:1,coins:0,relics:[],phase:'battle',revived:false,history:[]});runs.set(id,{s:initial,revision:0});
    return res.end(JSON.stringify({accountId:account,companion,questions,competition:{id,seed:12345},initial}));
   }
   if(req.method==='POST'){

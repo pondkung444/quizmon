@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     try { bank = await forestQuestions(user.id); }
     catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "โหลดคำถามไม่สำเร็จ" }, { status: 503, headers }); }
     const snapshotAt = new Date().toISOString(), seed = randomBytes(4).readUInt32LE();
-    const engine_state = newReplay({version:3,runeVersion:1,balanceVersion:3,endlessVersion:1,relicVersion:1,
+    const engine_state = newReplay({version:3,runeVersion:1,balanceVersion:4,endlessVersion:1,relicVersion:1,
       skillVersion:1,accountId:user.id,companion,...bank,snapshotAt,formulaVersion:1,hero:companion.lane,
       seed,routeSeed:seed,room:1,coins:0,relics:[],phase:'battle',revived:false,echo:false,started:Date.now(),history:[]});
     const admin = createAdminClient();
