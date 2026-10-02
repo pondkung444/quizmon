@@ -1,0 +1,11 @@
+'use strict';
+const preRelicRender=render;
+render=function(){preRelicRender();if(!relicActive())return;let status=document.querySelector('#relic-status');if(!status){status=document.createElement('div');status.id='relic-status';document.querySelector('#relics').before(status);}status.replaceChildren();const rs=relicState(state);const add=(icon,name,detail,count)=>autoStatusButton(status,icon,name,detail,count);
+ if(has('resonance'))add('≋','ก้องสะท้อนคู่หู','Auto ปกติครั้งที่ 3 ทำงานซ้ำ 1 รอบ; รอบซ้ำไม่นับเพิ่ม',rs.autoCount+'/3');
+ if(has('wind'))add('➜','ทิศนำโชค','รวมในทิศนี้แรงขึ้น 50%; เปลี่ยนหลังศัตรูลงมือ',{left:'←',right:'→',up:'↑',down:'↓'}[rs.direction]);
+ if(has('interrupt'))add('⊘','ผนึกขัดจังหวะ',rs.interruptLocked?'ท่าหนักถัดไปยกเลิกไม่ได้; พร้อมอีกครั้งหลังรับท่านั้น':'Auto สามารถยกเลิกท่าหนักถัดไปได้',rs.interruptLocked?'ล็อก':'พร้อม');
+ if(has('oracle')&&rs.nextRune)add(ICON[rs.nextRune.t]||EGG_RUNES[state.cfg.rune]?.icon||'✦','รูนถัดไป','ปัดที่มีผลครั้งถัดไปจะเกิดชนิดและเลขนี้',rs.nextRune.v);
+ if(has('battery'))add('♥','หัวใจกักพลัง','ชาร์จเต็มรอปัดสุดท้ายก่อนศัตรูลงมือ; ผลสกิลเพิ่ม 50%');
+ if(has('crown'))add('♛','มงกุฎผู้พิชิต','โบนัสรวมสะสม; growth ดาเมจเริ่มหลังเลเวล '+run.crownStartLevel,'+'+(run.crownWins||0)*20+'%');
+ const elements=boardEl.querySelectorAll('.auto-mark');(state.auto?.marks||[]).forEach((m,i)=>{const el=elements[i];if(!el)return;const detail={charge:'รวมลงช่องนี้เพิ่มชาร์จ 2',arrow:'รวมลงช่องนี้ยิงดาบเลขหลังรวม 150%',guard:'รวมลงช่องนี้ได้เกราะโล่เลขหลังรวม 150%',double:'รวมลงช่องนี้ออกผลรูนเพิ่มอีก 1 รอบ',number:'รวมลงช่องนี้เพิ่มเลขผลลัพธ์ ×2 ก่อนออกผล',garden:'รวมลงช่องนี้เป็นรูนเทพ และเพิ่มเลขช่องข้างเคียง ×2',blessing:'รวมลงช่องนี้เป็นเทพตื่นพลัง ออกพร 3 รอบ'}[m.kind];el.title='มาร์ค '+MARK_ICONS[m.kind]+' · เหลือ '+(m.uses??1)+' ครั้ง';el.setAttribute('aria-label',el.title);el.onclick=()=>panel(el.title,detail+' · ติดช่อง ไม่ติดรูน · ล้างเมื่อจบห้อง',[{title:'กลับไปการเดินทาง',action:showPhase}]);});
+};
