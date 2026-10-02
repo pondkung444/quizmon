@@ -8,6 +8,9 @@ DOOR_KIND.slow_striker=DOOR_KIND.glass_striker='ต่อสู้';
 DOORS.slow_striker=['ผลึกหนัก','HP 150 · ตี 22 ทุก 4 ปัด'];
 DOORS.glass_striker=['ผลึกฉับไว','HP 60 · ตี 18 ทุก 2 ปัด'];
 const isEndless=()=>run?.endlessVersion===1;
+// Only new v4 journeys receive the pilot's gentler opening. Existing checkpoints replay v3 exactly.
+const gentleOpening=()=>isEndless()&&run.balanceVersion>=4;
+function openingRecovery(){if(!gentleOpening()||run.room>3)return;const heal=Math.min(state.cfg.hp-state.hp,Math.ceil(state.cfg.hp*.20));state.hp+=heal;if(heal)log(state,`พักหลังการต่อสู้ · HP +${heal}`);}
 const localRoom=room=>1+(room-1)%8;
 const enemyLevel=room=>1+Math.floor((room-1)/8);
 function endlessStat(base,growth,level){return Math.min(Number.MAX_SAFE_INTEGER,Math.round(base*growth**(level-1)));}
@@ -22,7 +25,7 @@ function endlessDoors(room){
   const local=localRoom(n);
   if(local===4)options=['brute'];else if(local===8)options=['stag'];
   else if(n===2)options=['mushroom','beetle'];
-  else{const pool=local<=3?normal:[...normal,'rest','shop','quiz'];const first=pick(pool);options=[first,pick(pool.filter(t=>t!==first))];}
+  else{const pool=gentleOpening()&&n===3?['mushroom','beetle']:local<=3?normal:[...normal,'rest','shop','quiz'];const first=pick(pool);options=[first,pick(pool.filter(t=>t!==first))];}
   pick(options); // Simulator's choice draw; human chooses either offered door.
  }
  return options;
@@ -36,9 +39,9 @@ enterBattle=function(enemy){
  legacyEnterBattle(enemy);
  if(!isEndless())return;
  const local=localRoom(run.room),level=enemyLevel(run.room),base=ENEMY[enemy];
- const damage=run.room<=2?({mushroom:10,beetle:13}[enemy]??base.damage):base.damage;
+ const damage=run.room<=(gentleOpening()?3:2)?({mushroom:10,beetle:13}[enemy]??base.damage):gentleOpening()&&run.room===4&&enemy==='brute'?18:base.damage;
  state.cfg.damage=endlessStat(damage,1.08,level);
- state.cfg.enemyHp=endlessStat(base.hp+(local>4&&enemy!=='stag'?20:0),1.20,level);
+ state.cfg.enemyHp=endlessStat((gentleOpening()&&run.room===4&&enemy==='brute'?150:base.hp)+(local>4&&enemy!=='stag'?20:0),1.20,level);
  state.enemyHp=state.cfg.enemyHp;
  state.cfg.relicSpark=state.cfg.relicShadow=state.cfg.relicSeed=false;
  render();persist();

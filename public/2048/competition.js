@@ -66,7 +66,7 @@ restoreRun=function(saved){oldRestore(saved);if(run.phase==='battle'&&state.stat
 showCompanions=function(){screen='picker';showCompanionPicker(forestAccount,startRun,showHome);};
 showNewRun=function(){if(!forestAccount)return initRun();if(run&&!terminal()){panel('เริ่มรันใหม่?','รันปัจจุบันจะจบลง ผลที่ผ่านยังเก็บไว้ในสถิติ',[{title:'กลับไปเล่นต่อ',action:showPhase},{title:'จบรันนี้แล้วเลือกคู่หูใหม่',action:()=>{track({type:'end'},()=>{run.phase='ended';persist();});showCompanions();}}]);return;}showCompanions();};
 startRun=async function(petId){panel('เตรียมออกสำรวจ','กำลังอ่านสเตตัสและคำถามสำหรับการเดินทาง',[]);try{
- const snapshot=await forestRequest('/api/2048/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({petId})});
+ const snapshot=await forestRequest('/api/2048/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({petId,balanceVersion:4})});
  if(snapshot.accountId!==forestAccount?.accountId)throw Error('บัญชีเปลี่ยนแล้ว กรุณาเลือกคู่หูอีกครั้ง');
  if(snapshot.initial){run=snapshot.initial.run;state=snapshot.initial.state;run.competition={id:snapshot.competition.id};run.runMetrics=snapshot.initial.metrics;
   outbox.push({id:run.competition.id,from:0,events:[]});saveOutbox();persist();updateImages();showPhase();}
