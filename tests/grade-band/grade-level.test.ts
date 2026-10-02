@@ -2,6 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   gradeBandOf,
+  gradeChangeKind,
+  isAnyGradeLevel,
   isGradeLevel,
   leaderboardBandOf,
   leaderboardBucketOf,
@@ -56,4 +58,30 @@ test("isGradeLevel: ผู้ใช้เลือก ป.x ไม่ได้",
   assert.equal(isGradeLevel("ม.1"), true);
   assert.equal(isGradeLevel("ป.5"), false);
   assert.deepEqual([...SELECTABLE_GRADE_LEVELS], ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"]);
+});
+
+test("gradeChangeKind: ป.5→ป.6 within_band (ไม่ต้อง confirm/cooldown)", () => {
+  assert.equal(gradeChangeKind("ป.5", "primary", "ป.6"), "within_band");
+  assert.equal(gradeChangeKind("ป.5", "primary", "ป.5"), "same");
+});
+
+test("gradeChangeKind: ป.5→ม.1 cross_band (ต้อง confirm)", () => {
+  assert.equal(gradeChangeKind("ป.5", "primary", "ม.1"), "cross_band");
+});
+
+test("gradeChangeKind: ม.1→ป.5 invalid; ม.x/null เลือก ป.x ไม่ได้", () => {
+  assert.equal(gradeChangeKind("ม.1", "junior", "ป.5"), "invalid");
+  assert.equal(gradeChangeKind(null, null, "ป.4"), "invalid");
+});
+
+test("gradeChangeKind: ม.↔ม. ไม่เปลี่ยนพฤติกรรม", () => {
+  assert.equal(gradeChangeKind("ม.1", "junior", "ม.2"), "within_band");
+  assert.equal(gradeChangeKind("ม.3", "junior", "ม.4"), "cross_band");
+  assert.equal(gradeChangeKind("ม.1", "junior", "ม.1"), "same");
+  assert.equal(gradeChangeKind("ม.1", "junior", "x"), "invalid");
+});
+
+test("isAnyGradeLevel รับ ป.x แต่ isGradeLevel ยังไม่รับ", () => {
+  assert.equal(isAnyGradeLevel("ป.5"), true);
+  assert.equal(isGradeLevel("ป.5"), false);
 });

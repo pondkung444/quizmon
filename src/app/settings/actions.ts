@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getGradeProfile } from "@/lib/gradeBand";
-import { gradeBandOf, isGradeLevel } from "@/lib/gradeLevel";
+import { gradeChangeKind } from "@/lib/gradeLevel";
 import { APP_THEME_COOKIE, parseAppTheme } from "@/lib/appTheme";
 
 export type PushPreferencesUpdate = Partial<{
@@ -53,13 +53,13 @@ export async function updateGradeLevel(input: {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ไม่พบผู้ใช้");
 
-  if (!isGradeLevel(input.gradeLevel)) return { ok: false, reason: "invalid" };
-  const next = input.gradeLevel;
-
   const current = await getGradeProfile(user.id);
-  if (current.gradeLevel === next) return { ok: true, gradeLevel: next, bandChanged: false };
+  const kind = gradeChangeKind(current.gradeLevel, current.band, input.gradeLevel);
+  if (kind === "invalid") return { ok: false, reason: "invalid" };
+  const next = input.gradeLevel;
+  if (kind === "same") return { ok: true, gradeLevel: next, bandChanged: false };
 
-  const bandChanged = gradeBandOf(next) !== current.band;
+  const bandChanged = kind === "cross_band";
   const admin = createAdminClient();
 
   if (bandChanged) {

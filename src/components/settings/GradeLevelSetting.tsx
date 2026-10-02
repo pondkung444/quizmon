@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateGradeLevel } from "@/app/settings/actions";
-import { SELECTABLE_GRADE_LEVELS } from "@/lib/gradeLevel";
+import { ALL_GRADE_LEVELS, SELECTABLE_GRADE_LEVELS } from "@/lib/gradeLevel";
 
 type Feedback =
   | { kind: "saved" }
@@ -15,6 +15,9 @@ export default function GradeLevelSetting({ current }: { current: string | null 
   const [selected, setSelected] = useState(current ?? "");
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [isPending, startTransition] = useTransition();
+  // ผู้ใช้ ป.x เห็นทั้ง ป.4-6 และ ม.1-6 (ให้ค่าปัจจุบันแสดงถูก); ผู้ใช้ ม.x/null เลือก ป.x เองไม่ได้
+  const fromPrimary = (saved ?? "").startsWith("ป.");
+  const levels = fromPrimary ? ALL_GRADE_LEVELS : SELECTABLE_GRADE_LEVELS;
 
   function save(target: string, confirmBandChange: boolean) {
     setFeedback(null);
@@ -37,7 +40,7 @@ export default function GradeLevelSetting({ current }: { current: string | null 
         if (result.reason === "cooldown") {
           setFeedback({
             kind: "error",
-            text: `เพิ่งย้ายระหว่าง ม.ต้น กับ ม.ปลาย ไปเมื่อไม่นาน ลองใหม่ได้อีก ${result.retryAfterDays ?? 30} วัน`,
+            text: `เพิ่งย้ายระหว่าง ${fromPrimary ? "ประถมกับมัธยม" : "ม.ต้น กับ ม.ปลาย"} ไปเมื่อไม่นาน ลองใหม่ได้อีก ${result.retryAfterDays ?? 30} วัน`,
           });
         } else {
           setFeedback({ kind: "error", text: "บันทึกไม่สำเร็จ ลองอีกครั้งนะ" });
@@ -58,7 +61,9 @@ export default function GradeLevelSetting({ current }: { current: string | null 
     <section className="rounded-2xl border border-gold-dim bg-card p-4">
       <h2 className="mb-1 text-sm font-bold text-gold-hi">ระดับชั้น</h2>
       <p className="mb-3 text-xs text-text3">
-        ใช้เลือกโจทย์ที่สุ่มให้: ม.1 ได้เนื้อหา ม.1, ม.2 ได้ ม.1–ม.2, ม.3 ได้ทุกบทของ ม.ต้น
+        {fromPrimary
+          ? "ใช้เลือกโจทย์ที่สุ่มให้ตามชั้น ป.4–ป.6"
+          : "ใช้เลือกโจทย์ที่สุ่มให้: ม.1 ได้เนื้อหา ม.1, ม.2 ได้ ม.1–ม.2, ม.3 ได้ทุกบทของ ม.ต้น"}
       </p>
 
       <select
@@ -69,7 +74,7 @@ export default function GradeLevelSetting({ current }: { current: string | null 
         className="w-full rounded-md border border-border bg-track px-3 py-2 text-sm text-text focus:border-gold focus:outline-none disabled:opacity-60"
       >
         {saved === null && <option value="">-- เลือกระดับชั้น --</option>}
-        {SELECTABLE_GRADE_LEVELS.map((level) => (
+        {levels.map((level) => (
           <option key={level} value={level}>
             {level}
           </option>
@@ -79,7 +84,7 @@ export default function GradeLevelSetting({ current }: { current: string | null 
       {feedback?.kind === "confirm" && (
         <div className="mt-3 rounded-xl border border-gold-dim bg-track p-3">
           <p className="text-xs text-text2">
-            การย้ายระหว่าง ม.ต้น กับ ม.ปลาย จะเปลี่ยนชุดโจทย์ ภารกิจ และกระดานอันดับ
+            {fromPrimary ? "การย้ายจากชั้นประถมไปมัธยม" : "การย้ายระหว่าง ม.ต้น กับ ม.ปลาย"} จะเปลี่ยนชุดโจทย์ ภารกิจ และกระดานอันดับ
             (คะแนนสัปดาห์นี้จะย้ายไปอยู่กระดานใหม่ด้วย) และจะย้ายอีกครั้งได้หลังจาก 30 วัน
           </p>
           <div className="mt-3 flex gap-2">
