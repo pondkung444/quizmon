@@ -38,4 +38,4 @@ const gestureSurface=document.querySelector('main');
 gestureSurface.addEventListener('pointerdown',e=>{if(!$('run-panel').hidden||run?.phase!=='battle'||e.isPrimary===false||e.button>0||e.target.closest('button,a,input,select,textarea'))return;pointer={x:e.clientX,y:e.clientY,id:e.pointerId};try{gestureSurface.setPointerCapture(e.pointerId);}catch{}});
 gestureSurface.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;if(Math.max(Math.abs(dx),Math.abs(dy))>=20)move(Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up');});
 gestureSurface.addEventListener('pointercancel',()=>pointer=null);gestureSurface.addEventListener('lostpointercapture',()=>pointer=null);
-initRun();setInterval(()=>{if(state)$('metrics').textContent=`ปัด ${state.moves} ครั้ง · คอมโบสูงสุด ${state.maxCombo} คู่ · ${elapsed()} วินาที`;},1000);
+setInterval(()=>{if(state)$('metrics').textContent=`ปัด ${state.moves} ครั้ง · คอมโบสูงสุด ${state.maxCombo} คู่ · ${elapsed()} วินาที`;},1000);
