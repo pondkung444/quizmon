@@ -47,4 +47,6 @@ The entire battle snapshot stores per-room relic state, marks/remaining uses, pr
 
 ## Start owner testing
 
+[PR #270](https://github.com/pondkung444/quizmon/pull/270) · [Preview /2048/](https://quizmon-git-codex-2048-relics-pon-d.vercel.app/2048/). Vercel checks passed and deployment reported Ready for 43d80d7. Opening the preview redirected to Login – Vercel due to deployment protection, so game behavior on the remote Preview was not verified. The owner must authenticate with authorized Vercel access first. No production merge/deploy occurred.
+
 Open the PR deployment's /2048/ page, sign in normally, choose a Qmon and start a new journey. Existing saved journeys continue under their old rules. If an old journey resumes, use Pause > new journey to enter relicVersion:1. Obtain first relic after room 2; shop/quiz/well choices begin according to the existing route. Production is unchanged until this branch is approved and merged.
