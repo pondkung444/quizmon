@@ -43,7 +43,7 @@ export type ProfileTabData = {
   blockedCount: number;
   likeCount: number;
   friendCode: string;
-  // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (ไม่ใช่ ม.1–3 และไม่มีผู้ปกครองผูกอยู่)
+  // null = หัวข้อ "ผู้พิทักษ์" ไม่โผล่เลย (เป็น ม.4–6 และไม่มีผู้ปกครองผูกอยู่ — ระบบเปิดให้ ป.4–ม.3)
   guardianLinkData: GuardianLinkData | null;
   // กรอบโปรไฟล์ผู้พิทักษ์ (frame_definitions.tier) — null = ยังไม่ได้ปลดล็อก/ใส่กรอบไหนเลย
   equippedFrameTier: string | null;

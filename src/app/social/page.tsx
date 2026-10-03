@@ -88,8 +88,8 @@ async function getGuardianLinkData(
 
   const rows = (data ?? []) as GuardianLinkStatusRow[];
 
-  // ระบบผู้พิทักษ์เปิดแค่ ม.1–3 — senior ซ่อนหัวข้อ เว้นแต่มีผู้ปกครองผูกอยู่ (ให้เด็กถอดเองได้เสมอ)
-  if (!rows.some((r) => r.kind === "claimed") && (await getGradeBand(userId)) !== "junior") {
+  // ระบบผู้พิทักษ์เปิดให้ ป.4–ม.3 (primary + junior) — senior ซ่อนหัวข้อ เว้นแต่มีผู้ปกครองผูกอยู่ (ให้เด็กถอดเองได้เสมอ)
+  if (!rows.some((r) => r.kind === "claimed") && (await getGradeBand(userId)) === "senior") {
     return null;
   }
   const pending = rows.find((r) => r.kind === "pending") ?? null;
