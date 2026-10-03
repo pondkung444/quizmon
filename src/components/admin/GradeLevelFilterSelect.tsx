@@ -13,7 +13,7 @@ export default function GradeLevelFilterSelect({ options }: { options: GradeLeve
   const current = searchParams.get("grade") ?? "";
 
   return (
-    <label className="flex items-center gap-2 text-sm text-text2">
+    <label className="flex w-full min-w-0 max-w-full items-center gap-2 text-sm text-text2 sm:w-auto">
       <span className="text-text3">ระดับชั้น</span>
       <select
         value={current}
@@ -24,7 +24,7 @@ export default function GradeLevelFilterSelect({ options }: { options: GradeLeve
           const qs = params.toString();
           router.push(qs ? `${pathname}?${qs}` : pathname);
         }}
-        className="rounded-lg border border-gold-dim bg-card px-3 py-1.5 text-sm text-text"
+        className="min-w-0 flex-1 rounded-lg border border-gold-dim bg-card px-3 py-1.5 text-sm text-text"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

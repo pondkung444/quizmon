@@ -50,10 +50,11 @@ export default function QuestionsPerDayChart({ data }: { data: QuestionsPerDayDa
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex overflow-hidden rounded-lg border border-border">
           <button
             type="button"
+            aria-pressed={mode === "total"}
             onClick={() => setMode("total")}
             className={`px-3 py-1.5 text-xs font-medium transition ${
               mode === "total" ? "bg-amber text-on-amber" : "bg-track text-text3"
@@ -63,6 +64,7 @@ export default function QuestionsPerDayChart({ data }: { data: QuestionsPerDayDa
           </button>
           <button
             type="button"
+            aria-pressed={mode === "perUser"}
             onClick={() => setMode("perUser")}
             className={`px-3 py-1.5 text-xs font-medium transition ${
               mode === "perUser" ? "bg-amber text-on-amber" : "bg-track text-text3"
