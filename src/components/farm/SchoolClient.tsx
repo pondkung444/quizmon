@@ -45,7 +45,7 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
       <div className={styles.petList}>{pets.map(pet=><button key={pet.id} type="button" disabled={busy||pet.busy} aria-pressed={selected===pet.id} className={styles.pet} onClick={()=>setSelected(pet.id)}>
         <Image src={pet.imagePath} width={68} height={68} alt=""/><span><strong>{pet.name}</strong><small>ระยะ {pet.stage} · {pet.busy?"ติดงานผจญภัย":"พร้อมคุมงาน"}</small></span>{selected===pet.id && <b>✓</b>}
       </button>)}</div>
-      {pets.length===0?<p>ฟัก Qmon ตัวแรกก่อน แล้วกลับมาสร้างโรงเรียน <Link href="/eggs">ไปคลังไข่ →</Link></p>:<button className={styles.primary} disabled={busy||!selected} onClick={()=>command(status==="draft"?"start":"resume",{petId:selected})}>{busy?"กำลังบันทึก…":status==="draft"?"เริ่มสร้างโรงเรียน":"กลับมาคุมงานต่อ"}</button>}
+      {pets.length===0?<p>ยังไม่มี Qmon ที่ฟักเป็นตัว เลี้ยงคู่หูจนเป็นระยะ 2 ก่อน แล้วกลับมาเลือกหัวหน้าคุมงาน <Link href="/pet">ไปเลี้ยงคู่หู →</Link></p>:<button className={styles.primary} disabled={busy||!selected} onClick={()=>command(status==="draft"?"start":"resume",{petId:selected})}>{busy?"กำลังบันทึก…":status==="draft"?"เริ่มสร้างโรงเรียน":"กลับมาคุมงานต่อ"}</button>}
     </div>}
     {leader && <div className={styles.leader}><Image src={leader.imagePath} width={56} height={56} alt=""/><div><strong>{leader.name}</strong><p>หัวหน้าคุมงาน · ยังตอบโจทย์และเล่นประลองได้</p></div></div>}
     {(status==="building"||status==="finishing") && <div className={styles.panel}>
