@@ -1,0 +1,13 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {validateFloor,floorCells} from "../../src/lib/farm/floor-puzzle.ts";
+import {schoolDisplayState,type SchoolProject} from "../../src/lib/farm/school.ts";
+const solution=[{id:"water",x:0,y:0,rotation:0},{id:"stone",x:0,y:1,rotation:2},{id:"sun",x:0,y:2,rotation:1},{id:"leaf",x:2,y:2,rotation:3}];
+test("a complete non-overlapping floor passes in any piece order",()=>{assert.equal(validateFloor(solution).valid,true);assert.equal(validateFloor([...solution].reverse()).valid,true);});
+test("rotation allows vertical strips without changing their coverage",()=>{assert.deepEqual(floorCells("water",1),[[0,0],[0,1],[0,2],[0,3]]);assert.equal(validateFloor([{id:"water",x:0,y:0,rotation:1},{id:"stone",x:1,y:0,rotation:3},{id:"sun",x:2,y:0,rotation:0},{id:"leaf",x:2,y:2,rotation:2}]).valid,true);});
+test("overlap, missing pieces and duplicate IDs cannot complete school",()=>{assert.equal(validateFloor(solution.slice(1)).valid,false);assert.equal(validateFloor(solution.map(p=>({...p,x:0,y:0}))).valid,false);assert.equal(validateFloor([...solution.slice(0,3),solution[0]]).valid,false);});
+test("malformed and out-of-bounds payloads are rejected",()=>{for(const value of [null,{},[null],solution.map(p=>({...p,x:-1})),solution.map(p=>({...p,rotation:4})),solution.map(p=>({...p,x:.5})),solution.map(p=>({...p,id:"unknown"}))])assert.equal(validateFloor(value).valid,false);});
+const base:SchoolProject={status:"building",leader_id:"head",resume_status:null,ready_at:"2026-10-04T15:00:00Z",remaining_seconds:45,round_deadline:null,failures:0,penalty_applied:false,tile_x:null,tile_y:null};
+test("construction deadline opens the help checkpoint, not a finished building",()=>{assert.equal(schoolDisplayState(base,Date.parse(base.ready_at!)-1)?.status,"building");const ready=schoolDisplayState(base,Date.parse(base.ready_at!));assert.equal(ready?.status,"puzzle");assert.equal(ready?.leader_id,"head");assert.equal(base.status,"building");});
+test("finishing releases the leader and waits for deliberate placement",()=>{const ready=schoolDisplayState({...base,status:"finishing"},Date.parse(base.ready_at!)+100000);assert.equal(ready?.status,"ready");assert.equal(ready?.leader_id,null);assert.equal(ready?.tile_x,null);});
+test("paused jobs cannot advance just because time passed",()=>{assert.equal(schoolDisplayState({...base,status:"paused",ready_at:null,resume_status:"building"},Date.parse(base.ready_at!)+999999)?.status,"paused");});
