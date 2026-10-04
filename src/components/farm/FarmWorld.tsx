@@ -114,11 +114,11 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
           const foot = projectFarmPoint(tile.x+.73,tile.y+.73,geometry);
           const title = tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : "โรงเรียน";
           const source = tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : "/farm/qmon-school-l1-v1.webp";
-          const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : null;
+          const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : "/collection/school";
           const content = <><Image src={source} alt="" fill sizes="250px" draggable={false} />
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong><small>{destination ? "แตะเพื่อดู →" : `ระดับ ${tile.level}`}</small></span></>;
           const placement = {left:foot.x,top:foot.y,width:size*.62,height:size*.62,zIndex:10000+Math.round(foot.y*10)};
-          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : "คลังไข่ ดูไข่ที่มี"} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
+          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : "โรงเรียน ระดับ 1 ดูโครงการ"} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
           return <div key={tile.id} className={styles.building} style={{left:foot.x,top:foot.y,width:size*.62,height:size*.62,zIndex:10000+Math.round(foot.y*10)}}>
             {content}
           </div>;
