@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Capacitor } from "@capacitor/core";
-import { Browser } from "@capacitor/browser";
-import { App, type URLOpenListenerEvent } from "@capacitor/app";
+import {
+  NATIVE_OAUTH_CALLBACK_URL,
+  NATIVE_OAUTH_ERROR_EVENT,
+  openNativeOAuth,
+} from "@/lib/nativeOAuth";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { track } from "@/lib/analytics";
@@ -27,7 +30,6 @@ function readInitialFlash(): { error: string | null; message: string | null } {
   return { error: null, message: null };
 }
 
-const NATIVE_OAUTH_CALLBACK_URL = "com.quizmon.app://login-callback";
 const RESEND_COOLDOWN_SECONDS = 30;
 
 // ปุ่ม CTA ผู้มาใหม่ + reused ใน State C — โทนส้มไล่เฉด (ชุดเดียวกับ www/offline.html)
@@ -118,34 +120,17 @@ export default function LoginPage() {
     };
   }, [router, supabase]);
 
-  // native เท่านั้น: รับ deep link callback ที่ system browser ส่งกลับเข้าแอปหลัง Google
-  // consent สำเร็จ (com.quizmon.app://login-callback?code=...) แล้ว exchange code ฝั่ง client
-  // — exchangeCodeForSession จะ trigger SIGNED_IN ที่ listener ด้านบนจัดการ redirect ต่อเอง
+  // native: deep link callback จาก system browser ถูกรับ+exchange code ที่ NativeAppSetup (listener
+  // กลาง) — exchangeCodeForSession จะ trigger SIGNED_IN ที่ listener ด้านบนจัดการ redirect ต่อเอง
+  // ตรงนี้ฟังแค่ error ที่ NativeAppSetup ยิงมาเพื่อโชว์ข้อความ
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    const listenerPromise = App.addListener("appUrlOpen", async (event: URLOpenListenerEvent) => {
-      if (!event.url.startsWith(NATIVE_OAUTH_CALLBACK_URL)) return;
-
-      await Browser.close().catch(() => {});
-
-      const url = new URL(event.url.replace("com.quizmon.app://", "https://placeholder/"));
-      const code = url.searchParams.get("code");
-      if (!code) {
-        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
-        return;
-      }
-
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
-      }
-    });
-
-    return () => {
-      listenerPromise.then((listener) => listener.remove());
-    };
-  }, [supabase]);
+    function onNativeOAuthError(e: Event) {
+      if ((e as CustomEvent<{ flow?: string }>).detail?.flow !== "login") return;
+      setError("เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่");
+    }
+    window.addEventListener(NATIVE_OAUTH_ERROR_EVENT, onNativeOAuthError);
+    return () => window.removeEventListener(NATIVE_OAUTH_ERROR_EVENT, onNativeOAuthError);
+  }, []);
 
   // ---- bottom sheet: focus trap / Escape / คืน focus ให้ปุ่มที่เปิด ----
   const closeSheet = useCallback(() => {
@@ -276,7 +261,7 @@ export default function LoginPage() {
           setIsGoogleLoading(false);
           return;
         }
-        await Browser.open({ url: data.url });
+        await openNativeOAuth(data.url, "login");
         // system browser เปิดแล้ว — ปลด lock เผื่อผู้ใช้กดยกเลิกกลับเข้าแอป
         // (เคสสำเร็จ deep-link listener ด้านบนจัดการต่อเอง)
         setIsGoogleLoading(false);

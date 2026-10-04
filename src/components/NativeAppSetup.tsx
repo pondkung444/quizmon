@@ -3,9 +3,16 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
-import { App } from "@capacitor/app";
+import { App, type URLOpenListenerEvent } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { PushNotifications, type ActionPerformed } from "@capacitor/push-notifications";
+import { createClient } from "@/lib/supabase/client";
 import { syncPushTokenSilently } from "@/lib/push/pushClient";
+import {
+  NATIVE_OAUTH_CALLBACK_URL,
+  NATIVE_OAUTH_ERROR_EVENT,
+  takeNativeOAuthFlow,
+} from "@/lib/nativeOAuth";
 
 // จัดการปุ่ม back ของ Android (ระบบปิดแอปทันทีถ้าไม่ handle เอง แทนที่จะ navigate กลับในแอป)
 export default function NativeAppSetup() {
@@ -20,6 +27,43 @@ export default function NativeAppSetup() {
       } else {
         App.exitApp();
       }
+    });
+
+    return () => {
+      listenerPromise.then((listener) => listener.remove());
+    };
+  }, []);
+
+  // รับ deep link callback ที่ system browser ส่งกลับเข้าแอปหลัง Google consent สำเร็จ
+  // (com.quizmon.app://login-callback?code=...) — อยู่ที่นี่ (mount ทุกหน้า) ไม่ใช่เฉพาะ /login
+  // เพราะ guest ผูกไอดี (GuestUpgradeGate) เริ่ม flow จากหน้าอื่น ถ้า listener ไม่ได้ mount อยู่
+  // ผู้ใช้จะค้างอยู่ใน browser แล้วไม่กลับเข้าเกม
+  //   login: exchange code -> SIGNED_IN -> listener ใน /login redirect ต่อเอง
+  //   link:  exchange code (เชื่อม identity เข้า user เดิม) -> hard navigate ไป /pet ให้ layout อ่าน
+  //          สถานะ is_anonymous ใหม่ (ไม่ใช้ router.refresh — ดูหมายเหตุบั๊ก UI hang ด้านล่าง)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const supabase = createClient();
+    const listenerPromise = App.addListener("appUrlOpen", async (event: URLOpenListenerEvent) => {
+      if (!event.url.startsWith(NATIVE_OAUTH_CALLBACK_URL)) return;
+
+      await Browser.close().catch(() => {});
+      const flow = takeNativeOAuthFlow();
+
+      const url = new URL(event.url.replace("com.quizmon.app://", "https://placeholder/"));
+      const code = url.searchParams.get("code");
+      const { error } = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : { error: new Error("missing code") };
+
+      if (error) {
+        window.dispatchEvent(
+          new CustomEvent(NATIVE_OAUTH_ERROR_EVENT, { detail: { flow, message: error.message } })
+        );
+        return;
+      }
+      if (flow === "link") window.location.assign("/pet");
     });
 
     return () => {
