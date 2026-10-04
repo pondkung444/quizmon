@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Capacitor } from "@capacitor/core";
 import { X } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { track } from "@/lib/analytics";
+import {
+  NATIVE_OAUTH_CALLBACK_URL,
+  NATIVE_OAUTH_ERROR_EVENT,
+  openNativeOAuth,
+} from "@/lib/nativeOAuth";
 
 // localStorage flag — ตั้งก่อนเด้งไป Google consent, อ่านหลัง redirect กลับมาเพื่อโชว์ bottom sheet
 // ถามโรงเรียน (ครั้งเดียว) ถ้า profiles.school ยังว่าง
@@ -54,6 +60,22 @@ export default function GuestUpgradeGate({
 
   const mon = petName || "Qmon ของเธอ";
 
+  // native: exchange code จาก deep link ล้มเหลว (NativeAppSetup ยิง event มา) — โชว์ error แล้วปลด lock
+  useEffect(() => {
+    function onNativeOAuthError(e: Event) {
+      if ((e as CustomEvent<{ flow?: string }>).detail?.flow !== "link") return;
+      try {
+        localStorage.removeItem(GUEST_SCHOOL_PROMPT_FLAG);
+      } catch {
+        /* noop */
+      }
+      setLoading(null);
+      setError("ผูกด้วย Google ไม่สำเร็จ ลองอีกครั้งนะ");
+    }
+    window.addEventListener(NATIVE_OAUTH_ERROR_EVENT, onNativeOAuthError);
+    return () => window.removeEventListener(NATIVE_OAUTH_ERROR_EVENT, onNativeOAuthError);
+  }, []);
+
   async function handleGoogle() {
     if (loading) return;
     setError(null);
@@ -63,11 +85,28 @@ export default function GuestUpgradeGate({
     } catch {
       /* private mode — ข้ามได้ */
     }
-    const { error: linkError } = await supabase.auth.linkIdentity({
+    // native (Android/iOS): ต้องเปิด consent ผ่าน system browser แล้วเด้งกลับเข้าแอปด้วย deep link
+    // (callback แบบเว็บ https://.../login/callback จะไปจบอยู่ใน browser ไม่กลับเข้าเกม)
+    // — NativeAppSetup รับ deep link แล้ว exchange code ให้
+    const native = Capacitor.isNativePlatform();
+    const { data: linkData, error: linkError } = await supabase.auth.linkIdentity({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/login/callback` },
+      options: native
+        ? { redirectTo: NATIVE_OAUTH_CALLBACK_URL, skipBrowserRedirect: true }
+        : { redirectTo: `${window.location.origin}/login/callback` },
     });
-    // ปกติจะ redirect ทั้งหน้าไปแล้ว — ถึงตรงนี้แปลว่าเริ่มไม่สำเร็จ
+    if (native && !linkError && linkData?.url) {
+      try {
+        await openNativeOAuth(linkData.url, "link");
+      } catch {
+        setError("ผูกด้วย Google ไม่สำเร็จ ลองอีกครั้งนะ");
+      }
+      // system browser เปิดแล้ว — ปลด lock เผื่อผู้ใช้กดยกเลิกกลับเข้าแอปเอง
+      // (เคสสำเร็จ NativeAppSetup พาไป /pet ให้)
+      setLoading(null);
+      return;
+    }
+    // เว็บ: ปกติจะ redirect ทั้งหน้าไปแล้ว — ถึงตรงนี้แปลว่าเริ่มไม่สำเร็จ
     if (linkError) {
       try {
         localStorage.removeItem(GUEST_SCHOOL_PROMPT_FLAG);
