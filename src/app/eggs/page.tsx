@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import SignOutLink from "@/components/SignOutLink";
@@ -44,9 +45,10 @@ export default async function EggsPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <FarmEggsTabs active="eggs" />
       <SignOutLink />
+      <Link href="/collection" className="inline-flex min-h-11 items-center self-start rounded-xl border border-gold-dim px-4 text-sm text-gold-hi">← กลับฟาร์ม</Link>
       <div>
         <h1 className="text-2xl font-bold text-gold-hi">คลังไข่</h1>
-        <p className="text-sm text-text3">เลือกไข่ใบที่อยากฟักตอนนี้</p>
+        <p className="text-sm text-text3">ไข่ที่ยังไม่ฟัก {eggs.length} ใบ · ดูไข่ที่มีและเลือกใบที่จะฟัก</p>
       </div>
       <EggsClient eggs={eggs} hasActivePet={hasActivePet} />
     </main>

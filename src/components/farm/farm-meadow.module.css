@@ -1,0 +1,20 @@
+.card { overflow: hidden; border: 1px solid var(--color-gold-dim); border-radius: 24px; background: var(--color-card); }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px; }
+.heading h2 { font-size: 20px; font-weight: 600; color: var(--color-gold-hi); }
+.eyebrow { font-size: 12px; color: var(--color-text2); margin-bottom: 2px; }
+.count { border: 1px solid var(--color-gold-dim); border-radius: 100px; padding: 6px 10px; font-size: 12px; color: var(--color-gold-hi); white-space: nowrap; }
+.toolbar { padding: 16px 20px 20px; }
+.toolbar > p { color: var(--color-text2); font-size: 12px; line-height: 1.7; margin-bottom: 12px; }
+.destinations { display: grid; gap: 8px; margin-bottom: 12px; }
+.destination { display: flex; flex-direction: column; gap: 4px; min-height: 64px; padding: 12px 14px; border: 1px solid var(--color-gold-dim); border-radius: 12px; background: var(--color-track); }
+.destination strong { color: var(--color-gold-hi); font-size: 14px; }
+.destination span { color: var(--color-text2); font-size: 12px; line-height: 1.6; }
+.destination:focus-visible { outline: 3px solid var(--color-gold-hi); outline-offset: 2px; }
+.secondaryButton { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; color: var(--color-gold-hi); background: var(--color-track); border: 1px solid var(--color-gold-dim); }
+.secondaryButton:active { transform: scale(.98); }
+.secondaryButton:focus-visible { outline: 3px solid var(--color-gold-hi); outline-offset: 3px; }
+.petInfo { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 16px 20px; border-top: 1px solid var(--color-border); }
+.petInfo > div { flex: 1; min-width: 120px; overflow-wrap: anywhere; }
+.petInfo strong { font-size: 14px; color: var(--color-gold-hi); }
+.petInfo p { font-size: 11px; color: var(--color-text2); }
+@media (max-width: 360px) { .heading, .toolbar, .petInfo { padding-left: 14px; padding-right: 14px; } .count { font-size: 11px; } }
