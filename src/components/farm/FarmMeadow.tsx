@@ -26,16 +26,12 @@ export default function FarmMeadow({ pets, tiles = INITIAL_FARM, onPlaceTile }: 
 
   return <section className={styles.card} aria-labelledby="meadow-heading">
     <div className={styles.heading}>
-      <div><p className={styles.eyebrow}>บ้านของคู่หู</p><h2 id="meadow-heading">ฟาร์มของเรา</h2></div>
-      <span className={styles.count}>{visitors.length} ตัวเดินเล่น</span>
+      <h1 id="meadow-heading">ฟาร์มของเรา</h1>
+      <Link href="/collection/album" className={styles.secondaryButton}>สมุดสะสม</Link>
     </div>
     <FarmWorld tiles={tiles} pets={visitors} paused={paused} focusedId={focusedId} onSelect={setFocusedId} onPlaceTile={onPlaceTile} />
     <div className={styles.toolbar}>
       <p>{pets.length === 0 ? "เมื่อเก็บ Qmon ร่าง 4 เข้าฟาร์ม คู่หูจะออกมาเดินเล่นเอง" : "Qmon สุ่มออกมาเดินเล่นครั้งละไม่เกิน 3 ตัว · แตะตัวเพื่อดูรายละเอียด"}</p>
-      <div className={styles.destinations}>
-        <Link href="/collection/qmon" className={styles.destination}><strong>อาคารฟาร์ม Qmon →</strong><span>ดู Qmon ร่าง 4 ทั้งหมด · {pets.length} ตัว</span></Link>
-        <Link href="/eggs" className={styles.destination}><strong>คลังไข่ →</strong><span>ดูไข่ที่มีและเลือกไข่ที่จะฟัก</span></Link>
-      </div>
       {visitors.length > 0 && <button type="button" className={styles.secondaryButton} aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "เดินเล่นต่อ" : "พักการเดิน"}</button>}
     </div>
     {focused && <div className={styles.petInfo}>
