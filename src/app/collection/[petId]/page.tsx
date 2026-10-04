@@ -84,6 +84,7 @@ export default async function CollectionPetDetailPage({
       <Link href="/collection" className="self-start text-sm text-text3 transition hover:text-gold-hi">
         ← กลับฟาร์ม
       </Link>
+      <Link href="/collection/qmon" className="inline-flex min-h-11 items-center self-start text-sm text-gold-hi">ดู Qmon ทั้งหมดในอาคารฟาร์ม →</Link>
       <TrackOnMount event="pet_detail_open" props={{ source: "collection" }} petId={petId} />
       <CollectedPetCard
         nickname={pet.nickname}
