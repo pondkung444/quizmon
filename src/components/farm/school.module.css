@@ -34,3 +34,26 @@
 .buttons button { flex:1; min-height:44px; padding:8px; border:1px solid var(--color-gold-dim); background:var(--color-track); color:var(--color-gold-hi); border-radius:10px; font-size:12px; cursor:pointer; }
 .buttons button.primary { background:#e6bb71; color:#33261f; }
 .school button:focus-visible,.school a:focus-visible { outline:3px solid var(--color-gold-hi); outline-offset:3px; }
+.puzzleGuide { display:grid; gap:5px; padding:12px; color:#ffe1a0; background:#314746; border:1px solid #9ba577; border-radius:12px; }
+.puzzleGuide strong {font-size:17px;} .puzzleGuide span {font-size:13px;color:#fff4d4;}
+.room {margin:16px 0;background:repeating-linear-gradient(92deg,#613b23 0,#70492c 28px,#54331e 30px,#815533 33px);border:3px solid #c59754;border-radius:16px;padding:14px 10px 10px;box-shadow:inset 0 0 0 3px #402719,0 7px 16px #0005;}
+.roomTitle {text-align:center;font-size:14px;color:#ffe3a7;font-weight:700;margin-bottom:12px;text-shadow:0 2px #291b13;}
+.floorSurface {position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));aspect-ratio:1;width:100%;max-width:360px;margin:auto;background:#624f3f;outline:4px solid #36281d;gap:0;}
+.emptyTile {min-width:0;min-height:0;grid-column:auto;aspect-ratio:1;border:1px solid #a99169;background:radial-gradient(ellipse at 30% 20%,#ac9871,#827256);color:#f1dfb099;font-size:22px;cursor:pointer;}
+.floorPiece {display:grid;position:relative;gap:0;z-index:2;min-width:0;min-height:0;padding:0;border:2px solid #523724;border-radius:3px;background:#714d2e;box-shadow:0 3px 4px #0008;touch-action:none;cursor:grab;}
+.ceramic {display:block;min-width:0;min-height:0;background:url('/farm/qmon-floor-ceramic-v2.webp') center/cover;border:1px solid #70553444;border-radius:2px;}
+.selectedTile {z-index:3;outline:3px solid #fff4a0;outline-offset:-3px;box-shadow:0 0 12px #ffcb55a0;}
+.floorPiece.overlap {outline:3px dashed #d73142;outline-offset:-4px;}
+.rotateBadge {position:absolute;right:3px;bottom:3px;width:24px;height:24px;border-radius:50%;background:#253b3a;color:#fff3bf;border:1px solid #ffe4a5;display:grid;place-items:center;font-size:18px;box-shadow:0 2px 4px #0006;pointer-events:none;}
+.dropGhost {z-index:5;pointer-events:none;background:#62d7c488;outline:2px dashed #f7fff7;outline-offset:-3px;}
+.floorProgress {text-align:center;font-size:12px;color:#ffebc0;margin-top:12px;}
+.trayTitle {display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:15px;color:#f4d394;font-weight:700;margin-bottom:10px;}
+.trayTitle span {font-size:11px;color:#d2c7ad;font-weight:400;}
+.pieces {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+.piece {display:flex;align-items:center;flex-direction:column;justify-content:space-between;gap:5px;padding:10px 6px;border:1px solid #94734c;border-radius:12px;background:linear-gradient(#54422e,#302920);font-size:12px;color:#fff0ce;cursor:grab;min-height:126px;touch-action:none;box-shadow:inset 0 0 0 3px #211b1644;}
+.piece[aria-pressed=true] {border-color:#ffe5a4;box-shadow:0 0 0 2px #ffcb66;background:linear-gradient(#66543b,#3c382c);}
+.piece strong {font-size:12px;} .piece>span:last-child {font-size:11px;color:#dfcfad;} .piece b {font-size:17px;color:#ffdf8a;}
+.mini {display:grid;grid-template-columns:repeat(4,16px);grid-template-rows:repeat(4,16px);gap:0;margin:auto;}
+.floorHint {font-size:12px;line-height:1.5;min-height:38px;color:#f4ddb0;padding:6px 0;}
+.buttons button:disabled {opacity:.4;cursor:default;}
+@media (prefers-reduced-motion:no-preference){.floorPiece{transition:box-shadow .15s,outline-color .15s;}}
