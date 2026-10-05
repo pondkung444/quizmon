@@ -119,7 +119,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
           const foot = projectFarmPoint(tile.x+layout.anchor,tile.y+layout.anchor,geometry);
           const title = tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : "โรงเรียน";
           const source = tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : tile.kind === "garden" ? "/farm/qmon-garden-pavilion-v1.webp" : "/farm/qmon-school-l1-v1.webp";
-          const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? "/collection/school/learn/garden/practice" : "/collection/school";
+          const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? (tile.id==='garden-layout-example'?'/collection/school/learn/garden/practice':`/collection/garden?project=${tile.id}`) : "/collection/school";
           const content = <><Image src={source} alt="" fill sizes="250px" draggable={false} />
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong>{tile.id===previewTile?.id&&<small>ภาพก่อนวาง</small>}</span></>;
           const placement = {left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)};

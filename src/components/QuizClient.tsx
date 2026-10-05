@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Link from "next/link";
 import type { QuizRoundQuestion, QuizMode, Subject, SeniorBranch } from "@/types/quiz";
 import type { GradeBand } from "@/lib/gradeBand";
 import {
@@ -31,7 +31,6 @@ import type { PersonalityKey } from "@/lib/personality";
 import type { PersonalityEventKey } from "@/lib/personalityMessages";
 import { track } from "@/lib/analytics";
 import { useSfx } from "@/lib/audio/useSfx";
-import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
 import { shouldShowFeedbackPrompt } from "@/app/feedback/actions";
 import FeedbackModal from "@/components/FeedbackModal";
 import Toast from "@/components/social/Toast";
@@ -91,7 +90,7 @@ const SENIOR_MODES: { id: SeniorBranch; label: string; emoji: string }[] = [
   { id: "biology", label: "ชีวะ", emoji: "🧬" },
 ];
 
-type Phase = "select" | "topicSelect" | "loading" | "playing" | "chooseFood" | "summary" | "review";
+type Phase = "select" | "topicSelect" | "loading" | "playing" | "claimReward" | "summary" | "review";
 
 type AnsweredRecord = { isCorrect: boolean; expEarned: number };
 
@@ -275,7 +274,7 @@ export default function QuizClient({
   // โดยไม่ต้องพึ่ง state ที่อาจยังไม่ทันอัปเดตในติ๊กเดียวกัน
   async function finalizeMissionSummary(
     missionId: string,
-    foodType: "A" | "B"
+    foodType: "A" | "B" | null
   ): Promise<ClaimMissionBonusResult | null> {
     let claimResult: ClaimMissionBonusResult | null = null;
     try {
@@ -292,7 +291,7 @@ export default function QuizClient({
   }
 
   // ทักทาย/exp/evolved tracking หลังจบรอบ — แยกออกมาเพราะโหมดภารกิจต้องรอผู้เล่นเลือกอาหาร
-  // (handleChooseFood) ก่อนถึงจะรันส่วนนี้ได้ ต่างจากโหมดฝึกปกติที่รันต่อทันทีใน handleNext
+  // (handleClaimReward) ก่อนถึงจะรันส่วนนี้ได้ ต่างจากโหมดฝึกปกติที่รันต่อทันทีใน handleNext
   function runPostRoundEvents(finishResult: RoundFinishResult) {
     if (finishResult.greetingEvent) queuePersonalityEvent(finishResult.greetingEvent);
     if (finishResult.nearEvolution) queuePersonalityEvent("nearEvolution");
@@ -322,9 +321,9 @@ export default function QuizClient({
     }
   }
 
-  // เรียกจากปุ่มเลือกอาหารในเฟส "chooseFood" (เฉพาะโหมดภารกิจ) — เคลมโบนัสพร้อมชนิดอาหารที่เลือก
+  // เรียกจากปุ่มเลือกอาหารในเฟส "claimReward" (เฉพาะโหมดภารกิจ) — เคลมโบนัสพร้อมชนิดอาหารที่เลือก
   // แล้วรัน post-round events ต่อ (เดิมรันทันทีใน handleNext แต่ตอนนี้ต้องรอเลือกอาหารก่อน)
-  function handleChooseFood(foodType: "A" | "B") {
+  function handleClaimReward() {
     if (!missionInfo) return;
     const currentMissionInfo = missionInfo;
     // summary เป็น null ได้ในเคสเปิดหน้ามาแล้วภารกิจครบอยู่แล้วตั้งแต่ก่อนหน้า (ไม่มีรอบให้เล่น
@@ -332,7 +331,7 @@ export default function QuizClient({
     // (greeting/exp/evolved) เพราะไม่มี finishQuizRound ให้อ้างอิงจริงๆ ในเคสนั้น
     const currentSummary = summary;
     startTransition(async () => {
-      const claimResult = await finalizeMissionSummary(currentMissionInfo.missionId, foodType);
+      const claimResult = await finalizeMissionSummary(currentMissionInfo.missionId, null);
       sfx("reward_normal");
       const missionCorrectCount = claimResult
         ? claimResult.correctCount
@@ -469,8 +468,8 @@ export default function QuizClient({
 
         if (round.length === 0) {
           // ภารกิจทำครบ target ไปแล้วตั้งแต่ก่อนเปิดหน้านี้ (เช่นรีเฟรช/กลับมาเปิดซ้ำ) — ไม่มีคำถาม
-          // ให้เล่นต่อ ข้ามไปให้เลือกอาหารก่อนเคลม (handleChooseFood เช็ค+เคลมโบนัสจริงจาก DB เอง)
-          setPhase("chooseFood");
+          // ให้เล่นต่อ ข้ามไปให้เลือกอาหารก่อนเคลม (handleClaimReward เช็ค+เคลมโบนัสจริงจาก DB เอง)
+          setPhase("claimReward");
           return;
         }
 
@@ -622,10 +621,10 @@ export default function QuizClient({
       if (missionInfo) {
         // ตรงนี้เป็นรอบที่ทำให้ answered ครบ target จริง (roundSize ถูกคำนวณเป็น target-answered
         // เป๊ะเสมอ ดู startQuizRound) เข้าถึงจุดนี้ได้แค่ครั้งเดียวต่อภารกิจ — ต้องให้เลือกอาหารก่อน
-        // เคลม (handleChooseFood เรียก finalizeMissionSummary + track mission_completed +
+        // เคลม (handleClaimReward เรียก finalizeMissionSummary + track mission_completed +
         // runPostRoundEvents ต่อเองหลังเลือก ไม่ใช่ทุกครั้งที่เปิดหน้าซ้ำ (เคสนั้นไปทาง
         // handleStartMission's round.length===0 branch แทน ซึ่งตั้งใจไม่ยิง mission_completed ซ้ำ)
-        setPhase("chooseFood");
+        setPhase("claimReward");
       } else {
         setPhase("summary");
         runPostRoundEvents(finishResult);
@@ -894,7 +893,7 @@ export default function QuizClient({
     );
   }
 
-  if (phase === "chooseFood" && missionInfo) {
+  if (phase === "claimReward" && missionInfo) {
     return (
       <div className="flex flex-col gap-6 text-center">
         <QuizJourney completed={missionInfo?.targetCount ?? questions.length} total={missionInfo?.targetCount ?? questions.length} avatar={petAvatarPath} />
@@ -909,36 +908,14 @@ export default function QuizClient({
         </div>
 
         <div>
-          <p className="text-6xl">🍚</p>
-          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">เลือกอาหารให้ Qmon</h1>
+          <p className="text-6xl">🪙</p>
+          <h1 className="mt-2 font-sarabun text-2xl font-bold text-gold-hi">รับเหรียญไปสร้างฟาร์ม</h1>
           <p className="mt-1 text-sm text-text3">
-            ทำภารกิจวันนี้ครบแล้ว! เลือกรับอาหาร 1 ชิ้นเข้าคลัง แล้วกลับไปป้อนให้ Qmon ที่หน้าแรก
+            ทำภารกิจวันนี้ครบแล้ว! รับโบนัส EXP และเหรียญฟาร์ม ไว้ซื้อโครงการสวนของเรา
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          {(["A", "B"] as const).map((foodType) => (
-            <button
-              key={foodType}
-              type="button"
-              disabled={isPending}
-              onClick={() => handleChooseFood(foodType)}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-gold bg-amber/10 py-4 text-base font-bold text-gold-hi shadow-lg transition active:scale-95 disabled:opacity-50"
-            >
-              {/* unoptimized: Next's image optimizer flattens this PNG's alpha to opaque white when
-                  re-encoding to WebP/AVIF at small sizes — see FeedPetCard.tsx for the full writeup */}
-              <Image
-                src={FOOD_IMAGE_PATH[foodType]}
-                alt={FOOD_LABEL[foodType]}
-                width={64}
-                height={64}
-                unoptimized
-                className="h-16 w-16 object-contain"
-              />
-              {FOOD_LABEL[foodType]}
-            </button>
-          ))}
-        </div>
+        <button type="button" disabled={isPending} onClick={handleClaimReward} className="min-h-12 rounded-2xl border border-gold bg-amber/10 p-4 font-bold text-gold-hi disabled:opacity-50">{isPending?'กำลังรับรางวัล…':'รับโบนัสและเหรียญฟาร์ม'}</button>
       </div>
     );
   }
@@ -994,7 +971,7 @@ export default function QuizClient({
             </p>
           )}
 
-          {missionClaim?.foodCredited && <p className="mt-1 text-sm text-text3">ได้อาหารเพิ่มเข้าคลังแล้ว 🍚</p>}
+          {!!missionClaim?.coinsCredited && <p className="mt-1 text-sm text-gold-hi">ได้เหรียญฟาร์ม +{missionClaim.coinsCredited} 🪙 <Link href='/collection/garden' className='underline'>ไปสร้างสวน →</Link></p>}
 
           {summary?.capped && (
             <p className="mt-3 rounded-xl border border-amber-dim bg-amber/10 p-3 text-sm text-amber">
