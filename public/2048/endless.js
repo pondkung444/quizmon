@@ -11,8 +11,8 @@ const isEndless=()=>run?.endlessVersion===1;
 // Only new v4 journeys receive the pilot's gentler opening. Existing checkpoints replay v3 exactly.
 const gentleOpening=()=>isEndless()&&run.balanceVersion>=4;
 function openingRecovery(){if(!gentleOpening()||run.room>3)return;const heal=Math.min(state.cfg.hp-state.hp,Math.ceil(state.cfg.hp*.20));state.hp+=heal;if(heal)log(state,`พักหลังการต่อสู้ · HP +${heal}`);}
-const localRoom=room=>1+(room-1)%8;
-const enemyLevel=room=>1+Math.floor((room-1)/8);
+let localRoom=room=>1+(room-1)%8;
+let enemyLevel=room=>1+Math.floor((room-1)/8);
 function endlessStat(base,growth,level){return Math.min(Number.MAX_SAFE_INTEGER,Math.round(base*growth**(level-1)));}
 // Same independent route stream as the simulator; no precomputed room limit.
 function endlessDoors(room){
