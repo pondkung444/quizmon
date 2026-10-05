@@ -5,6 +5,7 @@
 // (และมือการ์ดเลือกคอลัมน์โดยไม่ดึง question_id ออกมาเลย)
 
 import { createClient } from "@/lib/supabase/client";
+import { filterHand, type HandRow } from "./student";
 import type {
   ActiveQuestion,
   BattleConfig,
@@ -89,14 +90,15 @@ export async function fetchMyHand(battleId: string, round: number): Promise<MyHa
   if (!uid) return [];
   const { data, error } = await createClient()
     .from("pvp_team_cards")
-    .select("id, chapter, subject, difficulty, effect_id")
+    .select("id, chapter, subject, difficulty, effect_id, round_no, played_at")
     .eq("battle_id", battleId)
     .eq("round_no", round)
     .eq("drawn_for_user_id", uid)
     .is("played_at", null)
     .order("created_at", { ascending: true });
   if (error) throw new BattleRpcError(error.message);
-  return (data ?? []) as MyHandCard[];
+  // กรองซ้ำฝั่ง client (policy อ่านมือยกเก่าได้): ยกปัจจุบัน + ใบที่ยังไม่ลงสนามเท่านั้น
+  return filterHand((data ?? []) as HandRow[], round);
 }
 
 /** แถวสมาชิกของตัวเอง — null = ไม่มีแถว (เข้าช้า) ให้ถือเป็นผู้ชม */

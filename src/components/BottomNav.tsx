@@ -82,6 +82,8 @@ export default function BottomNav({
   if (pathname === "/login" || pathname === "/") return null;
   // จอครู (ฉายโปรเจกเตอร์) — เมนูของนักเรียนไม่เกี่ยว
   if (pathname?.startsWith("/teacher")) return null;
+  // Team Battle (มือถือนักเรียน) — เต็มจอระหว่างเล่น ไม่มีเมนูล่าง
+  if (pathname && /^\/classroom\/[^/]+\/battle(\/|$)/.test(pathname)) return null;
   if (pathname?.startsWith("/login") || pathname === "/guest" || pathname?.startsWith("/admin")) return null;
   // พื้นที่ผู้ปกครอง — ตัดสินฝั่ง client (root layout ไม่ re-render ตอน soft-nav จึงอ่าน x-pathname ไม่ได้)
   if (pathname?.startsWith("/guardian")) return null;
