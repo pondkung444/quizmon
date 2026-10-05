@@ -8,7 +8,7 @@
 .paths { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
 .building { position: absolute; transform: translate(-50%,-100%); pointer-events: none; }
 .building img { object-fit: contain; user-select: none; filter: drop-shadow(0 5px 3px #304c3455); }
-.buildingLabel { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); min-width: 92px; margin-top: 4px; text-align: center; white-space: nowrap; font-size: 12px; color: #fff1cd; background: #253d2bf5; border: 1px solid #edd9a380; border-radius: 10px; padding: 6px 8px; box-shadow: 0 2px 6px #20302933; }
+.buildingLabel { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); min-width: 74px; margin-top: 4px; text-align: center; white-space: nowrap; font-size: 11px; color: #fff1cd; background: #253d2bf5; border: 1px solid #edd9a380; border-radius: 10px; padding: 5px 7px; box-shadow: 0 2px 6px #20302933; }
 .buildingLabel strong, .buildingLabel small { display: block; }
 .buildingLabel small { font-size: 10px; margin-top: 2px; color: #ffffffdd; }
 .residenceLabel { background: #703b22f5; }
@@ -30,3 +30,5 @@
 .camera { position: absolute; left: 8px; right: 8px; bottom: 26px; z-index: 20000; padding: 0; justify-content: center; }
 .hint { position: absolute; bottom: 3px; width: 100%; padding: 0; text-align: center; color: #173b36; }
 @media (max-width:360px) { .viewport { height: calc(100dvh - 80px); } }
+
+.previewIsland {opacity:.55;}.previewBuilding {opacity:.75;filter:drop-shadow(0 0 7px #eaffb9);pointer-events:none;}

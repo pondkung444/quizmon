@@ -26,7 +26,7 @@ test("a resident can cross into school grounds while routing around the building
   for(const cell of path) {
     assert.ok(cells.has(cellKey(cell)));
     assert.equal(Math.abs(cell.x-previous.x)+Math.abs(cell.y-previous.y),1);
-    assert.ok(!(cell.x>=7&&cell.x<=10&&cell.y>=1&&cell.y<=4));
+    assert.ok(!(cell.x>=8&&cell.x<=9&&cell.y>=2&&cell.y<=3));
     previous=cell;
   }
   assert.equal(farmWalkingPath(cells,{x:2,y:3},{x:11,y:5},new Set(['11,5'])).length,0);
@@ -59,4 +59,22 @@ test("automatic residents can include any owned pet, capped without duplicates o
   assert.deepEqual(owned, ["a", "b", "c", "d", "e"]);
   assert.deepEqual(sampleFarmResidents([], 3), []);
   assert.deepEqual(sampleFarmResidents(["a"], 3), ["a"]);
+});
+
+test('compact buildings expose front and side lawns while keeping their foundation blocked',()=>{
+ for(const kind of ['residence','eggs','school','garden'] as const){
+  const tiles=[{id:kind,kind,x:0,y:0,level:1}];
+  const cells=farmWalkableCells(tiles);
+  assert.equal(cells.size,32);
+  for(const x of [2,3])for(const y of [2,3])assert.equal(cells.has(`${x},${y}`),false);
+  assert.ok(farmWalkingPath(cells,{x:1,y:1},{x:4,y:4}).length>0);
+  assert.ok(cells.has('1,2'));assert.ok(cells.has('4,3'));
+ }
+});
+test('a newly attached garden joins the existing walking network without covering another plot',()=>{
+ const garden={id:'garden',kind:'garden' as const,x:-1,y:0,level:1};
+ const tiles=attachFarmTile(INITIAL_FARM,garden);
+ assert.equal(tiles.length,4);
+ assert.ok(farmWalkingPath(farmWalkableCells(tiles),{x:1,y:3},{x:-2,y:4}).length>0);
+ assert.throws(()=>attachFarmTile(INITIAL_FARM,{...garden,x:1,y:0}));
 });

@@ -10,9 +10,10 @@ import styles from "./farm-residents.module.css";
 
 type Walker = { id: string; element: HTMLDivElement; cell: FarmCell; next: FarmCell | null; route: FarmCell[]; timer?: ReturnType<typeof setTimeout>; animation?: Animation };
 
-export default function FarmResidents({ pets, tiles, tileSize, paused, focusedId, onSelect }: {
+export default function FarmResidents({ pets, tiles, projectionTiles = tiles, tileSize, paused, focusedId, onSelect }: {
   pets: readonly FarmPet[];
   tiles: readonly FarmTile[];
+  projectionTiles?: readonly FarmTile[];
   tileSize: number;
   paused: boolean;
   focusedId: string | null;
@@ -22,7 +23,7 @@ export default function FarmResidents({ pets, tiles, tileSize, paused, focusedId
   const remembered = useRef(new Map<string, FarmCell>());
   const controls = useRef({ paused, focusedId });
   const synchronizeRef = useRef<(() => void) | null>(null);
-  const geometry = farmGeometry(tiles, tileSize);
+  const geometry = farmGeometry(projectionTiles, tileSize);
   const home = tiles.find(tile => tile.kind === "meadow");
   const petIds = pets.map(pet => pet.id).join(",");
 
@@ -38,7 +39,7 @@ export default function FarmResidents({ pets, tiles, tileSize, paused, focusedId
     const reservations = new Map<string, string>();
     const walkers: Walker[] = [];
     let visible = false;
-    const geometry = farmGeometry(tiles, tileSize);
+    const geometry = farmGeometry(projectionTiles, tileSize);
     const transform = (cell: FarmCell) => {
       const point = projectFarmPoint((cell.x + .5) / CELLS_PER_TILE, (cell.y + .5) / CELLS_PER_TILE, geometry);
       return `translate3d(${point.x}px, ${point.y}px, 0)`;
@@ -120,7 +121,7 @@ export default function FarmResidents({ pets, tiles, tileSize, paused, focusedId
         walker.element.dataset.walking = "false";
       }
     };
-  }, [petIds, tiles, tileSize, home?.x, home?.y]);
+  }, [petIds, tiles, projectionTiles, tileSize, home?.x, home?.y]);
 
   return <div className={styles.residents} aria-label="Qmon เดินเล่นในฟาร์ม">
     {pets.map((pet, index) => {

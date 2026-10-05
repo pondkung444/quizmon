@@ -1,6 +1,6 @@
 export type FarmTile = {
   id: string;
-  kind: "meadow" | "school" | "residence" | "eggs";
+  kind: "meadow" | "school" | "residence" | "eggs" | "garden";
   x: number;
   y: number;
   level: number;
