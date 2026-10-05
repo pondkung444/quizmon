@@ -67,7 +67,9 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
     </div>}
     {status==="ready" && <div className={styles.panel}><h2>โรงเรียนสร้างเสร็จแล้ว!</h2><p>เลือกพื้นที่ว่างที่เชื่อมกับฟาร์ม เพื่อวางโรงเรียนของเรา หัวหน้าว่างจากงานนี้แล้ว</p><Link className={styles.primary} href="/collection?place=school">เลือกที่วางในฟาร์ม →</Link></div>}
     {status==="placed" && <div className={styles.panel}><h2>โรงเรียนระดับ 1 พร้อมแล้ว</h2><p>เราช่วย Qmon ปูพื้นและสร้างโรงเรียนสำเร็จ โรงเรียนระดับต่อไปและการค้นพบแบบสร้างจะมาในเฟสถัดไป</p><Link className={styles.primary} href="/collection">กลับไปดูโรงเรียนในฟาร์ม →</Link></div>}
+    <div className={styles.panel}><h2>ห้องฝึกจัดพื้น</h2><p>กลับมาเล่นพัซเซิลได้เสมอ ไม่จับเวลา และไม่กระทบงานก่อสร้าง</p><Link className={styles.primary} href="/collection/school/practice">เล่นจัดพื้นอีกครั้ง →</Link></div>
     {message && <p role="status" className={styles.notice}>{message}</p>}
     {["building","puzzle","finishing"].includes(status) && <button disabled={busy} className={styles.withdraw} onClick={()=>command("pause")}>ถอนหัวหน้าและพักงาน · เก็บความคืบหน้าไว้</button>}
   </section>;
 }
+
