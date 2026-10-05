@@ -20,9 +20,10 @@ export type ClassroomSession = {
   title: string | null;
   class_id: string | null;
   status: "lobby" | "active" | "ended";
-  current_activity: "name_picker" | "boss_raid" | "focus_mode" | null;
+  current_activity: "name_picker" | "boss_raid" | "focus_mode" | "team_battle" | null;
   active_boss_raid_session_id: string | null;
   active_focus_session_id: string | null;
+  active_team_battle_id: string | null;
   created_at: string;
   ended_at: string | null;
 };
