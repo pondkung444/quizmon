@@ -21,7 +21,7 @@ export default async function BlueprintLibraryPage(){
     <ul className={styles.requirements}><li>{placed?"✓":"○"} วางโรงเรียนระดับ 1 ในฟาร์ม</li><li>{pets.length?"✓":"○"} มี Qmon ที่ฟักเป็นตัว ระยะ 2–4</li><li>{found?"✓":"○"} ต่อทางเดินให้ Qmon เดินไปนั่งม้านั่งได้</li></ul>
     {found&&<p className={styles.saved}>บันทึกในสมุดแล้ว · เรียนทบทวนได้เสมอ</p>}
     <Link className={styles.primary} href="/collection/school/learn/garden">{found?"ดูแบบและเรียนทบทวน →":placed&&pets.length?"เลือก Qmon มาเรียน →":"ดูบทเรียนและสิ่งที่ต้องทำก่อน →"}</Link>
-    <Link className={styles.back} href="/collection/school/learn/garden/practice">ลองต่อทาง · รอบฝึก ไม่รับแบบ →</Link><p className={styles.nextStep}>ขั้นถัดไป: ซื้อโครงการและสร้างสวนในฟาร์ม · กำลังเตรียมเปิด</p><Link className={styles.back} href="/collection/garden-plan">ดูตัวอย่างการวางสวน →</Link>
+    <Link className={styles.back} href="/collection/school/learn/garden/practice">ลองต่อทาง · รอบฝึก ไม่รับแบบ →</Link><Link className={styles.primary} href='/collection/garden'>ซื้อโครงการและดูงานสร้างสวน →</Link><Link className={styles.back} href="/collection/garden-plan">ดูตัวอย่างการวางสวน →</Link>
    </div>
   </article>
   <h2 className={styles.upcomingTitle}>แบบที่จะตามมา</h2><div className={styles.upcoming}><strong>💧 บ่อน้ำ Qmon</strong><p>รายละเอียดบทเรียนและเงื่อนไขกำลังออกแบบ</p></div><div className={styles.upcoming}><strong>🏫 โรงเรียนระดับ 2</strong><p>การอัปเกรดและเงื่อนไขปลดล็อกจะมาในเฟสถัดไป</p></div>

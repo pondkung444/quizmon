@@ -887,7 +887,7 @@ export async function getTopicChapters(): Promise<ChapterOption[]> {
 
 export async function claimMissionBonus(
   missionId: string,
-  foodType: "A" | "B"
+  foodType: "A" | "B" | null = null
 ): Promise<ClaimMissionBonusResult> {
   const supabase = await createClient();
   return claimMissionBonusIfComplete(supabase, missionId, foodType);

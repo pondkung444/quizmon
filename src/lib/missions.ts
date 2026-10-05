@@ -1,4 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
+import {getUser} from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { Subject } from "@/types/quiz";
@@ -53,6 +54,7 @@ export type MissionProgress = {
 };
 
 export type ClaimMissionBonusResult = {
+  coinsCredited?:number;
   claimed: boolean;
   bonusExp: number;
   answeredCount: number;
@@ -221,12 +223,14 @@ export async function claimMissionBonusIfComplete(
   }
 
   const { updated, foodCredited } = await tryClaimBonusSilently(supabase, mission, foodType);
+  const credited=updated.bonus_awarded_at!==null?await supabase.from('farm_coin_ledger').select('amount').eq('entry_key','daily:'+mission.id).maybeSingle():null;
   return {
     claimed: updated.bonus_awarded_at !== null,
     bonusExp: mission.bonus_exp,
     answeredCount,
     correctCount,
     foodCredited,
+    coinsCredited:credited?.data?.amount??0,
   };
 }
 
@@ -236,8 +240,9 @@ async function tryClaimBonusSilently(
   foodType: "A" | "B" | null
 ): Promise<{ updated: TodayMission; foodCredited: boolean }> {
   try {
-    const { data } = await supabase
-      .rpc("claim_daily_mission_bonus", { p_mission_id: mission.id, p_food_type: foodType })
+    const user=await getUser();if(!user)return {updated:mission,foodCredited:false};
+    const { data } = await createAdminClient()
+      .rpc("farm_claim_daily_mission_bonus", { p_mission_id: mission.id, p_food_type: foodType,p_user_id:user.id })
       .single();
     const result = data as ClaimBonusResult | null;
     if (result?.awarded) {
