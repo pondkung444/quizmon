@@ -85,3 +85,8 @@
 @media (max-height:500px) and (min-width:600px){.gameScreen .puzzle{display:grid;grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:32px 92px 44px 32px 46px;align-content:center;gap:8px;max-width:850px;}.gameScreen .room{grid-column:1;grid-row:1 / span 5;height:100%;}.gameScreen .floorSurface{width:min(100%,calc(100dvh - 150px));}.gameScreen .puzzleGuide{grid-column:2;}.gameScreen .pieces{grid-column:2;}.gameScreen .buttons{grid-column:2;}.gameScreen .floorHint{grid-column:2;}.gameScreen .primary{grid-column:2;}}
 
 .gameScreen[hidden] {display:none;}
+.gameScreen .roomTitle,.gameScreen .floorProgress {line-height:1.2;}
+@supports (width:1cqh) {
+ .gameScreen .room {container-type:size;}
+ .gameScreen .floorSurface {width:min(100%,calc(100cqh - 50px));}
+}
