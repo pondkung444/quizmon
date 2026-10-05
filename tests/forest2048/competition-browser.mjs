@@ -1,6 +1,6 @@
 import fs from 'node:fs';import path from 'node:path';import http from 'node:http';import assert from 'node:assert/strict';
 import {chromium} from 'playwright';import {newReplay,replay,replayResult} from '../../src/lib/forest2048/replay.ts';
-const root=path.resolve('public'),out=path.resolve('output/endless-competition');fs.mkdirSync(out,{recursive:true});
+const root=path.resolve('public'),out=path.resolve(process.env.FOREST_TEST_OUTPUT||'output/endless-competition');fs.mkdirSync(out,{recursive:true});
 const account='22222222-2222-4222-8222-222222222222';
 const companion={id:'11111111-1111-4111-8111-111111111111',name:'คู่หูทดสอบ',speciesName:'มังกรผลึก',stage:4,eggPrefix:'egg1',lane:'math',personality:'A',isActive:true,stats:{hp:100,atk:100,def:100,spd:100,foc:100},image:'/pets/egg1_stage4_math_A.png',config:{hp:500,attack:25,armor:25,heal:40,bonus:.15,cooldown:5}};
 const questions=[['1+1?',['2','3'],0,'https://example.com/question.png'],['2+2?',['4','5'],0],['3+3?',['6','7'],0]];

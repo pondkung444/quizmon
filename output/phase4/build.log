@@ -1,0 +1,121 @@
+
+> quizmon@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.2.10 (webpack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 49s
+  Running TypeScript ...
+  Finished TypeScript in 46s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/15) ...
+  Generating static pages using 7 workers (3/15) 
+  Generating static pages using 7 workers (7/15) 
+  Generating static pages using 7 workers (11/15) 
+✓ Generating static pages using 7 workers (15/15) in 1541ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /achievements
+├ ƒ /admin
+├ ƒ /admin/analytic
+├ ƒ /admin/analytics
+├ ƒ /admin/analytics/thepmitr
+├ ƒ /admin/factory-office-preview
+├ ƒ /admin/question-factory/review
+├ ƒ /adventure
+├ ƒ /api/2048/companions
+├ ƒ /api/2048/competition
+├ ƒ /api/2048/start
+├ ƒ /api/admin/test-rich-push
+├ ƒ /api/analytics
+├ ƒ /api/cron/adventure-return
+├ ƒ /api/cron/push-evening
+├ ƒ /api/cron/push-morning-weekday
+├ ƒ /api/cron/push-morning-weekend
+├ ƒ /api/cron/pvp-gc
+├ ƒ /api/premium/checkout
+├ ƒ /api/webhooks/stripe
+├ ƒ /boss-raid
+├ ƒ /boss-raid/[sessionId]
+├ ƒ /boss-raid/[sessionId]/tv
+├ ƒ /boss-raid/join
+├ ƒ /classroom/[sessionId]
+├ ƒ /classroom/join
+├ ƒ /collection
+├ ƒ /collection/[petId]
+├ ƒ /collection/[petId]/name
+├ ƒ /collection/album
+├ ƒ /collection/garden
+├ ƒ /collection/garden-plan
+├ ƒ /collection/garden/place
+├ ƒ /collection/qmon
+├ ƒ /collection/school
+├ ƒ /collection/school/learn
+├ ƒ /collection/school/learn/garden
+├ ƒ /collection/school/learn/garden/practice
+├ ƒ /collection/school/practice
+├ ƒ /eggs
+├ ƒ /guardian
+├ ƒ /guardian/[studentId]
+├ ƒ /guardian/[studentId]/goal
+├ ƒ /guardian/[studentId]/plan
+├ ƒ /guardian/[studentId]/report
+├ ƒ /guardian/callback
+├ ƒ /guardian/link
+├ ƒ /guest
+├ ƒ /hall-of-fame
+├ ○ /icon.png
+├ ƒ /join
+├ ƒ /login
+├ ƒ /login/callback
+├ ƒ /login/complete-profile
+├ ƒ /login/continue
+├ ƒ /login/forgot-password
+├ ƒ /login/reset-password
+├ ƒ /my-plan
+├ ƒ /my-plan/goal
+├ ƒ /my-plan/plan
+├ ƒ /my-plan/report
+├ ƒ /pet
+├ ƒ /pet/calendar
+├ ƒ /premium
+├ ƒ /premium/success
+├ ƒ /privacy
+├ ƒ /pvp
+├ ƒ /pvp/[matchId]
+├ ƒ /pvp/challenge/[id]
+├ ƒ /pvp/history
+├ ƒ /pvp/history/[opponentId]
+├ ƒ /pvp/new
+├ ƒ /pvp/open/[id]
+├ ƒ /pvp/open/new
+├ ƒ /quiz
+├ ƒ /raid
+├ ƒ /raid/[slug]
+├ ƒ /raid/preview
+├ ƒ /settings
+├ ƒ /settings/delete-account
+├ ƒ /social
+├ ƒ /social/add-friend
+├ ƒ /social/blocked
+├ ƒ /social/encouragements
+├ ƒ /social/friend/[friendUserId]
+├ ƒ /social/invite
+├ ƒ /social/profile/[targetUserId]
+├ ƒ /social/requests
+├ ƒ /teacher
+├ ƒ /teacher/[sessionId]
+├ ƒ /teacher/classes/[classId]
+└ ƒ /teacher/guardian
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

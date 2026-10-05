@@ -55,7 +55,7 @@ function actStats(enemy,room){const act=actDefinition(room),base=ENEMY[enemy];if
 function initActJourney(){
  if(run.endlessVersion===1)throw Error('รุ่นการเดินทางขัดกัน');
  run.room=0;run.serviceCounts={};run.journeyLog=[];run.phase='doors';
- const cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),mechanicsVersion:run.mechanicsVersion};
+ const cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),mechanicsVersion:run.mechanicsVersion,contentVersion:run.contentVersion};
  state=fresh(run.hero,'mushroom',cfg);state.board=Array(16).fill(null);delete state.relic;delete state.hazards;
  if(run.mechanicsVersion===1)regionalState(state);
  actRecord('start');makeDoors();return state;
@@ -63,9 +63,11 @@ function initActJourney(){
 const beforeActSavedRun=savedRun;
 savedRun=function(key){let saved;try{saved=JSON.parse(localStorage.getItem(key));}catch{return null;}
  if(saved?.journeyVersion!==undefined&&saved.journeyVersion!==ACT_JOURNEY_VERSION)return null;
+ if(saved?.contentVersion!==undefined&&(saved.contentVersion!==1||saved.mechanicsVersion!==1||saved.journeyVersion!==1))return null;
  if(saved?.mechanicsVersion!==undefined&&(saved.mechanicsVersion!==1||saved.journeyVersion!==1))return null;
  if(saved?.journeyVersion!==ACT_JOURNEY_VERSION)return beforeActSavedRun(key);
  if(saved.endlessVersion===1||saved.version!==3||!Number.isInteger(saved.room)||saved.room<0||saved.room>30||!saved.companion?.config||!Array.isArray(saved.questions)||saved.questions.length<3||!Array.isArray(saved.history)||!Array.isArray(saved.relics)||!Array.isArray(saved.battle?.board)||saved.battle.board.length!==16||!saved.serviceCounts||(saved.phase==='doors'&&(!Array.isArray(saved.doors)||!saved.doors.length)))return null;
+ if(saved.battle.cfg?.contentVersion!==saved.contentVersion)return null;
  if(saved.mechanicsVersion===1&&!regionalValidSave(saved.battle))return null;
  return saved;
 };
@@ -76,13 +78,13 @@ function actRewardOffers(nextAct){
   const roll=rng()*100,grade=roll<weights[0]?'Common':roll<weights[0]+weights[1]?'Rare':'Epic';const filtered=candidates.filter(r=>r.grade===grade),choices=filtered.length?filtered:candidates;result.push(choices[Math.floor(rng()*choices.length)].id);};
  const specific=ACT_RELIC_POOLS[nextAct.id]||[];
  if(specific.length)take(RELIC_V1.filter(r=>specific.includes(r.id)),[40,40]);
- while(result.length<3){const before=result.length;take(RELIC_V1.filter(r=>['Rare','Epic'].includes(r.grade)),[0,70]);if(result.length===before){take(RELIC_V1,[60,30]);if(result.length===before)break;}}
+ while(result.length<3){const before=result.length;take(RELIC_V1.filter(r=>!r.region&&['Rare','Epic'].includes(r.grade)),[0,70]);if(result.length===before){take(RELIC_V1,[60,30]);if(result.length===before)break;}}
  return result;
 }
 const beforeActEnter=enterBattle;
 enterBattle=function(enemy){
  if(!isActJourney())return beforeActEnter(enemy);
- const previous=state,stats=actStats(enemy,run.room),cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),enemyHp:stats.hp,damage:stats.damage,interval:stats.interval,relicVersion:run.relicVersion,relics:[...run.relics],relicShadow:has('shadow'),relicSpark:false,mechanicsVersion:run.mechanicsVersion};
+ const previous=state,stats=actStats(enemy,run.room),cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),enemyHp:stats.hp,damage:stats.damage,interval:stats.interval,relicVersion:run.relicVersion,relics:[...run.relics],relicShadow:has('shadow'),relicSpark:false,mechanicsVersion:run.mechanicsVersion,contentVersion:run.contentVersion};
  state=fresh(run.hero,enemy,cfg);state.board=run.room>1?cleanFrom(previous.board):Array(16).fill(null);state.hp=previous.hp;state.charge=previous.charge;
  // fresh() makes demonstration tiles with Math.random, including a queued rune.
  // Discard that queue before spawning any journey tiles with the replay seed.
@@ -140,7 +142,7 @@ showPhase=function(){
  if(!isActJourney())return beforeActPhase();
  if(run.phase==='doors'){
   runHUD();const room=run.room+1,act=actDefinition(room);
-  return panel(`เลือกเส้นทาง · ${act.name} · ห้อง ${actLocalRoom(room)}/10`,`ด่าน ${actNumber(room)}/3 · HP ${state.hp}/${state.cfg.hp} · ${run.coins} เหรียญ`,run.doors.map(type=>{const enemy=ACT_ENEMIES[type],stats=enemy?actStats(type,room):null;return{title:type==='rest'&&has('noRest')?'บ่อน้ำพันธะ · เลือกเรลิค':DOORS[type][0],desc:stats?`HP ${stats.hp} · ตี ${stats.damage} ทุก ${stats.interval} ปัด`:type==='shop'?'Common 30 / Rare 50 / Epic 80':type==='rest'&&has('noRest')?'เลือกเรลิคแทนฟื้น HP':DOORS[type][1],art:DOOR_ART[type],kind:DOOR_KIND[type],action:()=>enterDoor(type)};}));
+  return panel(`เลือกเส้นทาง · ${act.name} · ห้อง ${actLocalRoom(room)}/10`,`ด่าน ${actNumber(room)}/3 · HP ${state.hp}/${state.cfg.hp} · ${run.coins} เหรียญ`,run.doors.map(type=>{const enemy=ACT_ENEMIES[type],stats=enemy?actStats(type,room):null;return{title:run.contentVersion===1&&enemy?contentName(type):type==='rest'&&has('noRest')?'บ่อน้ำพันธะ · เลือกเรลิค':DOORS[type][0],desc:stats?`HP ${stats.hp} · ตี ${stats.damage} ทุก ${stats.interval} ปัด${run.contentVersion===1&&CONTENT_ENEMIES[type]?' · '+CONTENT_ENEMIES[type].mechanic:''}`:type==='shop'?'Common 30 / Rare 50 / Epic 80':type==='rest'&&has('noRest')?'เลือกเรลิคแทนฟื้น HP':DOORS[type][1],art:DOOR_ART[type],kind:DOOR_KIND[type],action:()=>enterDoor(type)};}));
  }
  return beforeActPhase();
 };
