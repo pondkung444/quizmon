@@ -1,0 +1,9 @@
+# Garden path puzzle — 5 October 2026
+
+Replaces the three obvious multiple-choice sample questions with the user-approved interaction: select road blocks, place them on a 4×4 garden, tap to rotate or drag to move, then explicitly ask Qmon to walk to the bench. Two straights and three bends must form a continuous route from the fixed entry to the front of the bench. Pond/tree cells are blocked. A failed attempt walks only along reachable, correctly joined roads, stops and highlights the last reachable tile with a hint. A successful attempt walks to the bench, shows Qmon resting, and opens the existing discovery result. No timer or penalties.
+
+Server validates piece IDs, inventory, rotations, integer coordinates, overlapping/blocked cells, both ends of every road, bench approach, and complete usage before invoking the existing owner/prerequisite-protected idempotent discovery RPC. Existing discoveries and player state are retained; no migration, rewards, currency or school-construction changes.
+
+Practice is accessible from the library even without a placed school or hatched pet. It uses an owned eligible pet when available, otherwise a clearly labeled sample Qmon. It never calls the completion server action or writes a discovery. Learning still requires the original placed-school/owned-hatched-pet gates.
+
+Verification: 21 farm/path tests pass; changed-file ESLint passes. Component mock preview checked wrong connections, discovery/replay, tap placement and rotation, dragging from tray, moving placed roads and returning them to tray; controls fit 320×568, 375×667 and 667×375. A real production practice run and read-only learning gates are checked after release; actual gated-account discovery is not fabricated for browser testing. Full build and release details are tracked in the PR and Notion.

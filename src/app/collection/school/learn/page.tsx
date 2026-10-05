@@ -18,10 +18,10 @@ export default async function BlueprintLibraryPage(){
   <article className={styles.blueprintCard}>
    <div className={styles.art}><Image src={GARDEN_BLUEPRINT.image} width={480} height={440} alt="แบบสวนพักผ่อน มีศาลาหลังคาเขียว ร่มไม้ ทางหิน และแปลงดอกไม้" priority/><span>{found?"✓ ค้นพบแล้ว":"แบบแรกของเรา"}</span></div>
    <div className={styles.cardContent}><h2>{GARDEN_BLUEPRINT.name}</h2><p>{GARDEN_BLUEPRINT.description}</p>
-    <ul className={styles.requirements}><li>{placed?"✓":"○"} วางโรงเรียนระดับ 1 ในฟาร์ม</li><li>{pets.length?"✓":"○"} มี Qmon ที่ฟักเป็นตัว ระยะ 2–4</li><li>{found?"✓":"○"} เรียนเรื่องทางเดินและมุมพักครบ 3 ช่วง</li></ul>
+    <ul className={styles.requirements}><li>{placed?"✓":"○"} วางโรงเรียนระดับ 1 ในฟาร์ม</li><li>{pets.length?"✓":"○"} มี Qmon ที่ฟักเป็นตัว ระยะ 2–4</li><li>{found?"✓":"○"} ต่อทางเดินให้ Qmon เดินไปนั่งม้านั่งได้</li></ul>
     {found&&<p className={styles.saved}>บันทึกในสมุดแล้ว · เรียนทบทวนได้เสมอ</p>}
     <Link className={styles.primary} href="/collection/school/learn/garden">{found?"ดูแบบและเรียนทบทวน →":placed&&pets.length?"เลือก Qmon มาเรียน →":"ดูบทเรียนและสิ่งที่ต้องทำก่อน →"}</Link>
-    <p className={styles.nextStep}>ขั้นถัดไป: ซื้อโครงการและสร้างสวนในฟาร์ม · กำลังเตรียมเปิด</p>
+    <Link className={styles.back} href="/collection/school/learn/garden/practice">ลองต่อทาง · รอบฝึก ไม่รับแบบ →</Link><p className={styles.nextStep}>ขั้นถัดไป: ซื้อโครงการและสร้างสวนในฟาร์ม · กำลังเตรียมเปิด</p>
    </div>
   </article>
   <h2 className={styles.upcomingTitle}>แบบที่จะตามมา</h2><div className={styles.upcoming}><strong>💧 บ่อน้ำ Qmon</strong><p>รายละเอียดบทเรียนและเงื่อนไขกำลังออกแบบ</p></div><div className={styles.upcoming}><strong>🏫 โรงเรียนระดับ 2</strong><p>การอัปเกรดและเงื่อนไขปลดล็อกจะมาในเฟสถัดไป</p></div>
