@@ -3,8 +3,8 @@ const actPreviewRequested=()=>new URLSearchParams(location.search).get('journey'
 const beforeActDistance=distance;
 distance=()=>isActJourney()?run.history.filter(r=>r.battle).length:beforeActDistance();
 const beforeActImages=updateImages,beforeActRender=render;
-updateImages=function(){beforeActImages();if(!isActJourney())return;const meta=ACT_ENEMIES[state.enemy];if(!meta)return;const enemy=document.querySelector('.battle .enemy');enemy.src=DOOR_ART[state.enemy];enemy.alt=ENEMY[state.enemy].name;};
-render=function(){beforeActRender();if(!isActJourney()||run.room<1)return;document.querySelector('#enemy-label').textContent=ENEMY[state.enemy].name+' · '+actDefinition(run.room).name;};
+updateImages=function(){beforeActImages();if(!isActJourney())return;const meta=ACT_ENEMIES[state.enemy];if(!meta)return;const enemy=document.querySelector('.battle .enemy');enemy.src=DOOR_ART[state.enemy];enemy.alt=(run.contentVersion===1?contentName(state.enemy):ENEMY[state.enemy].name);};
+render=function(){beforeActRender();if(!isActJourney()||run.room<1)return;document.querySelector('#enemy-label').textContent=(run.contentVersion===1?contentName(state.enemy):ENEMY[state.enemy].name)+' · '+actDefinition(run.room).name;};
 const beforeActHome=showHome;
 showHome=function(){
  if(!actPreviewRequested()&&!isActJourney())return beforeActHome();

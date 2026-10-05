@@ -18,6 +18,7 @@ test('real start handler negotiates new/old clients and rejects unsupported vers
  for(const body of [{petId,journeyVersion:1,mechanicsVersion:2},{petId,mechanicsVersion:1}])assert.equal((await api.POST(request(body))).status,400);
  assert.equal(saved.length,2);
  const mechanics=await api.POST(request({petId,journeyVersion:1,mechanicsVersion:1,balanceVersion:4}));assert.equal(mechanics.status,200);assert.equal(mechanics.body.initial.run.mechanicsVersion,1);assert.equal(acts.body.initial.run.mechanicsVersion,undefined);
+ const content=await api.POST(request({petId,journeyVersion:1,mechanicsVersion:1,contentVersion:1,balanceVersion:4}));assert.equal(content.status,200);assert.equal(content.body.initial.run.contentVersion,1);assert.equal(content.body.initial.state.cfg.contentVersion,1);const count=saved.length;for(const body of [{petId,contentVersion:1},{petId,journeyVersion:1,contentVersion:1},{petId,journeyVersion:1,mechanicsVersion:1,contentVersion:2}])assert.equal((await api.POST(request(body))).status,400);assert.equal(saved.length,count);
 });
 test('real checkpoint handler records early exits, deduplicates retries, enforces owner and isolates board',async()=>{
  let currentUser=userId;const initial=replayModule.newReplay({version:3,journeyVersion:1,relicVersion:1,runeVersion:1,skillVersion:1,balanceVersion:4,accountId:userId,companion,questions,hero:'math',seed:123,routeSeed:123,coins:0,relics:[],revived:false,history:[]});

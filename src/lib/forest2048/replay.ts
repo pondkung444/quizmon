@@ -6,7 +6,7 @@ export type ForestEvent = { type: string; value?: string | number };
 // The legacy engine's JSON checkpoint is shared with the static browser game.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type ReplaySnapshot = { run: Record<string, any>; state: Record<string, any>; metrics: { swipes: number; maxRune: number } };
-const files=['runes.js','skills.js','engine.js','run.js','endless.js','relics.js','relic-engine.js','relic-run.js','acts.js','regional.js'];
+const files=['runes.js','skills.js','engine.js','run.js','endless.js','relics.js','relic-engine.js','relic-run.js','acts.js','regional.js','regional-content.js'];
 let source: string;
 function engineSource(){return source??=files.map(f=>fs.readFileSync(path.join(process.cwd(),'public/2048',f),'utf8')).join('\n')+`
 let state,lastPanel,metrics;
@@ -51,12 +51,14 @@ function apply(events){for(const e of events){
 `;}
 function context(){return vm.createContext({console,structuredClone,document:{createElement:()=>({}),querySelector:()=>({textContent:'',replaceChildren(){},after(){}})}});}
 export function newReplay(input: Record<string,unknown>): ReplaySnapshot {
+ if(input.contentVersion!==undefined&&(input.contentVersion!==1||input.mechanicsVersion!==1||input.journeyVersion!==1))throw new Error('รุ่นเนื้อหาไม่รองรับ');
  if(input.mechanicsVersion!==undefined&&(input.mechanicsVersion!==1||input.journeyVersion!==1))throw new Error('รุ่นกลไกไม่รองรับ');
  if(input.journeyVersion!==undefined&&input.journeyVersion!==1)throw new Error('รุ่นการเดินทางไม่รองรับ');
  const c=context();vm.runInContext(engineSource(),c,{timeout:1000});c.input=structuredClone(input);
  return structuredClone(vm.runInContext('init(input)',c,{timeout:1000}));
 }
 export function replay(snapshot: ReplaySnapshot,events:ForestEvent[]): ReplaySnapshot{
+ if(snapshot.run.contentVersion!==undefined&&(snapshot.run.contentVersion!==1||snapshot.run.mechanicsVersion!==1||snapshot.run.journeyVersion!==1))throw new Error('รุ่นเนื้อหาไม่รองรับ');
  if(snapshot.run.mechanicsVersion!==undefined&&(snapshot.run.mechanicsVersion!==1||snapshot.run.journeyVersion!==1))throw new Error('รุ่นกลไกไม่รองรับ');
  if(snapshot.run.journeyVersion!==undefined&&snapshot.run.journeyVersion!==1)throw new Error('รุ่นการเดินทางไม่รองรับ');
  if(events.length>256)throw new Error('ส่งได้ครั้งละไม่เกิน 256 คำสั่ง');

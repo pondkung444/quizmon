@@ -1,13 +1,13 @@
 import fs from 'node:fs';import path from 'node:path';import http from 'node:http';import assert from 'node:assert/strict';
 import {chromium} from 'playwright';import {newReplay,replay,replayResult} from '../../src/lib/forest2048/replay.ts';
-const root=path.resolve('public'),out=path.resolve(process.env.FOREST_TEST_OUTPUT||'output/acts-phase3');fs.mkdirSync(out,{recursive:true});
+const root=path.resolve('public'),out=path.resolve(process.env.FOREST_TEST_OUTPUT||'output/acts-phase4');fs.mkdirSync(out,{recursive:true});
 const account='22222222-2222-4222-8222-222222222222';
 const companion={id:'11111111-1111-4111-8111-111111111111',name:'คู่หูทดสอบ',speciesName:'มังกรผลึก',stage:4,eggPrefix:'egg1',lane:'math',personality:'A',isActive:true,stats:{hp:100,atk:100,def:100,spd:100,foc:100},image:'/pets/egg1_stage4_math_A.png',config:{hp:100000,attack:10000,armor:5000,heal:40,bonus:.15,cooldown:5}};
 const questions=[['1+1',['2','3'],0],['2+2',['4','5'],0],['3+3',['6','7'],0]],runs=new Map(),errors=[];let count=0,offline=false,drop=false;
 const server=http.createServer(async(req,res)=>{try{
  if(req.url.startsWith('/api/2048')){res.setHeader('Content-Type','application/json');
   if(req.url.includes('companions'))return res.end(JSON.stringify({accountId:account,companions:[companion]}));
-  if(req.url.includes('/start')){let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw);assert.equal(body.journeyVersion,1);assert.equal(body.mechanicsVersion,1);const id='44444444-4444-4444-8444-'+String(++count).padStart(12,'0');const initial=newReplay({version:3,journeyVersion:1,mechanicsVersion:1,balanceVersion:4,relicVersion:1,runeVersion:1,skillVersion:1,accountId:account,companion,questions,hero:'math',seed:12345,routeSeed:12345,coins:0,relics:[],revived:false,history:[]});runs.set(id,{snapshot:initial,revision:0});return res.end(JSON.stringify({accountId:account,companion,questions,competition:{id,seed:12345},initial}));}
+  if(req.url.includes('/start')){let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw);assert.equal(body.journeyVersion,1);assert.equal(body.mechanicsVersion,1);assert.equal(body.contentVersion,1);const id='44444444-4444-4444-8444-'+String(++count).padStart(12,'0');const initial=newReplay({version:3,journeyVersion:1,mechanicsVersion:1,contentVersion:1,balanceVersion:4,relicVersion:1,runeVersion:1,skillVersion:1,accountId:account,companion,questions,hero:'math',seed:12345,routeSeed:12345,coins:0,relics:[],revived:false,history:[]});runs.set(id,{snapshot:initial,revision:0});return res.end(JSON.stringify({accountId:account,companion,questions,competition:{id,seed:12345},initial}));}
   if(req.method==='POST'){let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw),row=runs.get(body.id);if(offline){res.writeHead(503);return res.end(JSON.stringify({error:'offline fixture'}));}const events=body.events.slice(row.revision-body.from);if(events.length){row.snapshot=replay(row.snapshot,events);row.revision+=events.length;}if(drop){drop=false;req.socket.destroy();return;}return res.end(JSON.stringify({revision:row.revision,...replayResult(row.snapshot)}));}
   return res.end(JSON.stringify({board:{leaders:[],mine:null,players:0},stats:{runs:runs.size,best:0,bosses:0,maxRune:0,recent:[]}}));
  }
@@ -29,7 +29,18 @@ try{browser=await chromium.launch({channel:'msedge',headless:true});for(const wi
  offline=false;drop=true;await page.evaluate(()=>flushCompetition());await page.waitForFunction(()=>!sending);await page.evaluate(()=>flushCompetition());await page.waitForFunction(()=>outbox.every(q=>!q.events.length));
  const screenshots=new Set();
  for(let step=0;step<1200&&!await page.evaluate(()=>terminal());step++){
-  const checkpoint=await page.evaluate(()=>({room:run.room,phase:run.phase}));if([10,20].includes(checkpoint.room)&&checkpoint.phase==='relic'&&!screenshots.has(checkpoint.room)){screenshots.add(checkpoint.room);await page.screenshot({path:path.join(out,'act-reward-'+checkpoint.room+'-'+width+'.png')});await page.reload();await page.getByRole('button',{name:'เล่นต่อ',exact:true}).click();}
+  const checkpoint=await page.evaluate(()=>({room:run.room,phase:run.phase}));if([10,20].includes(checkpoint.room)&&checkpoint.phase==='relic'&&!screenshots.has(checkpoint.room)){screenshots.add(checkpoint.room);await page.screenshot({path:path.join(out,'act-reward-'+checkpoint.room+'-'+width+'.png')});await page.reload();await page.getByRole('button',{name:'เล่นต่อ',exact:true}).click();
+   assert.equal(await page.evaluate(()=>run.offers.filter(id=>RELIC_V1.find(r=>r.id===id).region).length),1);
+   assert.equal(await page.locator('#run-content .choice').first().locator('img').count(),0);
+   await page.locator('#run-content .choice').first().click();
+   const battleDoor=await page.evaluate(()=>run.doors.findIndex(id=>ACT_ENEMIES[id]));
+   await page.locator('#run-content .choice').nth(battleDoor).click();
+   const index=await page.evaluate(()=>run.relics.length-1);
+   await page.locator('#relics .owned-relic').nth(index).click();
+   assert.equal(await page.locator('.relic-detail-art').count(),0);
+   await page.screenshot({path:path.join(out,'regional-relic-detail-'+checkpoint.room+'-'+width+'.png')});
+   await page.getByRole('button',{name:'กลับไปการเดินทาง',exact:true}).click();
+  }
   await page.evaluate(()=>{
    if(run.phase==='battle'){runSwipe(DIRS.find(d=>relicSlide(state.board,d,state.cfg.rune,has('chain')).changed));render();settleRun();}
    else if(run.phase==='doors')enterDoor(run.doors.find(id=>['rest','quiz','shop'].includes(id))||run.doors[0]);
