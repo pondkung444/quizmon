@@ -1,0 +1,47 @@
+[
+  {
+    "enemy": "cave_guardian",
+    "width": 320,
+    "observed": {
+      "warning": true,
+      "crystal": true,
+      "crack": false,
+      "poison": false,
+      "phase2": false,
+      "roots": false
+    },
+    "revision": 9,
+    "pageErrors": [],
+    "clientServerEqual": true
+  },
+  {
+    "enemy": "sky_guardian",
+    "width": 390,
+    "observed": {
+      "warning": false,
+      "crystal": false,
+      "crack": true,
+      "poison": true,
+      "phase2": true,
+      "roots": false
+    },
+    "revision": 14,
+    "pageErrors": [],
+    "clientServerEqual": true
+  },
+  {
+    "enemy": "stag",
+    "width": 430,
+    "observed": {
+      "warning": false,
+      "crystal": false,
+      "crack": false,
+      "poison": false,
+      "phase2": true,
+      "roots": true
+    },
+    "revision": 8,
+    "pageErrors": [],
+    "clientServerEqual": true
+  }
+]

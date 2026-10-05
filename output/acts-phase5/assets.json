@@ -1,0 +1,290 @@
+[
+  {
+    "id": "cave-heavy",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/cave-heavy.webp",
+    "bytes": 155756,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "cave-light-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/cave-light-v2.webp",
+    "bytes": 120512,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "cave-healer-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/cave-healer-v2.webp",
+    "bytes": 138608,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "cave-boss-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/cave-boss-v2.webp",
+    "bytes": 150220,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "sky-light-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/sky-light-v2.webp",
+    "bytes": 92482,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "sky-haste",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/sky-haste.webp",
+    "bytes": 138006,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "sky-heavy-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/sky-heavy-v2.webp",
+    "bytes": 161088,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "sky-poison-v2",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/sky-poison-v2.webp",
+    "bytes": 137070,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "sky-dragon-v1",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/sky-dragon-v1.webp",
+    "bytes": 201148,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "cave-background",
+    "kind": "scene",
+    "path": "public/2048/assets/acts-v1/cave-background.webp",
+    "bytes": 236282,
+    "width": 1024,
+    "height": 1536,
+    "alpha": false
+  },
+  {
+    "id": "sky-background",
+    "kind": "scene",
+    "path": "public/2048/assets/acts-v1/sky-background.webp",
+    "bytes": 258496,
+    "width": 1024,
+    "height": 1536,
+    "alpha": false
+  },
+  {
+    "id": "crystal-object",
+    "kind": "sprite",
+    "path": "public/2048/assets/acts-v1/crystal-object.webp",
+    "bytes": 95354,
+    "width": 640,
+    "height": 640,
+    "alpha": true
+  },
+  {
+    "id": "caveHammer",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveHammer.webp",
+    "bytes": 21834,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveLens",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveLens.webp",
+    "bytes": 20156,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveCharge",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveCharge.webp",
+    "bytes": 16396,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveNet",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveNet.webp",
+    "bytes": 27900,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveArmor",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveArmor.webp",
+    "bytes": 21984,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveShake",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveShake.webp",
+    "bytes": 21754,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveHeart",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveHeart.webp",
+    "bytes": 22084,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveMine",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveMine.webp",
+    "bytes": 24756,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveChain",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveChain.webp",
+    "bytes": 20868,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "caveFriend",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/caveFriend.webp",
+    "bytes": 16864,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyGlue",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyGlue.webp",
+    "bytes": 18430,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyBandage",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyBandage.webp",
+    "bytes": 20950,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyDew",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyDew.webp",
+    "bytes": 18596,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyImmunity",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyImmunity.webp",
+    "bytes": 20140,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyArmor",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyArmor.webp",
+    "bytes": 20578,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyBreath",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyBreath.webp",
+    "bytes": 25230,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyBrave",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyBrave.webp",
+    "bytes": 21928,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyHeal",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyHeal.webp",
+    "bytes": 21450,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "skyGlow",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/skyGlow.webp",
+    "bytes": 17134,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  },
+  {
+    "id": "poisonAwaken",
+    "kind": "relic",
+    "path": "public/2048/assets/icons/relic-v2/poisonAwaken.webp",
+    "bytes": 20070,
+    "width": 256,
+    "height": 256,
+    "alpha": true
+  }
+]

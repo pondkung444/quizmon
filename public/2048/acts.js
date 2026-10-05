@@ -142,7 +142,7 @@ showPhase=function(){
  if(!isActJourney())return beforeActPhase();
  if(run.phase==='doors'){
   runHUD();const room=run.room+1,act=actDefinition(room);
-  return panel(`เลือกเส้นทาง · ${act.name} · ห้อง ${actLocalRoom(room)}/10`,`ด่าน ${actNumber(room)}/3 · HP ${state.hp}/${state.cfg.hp} · ${run.coins} เหรียญ`,run.doors.map(type=>{const enemy=ACT_ENEMIES[type],stats=enemy?actStats(type,room):null;return{title:run.contentVersion===1&&enemy?contentName(type):type==='rest'&&has('noRest')?'บ่อน้ำพันธะ · เลือกเรลิค':DOORS[type][0],desc:stats?`HP ${stats.hp} · ตี ${stats.damage} ทุก ${stats.interval} ปัด${run.contentVersion===1&&CONTENT_ENEMIES[type]?' · '+CONTENT_ENEMIES[type].mechanic:''}`:type==='shop'?'Common 30 / Rare 50 / Epic 80':type==='rest'&&has('noRest')?'เลือกเรลิคแทนฟื้น HP':DOORS[type][1],art:DOOR_ART[type],kind:DOOR_KIND[type],action:()=>enterDoor(type)};}));
+  return panel(`เลือกเส้นทาง · ${act.name} · ห้อง ${actLocalRoom(room)}/10`,`ด่าน ${actNumber(room)}/3 · HP ${state.hp}/${state.cfg.hp} · ${run.coins} เหรียญ`,run.doors.map(type=>{const enemy=ACT_ENEMIES[type],stats=enemy?actStats(type,room):null;return{title:typeof actArtName==='function'&&enemy?actArtName(type):run.contentVersion===1&&enemy?contentName(type):type==='rest'&&has('noRest')?'บ่อน้ำพันธะ · เลือกเรลิค':DOORS[type][0],desc:stats?`HP ${stats.hp} · ตี ${stats.damage} ทุก ${stats.interval} ปัด${run.contentVersion===1&&CONTENT_ENEMIES[type]?' · '+CONTENT_ENEMIES[type].mechanic:''}`:type==='shop'?'Common 30 / Rare 50 / Epic 80':type==='rest'&&has('noRest')?'เลือกเรลิคแทนฟื้น HP':DOORS[type][1],art:typeof actArtSource==='function'?actArtSource(type):DOOR_ART[type],kind:DOOR_KIND[type],action:()=>enterDoor(type)};}));
  }
  return beforeActPhase();
 };

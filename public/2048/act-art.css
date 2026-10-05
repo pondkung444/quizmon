@@ -1,0 +1,40 @@
+/* Materials and light extend the existing forest art and number-first runes. */
+body{--act-bg:url('assets/forest-ui.png');--act-accent:#83d9ba;--act-tint:#06232a}
+body[data-act='cave']{--act-bg:url('assets/acts-v1/cave-background.webp');--act-accent:#8bdfff;--act-tint:#091d32}
+body[data-act='sky']{--act-bg:url('assets/acts-v1/sky-background.webp');--act-accent:#d6e9ff;--act-tint:#17344a}
+body[data-act='cave'] main,body[data-act='sky'] main{background:linear-gradient(180deg,#061b2520,var(--act-tint) 65%,#071b24fa),var(--act-bg) center top/100% auto no-repeat}
+body[data-act='cave'] #run-panel,body[data-act='sky'] #run-panel{background:linear-gradient(180deg,#071b24b8,#071b24f5 65%),var(--act-bg) center top/cover fixed}
+body[data-act='cave'] #board,body[data-act='sky'] #board{border-color:var(--act-accent);box-shadow:0 0 0 3px #294a5d,inset 0 0 22px #0008,0 4px 16px #0007}
+.battle .guardian-phase-two{filter:drop-shadow(0 0 7px #d9f7ff) drop-shadow(0 0 16px #e9be67);animation:guardian-glow 1.6s ease-in-out infinite}
+.regional-crystal{background:radial-gradient(ellipse at 50% 80%,#68bfe333,transparent 70%);border:0;box-shadow:none;color:#e7faff}
+.regional-crystal:before{content:'';position:absolute;inset:1%;background:url('assets/acts-v1/crystal-object.webp') center/contain no-repeat;filter:drop-shadow(0 2px 4px #001b2c)}
+.regional-crystal[data-layers='1']:before{filter:saturate(.7) brightness(.8) drop-shadow(0 2px 4px #001b2c)}
+.regional-crystal[data-layers='1']:after{content:'';position:absolute;inset:0;background:url('assets/acts-v1/crack-border.svg') center/contain no-repeat}
+.regional-crystal span{z-index:2;bottom:3%;right:5%;background:#0b2133e8;border:1px solid #b6eaff;border-radius:6px;min-width:18px;text-align:center;font:600 14px Fredoka}
+.regional-warning{border:2px dashed #ffe49b;background:#d6a74a16;color:#fff0c5;font:600 18px Fredoka;box-shadow:inset 0 0 12px #e9bf4c22}
+.tile.regional-cracked{outline:0}
+.tile.regional-cracked:before{background:url('assets/acts-v1/crack-border.svg') center/100% 100% no-repeat;border:0;box-shadow:none;z-index:2}
+.tile.frozen:after{content:'';position:absolute;inset:0;background:url('assets/acts-v1/root-border.svg') center/100% 100% no-repeat;pointer-events:none;z-index:2}
+.tile.frozen:before{border:0;background:none;box-shadow:none}
+.tile.frozen.regional-cracked:before{background:url('assets/acts-v1/crack-border.svg') center/100% 100% no-repeat}
+.regional-crack-count,.ice-count{z-index:5;pointer-events:none;font-size:clamp(10px,3cqw,12px);line-height:1.2}
+.rune-number{z-index:3}
+#regional-status{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:4px 0;max-width:100%}
+.act-status-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid #63879577;border-radius:6px;padding:2px 5px;background:#071e29dc;line-height:1.35}
+.act-status-chip img{width:18px;height:18px;object-fit:contain;flex:none}
+.act-status-chip.poison{border-color:#b18cda;color:#eed9ff}
+.act-art-fx{position:absolute;width:22%;height:22%;z-index:8;pointer-events:none;background:url('assets/acts-v1/shard-burst.svg') center/contain no-repeat;animation:shard-burst .48s ease-out forwards}
+.act-art-fx.crack-rescue{background-image:url('assets/icons/relic-v2/skyGlow.webp');filter:drop-shadow(0 0 6px #a5efff);animation:repair-glow .48s ease-out forwards}
+.act-art-fx.neutral-clear{filter:grayscale(1);opacity:.45}
+.act-art-fx.crystal-hit{opacity:.7}
+.act-status-fx{position:absolute;left:22%;right:22%;top:32%;z-index:10;text-align:center;color:#f7e6b5;border:1px solid #cdb276;border-radius:8px;padding:7px;background:#102d38ed;font-size:12px;pointer-events:none;animation:repair-glow .65s ease-out forwards}
+.act-status-fx.poison-add{color:#ecd2ff;border-color:#b894dd}
+.act-status-fx.poison-cleanse{color:#baf2d7}
+.phase-transition{animation:repair-glow 1s ease-out forwards}
+@keyframes shard-burst{from{opacity:1;scale:.55}to{opacity:0;scale:1.5}}
+@keyframes repair-glow{0%{opacity:0;transform:translateY(5px)}25%{opacity:1}70%{opacity:1}100%{opacity:0;transform:translateY(-7px)}}
+@keyframes guardian-glow{50%{filter:drop-shadow(0 0 10px #c4f3ff) drop-shadow(0 0 21px #e9be67)}}
+@media(prefers-reduced-motion:reduce){.guardian-phase-two,.act-art-fx,.act-status-fx{animation:none!important}.act-art-fx{opacity:.7}}
+
+.battle img.final-guardian{width:53%;height:calc(100% - 4px);object-position:right center}
+.battle img.cave-guardian{width:50%;height:calc(100% - 4px);object-position:right center}

@@ -214,12 +214,12 @@ const CONTENT_ENEMIES={
  cave_guard:{hp:130,damage:16,interval:3,name:'เกราะผลึกถ้ำ',mechanic:'ผลึกช่วยลดดาเมจที่รับ'},
  cave_heavy:{hp:210,damage:25,interval:4,name:'ยักษ์ผลึกถ้ำ',mechanic:'ผลึกเพิ่มพลังหมัด'},
  cave_healer:{hp:70,damage:12,interval:3,name:'ผลึกถ้ำฟื้นตัว',mechanic:'ผลึกฟื้น HP หลังลงมือ'},
- cave_guardian:{hp:1100,damage:28,interval:3,name:'หมีผู้พิทักษ์ผลึก',mechanic:'ผลึกให้เกราะและพลัง · บอสสองเฟส'},
+ cave_guardian:{hp:1100,damage:28,interval:3,name:'หมีภูผาผลึก',mechanic:'ผลึกให้เกราะและพลัง · บอสสองเฟส'},
  sky_light:{hp:90,damage:14,interval:2,name:'ปีกผลึกอ่อน',mechanic:'ตัวเบา · ไม่มีรูนร้าว'},
  sky_haste:{hp:130,damage:18,interval:3,name:'ปีกเร่งลม',mechanic:'ร้าวแตก เร่งหมัดถัดไป'},
  sky_heavy:{hp:210,damage:28,interval:4,name:'ปีกผลึกหนัก',mechanic:'ร้าวแตก ล้างเกราะผู้เล่น'},
  sky_poison:{hp:70,damage:12,interval:3,name:'ปีกหมอกพิษ',mechanic:'ร้าวแตก เพิ่มพิษ'},
- sky_guardian:{hp:1100,damage:30,interval:3,name:'อินทรีผู้พิทักษ์ฟ้า',mechanic:'ร้าวแตก ล้างเกราะ เร่งหมัด และพิษ'}
+ sky_guardian:{hp:1100,damage:30,interval:3,name:'มังกรเจ้านภา',mechanic:'ร้าวแตก ล้างเกราะ เร่งหมัด และพิษ'}
 };
 const contentName=id=>CONTENT_ENEMIES[id]?.name||ENEMY[id]?.name;
 const beforeContentStats=actStats;
