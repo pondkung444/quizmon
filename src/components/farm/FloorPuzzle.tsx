@@ -30,7 +30,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
  function position(e:PointerEvent){const b=board.current!.getBoundingClientRect();return {x:Math.floor((e.clientX-b.left)/b.width*4),y:Math.floor((e.clientY-b.top)/b.height*4)};}
  function down(e:PointerEvent<HTMLButtonElement>,id:string,p?:FloorPlacement){
   if(busy||!e.isPrimary||e.button!==0)return;
-  const pos=position(e),r=p?.rotation??(id===selected?rotation:0);
+  const pos=position(e),r=p?.rotation??layout.find(t=>t.id===id)?.rotation??(id===selected?rotation:0);
   tap.current={id,rotate:!!p||id===selected};
   setSelected(id);setRotation(r);suppress.current=false;
   gesture.current={id,r,sx:e.clientX,sy:e.clientY,dx:p?pos.x-p.x:0,dy:p?pos.y-p.y:0,moved:false};
@@ -47,7 +47,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
   if(g.moved){const pos=position(e),p=target(e,g);if(pos.x>=0&&pos.x<4&&pos.y>=0&&pos.y<4)place(p.x,p.y,p.id,p.rotation);else setHint("ปล่อยกระเบื้องในพื้นห้องเพื่อวาง");suppress.current=true;}
   gesture.current=null;setGhost(null);
  }
- function click(id:string,placed:boolean){if(suppress.current){suppress.current=false;return;}if(placed||(tap.current?.id===id?tap.current.rotate:id===selected))rotate(id);else{setSelected(id);setRotation(layout.find(p=>p.id===id)?.rotation??0);}tap.current=null;}
+ function click(id:string,placed:boolean){if(suppress.current){suppress.current=false;tap.current=null;return;}if(placed||(tap.current?.id===id?tap.current.rotate:id===selected))rotate(id);else{setSelected(id);setRotation(layout.find(p=>p.id===id)?.rotation??0);}tap.current=null;}
  const handlers=(id:string,p?:FloorPlacement)=>({onPointerDown:(e:PointerEvent<HTMLButtonElement>)=>down(e,id,p),onPointerMove:move,onPointerUp:up,onPointerCancel:()=>{gesture.current=null;setGhost(null);suppress.current=true;}});
  const covered=new Set(layout.flatMap(p=>floorCells(p.id,p.rotation).map(([x,y])=>(p.x+x)+","+(p.y+y))));
  return <div hidden={screenHidden} className={screenHeader?styles.gameScreen:undefined}>{screenHeader&&<header className={styles.gameHeader}>{screenHeader}</header>}<div className={styles.puzzle}>
@@ -81,6 +81,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
   <p className={styles.help}>วาง หมุน และย้ายได้เต็มที่ จะตรวจเมื่อกดปุ่มเท่านั้น</p>
  </div></div>;
 }
+
 
 
 
