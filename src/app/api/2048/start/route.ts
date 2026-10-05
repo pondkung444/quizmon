@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
   if (body.journeyVersion !== undefined && body.journeyVersion !== 1) {
     return NextResponse.json({ error: "รุ่นการเดินทางไม่รองรับ" }, { status: 400, headers });
   }
-  if (body.mechanicsVersion !== undefined && (body.mechanicsVersion !== 1 || body.journeyVersion !== 1)) {
+  if (body.mechanicsVersion !== undefined && body.mechanicsVersion !== 1) {
     return NextResponse.json({ error: "รุ่นกลไกไม่รองรับ" }, { status: 400, headers });
   }
-  if (body.contentVersion !== undefined && (body.contentVersion !== 1 || body.mechanicsVersion !== 1 || body.journeyVersion !== 1)) {
+  if (body.contentVersion !== undefined && body.contentVersion !== 1) {
     return NextResponse.json({ error: "รุ่นเนื้อหาไม่รองรับ" }, { status: 400, headers });
   }
   try {
@@ -41,9 +41,8 @@ export async function POST(request: NextRequest) {
     try { bank = await forestQuestions(user.id); }
     catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "โหลดคำถามไม่สำเร็จ" }, { status: 503, headers }); }
     const snapshotAt = new Date().toISOString(), seed = randomBytes(4).readUInt32LE();
-    // Tabs loaded before the update still run v3 JavaScript; only refreshed clients request v4.
-    const balanceVersion = body.balanceVersion === 4 ? 4 : 3;
-    const journey = body.journeyVersion === 1 ? {journeyVersion:1,...(body.mechanicsVersion===1?{mechanicsVersion:1}:{}),...(body.contentVersion===1?{contentVersion:1}:{})} : {endlessVersion:1};
+    const balanceVersion = 4;
+    const journey = {journeyVersion:1,mechanicsVersion:1,contentVersion:1};
     const engine_state = newReplay({version:3,runeVersion:1,balanceVersion,...journey,relicVersion:1,
       skillVersion:1,accountId:user.id,companion,...bank,snapshotAt,formulaVersion:1,hero:companion.lane,
       seed,routeSeed:seed,room:1,coins:0,relics:[],phase:'battle',revived:false,echo:false,started:Date.now(),history:[]});

@@ -13,10 +13,10 @@ export async function GET(request:NextRequest){
   const admin=createAdminClient();
   const page=Number(request.nextUrl.searchParams.get('page')||0);
   if(!Number.isSafeInteger(page)||page<0||page>100000)return json({error:'หน้าอันดับไม่ถูกต้อง'},400);
-  const {data:board,error}=await admin.rpc('forest2048_board',{p_user:user?.id??null,p_page:page});
+  const {data:board,error}=await admin.rpc('forest2048_acts_board',{p_user:user?.id??null,p_page:page});
   if(error)throw error;
   if(!user)return json({board});
-  const {data:stats,error:statsError}=await admin.rpc('forest2048_stats',{p_user:user.id});
+  const {data:stats,error:statsError}=await admin.rpc('forest2048_acts_stats',{p_user:user.id});
   if(statsError)throw statsError;
   return json({board,stats});
  }catch{return json({error:'โหลดอันดับไม่สำเร็จ ลองใหม่อีกครั้ง'},503);}

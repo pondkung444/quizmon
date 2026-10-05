@@ -5,7 +5,7 @@ const companion={id:petId,stage:4,eggPrefix:'egg1',lane:'math',personality:'A',c
 function route(file,mocks){const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;const module={exports:{}};vm.runInNewContext(code,{module,exports:module.exports,require:name=>name in mocks?mocks[name]:require(name),Headers,console,Buffer,Date});return module.exports;}
 const next={'next/server':{NextResponse:{json:(body,options={})=>({body,status:options.status||200,headers:options.headers})}}};
 function request(body,method='POST'){return{headers:new Headers({origin:'https://fixture.test'}),nextUrl:new URL('https://fixture.test/api/2048'),json:async()=>body,text:async()=>JSON.stringify(body),method};}
-test('real start handler negotiates new/old clients and rejects unsupported versions before writes',async()=>{
+test('real start handler always creates current three acts and rejects unsupported versions before writes',async()=>{
  const saved=[],api=route('src/app/api/2048/start/route.ts',{...next,
  '@/lib/supabase/server':{createClient:async()=>({auth:{getUser:async()=>({data:{user:{id:userId}}})}})},
  '@/lib/forest2048/companions':{ownedForestPets:async()=>[{}],forestCompanion:()=>companion},
@@ -13,12 +13,23 @@ test('real start handler negotiates new/old clients and rejects unsupported vers
  '@/lib/forest2048/replay':replayModule,
  '@/lib/supabase/admin':{createAdminClient:()=>({from:()=>({insert:value=>{saved.push(value);return{select:()=>({single:async()=>({data:{id:runId}})})};}})})}});
  const acts=await api.POST(request({petId,journeyVersion:1,balanceVersion:4}));assert.equal(acts.status,200);assert.equal(acts.body.initial.run.journeyVersion,1);assert.equal(acts.body.initial.run.endlessVersion,undefined);assert.equal(acts.body.initial.run.phase,'doors');assert.equal(acts.body.initial.run.room,0);assert.equal(saved[0].user_id,userId);
- const old=await api.POST(request({petId}));assert.equal(old.status,200);assert.equal(old.body.initial.run.endlessVersion,1);assert.equal(old.body.initial.run.journeyVersion,undefined);assert.equal(old.body.initial.run.balanceVersion,3);assert.equal(old.body.initial.run.phase,'battle');
+ const old=await api.POST(request({petId}));assert.equal(old.status,200);assert.equal(old.body.initial.run.endlessVersion,undefined);assert.equal(old.body.initial.run.journeyVersion,1);assert.equal(old.body.initial.run.balanceVersion,4);assert.equal(old.body.initial.run.phase,'doors');
  const invalid=await api.POST(request({petId,journeyVersion:2}));assert.equal(invalid.status,400);assert.equal(saved.length,2);
- for(const body of [{petId,journeyVersion:1,mechanicsVersion:2},{petId,mechanicsVersion:1}])assert.equal((await api.POST(request(body))).status,400);
+ for(const body of [{petId,journeyVersion:1,mechanicsVersion:2},{petId,contentVersion:2}])assert.equal((await api.POST(request(body))).status,400);
  assert.equal(saved.length,2);
- const mechanics=await api.POST(request({petId,journeyVersion:1,mechanicsVersion:1,balanceVersion:4}));assert.equal(mechanics.status,200);assert.equal(mechanics.body.initial.run.mechanicsVersion,1);assert.equal(acts.body.initial.run.mechanicsVersion,undefined);
- const content=await api.POST(request({petId,journeyVersion:1,mechanicsVersion:1,contentVersion:1,balanceVersion:4}));assert.equal(content.status,200);assert.equal(content.body.initial.run.contentVersion,1);assert.equal(content.body.initial.state.cfg.contentVersion,1);const count=saved.length;for(const body of [{petId,contentVersion:1},{petId,journeyVersion:1,contentVersion:1},{petId,journeyVersion:1,mechanicsVersion:1,contentVersion:2}])assert.equal((await api.POST(request(body))).status,400);assert.equal(saved.length,count);
+ const mechanics=await api.POST(request({petId,mechanicsVersion:1}));assert.equal(mechanics.status,200);assert.equal(mechanics.body.initial.run.mechanicsVersion,1);assert.equal(acts.body.initial.run.mechanicsVersion,1);
+ const content=await api.POST(request({petId,contentVersion:1}));assert.equal(content.status,200);assert.equal(content.body.initial.run.contentVersion,1);assert.equal(content.body.initial.state.cfg.contentVersion,1);const count=saved.length;assert.equal((await api.POST(request({petId,journeyVersion:1,mechanicsVersion:1,contentVersion:2}))).status,400);assert.equal(saved.length,count);
+});
+test('real leaderboard handler reads only the three-act board and private stats with validated pagination',async()=>{
+ let user=userId;const calls=[];
+ const api=route('src/app/api/2048/competition/route.ts',{...next,
+ '@/lib/supabase/server':{createClient:async()=>({auth:{getUser:async()=>({data:{user:user?{id:user}:null}})}})},
+ '@/lib/forest2048/replay':replayModule,
+ '@/lib/supabase/admin':{createAdminClient:()=>({rpc:async(name,args)=>{calls.push({name,args});return {data:name.endsWith('board')?{leaders:[],mine:null,players:0}:{best:30}};}})}});
+ const req=request(null,'GET');req.nextUrl.searchParams.set('page','2');assert.equal((await api.GET(req)).status,200);
+ assert.deepEqual(calls.map(c=>c.name),['forest2048_acts_board','forest2048_acts_stats']);assert.equal(calls[0].args.p_page,2);assert.equal(calls[1].args.p_user,userId);
+ calls.length=0;user=null;assert.equal((await api.GET(req)).status,200);assert.equal(calls.length,1);assert.equal(calls[0].args.p_user,null);
+ req.nextUrl.searchParams.set('page','-1');assert.equal((await api.GET(req)).status,400);assert.equal(calls.length,1);
 });
 test('real checkpoint handler records early exits, deduplicates retries, enforces owner and isolates board',async()=>{
  let currentUser=userId;const initial=replayModule.newReplay({version:3,journeyVersion:1,relicVersion:1,runeVersion:1,skillVersion:1,balanceVersion:4,accountId:userId,companion,questions,hero:'math',seed:123,routeSeed:123,coins:0,relics:[],revived:false,history:[]});
