@@ -18,7 +18,7 @@ function gameplay(s){const r=s.run,b=s.state;return{room:r.room,phase:r.phase,se
 try{browser=await chromium.launch({channel:'msedge',headless:true});for(const [index,width]of [320,390,430].entries()){
  const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true}),page=await context.newPage(),pageErrors=[];activePage=page;page.on('pageerror',e=>pageErrors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port+'/2048/?journey=three-acts');
- await page.getByRole('button',{name:'เลือกคู่หู · ทดลอง 3 ด่าน',exact:true}).click();await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='battle'&&regionalActive(state));
+ await page.getByRole('button',{name:'เลือกคู่หู · เริ่ม 3 ด่าน',exact:true}).click();await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='battle'&&regionalActive(state));
  const observed={warning:false,crystal:false,crack:false,poison:false,phase2:false,roots:false},enemy=scenarios[index];
  for(let step=0;step<100;step++){
   const observation=await page.evaluate(()=>({warning:!!state.hazards?.warning,crystal:!!state.hazards?.crystals.length,crack:state.board.some(t=>t?.crack),poison:!!state.poison,phase2:state.hazards?.bossPhase===2,roots:state.board.some(t=>t?.f)}));

@@ -1,0 +1,32 @@
+[
+  {
+    "width": 320,
+    "rooms": 30,
+    "battles": 19,
+    "bosses": 3,
+    "revision": 114,
+    "pageErrors": [],
+    "clientServerEqual": true,
+    "leaderboardRooms": 30
+  },
+  {
+    "width": 390,
+    "rooms": 30,
+    "battles": 19,
+    "bosses": 3,
+    "revision": 114,
+    "pageErrors": [],
+    "clientServerEqual": true,
+    "leaderboardRooms": 30
+  },
+  {
+    "width": 430,
+    "rooms": 30,
+    "battles": 19,
+    "bosses": 3,
+    "revision": 114,
+    "pageErrors": [],
+    "clientServerEqual": true,
+    "leaderboardRooms": 30
+  }
+]

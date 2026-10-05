@@ -18,4 +18,4 @@ render=function(){beforeRegionalRender();let hud=document.querySelector('#region
  if(state.enemy==='stag')document.querySelector('#intent-power').textContent='พลัง '+enemyDamage(state)+' · พันราก '+(h.bossPhase===2?3:2)+' รูน';
 };
 const beforeRegionalHome=showHome;
-showHome=function(){beforeRegionalHome();if(actPreviewRequested()){const note=document.querySelector('.forest-note');if(note)note.textContent='ฉบับทดลอง · ผลึกถ้ำ รูนร้าว พิษ และบอสสองเฟส · ผลรอบนี้ไม่รวมอันดับ Endless';}};
+showHome=function(){beforeRegionalHome();if(actPreviewRequested()){const note=document.querySelector('.forest-note');if(note)note.textContent='ฉบับทดลอง · จัดอันดับจากห้องที่ผ่าน / 30 · ไกลเท่ากันได้อันดับร่วม';}};

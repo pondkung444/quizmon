@@ -33,6 +33,7 @@ import BgmMuteButton from "@/components/audio/BgmMuteButton";
 import SelfServePlanCard from "@/components/SelfServePlanCard";
 import { RecentPremiumOrderBanner } from "@/components/PremiumOrderBanner";
 import HomeNextAction from "@/components/HomeNextAction";
+import Forest2048Entry from "@/components/Forest2048Entry";
 import { resolveNextAction } from "@/lib/nextAction";
 import { getPvpBadgeCount } from "@/lib/pvp";
 
@@ -384,6 +385,7 @@ export default async function PetPage({
           <EggsClient eggs={unhatchedEggs} hasActivePet={false} />
         </div>
       )}
+      {user && <Forest2048Entry />}
       {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (junior ทุกคนเห็น: CTA พรีเมียม / แผนของฉัน / เตือนต่ออายุ — ดู SelfServePlanCard) */}
       {/* ทางเข้าศูนย์ผู้พิทักษ์ (เฟส 1) — แถวเล็ก เฉพาะเด็กที่มีผู้พิทักษ์ claimed, streamed ไม่ถ่วงหน้า */}
       {user && (

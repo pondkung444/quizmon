@@ -1,0 +1,10 @@
+{
+  "project": "monschool",
+  "migration": "forest2048_three_acts_student_board",
+  "applied": true,
+  "rollbackFixtureChecks": ["best run", "shared ranks", "pagination", "personal stats", "service-only execution"],
+  "rollbackComplete": true,
+  "testRecordsRemaining": 0,
+  "isolatedSqlTest": "passed, including legacy Endless exclusion and authenticated role rejection",
+  "automatedChecks": {"regressionSuite": 59, "additionalSqlTest": 1, "failed": 0}
+}

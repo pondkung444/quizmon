@@ -75,24 +75,23 @@ restoreRun=function(saved){oldRestore(saved);if(run.phase==='battle'&&state.stat
 showCompanions=function(){screen='picker';showCompanionPicker(forestAccount,startRun,showHome);};
 showNewRun=function(){if(!forestAccount)return initRun();if(run&&!terminal()){panel('เริ่มรันใหม่?','รันปัจจุบันจะจบลง ผลที่ผ่านยังเก็บไว้ในสถิติ',[{title:'กลับไปเล่นต่อ',action:showPhase},{title:'จบรันนี้แล้วเลือกคู่หูใหม่',action:()=>{track({type:'end'},()=>{run.phase='ended';persist();});showCompanions();}}]);return;}showCompanions();};
 startRun=async function(petId){panel('เตรียมออกสำรวจ','กำลังอ่านสเตตัสและคำถามสำหรับการเดินทาง',[]);try{
- const snapshot=await forestRequest('/api/2048/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({petId,balanceVersion:4,...(new URLSearchParams(location.search).get('journey')==='three-acts'?{journeyVersion:1,mechanicsVersion:1,contentVersion:1}:{})})});
+ const snapshot=await forestRequest('/api/2048/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({petId,balanceVersion:4,journeyVersion:1,mechanicsVersion:1,contentVersion:1})});
  if(snapshot.accountId!==forestAccount?.accountId)throw Error('บัญชีเปลี่ยนแล้ว กรุณาเลือกคู่หูอีกครั้ง');
- if(new URLSearchParams(location.search).get('journey')==='three-acts'&&(snapshot.initial?.run?.journeyVersion!==1||snapshot.initial?.run?.mechanicsVersion!==1||snapshot.initial?.run?.contentVersion!==1))throw Error('การเดินทาง 3 ด่านยังไม่พร้อม กรุณาลองใหม่');
+ if((snapshot.initial?.run?.journeyVersion!==1||snapshot.initial?.run?.mechanicsVersion!==1||snapshot.initial?.run?.contentVersion!==1))throw Error('การเดินทาง 3 ด่านยังไม่พร้อม กรุณาลองใหม่');
  if(snapshot.initial){run=snapshot.initial.run;state=snapshot.initial.state;run.competition={id:snapshot.competition.id};run.runMetrics=snapshot.initial.metrics;
   outbox.push({id:run.competition.id,from:0,events:[]});saveOutbox();persist();updateImages();showPhase();}
- else { // Older saved runs and local art fixtures remain playable without ranking.
-  run={version:3,runeVersion:1,balanceVersion:3,endlessVersion:1,relicVersion:1,skillVersion:1,accountId:snapshot.accountId,companion:snapshot.companion,questions:snapshot.questions,hero:snapshot.companion.lane,seed:Date.now()>>>0,room:1,coins:0,relics:[],phase:'battle',revived:false,started:Date.now(),history:[]};run.routeSeed=run.seed;enterBattle('mushroom');}
+ else {throw Error('การเดินทางยังไม่พร้อม กรุณาโหลดหน้าใหม่');}
  }catch(error){forestError(error);}};
 initRun=async function(){oldPanel('กำลังเปิดป่าผลึก','กำลังอ่านการเดินทางและอันดับ',[]);try{
  forestAccount=await forestRequest('/api/2048/companions');loadOutbox();const saved=savedRun(SAVE+':'+forestAccount.accountId);
- if(saved?.accountId===forestAccount.accountId){run=saved;state=saved.battle;}
+ if(saved?.accountId===forestAccount.accountId&&saved.journeyVersion===1){run=saved;state=saved.battle;}
  showHome();loadCompetition().then(()=>{if(screen==='home')showHome();});flushCompetition();
  }catch(error){forestError(error);}};
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function button(label,action,primary=false){const b=node('button',label,primary?'forest-primary':'forest-secondary');b.onclick=action;return b;}
 function screenContent(label){const target=document.querySelector('#run-content');target.className='forest-screen';target.onclick=target.oninput=target.onchange=null;target.replaceChildren();
  document.querySelector('#run-panel').hidden=false;document.querySelector('main').inert=true;
- const head=node('div',undefined,'forest-heading');head.append(node('span','QUIZMON · ENDLESS'),button('หน้าแรก',showHome));target.append(head,node('h2',label));return target;}
+ const head=node('div',undefined,'forest-heading');head.append(node('span','QUIZMON · ผู้พิทักษ์ผลึก'),button('หน้าแรก',showHome));target.append(head,node('h2',label));return target;}
 function syncNode(){const n=node('small',syncText(),'forest-sync');n.dataset.sync='';return n;}
 function image(path){const n=node('img');n.src=typeof path==='string'&&path.startsWith('/pets/')?path:'/pets/egg1_stage4_math_A.png';n.alt='';return n;}
 function boardRows(target,rows){if(!rows.length){target.append(node('p','ยังไม่มีอันดับ · ผ่านห้องแรกแล้วมาเป็นผู้บุกเบิกกัน'));return;}
@@ -112,7 +111,7 @@ async function showLeaderboard(){screen='leaderboard';await loadCompetition();if
 function metric(target,value,label){const card=node('div',undefined,'forest-metric');card.append(node('strong',String(value)),node('small',label));target.append(card);}
 async function showStats(){screen='stats';await loadCompetition();if(screen!=='stats')return;const t=screenContent('สถิติของฉัน'),s=competitionData.stats;if(!s){t.append(node('p','ยังโหลดสถิติไม่ได้'),button('ลองใหม่',showStats));return;}
  const grid=node('div',undefined,'forest-metrics');metric(grid,s.best,'ผ่านได้ไกลสุด');metric(grid,s.runs,'รันทั้งหมด');metric(grid,s.bosses,'บอสที่ชนะ');metric(grid,s.maxRune,'รูนสูงสุด');t.append(grid,node('h3','การเดินทางล่าสุด'));
- for(const r of s.recent||[]){const item=node('div',undefined,'forest-history');item.append(image(r.companion?.image),node('div',r.companion?.name||'คู่หู'),node('strong',r.rooms+' ห้อง'),node('small',(r.status==='active'?'กำลังเดินทาง':r.status==='failed'?'จบการต่อสู้':'จบรัน')+' · '+new Date(r.date).toLocaleDateString('th-TH')));t.append(item);}t.append(syncNode());}
+ for(const r of s.recent||[]){const item=node('div',undefined,'forest-history');item.append(image(r.companion?.image),node('div',r.companion?.name||'คู่หู'),node('strong',r.rooms+' ห้อง'),node('small',(r.completed?'ผ่านครบ 3 ด่าน':r.status==='active'?'กำลังเดินทาง':r.status==='failed'?'จบการต่อสู้':'จบรัน')+' · '+new Date(r.date).toLocaleDateString('th-TH')));t.append(item);}t.append(syncNode());}
 function showSummary(refresh=true){screen='summary';const t=screenContent('บันทึกการเดินทาง');
  const rooms=distance(),s=competitionData.stats,m=run.runMetrics||{swipes:run.history.reduce((n,r)=>n+(r.moves||0),0)+state.moves,maxRune:Math.max(0,...state.board.filter(Boolean).map(t=>t.v))};
  t.append(node('p',run.phase==='failed'?'คู่หูเหนื่อยแล้ว · กลับมาผจญภัยได้อีกครั้ง':'พักการเดินทางครั้งนี้แล้ว'));

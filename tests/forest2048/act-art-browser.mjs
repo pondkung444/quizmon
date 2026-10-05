@@ -22,7 +22,7 @@ try{
   const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true,reducedMotion}),page=await context.newPage(),pageErrors=[],badRequests=[];activePage=page;
   page.on('pageerror',e=>pageErrors.push(e.message));page.on('response',r=>{if(r.status()>=400)badRequests.push({url:r.url(),status:r.status()});});
   await page.goto('http://127.0.0.1:'+server.address().port+'/2048/?journey=three-acts');
-  await page.getByRole('button',{name:'เลือกคู่หู · ทดลอง 3 ด่าน',exact:true}).click();await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='doors');
+  await page.getByRole('button',{name:'เลือกคู่หู · เริ่ม 3 ด่าน',exact:true}).click();await page.locator('[data-action=start]').click();await page.waitForFunction(()=>run?.phase==='doors');
   await page.locator('#run-content .choice').first().click();
   // Art fixtures isolate display checks; full gameplay/server parity lives in acts-browser.
   await page.evaluate(()=>{run.competition=null;outbox=[];});
