@@ -5,10 +5,10 @@ import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { explainBattleError } from "@/lib/teamBattle/errors";
 import { teacherRpc } from "@/lib/teamBattle/rpc";
-import type { BattleState, TeamId } from "@/lib/teamBattle/types";
+import { toCentralView } from "@/lib/teamBattle/types";
 import { useTeamBattleState } from "@/lib/teamBattle/useTeamBattleState";
 import { useTeamBattleTicker } from "@/lib/teamBattle/useTeamBattleTicker";
-import ActivePanel from "./ActivePanel";
+import BattleCentral from "./BattleCentral";
 import CreatePanel from "./CreatePanel";
 import TeamSplitPanel from "./TeamSplitPanel";
 
@@ -108,71 +108,27 @@ function BattleRoom({
     );
   }
 
-  if (status === "active") {
-    return (
-      <>
-        <ActivePanel
-          state={state}
-          clock={clock}
-          ending={ending}
-          onEnd={async () => {
-            setEnding(true);
-            setActionError(null);
-            try {
-              await teacherRpc.endBattle(battleId);
-              await refetch();
-            } catch (e) {
-              setActionError(explainBattleError(e).message);
-            } finally {
-              setEnding(false);
-            }
-          }}
-        />
-        {actionError && <p className="mt-3 rounded-xl bg-red/10 px-4 py-3 text-sm text-red">{actionError}</p>}
-      </>
-    );
-  }
-
-  return <FinishedPanel state={state} onNew={onReset} />;
-}
-
-const TEAM_NAME: Record<TeamId, string> = { a: "ทีม A", b: "ทีม B" };
-
-function FinishedPanel({ state, onNew }: { state: BattleState; onNew: () => void }) {
-  const b = state.battle;
-  const abandoned = b.status === "abandoned";
-  const headline = abandoned
-    ? "เกมนี้ถูกปิดแล้ว"
-    : b.outcome === "draw"
-      ? "เสมอกัน! ทั้งสองทีมเก่งมาก"
-      : b.outcome === "a_win" || b.outcome === "b_win"
-        ? `${TEAM_NAME[b.outcome === "a_win" ? "a" : "b"]}ได้คะแนนนำเมื่อจบเกม — ทุกคนทำได้ดีมาก`
-        : "จบเกมแล้ว";
-  const reason =
-    b.ended_reason === "hp_zero"
-      ? "พลังชีวิตของอีกทีมหมดลงแล้ว"
-      : b.ended_reason === "time_up"
-        ? "หมดเวลาเกม"
-        : b.ended_reason === "host_ended"
-          ? "ครูจบเกม"
-          : null;
-
+  // active + finished/abandoned → จอกลางเต็มจอ (รับ CentralBattleView ที่ตัด user_id ออกแล้ว)
   return (
-    <section className="mt-6 rounded-3xl border border-gold-dim bg-card p-6 text-center" data-testid="finished-panel">
-      <p className="text-2xl font-bold text-gold-hi">{headline}</p>
-      {reason && <p className="mt-1 text-sm text-text2">{reason}</p>}
-      {!abandoned && (
-        <p className="mt-3 text-sm text-text3">
-          ทีม A {b.hp_a ?? 0} · ทีม B {b.hp_b ?? 0}
-        </p>
-      )}
-      <button
-        type="button"
-        onClick={onNew}
-        className="mt-5 rounded-2xl border border-gold bg-amber px-6 py-3 text-lg font-bold text-on-amber transition active:scale-95"
-      >
-        เริ่มเกมใหม่
-      </button>
-    </section>
+    <BattleCentral
+      view={toCentralView(state)}
+      clock={clock}
+      ending={ending}
+      error={actionError}
+      backHref={`/teacher/${sessionId}`}
+      onNew={onReset}
+      onEnd={async () => {
+        setEnding(true);
+        setActionError(null);
+        try {
+          await teacherRpc.endBattle(battleId);
+          await refetch();
+        } catch (e) {
+          setActionError(explainBattleError(e).message);
+        } finally {
+          setEnding(false);
+        }
+      }}
+    />
   );
 }
