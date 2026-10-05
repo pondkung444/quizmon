@@ -1,0 +1,44 @@
+-- Fixtures are inserted and rolled back; never alter an existing school or pet.
+begin;
+do $$
+declare u uuid; v uuid; p uuid; egg uuid; p2 uuid; result jsonb; stamp text; amount integer;
+begin
+ select user_id into u from public.pets where user_id not in(select user_id from public.farm_school_projects) limit 1;
+ select user_id into v from public.pets where user_id<>u limit 1;
+ if u is null or v is null then raise exception 'Need two fixture owners'; end if;
+ insert into public.pets(user_id,egg_type_id,stage,is_active) select u,id,2,false from public.egg_types limit 1 returning id into p;
+ insert into public.pets(user_id,egg_type_id,stage,is_active) select u,id,1,false from public.egg_types limit 1 returning id into egg;
+ insert into public.pets(user_id,egg_type_id,stage,is_active) select u,id,2,false from public.egg_types limit 1 returning id into p2;
+ begin perform public.farm_discover_blueprint(u,p,'garden-rest-v1'); raise exception 'TEST no school accepted';
+ exception when others then if sqlerrm not like 'วางโรงเรียน%' then raise; end if; end;
+ insert into public.farm_school_projects(user_id,status) values(u,'ready');
+ begin perform public.farm_discover_blueprint(u,p,'garden-rest-v1'); raise exception 'TEST unplaced accepted';
+ exception when others then if sqlerrm not like 'วางโรงเรียน%' then raise; end if; end;
+ update public.farm_school_projects set status='placed',tile_x=1,tile_y=1 where user_id=u;
+ begin perform public.farm_discover_blueprint(u,egg,'garden-rest-v1'); raise exception 'TEST egg accepted';
+ exception when others then if sqlerrm not like 'เลือก Qmon%' then raise; end if; end;
+ begin perform public.farm_discover_blueprint(u,(select id from public.pets where user_id=v limit 1),'garden-rest-v1'); raise exception 'TEST foreign accepted';
+ exception when others then if sqlerrm not like 'เลือก Qmon%' then raise; end if; end;
+ begin perform public.farm_discover_blueprint(u,p,'unknown'); raise exception 'TEST unknown blueprint';
+ exception when others then if sqlerrm not like 'แบบสร้าง%' then raise; end if; end;
+ execute 'set local role service_role';
+ result:=public.farm_discover_blueprint(u,p,'garden-rest-v1');
+ execute 'reset role';
+ if result->>'created'<>'true' then raise exception 'First discovery failed'; end if;
+ stamp:=result#>>'{discovery,completed_at}';
+ result:=public.farm_discover_blueprint(u,p2,'garden-rest-v1');
+ if result->>'created'<>'false' or result#>>'{discovery,completed_at}'<>stamp or result#>>'{discovery,pet_id}'<>p::text then raise exception 'Replay changed credit'; end if;
+ if (select count(*) from public.farm_blueprint_discoveries where user_id=u)<>1 then raise exception 'Duplicate discovery'; end if;
+ if has_table_privilege('authenticated','public.farm_blueprint_discoveries','INSERT') or has_table_privilege('anon','public.farm_blueprint_discoveries','SELECT') or has_function_privilege('authenticated','public.farm_discover_blueprint(uuid,uuid,text)','EXECUTE') then raise exception 'Client writes exposed'; end if;
+ perform set_config('request.jwt.claim.sub',u::text,true);
+ execute 'set local role authenticated';
+ select count(*) into amount from public.farm_blueprint_discoveries where user_id=u;
+ if amount<>1 then raise exception 'Owner read failed'; end if;
+ perform set_config('request.jwt.claim.sub',v::text,true);
+ select count(*) into amount from public.farm_blueprint_discoveries where user_id=u;
+ if amount<>0 then raise exception 'Foreign owner visible'; end if;
+ begin perform public.farm_discover_blueprint(u,p,'garden-rest-v1'); raise exception 'TEST client RPC exposed';
+ exception when insufficient_privilege then null; end;
+ execute 'reset role';
+end $$;
+rollback;

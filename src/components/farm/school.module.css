@@ -90,3 +90,4 @@
  .gameScreen .room {container-type:size;}
  .gameScreen .floorSurface {width:min(100%,calc(100cqh - 50px));}
 }
+.back {display:inline-flex;align-items:center;min-height:44px;margin-top:8px;color:var(--color-gold-hi);font-size:13px;}
