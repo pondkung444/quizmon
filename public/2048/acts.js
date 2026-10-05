@@ -50,20 +50,23 @@ function actDoors(room){
 }
 function actStats(enemy,room){const act=actDefinition(room),base=ENEMY[enemy];if(!act||!ACT_ENEMIES[enemy]||ACT_ENEMIES[enemy].act!==actNumber(room))throw Error('ศัตรูไม่อยู่ในด่านนี้');
  const gentle=actNumber(room)===1&&actLocalRoom(room)<=3;
- return{hp:Math.round(base.hp*act.growth),damage:Math.round((gentle?({mushroom:10,beetle:13}[enemy]??base.damage):base.damage)*act.growth),interval:base.interval};
+ return{hp:Math.round(base.hp*act.growth),damage:Math.round((gentle?({mushroom:10,beetle:13}[enemy]??base.damage):base.damage)*act.growth),interval:run.mechanicsVersion===1&&enemy==='stag'?4:base.interval};
 }
 function initActJourney(){
  if(run.endlessVersion===1)throw Error('รุ่นการเดินทางขัดกัน');
  run.room=0;run.serviceCounts={};run.journeyLog=[];run.phase='doors';
- const cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion)};
- state=fresh(run.hero,'mushroom',cfg);state.board=Array(16).fill(null);delete state.relic;
+ const cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),mechanicsVersion:run.mechanicsVersion};
+ state=fresh(run.hero,'mushroom',cfg);state.board=Array(16).fill(null);delete state.relic;delete state.hazards;
+ if(run.mechanicsVersion===1)regionalState(state);
  actRecord('start');makeDoors();return state;
 }
 const beforeActSavedRun=savedRun;
 savedRun=function(key){let saved;try{saved=JSON.parse(localStorage.getItem(key));}catch{return null;}
  if(saved?.journeyVersion!==undefined&&saved.journeyVersion!==ACT_JOURNEY_VERSION)return null;
+ if(saved?.mechanicsVersion!==undefined&&(saved.mechanicsVersion!==1||saved.journeyVersion!==1))return null;
  if(saved?.journeyVersion!==ACT_JOURNEY_VERSION)return beforeActSavedRun(key);
  if(saved.endlessVersion===1||saved.version!==3||!Number.isInteger(saved.room)||saved.room<0||saved.room>30||!saved.companion?.config||!Array.isArray(saved.questions)||saved.questions.length<3||!Array.isArray(saved.history)||!Array.isArray(saved.relics)||!Array.isArray(saved.battle?.board)||saved.battle.board.length!==16||!saved.serviceCounts||(saved.phase==='doors'&&(!Array.isArray(saved.doors)||!saved.doors.length)))return null;
+ if(saved.mechanicsVersion===1&&!regionalValidSave(saved.battle))return null;
  return saved;
 };
 const beforeActEligible=relicEligible;
@@ -79,11 +82,12 @@ function actRewardOffers(nextAct){
 const beforeActEnter=enterBattle;
 enterBattle=function(enemy){
  if(!isActJourney())return beforeActEnter(enemy);
- const previous=state,stats=actStats(enemy,run.room),cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),enemyHp:stats.hp,damage:stats.damage,interval:stats.interval,relicVersion:run.relicVersion,relics:[...run.relics],relicShadow:has('shadow'),relicSpark:false};
+ const previous=state,stats=actStats(enemy,run.room),cfg={...BASE,...run.companion.config,rune:run.companion.eggPrefix,skillVersion:run.skillVersion,autoSkill:skillIdentity(run.companion),enemyHp:stats.hp,damage:stats.damage,interval:stats.interval,relicVersion:run.relicVersion,relics:[...run.relics],relicShadow:has('shadow'),relicSpark:false,mechanicsVersion:run.mechanicsVersion};
  state=fresh(run.hero,enemy,cfg);state.board=run.room>1?cleanFrom(previous.board):Array(16).fill(null);state.hp=previous.hp;state.charge=previous.charge;
  // fresh() makes demonstration tiles with Math.random, including a queued rune.
  // Discard that queue before spawning any journey tiles with the replay seed.
  delete state.relic;
+ delete state.hazards;if(run.mechanicsVersion===1)for(const t of state.board)if(t){delete t.uid;delete t.bornMove;delete t.crack;}
  while(state.board.filter(Boolean).length<2)spawn(state,rng);
  state.cfg.skillBase={...cfg};delete state.cfg.skillBase.skillBase;
  const rs=relicState(state);rs.autoCount=run.relicAutoCount||0;rs.direction=DIRS[Math.floor(rng()*4)];rs.nextRune=relicRune(state,rng);
@@ -120,7 +124,7 @@ settleRun=function(){
  run.coins+=local===4?45:20;
  run.history.push({room:run.room,act,localRoom:local,type:state.enemy,battle:true,boss,moves:state.moves,hp:state.hp});actRecord('win',{enemy:state.enemy,boss,hp:state.hp});
  if(boss){
-  state.board.forEach(t=>{if(t)t.f=0;});state.armor=0;delete state.hazards;delete state.poison;
+  state.board.forEach(t=>{if(t)t.f=0;});state.armor=0;if(run.mechanicsVersion!==1)delete state.hazards;delete state.poison;
   if(act===3){run.phase='complete';actRecord('complete');persist();showPhase();return;}
   state.hp=Math.min(state.cfg.hp,state.hp+Math.ceil(state.cfg.hp*.5));
   run.phase='relic';run.rewardRemaining=1;run.rewardNextAct=act+1;run.offers=actRewardOffers(ACTS[act]);actRecord('actReward',{nextAct:act+1,hp:state.hp});

@@ -1,0 +1,8 @@
+.regional-object{position:absolute;width:22%;height:22%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:4;border-radius:12%;font-size:clamp(20px,7vw,38px)}
+.regional-crystal{color:#d9faff;background:linear-gradient(135deg,#86d8df,#164f6e 55%,#071c38);border:2px solid #a8efff;box-shadow:inset 0 0 12px #d7fbff55}
+.regional-crystal span{position:absolute;bottom:3px;right:5px;font-size:13px;color:#fff}
+.regional-warning{border:2px dashed #ffe69a;color:#ffe69a;background:#fff0a015;font-size:18px}
+.tile.regional-cracked{outline:2px solid #f9c481;outline-offset:-3px}
+.tile.regional-cracked:before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 45%,#ffdb9766 47%,transparent 50%,#ffe8be99 52%,transparent 55%)}
+.regional-crack-count{position:absolute;right:2px;top:2px;font-size:11px;background:#422715;color:#ffe7ae;border-radius:4px;padding:1px 3px;z-index:5}
+#regional-status{font-size:11px;line-height:1.6;color:#f5dea5;margin:7px 0;overflow-wrap:anywhere}

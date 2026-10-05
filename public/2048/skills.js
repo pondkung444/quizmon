@@ -45,6 +45,6 @@ function autoCast(s,rng=Math.random){if(!skillInfo(s)||s.status!=='playing'||s.c
  case'egg3':switch(i){case 0:autoHit(s,p.a*2);autoBuff(s,'rune',{attack:1});break;case 1:s.armor+=Math.floor(p.d*1.2);autoMark(s,'number',rng);break;case 2:autoHit(s,p.a);for(const j of autoTargets(s,t=>t.t!=='x',3)){convertRune(s,j);awakenRune(s,j);}break;case 3:autoMark(s,'garden',rng);break;case 4:autoHit(s,p.a*1.6);for(const j of autoTargets(s,()=>true,3))autoRaise(s.board[j]);break;case 5:s.armor+=Math.floor(p.d*1.2);autoMark(s,'blessing',rng);break;}break;
  }
  a.serial++;a.event={serial:a.serial,name:skillInfo(s)[0],egg,index:i,move:s.moves};log(s,'✦ Auto: '+a.event.name);
- if(s.cfg.relicShadow){const ids=autoTargets(s,()=>true,16),empty=s.board.map((t,i)=>t?null:i).filter(i=>i!==null);if(ids.length&&empty.length){const t=s.board[ids[ids.length-1]];s.board[empty[Math.floor(rng()*empty.length)]]={t:t.t,v:Math.min(16,t.v),f:0};}}
+ if(s.cfg.relicShadow){const ids=autoTargets(s,()=>true,16),empty=s.board.map((t,i)=>t?null:i).filter(i=>i!==null&&!(typeof regionalCell==='function'&&regionalCell(s,i)));if(ids.length&&empty.length){const t=s.board[ids[ids.length-1]];s.board[empty[Math.floor(rng()*empty.length)]]={t:t.t,v:Math.min(16,t.v),f:0};}}
  finish(s);return true;
 }
