@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { replay, replayResult, type ForestEvent } from '@/lib/forest2048/replay';
+import { replay, replayResult, checkpointResult, type ForestEvent } from '@/lib/forest2048/replay';
 
 export const runtime='nodejs';
 const headers={'Cache-Control':'private, no-store'};
@@ -43,13 +43,13 @@ export async function POST(request:NextRequest){
    if(error)throw error;if(!row)return json({error:'ไม่พบการเดินทางนี้'},404);
    if(body.from>row.revision)return json({error:'ลำดับการเล่นไม่ตรงกัน',revision:row.revision},409);
    const events=body.events.slice(row.revision-body.from);
-   if(!events.length)return json({revision:row.revision,rooms:row.completed_rooms,status:row.status});
+   if(!events.length)return json({revision:row.revision,...replayResult(row.engine_state)});
    if(row.status!=='active')return json({error:'การเดินทางนี้จบแล้ว',revision:row.revision},409);
    if(row.engine_version!==1)return json({error:'รุ่นการเดินทางไม่รองรับ'},409);
    let snapshot;try{snapshot=replay(row.engine_state,events);}catch(error){return json({error:error instanceof Error?error.message:'การเล่นไม่ถูกต้อง'},422);}
-   const result=replayResult(snapshot),next=row.revision+events.length;
+   const result=replayResult(snapshot),stored=checkpointResult(snapshot),next=row.revision+events.length;
    const {data:accepted,error:saveError}=await admin.rpc('forest2048_checkpoint',{p_id:row.id,p_user:user.id,p_revision:row.revision,p_next:next,
-    p_state:snapshot,p_rooms:result.rooms,p_swipes:result.swipes,p_rune:result.maxRune,p_bosses:result.bosses,p_status:result.status});
+    p_state:snapshot,p_rooms:stored.rooms,p_swipes:stored.swipes,p_rune:stored.maxRune,p_bosses:stored.bosses,p_status:stored.status});
    if(saveError)throw saveError;
    if(accepted)return json({revision:next,...result});
   }

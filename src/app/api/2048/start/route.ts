@@ -7,6 +7,7 @@ import { newReplay } from "@/lib/forest2048/replay";
 import { randomBytes } from "node:crypto";
 
 const headers = { "Cache-Control": "private, no-store" };
+export const runtime = 'nodejs';
 
 // This endpoint reads an owned pet and creates a competition snapshot. It never writes
 // counters, EXP, currencies, gear, or the original pet stat snapshot.
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body.petId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.petId)) {
     return NextResponse.json({ error: "กรุณาเลือกคู่หู" }, { status: 400, headers });
+  }
+  if (body.journeyVersion !== undefined && body.journeyVersion !== 1) {
+    return NextResponse.json({ error: "รุ่นการเดินทางไม่รองรับ" }, { status: 400, headers });
   }
   try {
     const supabase = await createClient();
@@ -33,7 +37,8 @@ export async function POST(request: NextRequest) {
     const snapshotAt = new Date().toISOString(), seed = randomBytes(4).readUInt32LE();
     // Tabs loaded before the update still run v3 JavaScript; only refreshed clients request v4.
     const balanceVersion = body.balanceVersion === 4 ? 4 : 3;
-    const engine_state = newReplay({version:3,runeVersion:1,balanceVersion,endlessVersion:1,relicVersion:1,
+    const journey = body.journeyVersion === 1 ? {journeyVersion:1} : {endlessVersion:1};
+    const engine_state = newReplay({version:3,runeVersion:1,balanceVersion,...journey,relicVersion:1,
       skillVersion:1,accountId:user.id,companion,...bank,snapshotAt,formulaVersion:1,hero:companion.lane,
       seed,routeSeed:seed,room:1,coins:0,relics:[],phase:'battle',revived:false,echo:false,started:Date.now(),history:[]});
     const admin = createAdminClient();
