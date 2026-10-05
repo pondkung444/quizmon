@@ -13,6 +13,7 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
   const [selected,setSelected]=useState("");
   const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
   const [practice,setPractice]=useState(false);
+  const [puzzleOpen,setPuzzleOpen]=useState(true);
   const [clock,setClock]=useState(()=>Date.parse(serverNow));
   const [anchor,setAnchor]=useState(()=>({server:Date.parse(serverNow),local:Date.now()}));
   useEffect(()=>{const timer=setInterval(()=>setClock(anchor.server+Date.now()-anchor.local),500);return()=>clearInterval(timer);},[anchor]);
@@ -30,7 +31,7 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
       if(result.error){setMessage(result.error);return;}
       if(result.project)setProject(result.project);
       if(result.serverNow){const now=Date.parse(result.serverNow);setClock(now);setAnchor({server:now,local:Date.now()});}
-      setMessage(result.message ?? "");setPractice(false);setSelected("");
+      setMessage(result.message ?? "");setPractice(false);setPuzzleOpen(true);setSelected("");
     } catch {setMessage("เชื่อมต่อไม่สำเร็จ ลองใหม่ได้ ความคืบหน้าเดิมยังอยู่");}
     finally {setBusy(false);}
   }
@@ -59,10 +60,10 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
       {state?.round_deadline && !practice?<>
         <p className={styles.timer}>เวลารอบนี้ {roundSeconds} วินาที</p>
         {roundSeconds===0?<><p>หมดเวลารอบนี้ ตรวจผลแล้วเริ่มรอบใหม่ได้เลย</p><button className={styles.primary} disabled={busy} onClick={()=>command("submit",{layout:[]})}>รับคำใบ้และลองใหม่</button></>:
-          <FloorPuzzle key={state.round_deadline} busy={busy} practice={false} onSubmit={layout=>command("submit",{layout})}/>}
+          <><FloorPuzzle screenHidden={!puzzleOpen} feedback={message} key={state.round_deadline} busy={busy} practice={false} onSubmit={layout=>command("submit",{layout})} screenHeader={<><button onClick={()=>setPuzzleOpen(false)}>← กลับ</button><strong>จัดพื้นห้องเรียน</strong><span>{roundSeconds} วินาที</span></>}/>{!puzzleOpen&&<button className={styles.primary} onClick={()=>setPuzzleOpen(true)}>กลับเข้าไปจัดพื้น · เวลายังเดินอยู่</button>}</>}
       </>:<>
         <div className={styles.buttons}><button disabled={busy} onClick={()=>setPractice(value=>!value)}>{practice?"ปิดรอบฝึก":"ลองจัดพื้นก่อน · ไม่จับเวลา"}</button><button disabled={busy} className={styles.primary} onClick={()=>command("begin")}>เริ่มช่วยจัดพื้น · 90 วินาที</button></div>
-        {practice && <FloorPuzzle busy={false} practice onSubmit={()=>{}}/>}
+        {practice && <FloorPuzzle busy={false} practice onSubmit={()=>{}} screenHeader={<><button onClick={()=>setPractice(false)}>← กลับ</button><strong>ลองจัดพื้น</strong><span>ไม่จับเวลา</span></>}/>}
       </>}
     </div>}
     {status==="ready" && <div className={styles.panel}><h2>โรงเรียนสร้างเสร็จแล้ว!</h2><p>เลือกพื้นที่ว่างที่เชื่อมกับฟาร์ม เพื่อวางโรงเรียนของเรา หัวหน้าว่างจากงานนี้แล้ว</p><Link className={styles.primary} href="/collection?place=school">เลือกที่วางในฟาร์ม →</Link></div>}
@@ -72,4 +73,6 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
     {["building","puzzle","finishing"].includes(status) && <button disabled={busy} className={styles.withdraw} onClick={()=>command("pause")}>ถอนหัวหน้าและพักงาน · เก็บความคืบหน้าไว้</button>}
   </section>;
 }
+
+
 

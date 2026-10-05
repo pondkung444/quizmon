@@ -57,3 +57,31 @@
 .floorHint {font-size:12px;line-height:1.5;min-height:38px;color:#f4ddb0;padding:6px 0;}
 .buttons button:disabled {opacity:.4;cursor:default;}
 @media (prefers-reduced-motion:no-preference){.floorPiece{transition:box-shadow .15s,outline-color .15s;}}
+.gameScreen {position:fixed;inset:0;z-index:50;height:100dvh;background:radial-gradient(ellipse at top,#354842,#201a43 65%);color:var(--color-text);padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom);display:flex;flex-direction:column;overflow:hidden;overscroll-behavior:none;}
+.gameHeader {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;flex:none;max-width:540px;width:100%;margin:0 auto;}
+.gameHeader h1,.gameHeader strong {margin:0;font-size:16px;color:#ffe4ac;font-weight:600;}
+.gameHeader a,.gameHeader button {min-height:44px;display:flex;align-items:center;color:#ffe4ac;font-size:13px;cursor:pointer;}
+.gameHeader>span {font-size:12px;color:#c8dfd1;}
+.gameScreen .puzzle {flex:1;min-height:0;width:100%;max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:6px;padding-bottom:8px;}
+.gameScreen .puzzleGuide {padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex:none;}
+.gameScreen .puzzleGuide strong {font-size:13px;white-space:nowrap;}
+.gameScreen .puzzleGuide span {font-size:11px;text-align:right;}
+.gameScreen .room {flex:1;min-height:0;margin:0;padding:8px 8px 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;}
+.gameScreen .roomTitle {font-size:12px;margin:0;flex:none;}
+.gameScreen .floorSurface {width:min(100%,calc(100dvh - 400px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));max-width:390px;flex:none;}
+.gameScreen .floorProgress {font-size:11px;margin:0;flex:none;}
+.gameScreen .trayTitle {display:none;}
+.gameScreen .pieces {grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;flex:none;}
+.gameScreen .piece {min-height:88px;padding:7px 2px;gap:4px;justify-content:center;}
+.gameScreen .piece strong {font-size:11px;} .gameScreen .piece>span:last-child {font-size:10px;}
+.gameScreen .mini {grid-template-columns:repeat(4,12px);grid-template-rows:repeat(4,12px);margin:0;flex:none;}
+.gameScreen .buttons {margin:0;gap:6px;flex:none;}
+.gameScreen .buttons button {min-height:44px;padding:4px;font-size:12px;}
+.gameScreen .floorHint {font-size:12px;min-height:32px;line-height:1.3;margin:0;padding:0;display:flex;align-items:center;flex:none;}
+.gameScreen .primary {min-height:46px;flex:none;}
+.gameScreen .help {display:none;}
+.dropGhost {background:url('/farm/qmon-floor-ceramic-v2.webp') center/cover;opacity:.8;outline:3px dashed #fff;box-shadow:0 4px 8px #0008;}
+@media (max-height:620px){.gameScreen .piece{min-height:72px;}.gameScreen .piece>span:last-child{display:none;}.gameScreen .floorSurface{width:min(100%,calc(100dvh - 360px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));}.gameScreen .roomTitle{display:none;}}
+@media (max-height:500px) and (min-width:600px){.gameScreen .puzzle{display:grid;grid-template-columns:minmax(0,1fr) 250px;grid-template-rows:32px 92px 44px 32px 46px;align-content:center;gap:8px;max-width:850px;}.gameScreen .room{grid-column:1;grid-row:1 / span 5;height:100%;}.gameScreen .floorSurface{width:min(100%,calc(100dvh - 150px));}.gameScreen .puzzleGuide{grid-column:2;}.gameScreen .pieces{grid-column:2;}.gameScreen .buttons{grid-column:2;}.gameScreen .floorHint{grid-column:2;}.gameScreen .primary{grid-column:2;}}
+
+.gameScreen[hidden] {display:none;}
