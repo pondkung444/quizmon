@@ -20,6 +20,7 @@ const MIGRATIONS = [
   "20260925190000_classroom_focus_mode_phase_2.sql",
   "20260925200000_classroom_focus_mode_phase_3.sql",
   "20260925210000_classroom_focus_mode_phase_4.sql",
+  "20261005142439_team_battle_phase_1_schema.sql",
 ];
 
 // ผลของ RPC (jsonb) — ฟิลด์ที่ test อ่าน
@@ -76,6 +77,8 @@ create table public.pets (
 create function public.is_teacher() returns boolean language sql as $$ select true $$;
 create function public.is_classroom_member(p uuid) returns boolean language sql as $$
   select exists (select 1 from public.classroom_participants where session_id = p and user_id = auth.uid()) $$;
+create table public.pvp_card_effects (id text primary key);
+create table public.questions (id bigint primary key);
 create function public.resolve_boss_raid_session(p uuid, r text) returns void language sql as $$ select $$;
 create publication supabase_realtime;
 create schema cron;
