@@ -22,7 +22,7 @@ export default function FloorPuzzle({busy,practice,onSubmit}:{busy:boolean;pract
   if(busy)return;
   const p=layout.find(t=>t.id===id),r=((p?.rotation??(id===selected?rotation:0))+1)%4;
   setSelected(id);setRotation(r);
-  if(p)place(p.x,p.y,id,r);else setHint("หมุนชิ้นแล้ว · ลากลงพื้นห้อง");
+  if(p){const cells=floorCells(id,r),w=Math.max(...cells.map(c=>c[0]))+1,h=Math.max(...cells.map(c=>c[1]))+1;place(Math.min(p.x,4-w),Math.min(p.y,4-h),id,r);}else setHint("หมุนชิ้นแล้ว · ลากลงพื้นห้อง");
  }
  function position(e:PointerEvent){const b=board.current!.getBoundingClientRect();return {x:Math.floor((e.clientX-b.left)/b.width*4),y:Math.floor((e.clientY-b.top)/b.height*4)};}
  function down(e:PointerEvent<HTMLButtonElement>,id:string,p?:FloorPlacement){
@@ -76,5 +76,6 @@ export default function FloorPuzzle({busy,practice,onSubmit}:{busy:boolean;pract
   <p className={styles.help}>วาง หมุน และย้ายได้เต็มที่ จะตรวจเมื่อกดปุ่มเท่านั้น</p>
  </div>;
 }
+
 
 
