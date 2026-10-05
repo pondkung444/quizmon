@@ -15,8 +15,8 @@
     "kind": "sprite"
   },
   {
-    "id": "cave-boss",
-    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-76ea3a80-19bd-4af8-9338-82b77fe4a9a2.png",
+    "id": "cave-boss-v2",
+    "source": "C:/Users/ASUS FX505/.codex/generated_images/01a109f2-25bd-7433-a6f3-6aa5c25744b7/exec-7789af69-4052-42c9-a63c-a07847712073.png",
     "kind": "sprite"
   },
   {
@@ -40,8 +40,8 @@
     "kind": "sprite"
   },
   {
-    "id": "sky-boss-v3",
-    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-caf90d29-3923-4b7e-9ed7-118b50795103.png",
+    "id": "sky-dragon-v1",
+    "source": "C:/Users/ASUS FX505/.codex/generated_images/01a109f2-25bd-7433-a6f3-6aa5c25744b7/exec-a3f372d4-a261-4b27-90f4-3879ba2cbac6.png",
     "kind": "sprite"
   },
   {

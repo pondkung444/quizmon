@@ -10,12 +10,12 @@ const ACT_ART={
  cave_guard:{name:'เต่าผลึก',src:'crystal-heavy-v1.webp'},
  cave_heavy:{name:'โกเล็มถ้ำ',src:'assets/acts-v1/cave-heavy.webp'},
  cave_healer:{name:'ค้างคาวอัญมณี',src:'assets/acts-v1/cave-healer-v2.webp'},
- cave_guardian:{name:'หมีภูผาผลึก',src:'assets/acts-v1/cave-boss.webp'},
+ cave_guardian:{name:'หมีภูผาผลึก',src:'assets/acts-v1/cave-boss-v2.webp'},
  sky_light:{name:'นกเมฆา',src:'assets/acts-v1/sky-light-v2.webp'},
  sky_haste:{name:'เหยี่ยววายุ',src:'assets/acts-v1/sky-haste.webp'},
  sky_heavy:{name:'แร้งผาหิน',src:'assets/acts-v1/sky-heavy-v2.webp'},
  sky_poison:{name:'ผีเสื้อหมอกพิษ',src:'assets/acts-v1/sky-poison-v2.webp'},
- sky_guardian:{name:'อินทรีเจ้านภา',src:'assets/acts-v1/sky-boss-v3.webp'}
+ sky_guardian:{name:'มังกรเจ้านภา',src:'assets/acts-v1/sky-dragon-v1.webp'}
 };
 for(const act of ACTS){ACT_ART[act.intro]=ACT_ART[act.normal[0]];}
 function actArtName(id){return ACT_ART[id]?.name||contentName(id);}
@@ -34,7 +34,7 @@ const beforeArtRender=render;
 render=function(){beforeArtRender();applyActScene();
  const active=isActJourney()&&run.room>=1,enemy=document.querySelector('.battle .enemy'),phase=active&&regionalActive(state)?regionalState(state).bossPhase:1;
  enemy.classList.toggle('guardian-phase-two',active&&!!ACT_ENEMIES[state.enemy]?.boss&&phase===2);
- enemy.classList.toggle('final-guardian',active&&state.enemy==='sky_guardian');enemy.dataset.phase=String(phase);
+ enemy.classList.toggle('final-guardian',active&&state.enemy==='sky_guardian');enemy.classList.toggle('cave-guardian',active&&state.enemy==='cave_guardian');enemy.dataset.phase=String(phase);
  if(active)document.querySelector('#enemy-label').textContent=actArtName(state.enemy)+' · '+actDefinition(run.room).name;
 };
 function actArtFx(cell,kind){const el=document.createElement('div');el.className='act-art-fx '+kind;el.setAttribute('aria-hidden','true');position(el,cell);boardEl.append(el);setTimeout(()=>el.remove(),reduced?100:480);}

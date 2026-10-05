@@ -27,10 +27,10 @@
     "alpha": true
   },
   {
-    "id": "cave-boss",
+    "id": "cave-boss-v2",
     "kind": "sprite",
-    "path": "public/2048/assets/acts-v1/cave-boss.webp",
-    "bytes": 152992,
+    "path": "public/2048/assets/acts-v1/cave-boss-v2.webp",
+    "bytes": 150220,
     "width": 640,
     "height": 640,
     "alpha": true
@@ -72,10 +72,10 @@
     "alpha": true
   },
   {
-    "id": "sky-boss-v3",
+    "id": "sky-dragon-v1",
     "kind": "sprite",
-    "path": "public/2048/assets/acts-v1/sky-boss-v3.webp",
-    "bytes": 173282,
+    "path": "public/2048/assets/acts-v1/sky-dragon-v1.webp",
+    "bytes": 201148,
     "width": 640,
     "height": 640,
     "alpha": true

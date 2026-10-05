@@ -1,94 +1,94 @@
-(node:27824) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
+(node:42392) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ real start handler negotiates new/old clients and rejects unsupported versions before writes (5728.7554ms)
-✔ real checkpoint handler records early exits, deduplicates retries, enforces owner and isolates board (1075.9131ms)
-(node:26432) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
+✔ real start handler negotiates new/old clients and rejects unsupported versions before writes (2174.8182ms)
+✔ real checkpoint handler records early exits, deduplicates retries, enforces owner and isolates board (391.3865ms)
+(node:18904) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ new journey starts with deterministic choices, restores before room one and rejects unsupported saves (3360.8892ms)
-✔ battle rune queue ignores unseeded demonstration tiles from fresh (168.7716ms)
-✔ all 30 room boundaries, weighted route independence, service cap and boss exceptions (2633.7607ms)
-✔ boss checkpoints heal once, carry once, keep revival and complete after third boss (179.2602ms)
-✔ service choice is saved once, noRest counts as service and floors cannot be skipped (82.8651ms)
-✔ all acts are playable using legitimate replay events, checkpoints and final victory is terminal (29997.0385ms)
-✔ early exits and session analytics record before first battle and are replay validated (136.0735ms)
+✔ new journey starts with deterministic choices, restores before room one and rejects unsupported saves (467.1355ms)
+✔ battle rune queue ignores unseeded demonstration tiles from fresh (116.3859ms)
+✔ all 30 room boundaries, weighted route independence, service cap and boss exceptions (1175.427ms)
+✔ boss checkpoints heal once, carry once, keep revival and complete after third boss (17.5212ms)
+✔ service choice is saved once, noRest counts as service and floors cannot be skipped (16.3567ms)
+✔ all acts are playable using legitimate replay events, checkpoints and final victory is terminal (5851.0677ms)
+✔ early exits and session analytics record before first battle and are replay validated (78.5049ms)
 PASS: all 36 casts, save/reload, random marks, no-op/expiry, Auto/attack ordering, death/Stage fallback, garden simultaneous merges, awakening/3 rounds, roots/missing targets, counter/rebuild, carry and relic synergy
-✔ tests\forest2048\auto-skills.test.mjs (4718.7188ms)
+✔ tests\forest2048\auto-skills.test.mjs (1141.507ms)
 PASS: active-first / rarity / names / stats ordering, combined filters, empty result, escaped names, immutable input
-✔ tests\forest2048\chooser.test.mjs (5130.151ms)
-(node:31896) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
+✔ tests\forest2048\chooser.test.mjs (1060.3961ms)
+(node:25664) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ replay is deterministic and rejects forged choices, invalid swipes and oversized batches (5633.3617ms)
-✔ a small legitimate bot receives relics, passes a boss, continues and replays across checkpoints (32800.696ms)
-✔ losing, revival questions with images, failed revival and final status replay correctly (148.5206ms)
-✔ database checkpoints are atomic, retries do not double-count, shared ranks and owner isolation (12960.4923ms)
+✔ replay is deterministic and rejects forged choices, invalid swipes and oversized batches (1879.4392ms)
+✔ a small legitimate bot receives relics, passes a boss, continues and replays across checkpoints (5369.3726ms)
+✔ losing, revival questions with images, failed revival and final status replay correctly (171.5042ms)
+✔ database checkpoints are atomic, retries do not double-count, shared ranks and owner isolation (6688.7255ms)
 PASS: new-run v3, all room/enemy/version boundaries, normal/heavy damage, stats/skills/HP/interval unchanged, saved-run compatibility and board/charge carry
-✔ tests\forest2048\early-room-damage.test.mjs (4909.9363ms)
+✔ tests\forest2048\early-room-damage.test.mjs (1257.7198ms)
 PASS: growth boundaries, six species, no relic effects/offers/purchases, boss continuation/carry, save beyond room8, deterministic routes, utility rooms, single revive and legacy saves
-✔ tests\forest2048\endless-run.test.mjs (4128.6416ms)
+✔ tests\forest2048\endless-run.test.mjs (893.7457ms)
 PASS: v4 opening, v3 compatibility, later cycles unchanged, recovery caps and checkpoint carry
-✔ tests\forest2048\opening-balance.test.mjs (6584.1515ms)
-(node:26748) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
+✔ tests\forest2048\opening-balance.test.mjs (1637.4373ms)
+(node:20784) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ regional catalog, stage restrictions, next-act boss reward and old-client exclusion (683.5003ms)
-✔ enemy roles use explicit stats and light enemies generate no obstacles (444.4101ms)
-✔ hammer/lens warn two valid moves ahead; heart accelerates even an empty cave (229.8567ms)
-✔ net halves enemy guard/power/heal and friendship removes these while capping additive bonus (24.8725ms)
-✔ break rewards charge once, armor, sword16 and seeded mine; neutral clears give none (57.9451ms)
-✔ adjacent shake and two-crystal chain multiply output without inventing combo or affecting gravity (198.3947ms)
-✔ glue extends to four moves; brave takes precedence and speeds crack generation (76.1842ms)
-✔ bandage counts rescued merges, breath extends once, glow upgrades result once for two cracks (21.8712ms)
-✔ glow preserves original merge permissions and propagates chain ancestry (95.8496ms)
-✔ dew clears two poison stacks before output and immunity caps new stacks at two (17.2522ms)
-✔ expiry penalties happen before armor/heal rewards and newly applied poison can be cleansed (27.8496ms)
-✔ awaken converts poison to additive manual bonus while direct attack and new armor remain correctly scoped (160.6325ms)
-✔ new content replays across batches and rejects incompatible versions (21995.4244ms)
-✔ brave multiplies rescued output and old saved games keep previous enemy stats and relic offers (24.7518ms)
-✔ no-op leaves Phase 4 schedules, cracks and poison untouched; phase reset replans a full lens warning (29.9536ms)
-✔ net and friendship scale the healer after attack; healing never exceeds enemy maximum (94.5325ms)
-✔ lens preserves its full lead when a valid target becomes available late (26.006ms)
-(node:9284) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
+✔ regional catalog, stage restrictions, next-act boss reward and old-client exclusion (263.6521ms)
+✔ enemy roles use explicit stats and light enemies generate no obstacles (26.9924ms)
+✔ hammer/lens warn two valid moves ahead; heart accelerates even an empty cave (67.0303ms)
+✔ net halves enemy guard/power/heal and friendship removes these while capping additive bonus (21.3475ms)
+✔ break rewards charge once, armor, sword16 and seeded mine; neutral clears give none (65.5479ms)
+✔ adjacent shake and two-crystal chain multiply output without inventing combo or affecting gravity (78.4554ms)
+✔ glue extends to four moves; brave takes precedence and speeds crack generation (48.1416ms)
+✔ bandage counts rescued merges, breath extends once, glow upgrades result once for two cracks (143.029ms)
+✔ glow preserves original merge permissions and propagates chain ancestry (126.2772ms)
+✔ dew clears two poison stacks before output and immunity caps new stacks at two (24.5539ms)
+✔ expiry penalties happen before armor/heal rewards and newly applied poison can be cleansed (13.3532ms)
+✔ awaken converts poison to additive manual bonus while direct attack and new armor remain correctly scoped (51.2422ms)
+✔ new content replays across batches and rejects incompatible versions (3345.4335ms)
+✔ brave multiplies rescued output and old saved games keep previous enemy stats and relic offers (28.9991ms)
+✔ no-op leaves Phase 4 schedules, cracks and poison untouched; phase reset replans a full lens warning (39.4688ms)
+✔ net and friendship scale the healer after attack; healing never exceeds enemy maximum (45.7569ms)
+✔ lens preserves its full lead when a valid target becomes available late (20.1476ms)
+(node:44380) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/replay.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
-✔ save validation rejects corrupt states and accepts a journey before room one (265.3499ms)
-✔ phase-two cadence, caps and intro exceptions are independent of enemy countdown (244.9192ms)
-✔ all 36 Auto casts avoid crystals and shadow copies never inherit crack identities (2936.7619ms)
-✔ existing marks remain under a crystal and are consumed only after it is gone (22.5303ms)
-✔ real cave and sky mechanic events replay identically across checkpoint batches (28475.106ms)
-✔ crystals block slide, spawn, targets and new marks without behaving as numbered runes (16.7624ms)
-✔ crystal damage snapshots and adjacent manual/gravity merges hit a crystal only once per swipe (25.9393ms)
-✔ crystal warning precedes placement, occupied warning is skipped and intro/caps do not spawn (56.268ms)
-✔ no-op advances neither hazard clock, poison/cracks, pending phase nor RNG (113.8636ms)
-✔ crack identities move, two cracked sources are rescued, transformations do not rescue (16.6536ms)
-✔ cracks target an existing pair, skip newborns, and expire once with ordered boss penalties (16.6607ms)
-✔ last-deadline gravity merge rescues cracks before expiration without aging them twice (23.4915ms)
-✔ poison cleanses from all heal merges before simultaneous output, even at full HP (65.5568ms)
-✔ poison limits, expiry, refresh, Auto and armor are emitted once; thorns bypass only poison (65.0425ms)
-✔ boss transition is pending until next valid swipe, survives healing and forest root count changes (69.1468ms)
-✔ cave power and healing count living crystals, healing cannot revive a killed enemy (14.7588ms)
-✔ blocked-board recovery and explosion clear obstacles/cracks neutrally, preserve poison (68.8783ms)
-✔ revival keeps movable hazards/poison and only clears blocked boards; carry removes battle statuses (17.6396ms)
-✔ new mechanic checkpoints replay identically with batching and keep phase-2 saves unchanged (1258.17ms)
+✔ save validation rejects corrupt states and accepts a journey before room one (73.5838ms)
+✔ phase-two cadence, caps and intro exceptions are independent of enemy countdown (60.9512ms)
+✔ all 36 Auto casts avoid crystals and shadow copies never inherit crack identities (964.5961ms)
+✔ existing marks remain under a crystal and are consumed only after it is gone (16.9564ms)
+✔ real cave and sky mechanic events replay identically across checkpoint batches (4807.1069ms)
+✔ crystals block slide, spawn, targets and new marks without behaving as numbered runes (31.7369ms)
+✔ crystal damage snapshots and adjacent manual/gravity merges hit a crystal only once per swipe (18.0787ms)
+✔ crystal warning precedes placement, occupied warning is skipped and intro/caps do not spawn (40.8037ms)
+✔ no-op advances neither hazard clock, poison/cracks, pending phase nor RNG (19.7918ms)
+✔ crack identities move, two cracked sources are rescued, transformations do not rescue (32.4457ms)
+✔ cracks target an existing pair, skip newborns, and expire once with ordered boss penalties (15.2018ms)
+✔ last-deadline gravity merge rescues cracks before expiration without aging them twice (22.9987ms)
+✔ poison cleanses from all heal merges before simultaneous output, even at full HP (27.689ms)
+✔ poison limits, expiry, refresh, Auto and armor are emitted once; thorns bypass only poison (13.6768ms)
+✔ boss transition is pending until next valid swipe, survives healing and forest root count changes (60.7249ms)
+✔ cave power and healing count living crystals, healing cannot revive a killed enemy (16.8124ms)
+✔ blocked-board recovery and explosion clear obstacles/cracks neutrally, preserve poison (50.6017ms)
+✔ revival keeps movable hazards/poison and only clears blocked boards; carry removes battle statuses (17.8837ms)
+✔ new mechanic checkpoints replay identically with batching and keep phase-2 saves unchanged (492.744ms)
 PASS relic catalog, filters, additive output, chain directions, marks, repeats, interruption lock, overflow, twins, armor/thorns, explosion/death, carry, crown, jar, tome, wells, shop, save/reload, no-op and all 40 engine smoke cases
-✔ tests\forest2048\relics.test.mjs (15901.1723ms)
+✔ tests\forest2048\relics.test.mjs (4445.8204ms)
 PASS: 6 rune families, stacks/expiry/no-op, freeze timing, charge cap, lethal/counter, awakening/mixed direction/root, large-tile boss survives
-✔ tests\forest2048\runes-engine.test.mjs (2311.8684ms)
+✔ tests\forest2048\runes-engine.test.mjs (1665.644ms)
 PASS: reduced echo, bounded mirror, 35% seed distribution, freeze/thorn no phantom attack, frozen burn under echo
-✔ tests\forest2048\runes-run.test.mjs (1533.0898ms)
-(node:37956) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/stats.ts is not specified and it doesn't parse as CommonJS.
+✔ tests\forest2048\runes-run.test.mjs (818.306ms)
+(node:6912) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/ASUS%20FX505/.codex/worktrees/2048-three-acts-phase2/study-pet-game/src/lib/forest2048/stats.ts is not specified and it doesn't parse as CommonJS.
 Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
 To eliminate this warning, add "type": "module" to \\?\C:\Users\ASUS FX505\.codex\worktrees\2048-three-acts-phase2\study-pet-game\package.json.
 (Use `node --trace-warnings ...` to show where the warning was created)
 PASS: pet-only stats, stage fallback, missing data, caps, monotonic mapping, baseline, seeded criticals, no-op/root/armor/stance and temporary skills
-✔ tests\forest2048\stats-engine.test.mjs (4999.9699ms)
+✔ tests\forest2048\stats-engine.test.mjs (633.0393ms)
 ℹ tests 58
 ℹ suites 0
 ℹ pass 58
@@ -96,4 +96,4 @@ PASS: pet-only stats, stage fallback, missing data, caps, monotonic mapping, bas
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 58416.3977
+ℹ duration_ms 16962.226

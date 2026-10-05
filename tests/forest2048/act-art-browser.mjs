@@ -32,6 +32,9 @@ try{
    await page.locator('.battle .enemy').evaluate(img=>img.decode());
    assert.equal(await page.locator('.battle .enemy').getAttribute('alt'),await page.evaluate(id=>actArtName(id),id));
    assert.equal(await page.locator('.final-guardian').count(),id==='sky_guardian'?1:0);
+   assert.equal(await page.locator('.cave-guardian').count(),id==='cave_guardian'?1:0);
+   if(id==='sky_guardian')assert.equal(await page.locator('.battle .enemy').getAttribute('alt'),'มังกรเจ้านภา');
+   if(id==='cave_guardian')assert.equal(await page.locator('.battle .enemy').getAttribute('alt'),'หมีภูผาผลึก');
    assert.equal(await page.evaluate(()=>document.body.dataset.act),await page.evaluate(id=>ACTS[ACT_ENEMIES[id].act-1].id,id));
    if(['slow_striker','cave_guard','cave_heavy','cave_guardian','sky_guardian'].includes(id))await page.screenshot({path:path.join(out,id+'-'+width+'-'+reducedMotion+'.png')});
   }

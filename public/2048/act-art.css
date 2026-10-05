@@ -37,3 +37,4 @@ body[data-act='cave'] #board,body[data-act='sky'] #board{border-color:var(--act-
 @media(prefers-reduced-motion:reduce){.guardian-phase-two,.act-art-fx,.act-status-fx{animation:none!important}.act-art-fx{opacity:.7}}
 
 .battle img.final-guardian{width:53%;height:calc(100% - 4px);object-position:right center}
+.battle img.cave-guardian{width:50%;height:calc(100% - 4px);object-position:right center}

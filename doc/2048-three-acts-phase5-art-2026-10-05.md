@@ -1,6 +1,6 @@
 # Phase 5: three-act artwork
 
-Completed 2026-10-05. Cave and sky now have dedicated scenes and enemy artwork. All 15 enemy designs face left. The final eagle uses revision 3: a forward launch with distinct near wing, far wing and tail, and a larger battle display.
+Completed 2026-10-05. Cave and sky now have dedicated scenes and enemy artwork. All 15 enemy designs face left. The final guardian is มังกรเจ้านภา: a majestic ivory, azure-crystal and gold dragon in a stable quadruped stance with distinct membrane wings and tail. The act-two guardian หมีภูผาผลึก uses an imposing upright attack stance, massive shoulders and a crystal mantle. Both have larger battle displays.
 
 ## Art direction and roster
 
@@ -17,12 +17,12 @@ Painterly dimensional fantasy, faceted crystals, antique gold and restrained glo
 | cave_guard | เต่าผลึก | Existing crystal-heavy-v1.webp |
 | cave_heavy | โกเล็มถ้ำ | New cave-heavy.webp |
 | cave_healer | ค้างคาวอัญมณี | New cave-healer-v2.webp |
-| cave_guardian | หมีภูผาผลึก | New cave-boss.webp |
+| cave_guardian | หมีภูผาผลึก | New cave-boss-v2.webp |
 | sky_light | นกเมฆา | New sky-light-v2.webp |
 | sky_haste | เหยี่ยววายุ | New sky-haste.webp |
 | sky_heavy | แร้งผาหิน | New sky-heavy-v2.webp |
 | sky_poison | ผีเสื้อหมอกพิษ | New sky-poison-v2.webp |
-| sky_guardian | อินทรีเจ้านภา | New sky-boss-v3.webp |
+| sky_guardian | มังกรเจ้านภา | New sky-dragon-v1.webp |
 
 Intro encounters reuse the corresponding first enemy. Forest scenery, all existing rune looks and 40 existing relic icons are reused. Twenty regional relic icons are added and appear in choices, inventory and details.
 
@@ -31,9 +31,9 @@ Intro encounters reuse the corresponding first enemy. Forest scenery, all existi
 - `public/2048/assets/acts-v1/`: nine enemy images, one crystal obstacle, two scenes and three SVG overlays for roots, cracks and crystal fragments.
 - `public/2048/assets/icons/relic-v2/`: twenty transparent relic icons.
 - `act-art.js` and `act-art.css`: scene selection, enemy labels and presentation effects for poison, crystal damage, crack rescue and guardian phase transition. Reduced motion is supported.
-- Selected raster assets total 2,279,030 bytes. Sprite and relic transparency is checked during preparation.
+- Selected raster assets total 2,304,124 bytes. Sprite and relic transparency is checked during preparation.
 
-Images were generated and edited with the built-in imagegen tool. Exact initial prompts, correction prompts, selected source paths and converted asset metadata are recorded in `output/acts-phase5/`. Original generated PNGs remain in the Codex generated-images directory; production WebP files are committed in the asset directories above. Contact sheets include all enemies for the left-facing audit.
+Images were generated and edited with the built-in imagegen tool. Exact current prompts, correction prompts, selected source paths and converted asset metadata are recorded in `output/acts-phase5/`; `boss-revision-prompts.json` contains both replacement boss prompts. Original generated PNGs remain in the Codex generated-images directory; production WebP files are committed in the asset directories above. Contact sheets include all enemies for the left-facing audit. Earlier guardian variants are replaced; historical rune documentation still describes the unchanged wing emblem on divine runes.
 
 Enemy IDs, stats, random queues, checkpoints and combat rules are unchanged. Merge rescue locations are captured separately from gameplay state so the visual effect also covers a cracked losing source.
 
