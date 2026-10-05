@@ -1,0 +1,162 @@
+[
+  {
+    "id": "cave-heavy",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-44ca6d31-ac8e-40a1-904b-fd5d85bba862.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "cave-light-v2",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-6a026470-32da-4470-a68b-38f5b282314a.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "cave-healer-v2",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-bcb89405-2a4c-4807-b137-5ff943234ec9.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "cave-boss",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-76ea3a80-19bd-4af8-9338-82b77fe4a9a2.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "sky-light-v2",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-d5afc3e9-15b4-43d2-9eb1-bf8494763ddb.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "sky-haste",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-3a4acabe-ae57-4baa-907f-350a96a5dc2a.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "sky-heavy-v2",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-5374efe4-c8ef-401b-863a-99fdc281a0f2.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "sky-poison-v2",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-cf9d69c6-501a-43a2-89a7-f39bcee4d442.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "sky-boss-v3",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-caf90d29-3923-4b7e-9ed7-118b50795103.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "cave-background",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-341ddcc9-b063-4c7c-82c9-e37aed3723cf.png",
+    "kind": "scene"
+  },
+  {
+    "id": "sky-background",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-7cb2239d-4266-4a10-affe-d533017ae8b3.png",
+    "kind": "scene"
+  },
+  {
+    "id": "crystal-object",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-405653d0-5154-41e9-8b82-671662c5deab.png",
+    "kind": "sprite"
+  },
+  {
+    "id": "caveHammer",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-a9b678fb-8f99-49c9-8766-76568e0508d2.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveLens",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-f381d1bf-b838-4ef6-91d1-cadbf5a20ceb.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveCharge",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-f427eec1-d2cc-4391-913b-f50f7b2174f1.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveNet",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-ebd29020-8f9e-4c05-aa1e-d59063101442.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveArmor",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-00216d14-2200-40e8-b35c-8dd533fc9ebc.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveShake",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-984b04d7-b2cc-46a0-8ca7-4c9ad1d5d6e2.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveHeart",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-1a8141a1-4295-4d7c-ab71-8751dfe027f7.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveMine",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-a108fbc4-0211-4cfc-a79c-0260d8dc39d4.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveChain",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-c7870dcb-1447-4fa5-b13b-5bf795caf365.png",
+    "kind": "relic"
+  },
+  {
+    "id": "caveFriend",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-d41b189d-20e2-47f1-8b3e-45e668c9f671.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyGlue",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-a9b96fc6-68d4-4b33-b9c0-78e57b93d4a5.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyBandage",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-51bb5935-f03d-4f2a-9993-d09bff013864.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyDew",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-4d4d3aed-ba51-4591-aa16-e68b44e55b1d.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyImmunity",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-f8380e31-34f4-479d-8d46-01d6cb6d4ca2.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyArmor",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-410a4f56-87b1-481a-9324-a774ea514deb.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyBreath",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-bc0063e3-e3a7-4da9-817e-998b609d6254.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyBrave",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-1dc90499-86bb-4bc2-b432-aaf90d2c922b.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyHeal",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-5ae8984c-38cd-4b77-b671-f1aa826487b7.png",
+    "kind": "relic"
+  },
+  {
+    "id": "skyGlow",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-2740c7b5-fa50-43f5-bb4e-6795fb263e10.png",
+    "kind": "relic"
+  },
+  {
+    "id": "poisonAwaken",
+    "source": "C:\\Users\\ASUS FX505\\.codex\\generated_images\\01a109f2-25bd-7433-a6f3-6aa5c25744b7\\exec-08543a95-f8c9-43e4-b27c-ad417d0295a3.png",
+    "kind": "relic"
+  }
+]

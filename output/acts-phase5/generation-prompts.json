@@ -1,0 +1,133 @@
+{
+  "mode": "built-in image_gen",
+  "prompts": [
+    {
+      "id": "cave-heavy",
+      "prompt": "Use case: stylized-concept. ONE production enemy sprite for QuizMon 2048. Reference image is STYLE ONLY, not an edit target: match polished painterly dimensional fantasy game illustration, faceted crystals, antique golden rim lighting and readable full-body silhouette. Subject: CAVE GOLEM, a massive squat humanoid made of dark slate and obsidian boulders, huge heavy fists, bright ice-blue crystal growths in shoulders and forearms, glowing cyan eyes. Must look distinctly different from the mossy forest golem reference: NO moss, NO leaves, NO roots. Facing slightly left toward player, imposing but charming and suitable for children. Entire body including feet and fists inside square framing with 8% transparent margin. Cool cave palette, warm gold edge light. Actual transparent background. No floor, scenery, frame, text, labels or watermark."
+    },
+    {
+      "id": "cave-light",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A small living dark-slate pebble creature, rounded compact body, two tiny stone feet, curious glowing cyan eyes and one small ice-blue crystal on forehead. Light and approachable. No moss or roots."
+    },
+    {
+      "id": "cave-healer",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: An adorable cave gemstone bat, body in deep indigo, broad rounded translucent icy-blue crystalline bat wings, large pointed ears, luminous emerald gemstone in chest indicating restorative energy, subtle small golden healing motes. Readable bat silhouette, not a bird, no mushrooms."
+    },
+    {
+      "id": "cave-boss",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A powerful gigantic cave bear guardian, broad bulky quadruped silhouette, deep charcoal stone fur plates, massive heavy paws, ice-blue crystal mantle on shoulders and back, faint antique gold mineral veins, wise cyan eyes. Distinct bear muzzle and round ears, compact full-body pose. No moss, leaves or roots."
+    },
+    {
+      "id": "cave-background",
+      "prompt": "Use case: stylized-concept. ONE portrait fantasy game environment background for QuizMon 2048 mobile, aspect ratio 2:3. Reference image is STYLE ONLY: match polished painterly dimensional crystal fantasy and antique gold details. Generate ONLY environment, NO UI, NO grid, NO panels, NO text, NO characters. The top third has a richly detailed distant vista and a quiet central arena for two characters. Lower two thirds must be dark low-contrast stone atmosphere with details only on far outer edges, suitable behind a separately rendered number board. Inside a vast subterranean cavern with dark blue slate arches and luminous ice-blue crystal clusters at both outer sides, distant underground turquoise lake, subtle antique gold mineral veins, a horizontal stone ledge in upper third, majestic mysterious soft cyan light. No moss or forest greenery. Keep middle and lower area very calm, dark navy and readable."
+    },
+    {
+      "id": "sky-background",
+      "prompt": "Use case: stylized-concept. ONE portrait fantasy game environment background for QuizMon 2048 mobile, aspect ratio 2:3. Reference image is STYLE ONLY: match polished painterly dimensional crystal fantasy and antique gold details. Generate ONLY environment, NO UI, NO grid, NO panels, NO text, NO characters. The top third has a richly detailed distant vista and a quiet central arena for two characters. Lower two thirds must be dark low-contrast stone atmosphere with details only on far outer edges, suitable behind a separately rendered number board. A majestic floating mountain plateau above clouds, distant ivory ruins and floating rock islands with pale-blue crystal spires, warm dawn gold on clouds, open sky in upper third. Slate and ivory stone terrace fades to calm dark teal in lower two thirds; luminous clouds only at far sides so pale text and numbers remain readable. Match original forest game's saturation and detailed painterly lighting."
+    },
+    {
+      "id": "caveHammer",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One squat mining hammer with dark stone handle, antique gold fittings and an icy-blue faceted crystal hammerhead."
+    },
+    {
+      "id": "caveLens",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One antique-gold magnifying lens, a faceted blue gemstone visible enlarged in its circular glass lens."
+    },
+    {
+      "id": "caveCharge",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One broken bright cyan crystal shard holding a tiny gold lightning spark, restrained charge energy."
+    },
+    {
+      "id": "caveNet",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One small gold-rimmed woven net pouch catching three blue crystal fragments, obvious mesh silhouette."
+    },
+    {
+      "id": "caveArmor",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One compact protective shield made of layered dark slate and blue crystal splinters with gold edging."
+    },
+    {
+      "id": "caveHeart",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One heart-shaped blue crystal enclosing a small orange fire, thin dark binding bands and a visible fissure mark the curse."
+    },
+    {
+      "id": "caveShake",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One heavy dark-metal mallet with a faceted cyan head and two short curved golden vibration marks."
+    },
+    {
+      "id": "caveMine",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One miniature mining cart filled with three large glowing cyan gemstones, dark metal and antique gold wheels."
+    },
+    {
+      "id": "caveChain",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One round dark stone demolition orb, surrounded by two linked faceted blue gemstones joined by a short gold chain."
+    },
+    {
+      "id": "caveFriend",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One friendly round cyan crystal with two small clasping antique gold hand-shaped clasps cradling it, warm welcoming glow."
+    },
+    {
+      "id": "skyGlue",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One small ornate glue vial with an ivory feather stopper, cloudy pale-blue liquid and gold mouth."
+    },
+    {
+      "id": "skyBandage",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One rolled ivory bandage with gold edging, loosely wrapped around a small cracked sky-blue crystal."
+    },
+    {
+      "id": "skyDew",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One large clear blue dew drop held within a delicate antique-gold leaf-shaped cradle."
+    },
+    {
+      "id": "skyImmunity",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One rounded ivory cloud-shaped protective charm with a gold shield inset and a small clear-blue gem."
+    },
+    {
+      "id": "skyArmor",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One sturdy ivory and gold shield with pale-blue crystal plate showing a repaired hairline fissure."
+    },
+    {
+      "id": "skyBreath",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One small sky-blue crystal flute with curling ivory wind ribbon and antique-gold fittings."
+    },
+    {
+      "id": "skyBrave",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One gold lightning bolt embedded through a pale-blue heart gemstone with a dark binding ring and visible fissure, cursed courageous charm."
+    },
+    {
+      "id": "skyHeal",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One cracked pale-blue crystal with an ivory-gold healing cross connecting its pieces, gentle green restorative glow."
+    },
+    {
+      "id": "skyGlow",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One radiant faceted sky-blue crystal crowned by a single prominent gold four-point star."
+    },
+    {
+      "id": "poisonAwaken",
+      "prompt": "Use case: stylized-concept. Create ONE isolated square fantasy RPG inventory item icon for QuizMon. Reference image is STYLE ONLY, not an edit target. Match polished painterly dimensional inventory art, faceted crystals, antique gold, soft warm rim light and deep material shadows. One dominant simple silhouette readable at 28px. Full object centered with generous transparent margin. Actual transparent background. No lettering, number, label, frame, scenery, ground or watermark. Subject: One purple poison drop inside an antique-gold talisman, jagged golden lightning running through the drop, contrasting violet and gold."
+    },
+    {
+      "id": "sky-light",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A small cheerful sky bird, plump ivory down with pale sky-blue crystal feathers on crown and tail, tiny antique gold beak, airy relaxed wings, cloud-like soft silhouette. No floating scenery."
+    },
+    {
+      "id": "sky-haste",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A lean wind hawk with swept-back narrow wings of pale-blue faceted crystal, ivory breast, streamlined silhouette, alert gold eyes and two subtle curved wind ribbons close to wings. Swift ready-to-dive stance."
+    },
+    {
+      "id": "sky-heavy",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A heavy stone-armored vulture, enormous broad folded wings in dark silver slate and pale-blue crystal plates, ivory throat ruff, gold beak, thick talons, stocky weighty silhouette."
+    },
+    {
+      "id": "sky-poison",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A large magical moth-like butterfly, recognizable symmetrical wide translucent violet and icy-blue crystal wings with poison-drop markings, compact fuzzy ivory body, two antennae, a restrained violet haze close around the wings. Must be a butterfly not a bird, welcoming fantasy creature."
+    },
+    {
+      "id": "sky-boss",
+      "prompt": "Use case: stylized-concept. ONE new isolated full-body fantasy enemy sprite for QuizMon 2048. Input image is STYLE REFERENCE ONLY, not an edit target. Match polished painterly dimensional fantasy game illustration, large clean faceted crystals, antique gold rim lighting, charming formidable creature suitable for children. Facing slightly left toward player. Entire silhouette inside a square with generous transparent margins, clear at 110px. Actual transparent background. No environment, floor, frame, text, watermark. Subject: A majestic sky eagle guardian, enormous spread wings made of ivory feathers and pale-blue crystals with antique-gold edges, a golden crystal crest, piercing gold eyes, powerful talons, clearly larger and more regal than ordinary hawk, compact full-body heraldic eagle silhouette."
+    },
+    {
+      "id": "crystal-object",
+      "prompt": "Use case: stylized-concept. ONE isolated transparent square game board obstacle asset. Reference is STYLE ONLY: match polished painterly dimensional fantasy crystals, gold rim lighting. Subject: a compact upright cluster of TWO large interlocking faceted icy-blue crystal prisms rising from a tiny dark-slate base. No face, no creature, no text, no frame, no scenery. Readable solid obstacle at 50px. Centered with 10% transparent margin, front three-quarter view, deep cyan shadows and pale-cyan reflective facets. Actual transparent background."
+    }
+  ]
+}

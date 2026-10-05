@@ -3,7 +3,7 @@ function regionalPenalty(s){return s.enemy==='sky_guardian'?'ล้างเก�
 const beforeRegionalRenderBoard=renderBoard;
 renderBoard=function(){boardEl.querySelectorAll('.regional-crack-count').forEach(el=>el.remove());beforeRegionalRenderBoard();boardEl.querySelectorAll('.regional-object').forEach(el=>el.remove());if(!regionalActive(state))return;
  const h=regionalState(state);
- for(const c of h.crystals){const el=document.createElement('div');el.className='regional-object regional-crystal';el.dataset.cell=c.cell;el.setAttribute('role','img');el.setAttribute('aria-label','ผลึก '+c.layers+' ชั้น · รวมรูนข้างเคียงเพื่อทุบ');el.textContent='◆';const badge=document.createElement('span');badge.textContent=c.layers;el.append(badge);position(el,c.cell);boardEl.append(el);}
+ for(const c of h.crystals){const el=document.createElement('div');el.className='regional-object regional-crystal';el.dataset.cell=c.cell;el.dataset.layers=c.layers;el.setAttribute('role','img');el.setAttribute('aria-label','ผลึก '+c.layers+' ชั้น · รวมรูนข้างเคียงเพื่อทุบ');el.textContent='◆';const badge=document.createElement('span');badge.textContent=c.layers;el.append(badge);position(el,c.cell);boardEl.append(el);}
  if(h.warning){const el=document.createElement('div');el.className='regional-object regional-warning';el.dataset.cell=h.warning.cell;el.setAttribute('role','img');const remaining=Math.max(1,h.warning.dueMove-state.moves);el.setAttribute('aria-label','ผลึกจะเกิดช่องนี้ใน '+remaining+' ปัด');el.textContent='◇ '+remaining;position(el,h.warning.cell);boardEl.append(el);}
  state.board.forEach((t,i)=>{if(!t?.crack)return;const el=boardEl.querySelector('.tile[data-cell="'+i+'"]');if(!el)return;el.classList.add('regional-cracked');const badge=document.createElement('span');badge.className='regional-crack-count';badge.textContent='⚡ '+t.crack.remaining;el.append(badge);el.setAttribute('aria-label',el.getAttribute('aria-label')+' · ร้าวเหลือ '+t.crack.remaining+' ปัด · แตกแล้ว '+regionalPenalty(state));});
 };
@@ -14,7 +14,7 @@ render=function(){beforeRegionalRender();let hud=document.querySelector('#region
  if(regionalAct(state)===2)copy.push(regionalIntro(state)?'ห้องตั้งตัว · ไม่มีผลึก':'◆ '+h.crystals.length+' ก้อน · รวมข้างเคียงทุบ 1 ชั้น'+(h.warning?' · ◇ เตือนผลึกใน '+Math.max(1,h.warning.dueMove-state.moves)+' ปัด':''));
  if(regionalAct(state)===3)copy.push(regionalIntro(state)?'ห้องตั้งตัว · ไม่มีรอยร้าว':'⚡ '+state.board.filter(t=>t?.crack).length+' รูนร้าว · รวมก่อนหมดเวลา · '+regionalPenalty(state));
  if(state.poison)copy.push('พิษ '+state.poison.stacks+' ชั้น · เหลือ '+state.poison.remaining+' ปัด · '+(contentHas(state,'poisonAwaken')?'โบนัสรวม +'+10*state.poison.stacks+' จุด · เกราะ −':'โจมตี/เกราะ −')+10*state.poison.stacks+'% · รวมรูนฮีลล้างพิษ');
- hud.textContent=copy.join(' | ');
+ hud.replaceChildren();for(const text of copy){const chip=document.createElement('span');chip.className='act-status-chip'+(text.startsWith('พิษ ')?' poison':'');const icon=document.createElement('img');icon.alt='';icon.src=text.startsWith('พิษ ')?'assets/icons/relic-v2/poisonAwaken.webp':text.includes('รูนร้าว')?'assets/icons/relic-v2/skyBandage.webp':text.includes('ก้อน')?'assets/acts-v1/crystal-object.webp':'';if(icon.getAttribute('src'))chip.append(icon);chip.append(document.createTextNode(text));hud.append(chip);}
  if(state.enemy==='stag')document.querySelector('#intent-power').textContent='พลัง '+enemyDamage(state)+' · พันราก '+(h.bossPhase===2?3:2)+' รูน';
 };
 const beforeRegionalHome=showHome;

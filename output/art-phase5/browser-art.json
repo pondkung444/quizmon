@@ -1,0 +1,38 @@
+[
+  {
+    "width": 320,
+    "reducedMotion": "no-preference",
+    "enemyImages": 18,
+    "relicDetails": 20,
+    "decodedAssets": 32,
+    "pageErrors": [],
+    "badRequests": []
+  },
+  {
+    "width": 390,
+    "reducedMotion": "no-preference",
+    "enemyImages": 18,
+    "relicDetails": 20,
+    "decodedAssets": 32,
+    "pageErrors": [],
+    "badRequests": []
+  },
+  {
+    "width": 430,
+    "reducedMotion": "no-preference",
+    "enemyImages": 18,
+    "relicDetails": 20,
+    "decodedAssets": 32,
+    "pageErrors": [],
+    "badRequests": []
+  },
+  {
+    "width": 320,
+    "reducedMotion": "reduce",
+    "enemyImages": 18,
+    "relicDetails": 20,
+    "decodedAssets": 32,
+    "pageErrors": [],
+    "badRequests": []
+  }
+]

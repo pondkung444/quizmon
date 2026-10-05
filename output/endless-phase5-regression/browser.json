@@ -1,0 +1,26 @@
+[
+  {
+    "width": 320,
+    "rooms": 9,
+    "offlineResume": true,
+    "lostAckRetry": true,
+    "clientServerMatch": true,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "rooms": 9,
+    "offlineResume": true,
+    "lostAckRetry": true,
+    "clientServerMatch": true,
+    "errors": []
+  },
+  {
+    "width": 430,
+    "rooms": 9,
+    "offlineResume": true,
+    "lostAckRetry": true,
+    "clientServerMatch": true,
+    "errors": []
+  }
+]
