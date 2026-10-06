@@ -720,7 +720,7 @@ export async function getPvpMatchView(
         question_id: c.question_id,
       };
       if (m.phase === "answering") {
-        // อ่านโจทย์ผ่าน admin (questions RLS ล็อก) — ตัด correct_index/explanation ทิ้งก่อนส่ง client
+        // อ่านโจทย์ผ่าน admin — correct_index/explanation ถูกปิดจาก authenticated แล้ว (20261006151948) และเลือกเฉพาะคอลัมน์ที่ส่ง client ได้เท่านั้น
         const admin = createAdminClient();
         const { data: q } = await admin
           .from("questions")

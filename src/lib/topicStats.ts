@@ -84,7 +84,7 @@ export async function getWeeklyTopicStats(
     }
   }
 
-  // questions ไม่มี select policy (RLS เปิดแต่ไม่มี policy) — ต้องอ่านผ่าน service role
+  // อ่านผ่าน service role (authenticated อ่านได้เฉพาะคอลัมน์ที่ไม่ใช่เฉลย ดู 20261006151948)
   const admin = createAdminClient();
   const band = await getGradeBand(userId);
   const { data: questionRows } =
