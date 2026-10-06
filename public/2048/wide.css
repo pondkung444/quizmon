@@ -1,0 +1,55 @@
+/* Reposition existing gameplay nodes, keeping portrait phones unchanged. */
+/* Repeated ID specificity overrides legacy main:has(status) placement rules. */
+@media (min-width:960px) and (min-height:600px) and (orientation:landscape), (min-width:1100px) and (min-height:600px) and (pointer:fine), (min-width:640px) and (min-height:320px) and (max-height:599px) and (orientation:landscape){
+ #forest-game#forest-game#forest-game{width:min(calc(100% - 32px),1280px);height:min(100dvh,920px);max-height:920px;padding:20px;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 64px 64px 32px;column-gap:28px;row-gap:12px;background-size:100% auto}
+ #forest-game#forest-game#forest-game header{grid-column:1/-1;grid-row:1;font-size:16px}
+ #forest-game#forest-game#forest-game .game-toolbar button{min-height:44px;min-width:44px;font-size:13px}
+ #forest-game#forest-game#forest-game #board{grid-column:1;grid-row:2/6;width:min(100%,calc(100dvh - 116px),560px);height:auto;aspect-ratio:1;align-self:center;justify-self:center;border-radius:16px}
+ #forest-game#forest-game#forest-game .battle{grid-column:2;grid-row:2;align-items:end;min-height:0;width:100%;height:100%}
+ #forest-game#forest-game#forest-game .battle img{width:48%;height:calc(100% - 42px);object-position:center bottom;object-fit:contain}
+ #forest-game#forest-game#forest-game .battle .enemy{height:100%}
+ #forest-game#forest-game#forest-game .battle .qmon-skill{width:48%;height:34px;bottom:0;font-size:13px}
+ #forest-game#forest-game#forest-game .stats{grid-column:2;grid-row:3;height:64px;gap:12px}
+ #forest-game#forest-game#forest-game .stats>div{height:64px;padding:6px 8px}
+ #forest-game#forest-game#forest-game .stats>div>span{font-size:15px}
+ #forest-game#forest-game#forest-game .stats #enemy-label{font-size:12px}
+ #forest-game#forest-game#forest-game .stats #armor{font-size:13px}
+ #forest-game#forest-game#forest-game .boss-plan{grid-column:2;grid-row:4;height:64px;padding:8px 12px}
+ #forest-game#forest-game#forest-game #intent-action{font-size:19px}
+ #forest-game#forest-game#forest-game #intent-power{font-size:13px}
+ #forest-game#forest-game#forest-game .intent-clock strong{font-size:36px}
+ #forest-game#forest-game#forest-game .intent-clock span{font-size:12px;max-width:70px}
+ #forest-game#forest-game#forest-game .play-guide{grid-column:2;grid-row:5;display:block!important;align-self:center}
+ #forest-game#forest-game#forest-game #input-hint{font-size:12px}
+ #forest-game#forest-game#forest-game #legend{font-size:11px}
+ #forest-game#forest-game#forest-game #regional-status,#forest-game#forest-game#forest-game #relic-status{display:none!important}
+ #forest-game#forest-game#forest-game #relics{position:relative;inset:auto;z-index:3;grid-column:1/-1;grid-row:1;height:44px;width:auto;min-width:0;margin-left:200px;margin-right:125px;justify-content:start;gap:8px;padding:2px;align-self:center;justify-self:stretch}
+ #forest-game#forest-game#forest-game .owned-relic{width:38px;height:38px;flex-shrink:0}
+ #forest-game#forest-game#forest-game .mobile-battle-info{display:block;flex-shrink:0;min-width:44px;min-height:40px;font-size:18px;padding:4px 8px}
+ #forest-game#forest-game#forest-game #rune-status{bottom:38px}
+ #portrait-notice{display:none!important}
+ #run-panel #run-content{max-width:720px;margin-inline:auto}
+}
+/* Short landscape screens keep the board and battle visible together. */
+@media (min-width:640px) and (min-height:320px) and (max-height:599px) and (orientation:landscape){
+ #forest-game#forest-game#forest-game{width:100%;height:100dvh;padding:8px max(12px,env(safe-area-inset-right)) 8px max(12px,env(safe-area-inset-left));grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:32px minmax(0,1fr) 50px 44px 0px;column-gap:18px;row-gap:4px}
+ #forest-game#forest-game#forest-game header{font-size:12px}
+ #forest-game#forest-game#forest-game .game-toolbar button{min-height:30px;font-size:11px}
+ #forest-game#forest-game#forest-game #board{width:min(100%,calc(100dvh - 64px));grid-row:2/6}
+ #forest-game#forest-game#forest-game .battle img{height:calc(100% - 28px)}
+ #forest-game#forest-game#forest-game .battle .enemy{height:100%}
+ #forest-game#forest-game#forest-game .battle .qmon-skill{height:24px;font-size:11px}
+ #forest-game#forest-game#forest-game .stats,#forest-game#forest-game#forest-game .stats>div{height:50px}
+ #forest-game#forest-game#forest-game .stats>div>span{font-size:12px}
+ #forest-game#forest-game#forest-game .stats #enemy-label{font-size:10px}
+ #forest-game#forest-game#forest-game .boss-plan{height:44px;padding:4px 8px}
+ #forest-game#forest-game#forest-game #intent-action{font-size:14px}
+ #forest-game#forest-game#forest-game #intent-power{font-size:10px}
+ #forest-game#forest-game#forest-game .intent-clock strong{font-size:26px}
+ #forest-game#forest-game#forest-game .intent-clock span{font-size:10px;max-width:44px}
+ #forest-game#forest-game#forest-game .play-guide{display:none!important}
+ #forest-game#forest-game#forest-game #relics{height:32px;margin-left:140px;margin-right:105px;gap:5px;justify-content:start}
+ #forest-game#forest-game#forest-game .owned-relic{height:28px;width:28px}
+ #forest-game#forest-game#forest-game .mobile-battle-info{min-height:32px;height:32px;font-size:16px}
+ #forest-game#forest-game#forest-game #rune-status{bottom:28px}
+}
