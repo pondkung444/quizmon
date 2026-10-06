@@ -21,6 +21,10 @@ export function isGuardianPath(pathname: string | null): boolean {
 export function zoneForPath(pathname: string | null): BgmZone {
   if (!pathname) return "general";
   if (pathname.startsWith("/boss-raid") || isGuardianPath(pathname)) return "silent";
+  // Team Battle จอครู (/teacher/<id>/battle) — เงียบ (มติ: เสียงจอกลางเป็นเรื่องแยก)
+  if (/^\/teacher\/[^/]+\/battle(\/|$)/.test(pathname)) return "silent";
+  // Team Battle มือถือนักเรียน (/classroom/<id>/battle) — เงียบตามมติ
+  if (/^\/classroom\/[^/]+\/battle(\/|$)/.test(pathname)) return "silent";
   if (pathname.startsWith("/raid")) return "challenge";
   return "general";
 }

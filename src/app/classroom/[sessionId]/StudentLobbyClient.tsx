@@ -17,6 +17,8 @@ import {
   type ClassroomSession,
 } from "@/lib/classroom/useClassroomLobby";
 import { isFocusRunning, useFocusSession } from "@/lib/classroom/useFocusSession";
+import { createClient } from "@/lib/supabase/client";
+import { STUDENT_TEXT, shouldRedirectToBattle } from "@/lib/teamBattle/student";
 import { resolveRosterPet, rosterDisplayName } from "@/lib/classroom/roster";
 import FocusStudentView from "@/components/classroom/FocusStudentView";
 import FocusResultCard from "@/components/classroom/FocusResultCard";
@@ -76,12 +78,44 @@ export default function StudentLobbyClient({
     }
   }, [session, router, ended, focusRunning]);
 
+  // Team Battle: พาเข้าหน้า battle เฉพาะเกมที่ยัง setup/active — ต้องเช็กสถานะก่อนเสมอ
+  // (เกมจบแล้วห้องยังค้าง current_activity='team_battle' + pointer เก่า; ถ้า redirect จะวนลูป lobby→battle→lobby)
+  // guard ต่อ battle id: เช็กครั้งเดียว/เกม เกมใหม่ในห้องเดิมได้ id ใหม่จึงพาเข้าได้
+  const teamBattleId = session?.active_team_battle_id ?? null;
+  const roomActivity = session?.current_activity;
+  const teamBattleChecked = useRef<string | null>(null);
+  const [teamBattleResolved, setTeamBattleResolved] = useState<string | null>(null);
+  useEffect(() => {
+    if (ended || focusRunning) return;
+    if (roomActivity !== "team_battle" || !teamBattleId) return;
+    if (teamBattleChecked.current === teamBattleId) return;
+    teamBattleChecked.current = teamBattleId;
+    let cancelled = false;
+    let done = false;
+    void (async () => {
+      const { data } = await createClient()
+        .from("pvp_team_battles")
+        .select("id, status")
+        .eq("id", teamBattleId)
+        .maybeSingle();
+      if (cancelled) return;
+      done = true;
+      setTeamBattleResolved(teamBattleId);
+      if (shouldRedirectToBattle(data?.status)) router.push(`/classroom/${sessionId}/battle`);
+    })();
+    return () => {
+      cancelled = true;
+      // ถูกยกเลิกก่อนเช็กเสร็จ → ให้เช็กใหม่รอบถัดไป; เช็กเสร็จแล้วไม่เช็กซ้ำ
+      if (!done && teamBattleChecked.current === teamBattleId) teamBattleChecked.current = null;
+    };
+  }, [ended, focusRunning, roomActivity, teamBattleId, router, sessionId]);
+
   // ผลของตัวเองในคาบ — โหลดใหม่ทุกครั้งที่กิจกรรม/สถานะห้องเปลี่ยน (Raid จบ, คาบตั้งใจจบ, ครูสุ่มชื่อ)
   const loadSummary = useCallback(async () => {
     const s = await getClassroomMySummary(sessionId);
     if (s) setSummary(s);
   }, [sessionId]);
-  const activityKey = `${session?.status}|${session?.current_activity}|${session?.active_boss_raid_session_id}|${focusSession?.status}`;
+  const activityKey = `${session?.status}|${session?.current_activity}|${session?.active_boss_raid_session_id}|${session?.active_team_battle_id}|${focusSession?.status}`;
   useEffect(() => {
     let cancelled = false;
     void getClassroomMySummary(sessionId).then((s) => {
@@ -174,7 +208,9 @@ export default function StudentLobbyClient({
         ? "กำลังพาเข้า Boss Raid…"
         : session.current_activity === "focus_mode"
           ? "กำลังเข้าคาบตั้งใจ…"
-          : "รอครูเริ่มกิจกรรม";
+          : session.current_activity === "team_battle" && teamBattleId && teamBattleResolved !== teamBattleId
+            ? STUDENT_TEXT.lobbyGoing
+            : "รอครูเริ่มกิจกรรม";
 
   // ออนไลน์ก่อน แล้วตามเวลาเข้า — onlineIds null = Presence ยังไม่ sync ถือว่าทุกคนออนไลน์ (ไม่หรี่ทั้งห้อง)
   const isOnline = (id: string) => onlineIds === null || onlineIds.has(id);

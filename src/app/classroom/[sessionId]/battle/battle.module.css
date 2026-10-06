@@ -1,0 +1,52 @@
+/* Team Battle — หน้านักเรียน: keyframes อยู่ไฟล์นี้เท่านั้น (ไม่แตะ globals.css) */
+
+.cardPick {
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.cardPick:active {
+  transform: scale(0.98);
+}
+
+.sentIn {
+  animation: sentIn 0.4s ease-out both;
+}
+
+.sheetIn {
+  animation: sheetIn 0.3s ease-out both;
+}
+
+.bar {
+  transition: width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes sentIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardPick,
+  .sentIn,
+  .sheetIn,
+  .bar {
+    animation: none;
+    transition: none;
+  }
+}
