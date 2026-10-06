@@ -1,0 +1,37 @@
+/* Reserve the announcement's full height before sizing the board. */
+main{--overhead:252px;grid-template-rows:32px var(--arena-h) 50px 44px minmax(0,1fr) 32px 42px}
+main:has(#relic-status:not(:empty)){--overhead:284px;grid-template-rows:32px var(--arena-h) 50px 44px minmax(0,1fr) 26px 32px 42px}
+/* Regional warnings need a reserved row too; implicit rows shrink the board track. */
+#regional-status[hidden],#regional-status:empty{display:none}
+#regional-status{grid-row:6;height:28px;min-width:0;max-height:28px;margin:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;touch-action:pan-x}
+#regional-status .act-status-chip{flex-shrink:0;white-space:nowrap}
+main:has(#regional-status:not([hidden]):not(:empty)){--overhead:286px;grid-template-rows:32px var(--arena-h) 50px 44px minmax(0,1fr) 28px 32px 42px}
+main:has(#regional-status:not([hidden]):not(:empty)) .play-guide{grid-row:7}
+main:has(#regional-status:not([hidden]):not(:empty)) #relics{grid-row:8}
+main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empty)){--overhead:318px;grid-template-rows:32px var(--arena-h) 50px 44px minmax(0,1fr) 28px 26px 32px 42px}
+main:has(#regional-status:not([hidden]):not(:empty)) #relic-status{grid-row:7}
+main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empty)) .play-guide{grid-row:8}
+main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empty)) #relics{grid-row:9}
+.boss-plan{height:44px;padding:4px 8px;gap:8px;overflow:hidden}
+.intent-heading{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.intent-copy{min-width:0;gap:2px}
+#intent-action{font-size:14px;line-height:1.25;white-space:nowrap}
+#intent-power{font-size:10px;line-height:1.25;white-space:nowrap}
+.intent-clock{min-width:0;padding-left:8px;flex-direction:row;gap:5px;align-items:center;align-self:stretch}
+.intent-clock strong{font-size:24px;line-height:1}
+.intent-clock span{font-size:10px;line-height:1.2;white-space:normal;max-width:44px;margin:0}
+@media(max-height:620px){
+ main{--overhead:230px;grid-template-rows:32px 76px 50px 44px minmax(0,1fr) 28px 36px}
+ main:has(#relic-status:not(:empty)){--overhead:260px;grid-template-rows:32px 76px 50px 44px minmax(0,1fr) 26px 28px 36px}
+ main:has(#regional-status:not([hidden]):not(:empty)){--overhead:262px;grid-template-rows:32px 76px 50px 44px minmax(0,1fr) 28px 28px 36px}
+ main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empty)){--overhead:292px;grid-template-rows:32px 76px 50px 44px minmax(0,1fr) 28px 26px 28px 36px}
+ .boss-plan{height:44px}
+ .intent-clock strong{font-size:24px}
+}
+@media(max-width:360px){
+ .boss-plan{padding:4px 6px;gap:5px}
+ #intent-action{font-size:13px}
+ #intent-power{font-size:9px}
+ .intent-clock{padding-left:5px;gap:4px}
+ .intent-clock span{font-size:9px;max-width:38px}
+}
