@@ -212,8 +212,8 @@ create table if not exists public.quiz_attempts (
   is_correct boolean not null,
   created_at timestamptz not null default now()
 );
--- question_id ไม่มี FK ไป questions(id) ตั้งใจ (questions ไม่มี select policy ให้ authenticated
--- อ้างอิงตรงไม่ได้ผ่าน RLS) แต่เป็น bigint ตรงกับ questions.id จริง — เอกสารนี้เคยพิมพ์ผิดเป็น
+-- question_id ไม่มี FK ไป questions(id) ตั้งใจ (ไม่ผูกกับตารางโจทย์ที่ authenticated อ่านได้ไม่ครบคอลัมน์)
+-- แต่เป็น bigint ตรงกับ questions.id จริง — เอกสารนี้เคยพิมพ์ผิดเป็น
 -- "text" (แก้แล้วในงานระบบภารกิจประจำวัน ยืนยัน type จริงจาก live DB ผ่าน service role)
 
 comment on column public.quiz_attempts.pet_id is
@@ -382,8 +382,9 @@ create table if not exists public.questions (
   grade_band text not null default 'junior' check (grade_band in ('junior', 'senior'))
 );
 
--- ล็อก RLS ไว้โดยไม่มี select policy ใดๆ: อ่านได้เฉพาะฝั่ง server ผ่าน service role
--- (กันไม่ให้ client ยิง REST API ตรงไปเห็น correct_index/explanation ก่อนตอบ)
+-- RLS เปิดอยู่: authenticated อ่านได้เฉพาะแถว status='active' (policy 20260827170634) และเฉพาะคอลัมน์ที่ไม่ใช่เฉลย
+-- (column-level grant, 20261006151948) — correct_index/explanation อ่านได้เฉพาะฝั่ง server ผ่าน service role หรือฟังก์ชัน SECURITY DEFINER
+-- (กันไม่ให้ client ยิง REST API ตรงไปเห็นเฉลยก่อนตอบ)
 alter table public.questions enable row level security;
 
 -- grade_band เพิ่มโดย migration 20260725144933 (ระบบ ม.6): ม.1-3 = junior, ม.4-6 = senior
