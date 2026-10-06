@@ -31,7 +31,7 @@ main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empt
 .mobile-battle-info{display:none}
 @media(max-width:600px){
  main,main:has(#relic-status:not(:empty)),main:has(#regional-status:not([hidden]):not(:empty)),main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empty)){
-  --arena-h:clamp(56px,12dvh,92px);--overhead:196px;
+  --arena-h:clamp(76px,15dvh,116px);--overhead:196px;
   grid-template-rows:32px var(--arena-h) 50px 40px minmax(0,1fr) 38px;gap:4px;
  }
  .boss-plan{height:40px}
@@ -43,7 +43,9 @@ main:has(#regional-status:not([hidden]):not(:empty)):has(#relic-status:not(:empt
  .mobile-battle-info{display:block;flex:0 0 auto;min-width:32px;height:32px;padding:3px 7px;font-size:16px;border-radius:8px}
  .owned-relic{width:32px;height:32px}
  .battle .qmon-skill{height:24px;font-size:10px}
- .battle img{height:calc(100% - 24px)}
+ .battle{align-items:start}
+ .battle img{width:49%;height:calc(100% - 18px);object-position:center top;filter:drop-shadow(0 3px 4px #000b)}
+ .battle img.enemy{height:100%;object-position:center top}
 }
 @media(max-width:360px){
  .boss-plan{padding:4px 6px;gap:5px}
