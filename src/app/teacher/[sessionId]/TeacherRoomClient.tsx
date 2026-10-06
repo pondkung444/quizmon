@@ -13,6 +13,7 @@ import {
   Swords,
   Target,
   UserMinus,
+  Users,
   X,
 } from "lucide-react";
 import {
@@ -32,6 +33,8 @@ import {
   type ClassroomSession,
 } from "@/lib/classroom/useClassroomLobby";
 import { isFocusRunning, useFocusSession } from "@/lib/classroom/useFocusSession";
+import { isTeamBattleRunning } from "@/lib/teamBattle/running";
+import { useTeamBattleStatus } from "@/lib/teamBattle/useTeamBattleStatus";
 import {
   formatJoinCode,
   resolveRosterPet,
@@ -70,6 +73,12 @@ export default function TeacherRoomClient({
     session?.active_focus_session_id ?? null
   );
   const focusRunning = isFocusRunning(session, focusSession);
+  // Team Battle "กำลังเล่น" ตัดสินจากสถานะ battle (setup/active) ไม่ใช่ current_activity อย่างเดียว —
+  // เกมจบแล้วห้องยังค้าง current_activity='team_battle' + pointer เก่า
+  const { status: battleStatus, loaded: battleLoaded } = useTeamBattleStatus(
+    session?.current_activity === "team_battle" ? (session.active_team_battle_id ?? null) : null
+  );
+  const battleRunning = isTeamBattleRunning(battleStatus);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("number");
@@ -430,12 +439,21 @@ export default function TeacherRoomClient({
                 ปิด Boss Raid · กลับห้องรอ
               </button>
             )
+          ) : session.current_activity === "team_battle" && battleRunning ? (
+            // เกมยังเล่นอยู่: clear_classroom_activity จะถูกปฏิเสธ (busy) — พาไปจบเกมที่หน้า Team Battle
+            // (tb_end_battle / tb_cancel_setup) แทน
+            <Link
+              href={`/teacher/${sessionId}/battle`}
+              className="rounded-xl border border-gold-dim px-3 py-1.5 text-xs text-gold-hi transition active:scale-95"
+            >
+              ไปจอ Team Battle · จบเกมที่นั่น
+            </Link>
           ) : (
             session.current_activity !== null &&
             !focusRunning && (
               <button
                 type="button"
-                disabled={pending}
+                disabled={pending || (session.current_activity === "team_battle" && !battleLoaded)}
                 onClick={() =>
                   act(async () => {
                     const res = await clearClassroomActivity(sessionId);
@@ -452,7 +470,7 @@ export default function TeacherRoomClient({
           )}
         </div>
 
-        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <ActivityCard
             icon={<Dices className="h-6 w-6" />}
             title="สุ่มรายชื่อ"
@@ -513,6 +531,14 @@ export default function TeacherRoomClient({
                 await refetch();
               })
             }
+          />
+          <ActivityCard
+            icon={<Users className="h-6 w-6" />}
+            title="Team Battle"
+            desc="แบ่งทีม ช่วยกันตอบ สู้ด้วย Qmon"
+            active={battleRunning}
+            disabled={pending || focusRunning}
+            onClick={() => router.push(`/teacher/${sessionId}/battle`)}
           />
         </div>
 
@@ -635,6 +661,7 @@ export default function TeacherRoomClient({
               นักเรียนทั้ง {participants.length} คนจะออกจากห้อง และใช้รหัสนี้เข้าไม่ได้อีก
               {session.current_activity === "boss_raid" && " — Boss Raid ที่ยังเล่นอยู่จะจบไปด้วย"}
               {focusRunning && " — คาบตั้งใจที่กำลังดำเนินอยู่จะจบไปด้วย"}
+              {battleRunning && " — Team Battle ที่ยังเล่นอยู่จะจบไปด้วย"}
             </p>
             <div className="mt-5 flex gap-2">
               <button
