@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { explainBattleError } from "@/lib/teamBattle/errors";
 import { teacherRpc } from "@/lib/teamBattle/rpc";
 import { toCentralView } from "@/lib/teamBattle/types";
+import { useCentralRoster } from "@/lib/teamBattle/useCentralRoster";
 import { useTeamBattleState } from "@/lib/teamBattle/useTeamBattleState";
 import { useTeamBattleTicker } from "@/lib/teamBattle/useTeamBattleTicker";
 import BattleCentral from "./BattleCentral";
@@ -61,6 +62,8 @@ function BattleRoom({
   const { state, loading, error, refetch, clock, membersVersion } = useTeamBattleState(battleId, { mode: "host" });
   const [ending, setEnding] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // รายชื่อ Qmon บนจอกลาง: โหลดครั้งเดียวเมื่อเกมพ้น setup (ไม่ refetch ตาม realtime)
+  const centralRoster = useCentralRoster(sessionId, battleId, !!state && state.battle.status !== "setup");
 
   // จอครูเป็นตัวเคาะหลัก: ปิดยกที่หมดเวลา (เลือกการ์ดแทน/คิดผล) — ถ้าไม่เคาะ ยกจะค้างเมื่อไม่มีใครตอบ
   useTeamBattleTicker({
@@ -113,6 +116,7 @@ function BattleRoom({
     <BattleCentral
       view={toCentralView(state)}
       clock={clock}
+      roster={centralRoster}
       ending={ending}
       error={actionError}
       backHref={`/teacher/${sessionId}`}

@@ -20,8 +20,11 @@ import {
   roundBadges,
   timeLeftFraction,
 } from "@/lib/teamBattle/central";
+import type { CentralRoster } from "@/lib/teamBattle/centralRoster";
 import type { CentralBattleView, TeamId } from "@/lib/teamBattle/types";
 import type { ClockEstimator } from "@/lib/teamBattle/useServerClock";
+import QmonRow from "./QmonRow";
+import qmon from "./qmon-row.module.css";
 import styles from "./battle-central.module.css";
 import tv from "./battle-tv.module.css";
 
@@ -46,6 +49,7 @@ export default function BattleCentral({
   backHref,
   tvHref,
   error,
+  roster = null,
 }: {
   view: CentralBattleView;
   clock: ClockEstimator;
@@ -57,6 +61,8 @@ export default function BattleCentral({
   /** ลิงก์เปิดจอ TV (โหมดอ่านอย่างเดียว) ในแท็บใหม่ — โชว์เฉพาะโหมดคุมเกม */
   tvHref?: string;
   error?: string | null;
+  /** แถว Qmon ของสองทีม (ไม่มีชื่อ/id) — ไม่ส่ง/null = ไม่แสดงแถว ส่วนอื่นของจอทำงานเหมือนเดิม */
+  roster?: CentralRoster | null;
 }) {
   const b = view.battle;
   const last = view.last_round;
@@ -221,22 +227,32 @@ export default function BattleCentral({
                   <h2 className={`${tv.tLead} font-bold ${TEAM_TEXT[t]}`}>{TEAM_NAME[t]}</h2>
                   <span className={`${tv.tBody} text-text2`}>{players ?? 0} คน</span>
                 </div>
-                <div className={`${tv.tBody} flex min-h-[1.5em] items-center gap-[0.8cqw] font-bold text-gold-hi`}>
-                  {role}
-                  {teamBadges.map((x) => (
-                    <span
-                      key={x.text}
-                      className="rounded-full bg-red/15 px-[0.9cqw] py-[0.1cqw] text-red"
-                      data-testid="round-badge"
-                    >
-                      {x.text}
-                    </span>
-                  ))}
+                {/* บรรทัดสถานะ + เลข HP อยู่ซ้าย; แถว Qmon (ถ้ามี) ใช้พื้นที่ว่างด้านขวาของเลข — ไม่เพิ่มความสูงการ์ด */}
+                <div className="flex items-stretch gap-[1.6cqw]">
+                  <div className="shrink-0">
+                    <div className={`${tv.tBody} flex min-h-[1.5em] items-center gap-[0.8cqw] font-bold text-gold-hi`}>
+                      {role}
+                      {teamBadges.map((x) => (
+                        <span
+                          key={x.text}
+                          className="rounded-full bg-red/15 px-[0.9cqw] py-[0.1cqw] text-red"
+                          data-testid="round-badge"
+                        >
+                          {x.text}
+                        </span>
+                      ))}
+                    </div>
+                    <p className={`${tv.tNum} mt-[0.4cqw] font-bold tabular-nums text-text`}>
+                      {hp}
+                      <span className={`${tv.tBody} font-normal text-text3`}> / {max}</span>
+                    </p>
+                  </div>
+                  {roster && roster[t].length > 0 && (
+                    <div className={qmon.region}>
+                      <QmonRow team={t} members={roster[t]} />
+                    </div>
+                  )}
                 </div>
-                <p className={`${tv.tNum} mt-[0.4cqw] font-bold tabular-nums text-text`}>
-                  {hp}
-                  <span className={`${tv.tBody} font-normal text-text3`}> / {max}</span>
-                </p>
                 <div className="mt-[0.8cqw] h-[1.6cqw] overflow-hidden rounded-full bg-track">
                   <div
                     className={`h-full ${TEAM_BAR[t]} ${styles.bar}`}

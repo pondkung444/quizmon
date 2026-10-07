@@ -25,5 +25,5 @@ export default async function TeacherBattleTvPage({
   if (!session || session.teacher_id !== user.id) redirect("/teacher");
   if (session.status === "ended") redirect(`/teacher/${sessionId}`);
 
-  return <BattleTvClient battleId={session.active_team_battle_id ?? null} />;
+  return <BattleTvClient sessionId={sessionId} battleId={session.active_team_battle_id ?? null} />;
 }
