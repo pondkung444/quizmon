@@ -112,5 +112,41 @@ export function endedReasonText(reason: EndedReason | null): string | null {
   if (reason === "hp_zero") return "พลังชีวิตของอีกทีมหมดลงแล้ว";
   if (reason === "time_up") return "หมดเวลาเกม";
   if (reason === "host_ended") return "ครูจบเกม";
+  if (reason === "stale_timeout") return "เกมจบเพราะไม่มีความเคลื่อนไหวนาน";
+  if (reason === "room_ended") return "ห้องเรียนปิดแล้ว";
   return null;
+}
+
+export type FloatTone = "hurt" | "heal";
+
+/** เลขลอยบนการ์ดทีม — id คงที่ต่อ (ยก, ทีม, ชนิด) ใช้เป็น React key ให้แอนิเมชันเล่นครั้งเดียวต่อยก */
+export type FloatingNumber = { id: string; team: TeamId; tone: FloatTone; text: string };
+
+/**
+ * เลขที่ลอยหลังปิดยก: ทีมรับ −damage / +heal_defender, ทีมโจมตี −self_damage (reprisal) / +heal_self (lifesteal)
+ * ค่าเป็น 0 ไม่ลอย. damage ใน DB รวม pierce แล้ว จึงไม่ลอย pierce แยก (ดู roundBadges)
+ */
+export function floatingNumbers(r: RoundResult): FloatingNumber[] {
+  const att = r.attacker_team;
+  const def = defenderOf(att);
+  const out: FloatingNumber[] = [];
+  const push = (team: TeamId, kind: string, tone: FloatTone, sign: "−" | "+", n: number) => {
+    if (n > 0) out.push({ id: `${r.round_no}:${team}:${kind}`, team, tone, text: `${sign}${n}` });
+  };
+  push(def, "damage", "hurt", "−", r.damage);
+  push(def, "heal", "heal", "+", r.heal_defender);
+  push(att, "self", "hurt", "−", r.self_damage);
+  push(att, "drain", "heal", "+", r.heal_self);
+  return out;
+}
+
+export type RoundBadge = { team: TeamId; text: string };
+
+/** ป้ายสั้นๆ บนทีมรับ: คริติคอล / เจาะเกราะ (ไม่ใช่เลขลอย) */
+export function roundBadges(r: RoundResult): RoundBadge[] {
+  const def = defenderOf(r.attacker_team);
+  const out: RoundBadge[] = [];
+  if (r.crit && r.damage > 0) out.push({ team: def, text: "คริติคอล!" });
+  if (r.pierce > 0) out.push({ team: def, text: "เจาะเกราะ" });
+  return out;
 }

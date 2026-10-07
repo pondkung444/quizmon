@@ -1,0 +1,102 @@
+/* Team Battle — จอกลางแบบ TV 16:9 (เฟส 5a): letterbox + ตัวอักษรตามความกว้างกล่อง (cqw)
+   แพตเทิร์นเดียวกับ /boss-raid/[id]/tv (กล่อง aspect-video) แต่เพดานกว้าง 1920px: min(1920px, 177.78vh, 100vw)
+   ใช้ cqw แทน vw เพราะกล่องอาจแคบกว่าจอเมื่อถูก letterbox ด้วยความสูง
+   ที่กล่อง 1920px (1080p เต็มจอ): body ≈ 29px, หัวข้อ ≈ 42px, เลขใหญ่ ≈ 96–115px
+   keyframes ของจอ TV อยู่ไฟล์นี้เท่านั้น — ไม่แตะ globals.css และไม่แก้ battle-central.module.css */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+}
+
+.box {
+  position: relative;
+  width: min(1920px, 177.78vh, 100vw);
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ตัวห่อชั้นใน: cqw อิง container ชั้นบน (.box) จึงต้อง padding/gap ที่นี่ ไม่ใช่บน .box เอง */
+.inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1cqw;
+  padding: 1.4cqw;
+}
+
+/* ขนาดตัวอักษร (อิงความกว้างกล่อง) */
+.tSm {
+  font-size: clamp(13px, 1.3cqw, 26px);
+}
+.tBody {
+  font-size: clamp(14px, 1.5cqw, 31px);
+}
+.tLead {
+  font-size: clamp(18px, 2.2cqw, 46px);
+}
+.tMid {
+  font-size: clamp(16px, 1.9cqw, 38px);
+  line-height: 1.25;
+}
+.tNum {
+  font-size: clamp(36px, 5cqw, 100px);
+  line-height: 1.05;
+}
+.tHuge {
+  font-size: clamp(44px, 6cqw, 120px);
+  line-height: 1.05;
+}
+
+.main {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* เลขลอยบนการ์ดทีม — ตำแหน่งแนวนอนตั้ง inline (left) */
+.float {
+  position: absolute;
+  top: 18%;
+  z-index: 5;
+  font-weight: 800;
+  font-size: clamp(32px, 4.6cqw, 94px);
+  line-height: 1;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 55%);
+  pointer-events: none;
+  animation: tvFloat 2.2s ease-out forwards;
+}
+
+@keyframes tvFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.8);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -48px) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* ตัดการเคลื่อนไหว คงตัวเลขไว้ให้อ่านได้ (JS ถอดออกเองเมื่อครบ 2.2 วิ) */
+  .float {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -20%);
+  }
+}

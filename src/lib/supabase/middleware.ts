@@ -9,7 +9,7 @@ export async function updateSession(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } });
 
-  if (process.env.NODE_ENV !== "production" && process.env.RAID_CARD_PREVIEW === "true" && request.nextUrl.pathname === "/raid/preview") return supabaseResponse;
+  if (process.env.NODE_ENV !== "production" && process.env.RAID_CARD_PREVIEW === "true" && (request.nextUrl.pathname === "/raid/preview" || request.nextUrl.pathname === "/teacher/preview/battle")) return supabaseResponse;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

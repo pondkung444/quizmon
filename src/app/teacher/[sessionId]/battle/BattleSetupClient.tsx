@@ -116,6 +116,7 @@ function BattleRoom({
       ending={ending}
       error={actionError}
       backHref={`/teacher/${sessionId}`}
+      tvHref={`/teacher/${sessionId}/battle/tv`}
       onNew={onReset}
       onEnd={async () => {
         setEnding(true);
