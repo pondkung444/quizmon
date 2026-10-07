@@ -4,12 +4,14 @@ import {
   EFFECT_NOTE,
   effectNote,
   endedReasonText,
+  floatingNumbers,
   formatClock,
   hpPercent,
   narrateRound,
   outcomeHeadline,
   phaseHeadline,
   phaseTotalMs,
+  roundBadges,
   timeLeftFraction,
 } from "../../src/lib/teamBattle/central.ts";
 import type { RoundResult } from "../../src/lib/teamBattle/types.ts";
@@ -115,4 +117,171 @@ test("central: toCentralView ตัด commander_user_id ออก และไ�
   assert.ok(!JSON.stringify(v).includes("user_id"));
   assert.equal(v.round.answered, 0);
   assert.ok("commander_user_id" in state.round); // ต้นฉบับไม่ถูกแก้
+});
+
+// ---- เฟส 5a ----------------------------------------------------------------
+
+test("floats: ทีมรับ −damage และ +heal_defender; ทีมโจมตี −self_damage และ +heal_self", () => {
+  const f = floatingNumbers(round({ attacker_team: "a", damage: 40, heal_defender: 7, self_damage: 5, heal_self: 9 }));
+  const by = (team: string, text: string) => f.find((x) => x.team === team && x.text === text);
+  assert.equal(by("b", "−40")?.tone, "hurt");
+  assert.equal(by("b", "+7")?.tone, "heal");
+  assert.equal(by("a", "−5")?.tone, "hurt");
+  assert.equal(by("a", "+9")?.tone, "heal");
+  assert.equal(f.length, 4);
+  assert.equal(new Set(f.map((x) => x.id)).size, 4); // id ไม่ซ้ำ (ใช้เป็น React key)
+});
+
+test("floats: ค่าเป็น 0 ไม่ลอย; ฝั่งทีมสลับตามผู้โจมตี", () => {
+  assert.deepEqual(floatingNumbers(round({ damage: 0, heal_defender: 0, self_damage: 0, heal_self: 0 })), []);
+  const f = floatingNumbers(round({ attacker_team: "b", damage: 12, self_damage: 0, heal_self: 0 }));
+  assert.equal(f.length, 1);
+  assert.equal(f[0].team, "a");
+  assert.equal(f[0].text, "−12");
+});
+
+test("badges: คริติคอล/เจาะเกราะบนทีมรับ ไม่ใช่เลขลอย", () => {
+  assert.deepEqual(roundBadges(round({ crit: true, damage: 30, pierce: 4 })), [
+    { team: "b", text: "คริติคอล!" },
+    { team: "b", text: "เจาะเกราะ" },
+  ]);
+  assert.deepEqual(roundBadges(round({ crit: true, damage: 0 })), []);
+  assert.deepEqual(roundBadges(round({ crit: false, pierce: 0 })), []);
+  const f = floatingNumbers(round({ crit: true, pierce: 4, damage: 30 }));
+  assert.ok(f.every((x) => /^[−+]\d+$/.test(x.text)));
+});
+
+test("ended: stale_timeout / room_ended มีข้อความ โทนไม่ลงโทษ", () => {
+  assert.equal(endedReasonText("stale_timeout"), "เกมจบเพราะไม่มีความเคลื่อนไหวนาน");
+  assert.equal(endedReasonText("room_ended"), "ห้องเรียนปิดแล้ว");
+  assert.equal(endedReasonText(null), null);
+});
+
+import { readFileSync } from "node:fs";
+import { toCentralView as toView } from "../../src/lib/teamBattle/types.ts";
+
+const FORBIDDEN_WORDS = /แพ้|ผิดพลาด|ล้มเหลว|ตอบผิด/;
+
+test("ข้อความใหม่ทั้งหมดของ 5a ไม่มีคำต้องห้าม", () => {
+  const texts: string[] = [
+    endedReasonText("stale_timeout") ?? "",
+    endedReasonText("room_ended") ?? "",
+    ...floatingNumbers(round({ damage: 9, heal_defender: 2, self_damage: 3, heal_self: 4 })).map((x) => x.text),
+    ...roundBadges(round({ crit: true, pierce: 2 })).map((x) => x.text),
+  ];
+  for (const t of texts) assert.ok(!FORBIDDEN_WORDS.test(t), t);
+});
+
+test("view-model จอกลางเต็มรูปไม่มี user_id/username/display_name/commander_user_id", () => {
+  const state = {
+    battle: { id: "b", status: "active", phase: "answering", current_round: 2, attacker_team: "a" },
+    round: { commander_user_id: "u-9", defenders_total: 5, answered: 2, card: null },
+    last_round: round(),
+    server_now: "2026-10-06T00:00:00Z",
+  } as unknown as BattleState;
+  const json = JSON.stringify(toView(state));
+  for (const k of ["user_id", "username", "display_name", "commander_user_id"]) assert.ok(!json.includes(k), k);
+});
+
+function stripComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(/(^|\s)\/\/.*$/, ""))
+    .join(" ");
+}
+
+test("ไฟล์จอกลาง/TV ไม่มีของต้องห้าม (เฉลย/คำถามตรง/ชื่อรายคน) และข้อความที่ผู้ใช้เห็นไม่มีคำต้องห้าม", () => {
+  const files = [
+    "src/app/teacher/[sessionId]/battle/BattleCentral.tsx",
+    "src/app/teacher/[sessionId]/battle/tv/BattleTvClient.tsx",
+    "src/app/teacher/[sessionId]/battle/tv/page.tsx",
+    "src/lib/teamBattle/central.ts",
+  ];
+  for (const f of files) {
+    const code = stripComments(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8"));
+    for (const bad of ["correct_index", "hintTh", '.from("questions")', "rosterDisplayName", "commander_user_id", "username"]) {
+      assert.ok(!code.includes(bad), `${f}: ${bad}`);
+    }
+    assert.ok(!FORBIDDEN_WORDS.test(code), `${f}: คำต้องห้าม`);
+  }
+});
+
+test("โหมด TV: ไม่เรียก ticker และไม่มีปุ่มจบเกม/ชื่อรายคน", () => {
+  const code = stripComments(
+    readFileSync(new URL("../../src/app/teacher/[sessionId]/battle/tv/BattleTvClient.tsx", import.meta.url), "utf8")
+  );
+  assert.ok(!code.includes("useTeamBattleTicker"));
+  assert.ok(!code.includes("teacherRpc"));
+  assert.ok(!code.includes("TeamSplitPanel"));
+  assert.ok(code.includes("readOnly"));
+});
+
+// ---- preview dev-only (เฟส 5a) ---------------------------------------------
+
+import {
+  PREVIEW_EFFECTS,
+  PREVIEW_OUTCOMES,
+  PREVIEW_REASONS,
+  PREVIEW_SCENARIOS,
+  buildPreviewView,
+  isBattlePreviewEnabled,
+  parsePreviewParams,
+} from "../../src/lib/teamBattle/previewFixtures.ts";
+
+test("preview: เปิดได้เฉพาะ non-production + RAID_CARD_PREVIEW=true", () => {
+  assert.equal(isBattlePreviewEnabled("development", "true"), true);
+  assert.equal(isBattlePreviewEnabled(undefined, "true"), true);
+  assert.equal(isBattlePreviewEnabled("production", "true"), false);
+  assert.equal(isBattlePreviewEnabled("development", undefined), false);
+  assert.equal(isBattlePreviewEnabled("development", "1"), false);
+});
+
+test("preview: parse พารามิเตอร์ปลอดภัย (ค่าแปลก = ค่าเริ่มต้น, effect=none = null)", () => {
+  assert.equal(parsePreviewParams({ scenario: "result" }).scenario, "result");
+  assert.equal(parsePreviewParams({ scenario: "evil" }).scenario, "answering");
+  assert.equal(parsePreviewParams({ effect: "none" }).effect, null);
+  assert.equal(parsePreviewParams({ effect: "haste" }).effect, "haste");
+  assert.equal(parsePreviewParams({ reason: "room_ended" }).reason, "room_ended");
+  assert.equal(parsePreviewParams({ outcome: ["draw", "a_win"] }).outcome, "draw");
+});
+
+test("preview: fixture ทุกสถานะไม่มี user_id/username/display_name/commander_user_id", () => {
+  for (const scenario of PREVIEW_SCENARIOS.map((s) => s.id))
+    for (const effect of [null, ...PREVIEW_EFFECTS])
+      for (const outcome of PREVIEW_OUTCOMES)
+        for (const reason of PREVIEW_REASONS) {
+          const json = JSON.stringify(buildPreviewView({ scenario, effect, outcome, reason }));
+          for (const k of ["user_id", "username", "display_name", "commander_user_id"]) assert.ok(!json.includes(k), k);
+        }
+});
+
+test("preview: ผลยกจำลองให้เลขลอยครบ 4 แบบ + ป้ายคริ/เจาะเกราะ", () => {
+  const v = buildPreviewView({ scenario: "result", effect: null, outcome: "a_win", reason: "hp_zero" });
+  assert.ok(v.last_round);
+  assert.equal(floatingNumbers(v.last_round).length, 4);
+  assert.equal(roundBadges(v.last_round).length, 2);
+  const early = buildPreviewView({ scenario: "result", effect: null, outcome: "a_win", reason: "hp_zero" }, { lastRoundNo: 3 });
+  assert.equal(early.last_round?.round_no, 3); // ไว้เล่นซ้ำ: round_no เปลี่ยน → แอนิเมชันเล่น
+});
+
+test("preview: route เรียก notFound ตาม flag, ไม่เรียก RPC/Supabase/ticker, ไม่มีคำต้องห้าม", () => {
+  const read = (f: string) => stripComments(readFileSync(new URL(`../../${f}`, import.meta.url), "utf8"));
+  const page = read("src/app/teacher/preview/battle/page.tsx");
+  assert.ok(page.includes("isBattlePreviewEnabled(process.env.NODE_ENV, process.env.RAID_CARD_PREVIEW)"));
+  assert.ok(/!isBattlePreviewEnabled\([^)]*\)\)\s*notFound\(\)/.test(page));
+  for (const f of [
+    "src/app/teacher/preview/battle/page.tsx",
+    "src/app/teacher/preview/battle/BattlePreviewClient.tsx",
+    "src/lib/teamBattle/previewFixtures.ts",
+  ]) {
+    const code = read(f);
+    for (const bad of ["supabase", "teacherRpc", "viewerRpc", "useTeamBattleTicker", "useTeamBattleState", "rosterDisplayName", "correct_index"]) {
+      assert.ok(!code.includes(bad), `${f}: ${bad}`);
+    }
+    assert.ok(!FORBIDDEN_WORDS.test(code), `${f}: คำต้องห้าม`);
+  }
+  const mw = read("src/lib/supabase/middleware.ts");
+  assert.ok(mw.includes('NODE_ENV !== "production" && process.env.RAID_CARD_PREVIEW === "true"'));
+  assert.ok(mw.includes('"/teacher/preview/battle"'));
 });
