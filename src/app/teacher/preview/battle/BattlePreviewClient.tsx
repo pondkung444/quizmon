@@ -8,6 +8,8 @@ import {
   PREVIEW_OUTCOMES,
   PREVIEW_REASONS,
   PREVIEW_SCENARIOS,
+  PREVIEW_SIZES,
+  buildPreviewRoster,
   buildPreviewView,
   type PreviewParams,
 } from "@/lib/teamBattle/previewFixtures";
@@ -41,7 +43,8 @@ function BareStage({ params, play }: { params: PreviewParams; play: boolean }) {
     return () => clearTimeout(t);
   }, [play]);
   const view = useMemo(() => buildPreviewView(params, { lastRoundNo: started ? 4 : 3 }), [params, started]);
-  return <BattleCentral view={view} clock={PREVIEW_CLOCK} readOnly />;
+  const roster = useMemo(() => buildPreviewRoster(params.size), [params.size]);
+  return <BattleCentral view={view} clock={PREVIEW_CLOCK} roster={roster} readOnly />;
 }
 
 function Controls({ initial }: { initial: PreviewParams }) {
@@ -50,6 +53,7 @@ function Controls({ initial }: { initial: PreviewParams }) {
   const query = new URLSearchParams({
     bare: "1",
     play: "1",
+    size: p.size ?? "20",
     scenario: p.scenario,
     effect: p.effect ?? "none",
     outcome: p.outcome,
@@ -63,6 +67,25 @@ function Controls({ initial }: { initial: PreviewParams }) {
     <main className="min-h-screen bg-bg p-4 text-text" data-testid="battle-preview-controls">
       <h1 className="text-lg font-bold text-gold-hi">Team Battle · preview จอกลาง (ข้อมูลจำลอง)</h1>
       <p className="mt-1 text-xs text-text3">dev เท่านั้น — ไม่เรียก RPC/realtime/Supabase และไม่มีชื่อรายคน</p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-text2">ผู้เล่นต่อทีม</span>
+        {PREVIEW_SIZES.map((z) => (
+          <button
+            key={z}
+            type="button"
+            onClick={() => {
+              setP({ ...p, size: z });
+              setSeq((n) => n + 1);
+            }}
+            className={`rounded-xl border px-3 py-1.5 text-sm ${
+              (p.size ?? "20") === z ? "border-gold bg-amber text-on-amber" : "border-border text-text2"
+            }`}
+          >
+            {z === "none" ? "ไม่มีแถว" : z === "11v10" ? "11 vs 10" : z}
+          </button>
+        ))}
+      </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {PREVIEW_SCENARIOS.map((s) => (
