@@ -41,3 +41,7 @@ export async function loadConfirmedSchoolLevel():Promise<number>{
  if(legacy.error||upgrades.error&&!['42P01','PGRST205'].includes(upgrades.error.code))throw Error('โหลดระดับโรงเรียนไม่สำเร็จ');
  return (upgrades.data??[]).reduce((level,row)=>Math.max(level,Number(row.rules_snapshot?.targetLevel)||0),legacy.data?.status==='placed'?1:0);
 }
+export async function farmProjectSchemaAvailable():Promise<boolean>{
+ const user=await getUser();if(!user)return false;const {error}=await (await createClient()).from('farm_catalogue').select('id').limit(1);
+ if(error&&['42P01','PGRST205'].includes(error.code))return false;if(error)throw Error('โหลดสถานะระบบโครงการไม่สำเร็จ');return true;
+}
