@@ -28,10 +28,19 @@ export async function loadProjectOverview() {
       .select("id,status,ready_at,leader_id,tile_x,tile_y")
       .eq("user_id", user.id),
     db.from("farm_catalogue").select("id,enabled"),
+    db
+      .from("farm_blueprint_discoveries")
+      .select("blueprint_id")
+      .eq("user_id", user.id),
+    db
+      .from("farm_wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
   if (results.some((result) => result.error))
     throw new Error("โหลดคิวโครงการไม่สำเร็จ");
-  const [projects, school, gardens, catalogue] = results;
+  const [projects, school, gardens, catalogue, discoveries, wallet] = results;
   const rows = (projects.data ?? []) as FarmProject[];
   // Assignments have no user column. Scope through the verified owner's project IDs.
   const teams = rows.length
@@ -52,6 +61,8 @@ export async function loadProjectOverview() {
     school: school.data,
     gardens: gardens.data ?? [],
     catalogue: catalogue.data ?? [],
+    blueprints: (discoveries.data ?? []).map((d) => d.blueprint_id as string),
+    balance: Number(wallet.data?.balance ?? 0),
     level: schoolLevel(school.data?.status === "placed", rows),
     busyProjects: projectTeamAvailability(rows, assignments, now),
     serverNow: new Date(now).toISOString(),

@@ -458,13 +458,15 @@ try {
     ["school-3", ["pond"], 100, 40, 3],
     ["school-4", ["flower", "bridge"], 160, 60, 4],
   ]) {
-    await reject(
-      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
-      [advanced, kind, head],
-      /ก่อน/,
-    );
+    if (target !== 3)
+      await reject(
+        "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+        [advanced, kind, head],
+        /ก่อน/,
+      );
     for (const [i, place] of prerequisites.entries())
-      await fixture(place, target + i, 0);
+      if (!["pond", "flower"].includes(place))
+        await fixture(place, target + i, 0);
     let upgrade = await scalar(
       "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
       [advanced, kind, head],
@@ -544,6 +546,122 @@ try {
     await db.query("update dungeon_runs set status='completed' where id=$1", [
       run,
     ]);
+    if (target === 2) {
+      for (const [kind, blueprint, x] of [
+        ["pond", "pond-cycle-v1", 3],
+        ["flower", "flower-photosynthesis-v1", 4],
+      ]) {
+        await reject(
+          "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+          [advanced, kind, head],
+          /ค้นพบ/,
+        );
+        const beforeLesson = await scalar(
+          "select balance from farm_wallets where user_id=$1",
+          [advanced],
+        );
+        const lesson = await scalar(
+          "select farm_lesson_open($1,$2,$3,$4,false)",
+          [advanced, blueprint, head, { version: 1, kind, seed: 123 }],
+        );
+        await scalar("select farm_lesson_answer($1,$2,0,$3,true,true)", [
+          advanced,
+          lesson.session_id,
+          { tiles: [] },
+        ]);
+        eq(
+          await scalar("select balance from farm_wallets where user_id=$1", [
+            advanced,
+          ]),
+          beforeLesson,
+        );
+        const nonce = await scalar("select gen_random_uuid()");
+        let place = await scalar("select farm_project_buy($1,$2,$3,$4)", [
+          advanced,
+          kind,
+          nonce,
+          head,
+        ]);
+        expectedBalance -= 50;
+        eq(
+          (
+            await scalar("select farm_project_buy($1,$2,$3,$4)", [
+              advanced,
+              kind,
+              nonce,
+              head,
+            ])
+          ).id,
+          place.id,
+        );
+        eq(
+          await scalar("select balance from farm_wallets where user_id=$1", [
+            advanced,
+          ]),
+          expectedBalance,
+        );
+        eq(place.rules_snapshot.waits, [28800, 28800, 28800]);
+        eq(place.rules_snapshot.puzzleSeconds, kind === "pond" ? 180 : 240);
+        for (let point = 0; point < 2; point++) {
+          await db.query(
+            "update farm_projects set ready_at='2000-01-01' where id=$1",
+            [place.id],
+          );
+          place = await scalar("select farm_project_command($1,$2,'begin')", [
+            advanced,
+            place.id,
+          ]);
+          place = await scalar(
+            "select farm_project_checkpoint_result($1,$2,true)",
+            [advanced, place.id],
+          );
+          eq(place.checkpoint, point + 1);
+        }
+        eq(place.status, "finishing");
+        await reject(
+          "select farm_project_place($1,$2,$3,0)",
+          [advanced, place.id, x],
+          /เสร็จ|พร้อม/,
+        );
+        await db.query(
+          "update farm_projects set ready_at='2000-01-01' where id=$1",
+          [place.id],
+        );
+        place = await scalar("select farm_project_place($1,$2,$3,0)", [
+          advanced,
+          place.id,
+          x,
+        ]);
+        eq(place.status, "placed");
+        expectedBalance += 20;
+        await scalar("select farm_project_place($1,$2,$3,0)", [
+          advanced,
+          place.id,
+          x,
+        ]);
+        eq(
+          await scalar("select balance from farm_wallets where user_id=$1", [
+            advanced,
+          ]),
+          expectedBalance,
+        );
+        const replay = await scalar(
+          "select farm_lesson_open($1,$2,$3,$4,true)",
+          [advanced, blueprint, head, { version: 1, kind, seed: 124 }],
+        );
+        await scalar("select farm_lesson_answer($1,$2,0,$3,true,true)", [
+          advanced,
+          replay.session_id,
+          { tiles: [] },
+        ]);
+        eq(
+          await scalar("select balance from farm_wallets where user_id=$1", [
+            advanced,
+          ]),
+          expectedBalance,
+        );
+      }
+    }
   }
 
   const ledgerBeforeMove = await scalar(
@@ -633,6 +751,58 @@ try {
     eq(
       await scalar("select balance from farm_wallets where user_id=$1", [u]),
       440,
+    );
+  }
+  // Repeat builds and caps use only the isolated synthetic owner above.
+  for (const kind of ["pond", "flower"]) {
+    for (let repeat = 1; repeat <= 2; repeat++) {
+      let place = await scalar(
+        "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+        [advanced, kind, head],
+      );
+      expectedBalance -= 50;
+      eq(place.reward_eligible, false);
+      for (let point = 0; point < 2; point++) {
+        await db.query(
+          "update farm_projects set ready_at='2000-01-01' where id=$1",
+          [place.id],
+        );
+        await scalar("select farm_project_command($1,$2,'begin')", [
+          advanced,
+          place.id,
+        ]);
+        place = await scalar(
+          "select farm_project_checkpoint_result($1,$2,true)",
+          [advanced, place.id],
+        );
+      }
+      await db.query(
+        "update farm_projects set ready_at='2000-01-01' where id=$1",
+        [place.id],
+      );
+      await scalar("select farm_project_place($1,$2,$3,$4)", [
+        advanced,
+        place.id,
+        -repeat,
+        kind === "flower" ? 1 : 0,
+      ]);
+      eq(
+        await scalar("select balance from farm_wallets where user_id=$1", [
+          advanced,
+        ]),
+        expectedBalance,
+      );
+    }
+    await reject(
+      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+      [advanced, kind, head],
+      /เพดาน/,
+    );
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [
+        advanced,
+      ]),
+      expectedBalance,
     );
   }
   console.log(
