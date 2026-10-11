@@ -56,7 +56,7 @@ this migration or the new read projection.
 - PostgreSQL CI adds 10 simultaneous connections. This is separate from PGlite's
   single backend and must pass before declaring concurrency verified.
 - Account gameplay: not performed. No real player's progress is altered for testing.
-- Phase 1 is pending final CI/type/lint review; phase 2–9 and production approval
+- Final CI/PR status is recorded in the Notion plan and [PR #310](https://github.com/pondkung444/quizmon/pull/310); phase 2–9 and production approval
   remain outstanding. Phase 10 starts only after approved production rollout and
   requires at least two weeks of actual observation.
 

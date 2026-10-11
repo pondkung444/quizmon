@@ -16,12 +16,13 @@ create table public.pets(id uuid primary key,user_id uuid,stage int,is_active bo
 create table public.daily_missions(id uuid primary key,user_id uuid,target_count int,bonus_exp smallint,bonus_awarded_at timestamptz);
 create table public.quiz_attempts(id serial primary key,user_id uuid,mission_id uuid);
 create table public.dungeon_runs(id serial primary key,pet_id uuid,user_id uuid,status text);
-create table public.farm_school_projects(user_id uuid,status text,tile_x int,tile_y int);
+create table public.farm_school_projects(user_id uuid,status text,tile_x int,tile_y int,leader_id uuid,ready_at timestamptz);
 create table public.farm_blueprint_discoveries(user_id uuid,blueprint_id text);
 insert into auth.users values('${u}'),('${other}');insert into pets values('${pet}','${u}',2,true,0),('${pet2}','${u}',4,false,0);
-insert into farm_school_projects values('${u}','placed',1,1);insert into farm_blueprint_discoveries values('${u}','garden-rest-v1');insert into daily_missions values('${mission}','${u}',5,10,null);
+insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${u}','placed',1,1);insert into farm_blueprint_discoveries values('${u}','garden-rest-v1');insert into daily_missions values('${mission}','${u}',5,10,null);
 select set_config('request.jwt.claim.sub','${u}',false);`);
 await db.exec(fs.readFileSync(root+'/supabase/migrations/20261005052159_farm_garden_construction.sql','utf8'));
+if(process.env.FARM_TEST_FOUNDATION==='1'){await db.exec(fs.readFileSync(root+'/supabase/migrations/20261011144152_qmon_farm_project_foundation.sql','utf8'));console.log('Foundation migration loaded for legacy regression');}
 assert.equal((await scalar('select farm_wallet_command($1)',[u])).balance,20);checks++;
 assert.equal((await scalar('select farm_wallet_command($1)',[u])).balance,20);checks++;
 await rejects('select * from farm_claim_daily_mission_bonus($1,null,auth.uid())',[mission],/ครบ/);
