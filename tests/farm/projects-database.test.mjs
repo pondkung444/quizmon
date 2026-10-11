@@ -6,7 +6,7 @@ let db;
 if(process.env.FARM_TEST_DATABASE_URL){
  const url=new URL(process.env.FARM_TEST_DATABASE_URL);
  if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||url.pathname!=='/qmon_farm_test')throw new Error('Refusing a non-local or non-test database');
- const {Client,Pool}=await import('pg');const client=new Client({connectionString:url.href});await client.connect();
+ const {Client,Pool,types}=await import('pg');types.setTypeParser(20,value=>{const n=Number(value);if(!Number.isSafeInteger(n))throw new Error('Unsafe integer in synthetic fixture');return n;});const client=new Client({connectionString:url.href});await client.connect();
  pool=new Pool({connectionString:url.href,max:10});
  db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close:async()=>{await client.end();await pool.end();}};
 }else db=new PGlite();
@@ -114,6 +114,7 @@ try{
  }
  console.log(`Foundation SQL integration: ${checks} checks passed (${pool?'isolated PostgreSQL, 10 connections':'synthetic PGlite database only'})`);
 }finally{await db.close();}
+
 
 
 
