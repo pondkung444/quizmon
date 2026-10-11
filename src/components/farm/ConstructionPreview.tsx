@@ -1,4 +1,5 @@
 "use client";
+import type { SchoolPet } from "@/lib/farm/school";
 import { useState } from "react";
 import FloorPuzzle from "./FloorPuzzle";
 import GardenPathPuzzle from "./GardenPathPuzzle";
@@ -11,8 +12,10 @@ export default function ConstructionPreview({
   puzzle,
   submit,
   hint,
+  pet,
 }: {
   puzzle: ConstructionPublic;
+  pet?: SchoolPet;
   submit: (draft: unknown) => Promise<{ passed: boolean; message: string }>;
   hint: (draft: unknown, tier: HintTier) => Promise<string>;
 }) {
@@ -49,13 +52,15 @@ export default function ConstructionPreview({
       ) : (
         <GardenPathPuzzle
           embedded
-          pet={{
-            id: "synthetic",
-            name: "Qmon จำลอง",
-            stage: 2,
-            busy: false,
-            imagePath: "/pets/egg3_stage4_science_A.png",
-          }}
+          pet={
+            pet ?? {
+              id: "synthetic",
+              name: "Qmon จำลอง",
+              stage: 2,
+              busy: false,
+              imagePath: "/pets/egg3_stage4_science_A.png",
+            }
+          }
           boardConfig={puzzle.board}
           initialDraft={layout as GardenPlacement[]}
           onDraft={async (value) => setLayout(value)}
@@ -76,7 +81,17 @@ export default function ConstructionPreview({
             key={tier}
             disabled={busy}
             className="min-h-11 rounded bg-white/10 px-3"
-            onClick={async () => setMessage(await hint({ layout }, tier))}
+            onClick={async () => {
+              try {
+                setMessage(await hint({ layout }, tier));
+              } catch (e) {
+                setMessage(
+                  e instanceof Error
+                    ? e.message
+                    : "โหลดคำใบ้ไม่สำเร็จ ลองอีกครั้งได้",
+                );
+              }
+            }}
           >
             คำใบ้ {tier}
           </button>

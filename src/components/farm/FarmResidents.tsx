@@ -3,14 +3,42 @@
 import { useEffect, useRef } from "react";
 import Image from "next/image";
 import type { FarmPet } from "./FarmMeadow";
-import { CELLS_PER_TILE, cellKey, farmWalkableCells, farmWalkingPath, type FarmCell } from "../../lib/farm/navigation";
+import {
+  CELLS_PER_TILE,
+  cellKey,
+  farmWalkableCells,
+  farmWalkingPath,
+  type FarmCell,
+} from "../../lib/farm/navigation";
 import { type FarmTile } from "../../lib/farm/world";
 import { farmGeometry, projectFarmPoint } from "../../lib/farm/isometric";
+import {
+  activityTargets,
+  ACTIVITY_LABELS,
+  type FarmActivity,
+} from "@/lib/farm/activities";
 import styles from "./farm-residents.module.css";
 
-type Walker = { id: string; element: HTMLDivElement; cell: FarmCell; next: FarmCell | null; route: FarmCell[]; timer?: ReturnType<typeof setTimeout>; animation?: Animation };
+type Walker = {
+  activity?: FarmActivity;
+  id: string;
+  element: HTMLDivElement;
+  cell: FarmCell;
+  next: FarmCell | null;
+  route: FarmCell[];
+  timer?: ReturnType<typeof setTimeout>;
+  animation?: Animation;
+};
 
-export default function FarmResidents({ pets, tiles, projectionTiles = tiles, tileSize, paused, focusedId, onSelect }: {
+export default function FarmResidents({
+  pets,
+  tiles,
+  projectionTiles = tiles,
+  tileSize,
+  paused,
+  focusedId,
+  onSelect,
+}: {
   pets: readonly FarmPet[];
   tiles: readonly FarmTile[];
   projectionTiles?: readonly FarmTile[];
@@ -24,8 +52,11 @@ export default function FarmResidents({ pets, tiles, projectionTiles = tiles, ti
   const controls = useRef({ paused, focusedId });
   const synchronizeRef = useRef<(() => void) | null>(null);
   const geometry = farmGeometry(projectionTiles, tileSize);
-  const home = tiles.find(tile => tile.kind === "meadow");
-  const petIds = pets.map(pet => pet.id).join(",");
+  const home = tiles.find((tile) => tile.kind === "meadow");
+  const petIds = pets
+    .slice(0, 3)
+    .map((pet) => pet.id)
+    .join(",");
 
   useEffect(() => {
     controls.current = { paused, focusedId };
@@ -41,13 +72,27 @@ export default function FarmResidents({ pets, tiles, projectionTiles = tiles, ti
     let visible = false;
     const geometry = farmGeometry(projectionTiles, tileSize);
     const transform = (cell: FarmCell) => {
-      const point = projectFarmPoint((cell.x + .5) / CELLS_PER_TILE, (cell.y + .5) / CELLS_PER_TILE, geometry);
+      const point = projectFarmPoint(
+        (cell.x + 0.5) / CELLS_PER_TILE,
+        (cell.y + 0.5) / CELLS_PER_TILE,
+        geometry,
+      );
       return `translate3d(${point.x}px, ${point.y}px, 0)`;
     };
-    function occupiedByOthers(id: string) { return new Set([...reservations].filter(([, owner]) => owner !== id).map(([key]) => key)); }
+    function occupiedByOthers(id: string) {
+      return new Set(
+        [...reservations]
+          .filter(([, owner]) => owner !== id)
+          .map(([key]) => key),
+      );
+    }
     function place(walker: Walker) {
       walker.element.style.transform = transform(walker.cell);
-      const foot = projectFarmPoint((walker.cell.x + .5) / CELLS_PER_TILE, (walker.cell.y + .5) / CELLS_PER_TILE, geometry);
+      const foot = projectFarmPoint(
+        (walker.cell.x + 0.5) / CELLS_PER_TILE,
+        (walker.cell.y + 0.5) / CELLS_PER_TILE,
+        geometry,
+      );
       walker.element.style.zIndex = String(10000 + Math.round(foot.y * 10));
       walker.element.dataset.cell = cellKey(walker.cell);
     }
@@ -55,34 +100,117 @@ export default function FarmResidents({ pets, tiles, projectionTiles = tiles, ti
       const element = refs.current.get(id);
       if (!element) continue;
       const saved = positions.get(id);
-      const initial = saved && cells.has(cellKey(saved)) && !reservations.has(cellKey(saved)) ? saved : [...cells.values()].find(cell => cell.x === (home?.x ?? 0) * CELLS_PER_TILE + [1, 3, 4][index] && cell.y === (home?.y ?? 0) * CELLS_PER_TILE + [3, 4, 2][index]) ?? [...cells.values()].find(cell => !reservations.has(cellKey(cell)));
+      const initial =
+        saved && cells.has(cellKey(saved)) && !reservations.has(cellKey(saved))
+          ? saved
+          : ([...cells.values()].find(
+              (cell) =>
+                cell.x === (home?.x ?? 0) * CELLS_PER_TILE + [1, 3, 4][index] &&
+                cell.y === (home?.y ?? 0) * CELLS_PER_TILE + [3, 4, 2][index],
+            ) ??
+            [...cells.values()].find(
+              (cell) => !reservations.has(cellKey(cell)),
+            ));
       if (!initial) continue;
-      const walker: Walker = { id, element, cell: initial, next: null, route: [] };
+      const walker: Walker = {
+        id,
+        element,
+        cell: initial,
+        next: null,
+        route: [],
+      };
       reservations.set(cellKey(initial), id);
       place(walker);
       walkers.push(walker);
     }
-    function canWalk(walker: Walker) { return visible && !document.hidden && !preference.matches && !controls.current.paused && controls.current.focusedId !== walker.id; }
-    function schedule(walker: Walker, delay: number) { clearTimeout(walker.timer); if (canWalk(walker)) walker.timer = setTimeout(() => advance(walker), delay); }
+    function canWalk(walker: Walker) {
+      return (
+        visible &&
+        !document.hidden &&
+        !preference.matches &&
+        !controls.current.paused &&
+        controls.current.focusedId !== walker.id
+      );
+    }
+    function schedule(walker: Walker, delay: number) {
+      clearTimeout(walker.timer);
+      if (canWalk(walker))
+        walker.timer = setTimeout(() => advance(walker), delay);
+    }
     function advance(walker: Walker) {
       if (!canWalk(walker)) return;
-      if (walker.animation?.playState === "paused") { walker.animation.play(); walker.element.dataset.walking = "true"; return; }
+      if (walker.animation?.playState === "paused") {
+        walker.animation.play();
+        walker.element.dataset.walking = "true";
+        return;
+      }
+      walker.element.dataset.activity = "";
       const occupied = occupiedByOthers(walker.id);
       if (!walker.route.length || occupied.has(cellKey(walker.route[0]))) {
         walker.route = [];
-        const candidates = [...cells.values()].filter(cell => !occupied.has(cellKey(cell)) && Math.abs(cell.x - walker.cell.x) + Math.abs(cell.y - walker.cell.y) >= 3);
-        for (let attempt = 0; attempt < 8 && candidates.length && !walker.route.length; attempt++) {
-          walker.route = farmWalkingPath(cells, walker.cell, candidates[Math.floor(Math.random() * candidates.length)], occupied);
+        walker.activity = undefined;
+        const targets = activityTargets(
+          tiles,
+          cells,
+          Date.now(),
+          walker.cell,
+        ).filter((t) => !occupied.has(cellKey(t.cell)));
+        for (
+          let attempt = 0;
+          attempt < 5 && targets.length && !walker.route.length;
+          attempt++
+        ) {
+          const target = targets[Math.floor(Math.random() * targets.length)];
+          const route = farmWalkingPath(
+            cells,
+            walker.cell,
+            target.cell,
+            occupied,
+          );
+          if (route.length) {
+            walker.route = route;
+            walker.activity = target.activity;
+          }
+        }
+        const candidates = [...cells.values()].filter(
+          (cell) =>
+            !occupied.has(cellKey(cell)) &&
+            Math.abs(cell.x - walker.cell.x) +
+              Math.abs(cell.y - walker.cell.y) >=
+              3,
+        );
+        for (
+          let attempt = 0;
+          attempt < 8 && candidates.length && !walker.route.length;
+          attempt++
+        ) {
+          walker.route = farmWalkingPath(
+            cells,
+            walker.cell,
+            candidates[Math.floor(Math.random() * candidates.length)],
+            occupied,
+          );
         }
       }
       const next = walker.route.shift();
-      if (!next || reservations.has(cellKey(next))) { walker.route = []; schedule(walker, 1400); return; }
+      if (!next || reservations.has(cellKey(next))) {
+        walker.route = [];
+        schedule(walker, 1400);
+        return;
+      }
       reservations.set(cellKey(next), walker.id);
       walker.next = next;
-      const dx = (next.x - next.y) - (walker.cell.x - walker.cell.y);
+      const dx = next.x - next.y - (walker.cell.x - walker.cell.y);
       if (dx) walker.element.style.setProperty("--facing", dx < 0 ? "-1" : "1");
       walker.element.dataset.walking = "true";
-      walker.animation = walker.element.animate([{ transform: transform(walker.cell) }, { transform: transform(next) }], { duration: 1800 + (walkers.indexOf(walker) % 3) * 250, easing: "linear", fill: "forwards" });
+      walker.animation = walker.element.animate(
+        [{ transform: transform(walker.cell) }, { transform: transform(next) }],
+        {
+          duration: 1800 + (walkers.indexOf(walker) % 3) * 250,
+          easing: "linear",
+          fill: "forwards",
+        },
+      );
       walker.animation.onfinish = () => {
         reservations.delete(cellKey(walker.cell));
         walker.cell = next;
@@ -92,19 +220,38 @@ export default function FarmResidents({ pets, tiles, projectionTiles = tiles, ti
         walker.animation?.cancel();
         walker.animation = undefined;
         if (walker.route.length) schedule(walker, 50);
-        else { walker.element.dataset.walking = "false"; schedule(walker, 2000 + Math.random() * 3500); }
+        else {
+          walker.element.dataset.walking = "false";
+          walker.element.dataset.activity = walker.activity ?? "";
+          const label = walker.element.querySelector("[data-activity-label]");
+          if (label)
+            label.textContent = walker.activity
+              ? ACTIVITY_LABELS[walker.activity]
+              : "";
+          schedule(
+            walker,
+            walker.activity ? 6000 : 2000 + Math.random() * 3500,
+          );
+        }
       };
     }
     function synchronize() {
       for (const walker of walkers) {
         clearTimeout(walker.timer);
-        if (!canWalk(walker)) { walker.animation?.pause(); walker.element.dataset.walking = "false"; }
-        else schedule(walker, 600 + walkers.indexOf(walker) * 550);
+        walker.element.dataset.paused = String(!canWalk(walker));
+        if (!canWalk(walker)) {
+          walker.animation?.pause();
+          walker.element.dataset.walking = "false";
+        } else schedule(walker, 600 + walkers.indexOf(walker) * 550);
       }
     }
     synchronizeRef.current = synchronize;
-    const surface = walkers[0]?.element.parentElement?.parentElement?.parentElement;
-    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; synchronize(); });
+    const surface =
+      walkers[0]?.element.parentElement?.parentElement?.parentElement;
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      synchronize();
+    });
     if (surface) observer.observe(surface);
     document.addEventListener("visibilitychange", synchronize);
     preference.addEventListener("change", synchronize);
@@ -123,14 +270,56 @@ export default function FarmResidents({ pets, tiles, projectionTiles = tiles, ti
     };
   }, [petIds, tiles, projectionTiles, tileSize, home?.x, home?.y]);
 
-  return <div className={styles.residents} aria-label="Qmon เดินเล่นในฟาร์ม">
-    {pets.map((pet, index) => {
-      const initial = projectFarmPoint((home?.x ?? 0) + .25 + index * .2, (home?.y ?? 0) + .6, geometry);
-      return <div key={pet.id} ref={element => { if (element) refs.current.set(pet.id, element); else refs.current.delete(pet.id); }} className={styles.mover} data-farm-resident={pet.id} style={{ width: Math.max(44, tileSize * .17), transform: `translate3d(${initial.x}px, ${initial.y}px, 0)` }}>
-      <button type="button" className={styles.pet} aria-label={`ดู ${pet.nickname ?? pet.speciesName}`} onClick={() => onSelect(pet.id)}>
-        <span className={styles.shadow} aria-hidden="true" />
-        <Image src={pet.imagePath} alt={pet.speciesName} width={160} height={160} sizes="100px" className={styles.sprite} draggable={false} />
-      </button>
-    </div>;})}
-  </div>;
+  return (
+    <div className={styles.residents} aria-label="Qmon เดินเล่นในฟาร์ม">
+      {pets.slice(0, 3).map((pet, index) => {
+        const initial = projectFarmPoint(
+          (home?.x ?? 0) + 0.25 + index * 0.2,
+          (home?.y ?? 0) + 0.6,
+          geometry,
+        );
+        return (
+          <div
+            key={pet.id}
+            ref={(element) => {
+              if (element) refs.current.set(pet.id, element);
+              else refs.current.delete(pet.id);
+            }}
+            className={styles.mover}
+            data-farm-resident={pet.id}
+            style={{
+              width: Math.max(44, tileSize * 0.17),
+              transform: `translate3d(${initial.x}px, ${initial.y}px, 0)`,
+            }}
+          >
+            <button
+              type="button"
+              className={styles.pet}
+              aria-label={`ดู ${pet.nickname ?? pet.speciesName}`}
+              onClick={() => onSelect(pet.id)}
+            >
+              <span className={styles.shadow} aria-hidden="true" />
+              <span
+                className={styles.activityLabel}
+                data-activity-label
+                aria-hidden="true"
+              />
+              <span className={styles.butterfly} aria-hidden="true">
+                🦋
+              </span>
+              <Image
+                src={pet.imagePath}
+                alt={pet.speciesName}
+                width={160}
+                height={160}
+                sizes="100px"
+                className={styles.sprite}
+                draggable={false}
+              />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
