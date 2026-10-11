@@ -57,15 +57,14 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
     {status==="puzzle" && <div className={styles.panel}>
       <h2>ช่วย Qmon จัดพื้นห้องเรียน</h2><p>ปูพื้น 4 × 4 ให้เต็มด้วยแผ่นทั้ง 4 ชิ้น ห้ามซ้อนกัน</p>
       {state?.penalty_applied && <p className={styles.notice}>ลองใหม่ได้เลย ช่วงเก็บงานจะเพิ่ม 15 วินาทีครั้งเดียว เพราะผิดครบ 3 ครั้ง</p>}
-      {state?.round_deadline && !practice?<>
-        <p className={styles.timer}>เวลารอบนี้ {roundSeconds} วินาที</p>
-        {roundSeconds===0?<><p>หมดเวลารอบนี้ ตรวจผลแล้วเริ่มรอบใหม่ได้เลย</p><button className={styles.primary} disabled={busy} onClick={()=>command("submit",{layout:[]})}>รับคำใบ้และลองใหม่</button></>:
-          <><FloorPuzzle screenHidden={!puzzleOpen} feedback={message} key={state.round_deadline} busy={busy} practice={false} onSubmit={layout=>command("submit",{layout})} screenHeader={<><button onClick={()=>setPuzzleOpen(false)}>← กลับ</button><strong>จัดพื้นห้องเรียน</strong><span>{roundSeconds} วินาที</span></>}/>{!puzzleOpen&&<button className={styles.primary} onClick={()=>setPuzzleOpen(true)}>กลับเข้าไปจัดพื้น · เวลายังเดินอยู่</button>}</>}
-      </>:<>
-        <div className={styles.buttons}><button disabled={busy} onClick={()=>setPractice(value=>!value)}>{practice?"ปิดรอบฝึก":"ลองจัดพื้นก่อน · ไม่จับเวลา"}</button><button disabled={busy} className={styles.primary} onClick={()=>command("begin")}>เริ่มช่วยจัดพื้น · 90 วินาที</button></div>
-        {practice && <FloorPuzzle busy={false} practice onSubmit={()=>{}} screenHeader={<><button onClick={()=>setPractice(false)}>← กลับ</button><strong>ลองจัดพื้น</strong><span>ไม่จับเวลา</span></>}/>}
-      </>}
-    </div>}
+            {!practice?<>
+        <p className={styles.timer}>{state?.round_deadline?`เวลารอบนี้ ${roundSeconds} วินาที`:'ยังไม่เริ่มจับเวลา'}</p>
+        {(!state?.round_deadline||roundSeconds===0)&&<button className={styles.primary} disabled={busy} onClick={()=>command('begin')}>{roundSeconds===0?'เริ่มรอบใหม่ · ใช้ผังเดิม':'เริ่มช่วยจัดพื้น · 90 วินาที'}</button>}
+        <FloorPuzzle key="school-work" initialDraft={state?.draft_layout} onDraft={async layout=>{setProject(current=>current?.status==='puzzle'?{...current,draft_layout:layout}:current);const r=await schoolCommand('draft',{layout});if(r.error)setMessage(r.error);}} screenHidden={!puzzleOpen} feedback={message} busy={busy||!state?.round_deadline||roundSeconds===0} practice={false} onSubmit={layout=>command('submit',{layout})} screenHeader={<><button onClick={()=>setPuzzleOpen(false)}>← กลับ</button><strong>จัดพื้นห้องเรียน</strong><span>{roundSeconds??'พร้อม'} วินาที</span>{(!state?.round_deadline||roundSeconds===0)&&<button disabled={busy} onClick={()=>command('begin')}>เริ่มรอบ · ผังเดิม</button>}</>}/>
+        {!puzzleOpen&&<button className={styles.primary} onClick={()=>setPuzzleOpen(true)}>กลับเข้าไปจัดพื้น · เวลายังเดินอยู่</button>}
+      </>:<FloorPuzzle key="school-practice" busy={false} practice onSubmit={()=>{}} screenHeader={<><button onClick={()=>setPractice(false)}>← กลับ</button><strong>ลองจัดพื้น</strong><span>ไม่จับเวลา</span></>}/>}
+      <button onClick={()=>{setPractice(value=>!value);setPuzzleOpen(true);}} disabled={busy}>เล่นรอบฝึก · ไม่จับเวลา</button>
+</div>}
     {status==="ready" && <div className={styles.panel}><h2>โรงเรียนสร้างเสร็จแล้ว!</h2><p>เลือกพื้นที่ว่างที่เชื่อมกับฟาร์ม เพื่อวางโรงเรียนของเรา หัวหน้าว่างจากงานนี้แล้ว</p><Link className={styles.primary} href="/collection?place=school">เลือกที่วางในฟาร์ม →</Link></div>}
     {status==="placed" && <div className={styles.panel}><h2>โรงเรียนระดับ 1 พร้อมแล้ว</h2><p>โรงเรียนพร้อมแล้ว! มาเรียนกับคู่หูเพื่อค้นพบแบบสวนแห่งแรก</p><Link className={styles.primary} href="/collection/school/learn">เรียนกับ Qmon · ค้นพบแบบสร้าง →</Link><Link href="/collection" className={styles.back}>กลับไปดูโรงเรียนในฟาร์ม →</Link></div>}
     {status!=="placed"&&<div className={styles.panel}><h2>สมุดแบบสร้าง</h2><p>ดูสถานที่ที่เราจะเรียนรู้และสิ่งที่ต้องทำก่อนปลดล็อก</p><Link className={styles.primary} href="/collection/school/learn">ดูแบบสร้างและเงื่อนไข →</Link></div>}

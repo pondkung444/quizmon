@@ -1,11 +1,13 @@
 "use client";
 import { useEffect,useRef,useState,type PointerEvent,type ReactNode } from "react";
 import { FLOOR_PIECES,floorCells,validateFloor,type FloorPlacement } from "@/lib/farm/floor-puzzle";
+import {useDraftAutosave} from './useDraftAutosave';
 import styles from "./school.module.css";
 const names:Record<string,string>={sun:"ดอกทอง",leaf:"ใบไม้",water:"สายน้ำ",stone:"อเมทิสต์"};
 const filters:Record<string,string>={sun:"none",leaf:"hue-rotate(55deg)",water:"hue-rotate(150deg)",stone:"hue-rotate(235deg)"};
-export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenHidden=false,feedback}:{busy:boolean;practice:boolean;screenHeader?:ReactNode;screenHidden?:boolean;feedback?:string;onSubmit:(layout:FloorPlacement[])=>void}) {
- const [layout,setLayout]=useState<FloorPlacement[]>([]);
+export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenHidden=false,feedback,initialDraft=[],onDraft}:{initialDraft?:FloorPlacement[];onDraft?:(layout:FloorPlacement[])=>Promise<void>;busy:boolean;practice:boolean;screenHeader?:ReactNode;screenHidden?:boolean;feedback?:string;onSubmit:(layout:FloorPlacement[])=>void}) {
+ const [layout,setLayout]=useState<FloorPlacement[]>(initialDraft);
+ useDraftAutosave(layout,onDraft);
  const [selected,setSelected]=useState("sun");
  const [rotation,setRotation]=useState(0);
  const [hint,setHint]=useState("");

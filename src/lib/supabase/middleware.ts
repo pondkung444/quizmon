@@ -11,6 +11,8 @@ export async function updateSession(request: NextRequest) {
 
   if (process.env.NODE_ENV !== "production" && process.env.RAID_CARD_PREVIEW === "true" && (request.nextUrl.pathname === "/raid/preview" || request.nextUrl.pathname === "/teacher/preview/battle")) return supabaseResponse;
 
+  if (process.env.NODE_ENV === 'development' && process.env.FARM_PREVIEW === 'true' && request.nextUrl.pathname === '/collection/preview') return supabaseResponse;
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

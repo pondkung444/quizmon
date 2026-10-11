@@ -1,5 +1,6 @@
 export type SchoolStatus = "draft" | "building" | "puzzle" | "finishing" | "paused" | "ready" | "placed";
 export type SchoolProject = {
+ draft_layout?:import("./floor-puzzle").FloorPlacement[];
   status: SchoolStatus; leader_id: string | null; resume_status: SchoolStatus | null;
   ready_at: string | null; remaining_seconds: number; round_deadline: string | null;
   failures: number; penalty_applied: boolean; tile_x: number | null; tile_y: number | null;
