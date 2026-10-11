@@ -54,15 +54,57 @@ function fixture(): Awaited<ReturnType<typeof loadProjectOverview>> {
     gardens: [],
     catalogue: [{ id: "school-3", enabled: true }],
     level: 2,
+    blueprints: [],
+    balance: 500,
     busyProjects: { [pets[0].id]: project.id },
     serverNow: new Date().toISOString(),
   };
 }
-export default function ProjectQueuePreview() {
-  const [overview] = useState(fixture),
+export default function ProjectQueuePreview({
+  catalogueMode = false,
+}: {
+  catalogueMode?: boolean;
+}) {
+  const [overview] = useState(() =>
+      catalogueMode
+        ? {
+            ...fixture(),
+            projects: [],
+            assignments: [],
+            catalogue: [
+              { id: "pond", enabled: true },
+              { id: "flower", enabled: true },
+            ],
+            blueprints: ["pond-cycle-v1", "flower-photosynthesis-v1"],
+          }
+        : fixture(),
+    ),
     [events, setEvents] = useState<string[]>([]),
     current = useRef(overview.projects[0]);
+  const purchases = useRef(new Map<string, FarmProject>());
   const command: typeof projectCommand = async (operation, input) => {
+    if (catalogueMode && operation === "buy") {
+      const nonce = input.requestId!;
+      if (purchases.current.has(nonce)) return purchases.current.get(nonce)!;
+      const definition = FARM_CATALOGUE.find(
+        (c) => c.id === input.catalogueId,
+      )!;
+      const project = {
+        ...fixture().projects[0],
+        id: crypto.randomUUID(),
+        catalogue_id: definition.id,
+        rules_snapshot: {
+          ...fixture().projects[0].rules_snapshot,
+          ...definition,
+        },
+        status: "ready" as const,
+        ready_at: null,
+        checkpoint: 2,
+      };
+      purchases.current.set(nonce, project);
+      setEvents((rows) => [...rows, nonce]);
+      return { ...project, walletBalance: 500 - 50 * purchases.current.size };
+    }
     if (input.projectId !== current.current.id)
       throw Error("โครงการจำลองไม่ตรง");
     if (operation === "team" || operation === "resume") {

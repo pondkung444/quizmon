@@ -1,8 +1,10 @@
 "use server";
+import { loadFarmWallet } from "@/lib/farm/garden-server";
 import { revalidatePath } from "next/cache";
 import {
   runProjectCommand,
   type ProjectInput,
+  type FarmProject,
 } from "@/lib/farm/projects-server";
 import {
   openProjectPuzzle,
@@ -15,12 +17,14 @@ import type { HintTier } from "@/lib/farm/puzzles/core";
 export async function projectCommand(
   operation: Parameters<typeof runProjectCommand>[0],
   input: ProjectInput,
-) {
+): Promise<FarmProject & { walletBalance?: number }> {
   const project = await runProjectCommand(operation, input);
+  const walletBalance =
+    operation === "buy" ? (await loadFarmWallet()).balance : undefined;
   revalidatePath("/collection/projects");
   revalidatePath("/collection/school");
   revalidatePath("/collection");
-  return project;
+  return { ...project, walletBalance };
 }
 export async function beginProjectPuzzle(id: string) {
   await runProjectCommand("begin", { projectId: id });

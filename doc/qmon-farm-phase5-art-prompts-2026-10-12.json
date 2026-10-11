@@ -1,0 +1,12 @@
+{
+  "mode": "built-in image_gen",
+  "created": "2026-10-12",
+  "prompts": {
+    "pond": "Use case: stylized-concept. Asset type: isolated isometric fantasy farm game building sprite for Qmon Farm. Create one compact ornamental learning pond, turquoise clear water encircled by warm honey-colored carved stone, a small wooden bench, a few reeds and water lilies, one tiny teal and gold water-wheel detail. Match a richly textured cheerful storybook 3D game art style with carved golden wood, mossy sandstone, teal accents, crisp edges and soft upper-left daylight. Orthographic three-quarter isometric camera, centered complete object, square canvas, generous transparent margin, front-facing lower edge foundation on the same plane. The pond must remain the clear main subject and be readable at 96 pixels. Genuine transparent background. No island, no surrounding landscape, no characters, no animals, no text, no letters, no watermark, no border, no UI. Only the compact pond object and its small integrated bench/plant details; preserve full object without cropping.",
+    "flower": "Use case: stylized-concept. Asset type: isolated isometric fantasy farm game building sprite for Qmon Farm. Create one compact flower learning garden with three small raised planting beds, lush leaves and distinct gold, pink and blue flowers, honey-colored carved wooden low borders, a tiny curved teal-tile pergola canopy with gold edging at the rear. Match a richly textured cheerful storybook 3D game art style with carved golden wood, mossy sandstone, teal accents, crisp edges and soft upper-left daylight. Orthographic three-quarter isometric camera, centered complete object, square canvas, generous transparent margin, front-facing lower edge foundation on the same plane. Flowers and three planting beds must be readable at 96 pixels. Genuine transparent background. No island, no surrounding landscape, no characters, no animals, no text, no letters, no watermark, no border, no UI. Only the compact garden object. Preserve full object without cropping."
+  },
+  "assets": {
+    "pond": "public/farm/qmon-pond-v1.png",
+    "flower": "public/farm/qmon-flower-v1.png"
+  }
+}

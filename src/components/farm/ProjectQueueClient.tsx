@@ -1,4 +1,7 @@
 "use client";
+import Image from "next/image";
+import { catalogueGate, PLACE_ART } from "@/lib/farm/catalogue-gates";
+import type { FarmPlace } from "@/lib/farm/catalogue";
 import { useState } from "react";
 import Link from "next/link";
 import type { loadProjectOverview } from "@/lib/farm/project-overview-server";
@@ -34,10 +37,11 @@ export default function ProjectQueueClient({
     [assignments, setAssignments] = useState(overview.assignments),
     [session, setSession] = useState<Session | null>(null),
     [message, setMessage] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [balance, setBalance] = useState(overview.balance);
   const [leader, setLeader] = useState<Record<string, string>>({}),
     [helpers, setHelpers] = useState<Record<string, string[]>>({}),
-    [requests] = useState(() =>
+    [requests, setRequests] = useState(() =>
       Object.fromEntries(
         FARM_CATALOGUE.map((c) => [c.id, crypto.randomUUID()]),
       ),
@@ -46,6 +50,17 @@ export default function ProjectQueueClient({
   const occupied =
     projects.filter((p) => p.status !== "placed").length +
     overview.gardens.filter((g) => g.status !== "placed").length;
+  const placed: Partial<Record<FarmPlace, number>> = {
+    garden: overview.gardens.filter((g) => g.status === "placed").length,
+  };
+  const reserved: Partial<Record<FarmPlace, number>> = {
+    garden: overview.gardens.length,
+  };
+  for (const p of projects) {
+    const kind = p.rules_snapshot.place;
+    reserved[kind] = (reserved[kind] ?? 0) + 1;
+    if (p.status === "placed") placed[kind] = (placed[kind] ?? 0) + 1;
+  }
   function change(p: FarmProject) {
     setProjects((rows) =>
       rows.some((row) => row.id === p.id)
@@ -149,6 +164,30 @@ export default function ProjectQueueClient({
                   ? " ระดับ " + p.rules_snapshot.targetLevel
                   : ""}
               </h2>
+              {(p.rules_snapshot.place === "pond" ||
+                p.rules_snapshot.place === "flower") && (
+                <div className="relative w-40">
+                  <Image
+                    className={
+                      p.status === "ready" ? "" : "opacity-50 saturate-50"
+                    }
+                    src={PLACE_ART[p.rules_snapshot.place]}
+                    alt={
+                      p.status === "ready"
+                        ? "สถานที่สร้างเสร็จ"
+                        : "ภาพสถานที่ระหว่างก่อสร้าง"
+                    }
+                    width={160}
+                    height={160}
+                  />
+                  {p.status !== "ready" && (
+                    <span className="absolute bottom-0 rounded bg-slate-950/90 px-2 py-1 text-sm">
+                      กำลังก่อสร้าง · {p.checkpoint}/
+                      {p.rules_snapshot.waits.length - 1}
+                    </span>
+                  )}
+                </div>
+              )}
               <p>
                 {p.status === "ready"
                   ? "พร้อมยืนยันงาน"
@@ -324,21 +363,39 @@ export default function ProjectQueueClient({
         ))}
       <h2 className="font-bold">โครงการถัดไป</h2>
       {FARM_CATALOGUE.filter(
-        (c) => c.place === "school" && c.targetLevel === overview.level + 1,
+        (c) =>
+          (c.place === "school" && c.targetLevel === overview.level + 1) ||
+          c.place === "pond" ||
+          c.place === "flower",
       ).map((c) => {
         const enabled = overview.catalogue.some(
           (row) => row.id === c.id && row.enabled,
         );
+        const gate = catalogueGate(c, {
+          level: overview.level,
+          blueprints: overview.blueprints,
+          placed,
+          reserved,
+          activeJobs: occupied,
+          jobLimit: capacity.jobs,
+          coins: balance,
+          leaderStages: pets.filter((p) => available(p)).map((p) => p.stage),
+        });
         return (
           <section
             className="space-y-2 rounded-xl border border-white/20 p-4"
             key={c.id}
           >
             <h3>
-              โรงเรียนระดับ {c.targetLevel} · {c.price} เหรียญ
+              {labels[c.place]}
+              {c.targetLevel ? " ระดับ " + c.targetLevel : ""} · {c.price}{" "}
+              เหรียญ
             </h3>
             <p>
-              ใช้แปลงเดิม · รางวัลครั้งแรก {c.firstReward} เหรียญ · จุดช่วย{" "}
+              {c.place === "school"
+                ? "ใช้แปลงเดิม"
+                : "เลือกแปลงเมื่อสร้างเสร็จ"}{" "}
+              · รางวัลครั้งแรก {c.firstReward} เหรียญ · จุดช่วย{" "}
               {c.waits.length - 1} ครั้ง
             </p>
             <p>
@@ -346,6 +403,31 @@ export default function ProjectQueueClient({
                 ? "เลือกหัวหน้าทีมเริ่มงาน"
                 : "กำลังเตรียมเปิดโครงการตามแผน"}
             </p>
+            {(c.place === "pond" || c.place === "flower") && (
+              <>
+                <Image
+                  src={PLACE_ART[c.place]}
+                  alt={labels[c.place]}
+                  width={160}
+                  height={160}
+                />
+                <Link
+                  className="inline-flex min-h-11 items-center"
+                  href={"/collection/school/learn/subject/" + c.place}
+                >
+                  {overview.blueprints.includes(c.blueprint ?? "")
+                    ? "ทบทวนบทเรียน"
+                    : "เรียนเพื่อค้นพบแบบสร้าง"}
+                </Link>
+              </>
+            )}
+            {enabled && gate.reasons.length > 0 && (
+              <ul className="list-disc pl-5">
+                {gate.reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            )}
             {enabled && (
               <>
                 <select
@@ -367,7 +449,7 @@ export default function ProjectQueueClient({
                 </select>
                 <button
                   className="min-h-11 rounded bg-amber-700 px-3"
-                  disabled={busy || !leader[c.id] || occupied >= capacity.jobs}
+                  disabled={busy || !leader[c.id] || !gate.ready}
                   onClick={() =>
                     act(async () => {
                       const p = await command("buy", {
@@ -376,6 +458,12 @@ export default function ProjectQueueClient({
                         leaderId: leader[c.id],
                       });
                       change(p);
+                      if (p.walletBalance !== undefined)
+                        setBalance(p.walletBalance);
+                      setRequests((old) => ({
+                        ...old,
+                        [c.id]: crypto.randomUUID(),
+                      }));
                       setAssignments((rows) => [
                         ...rows,
                         {
@@ -387,7 +475,8 @@ export default function ProjectQueueClient({
                     })
                   }
                 >
-                  เริ่มอัปเกรด {c.price} เหรียญ
+                  {c.place === "school" ? "เริ่มอัปเกรด" : "เริ่มสร้าง"}{" "}
+                  {c.price} เหรียญ
                 </button>
               </>
             )}
