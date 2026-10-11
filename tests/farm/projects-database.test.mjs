@@ -100,9 +100,20 @@ try{
  await reject('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',pet],/เหรียญ/);
  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),balance);
  eq(await scalar('select count(*) from farm_projects'),1);
+ await db.exec(`update farm_catalogue set definition=definition||'{"price":40,"firstReward":20,"waits":[300,300]}' where id='garden'`);
+ const concurrentReq='00000000-0000-4000-8000-000000000099';
+ const garden=await scalar('select farm_project_buy($1,$2,$3,$4)',[u,'garden',concurrentReq,pet]);
+ eq(garden.reward_eligible,false);
+ let team=await scalar("select farm_project_command($1,$2,'team',$3,array[$4]::uuid[])",[u,garden.id,pet,helper]);
+ eq(team.helper_count,1);assert.ok(team.remaining_seconds<=270&&team.remaining_seconds>250);checks++;
+ team=await scalar("select farm_project_command($1,$2,'pause')",[u,garden.id]);eq(team.helper_count,1);
+ const remaining=team.remaining_seconds;
+ team=await scalar("select farm_project_command($1,$2,'resume',$3)",[u,garden.id,pet]);eq(team.remaining_seconds,Math.ceil(remaining*10/9));
+ assert.ok(team.remaining_seconds<=300);checks++;
+ eq(await scalar('select count(*) from farm_project_contributions where project_id=$1',[garden.id]),4);
  if(pool){
   await db.exec(`update farm_catalogue set definition=definition||'{"price":40,"firstReward":20,"waits":[300,300]}' where id='garden'`);
-  const concurrentReq='00000000-0000-4000-8000-000000000099';
+
   const results=await Promise.all(Array.from({length:10},()=>pool.query('select farm_project_buy($1,$2,$3,$4) as p',[u,'garden',concurrentReq,pet])));
   eq(new Set(results.map(r=>r.rows[0].p.id)).size,1);
   eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),450);
@@ -114,6 +125,8 @@ try{
  }
  console.log(`Foundation SQL integration: ${checks} checks passed (${pool?'isolated PostgreSQL, 10 connections':'synthetic PGlite database only'})`);
 }finally{await db.close();}
+
+
 
 
 

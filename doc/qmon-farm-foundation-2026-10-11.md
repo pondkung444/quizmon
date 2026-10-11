@@ -49,7 +49,7 @@ this migration or the new read projection.
   DDL, migration application, gameplay writes or push dispatches were performed.
 - Synthetic database: original three migrations plus new migration; exact old saves
   in draft/building/puzzle/finishing/paused/ready/placed compared before and after.
-- SQL integration currently passes 60 assertions on PGlite, including purchase
+- SQL integration currently passes 67 assertions on PGlite, including purchase
   deduplication, atomic failure, frozen values, penalty once per checkpoint,
   no deadline reset on wrong answers, release, upgrade on original plot, reward
   deduplication, owner/other/anon restrictions and secret checkpoint denial.
@@ -67,3 +67,4 @@ this migration or the new read projection.
 - Supabase RLS: https://supabase.com/docs/guides/database/postgres/row-level-security
 - Supabase changelog reviewed 11 October: the recent minor Postgres security release
   concerns ltree, btree_gist and legacy pgcrypto encryption; none is introduced here.
+

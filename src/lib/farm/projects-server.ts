@@ -5,7 +5,7 @@ import type {ProjectDefinition} from './catalogue';
 import type {SchoolStatus} from './school';
 
 export type FarmProject = {
- id:string;user_id:string;catalogue_id:string;rules_snapshot:ProjectDefinition;
+ id:string;user_id:string;catalogue_id:string;rules_snapshot:Omit<ProjectDefinition,'id'> & {catalogueVersion:number;helperPercent:number;penaltyPercent:number;areaCap:number;schoolCapacity:{jobs:number;helpers:number}[]};
  status:Exclude<SchoolStatus,'draft'>;checkpoint:number;ready_at:string|null;
  remaining_seconds:number;round_deadline:string|null;failures:number;penalty_applied:boolean;
  tile_x:number|null;tile_y:number|null;helper_count:number;
@@ -40,3 +40,4 @@ export async function runProjectCommand(operation:'buy'|'refresh'|'pause'|'resum
  const {data,error}=await db.rpc('farm_project_command',{p_user:user.id,p_id:input.projectId,p_operation:operation,p_leader:input.leaderId??null,p_helpers:input.helperIds??[]});
  if(error)throw new Error('บันทึกโครงการไม่สำเร็จ');return data as FarmProject;
 }
+

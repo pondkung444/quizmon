@@ -7,7 +7,7 @@ create table public.farm_catalogue (
 insert into public.farm_catalogue(id,version,definition)
 select id,1,jsonb_build_object('place',place,'schoolLevel',level,'targetLevel',target,'blueprint',blueprint,
  'prerequisite',prerequisite,'price',price,'firstReward',reward,'limit',cap,'leaderStage',stage,
- 'waits',waits,'puzzleSeconds',timer,'contentVersion',1,'penaltyPercent',20,'helperPercent',10,'areaCap',24)
+ 'waits',waits,'puzzleSeconds',timer,'contentVersion',1,'penaltyPercent',20,'helperPercent',10,'areaCap',24,'schoolCapacity',jsonb_build_array(jsonb_build_object('jobs',0,'helpers',0),jsonb_build_object('jobs',1,'helpers',0),jsonb_build_object('jobs',2,'helpers',1),jsonb_build_object('jobs',2,'helpers',2),jsonb_build_object('jobs',3,'helpers',3)))
 from (values
  ('garden','garden',1,null::int,'garden-rest-v1','{}'::jsonb,40,20,4,2,array[300,300],180),
  ('school-2','school',1,2,null,'{"garden":1}'::jsonb,40,30,1,2,array[21600,28800,28800],180),
@@ -199,7 +199,7 @@ begin
  elsif p_operation in ('team','resume') then
   if (p_operation='resume' and s.status<>'paused') or (p_operation='team' and s.status not in ('building','puzzle','finishing')) then raise exception 'สถานะไม่รองรับเปลี่ยนทีม';end if;
   level:=public.farm_school_level(p_user);
-  if p_helpers is null or cardinality(p_helpers)>least(3,greatest(0,level-1)) or p_leader is null or p_leader=any(p_helpers) or array_position(p_helpers,null) is not null or cardinality(p_helpers)<>(select count(distinct x) from unnest(p_helpers) x) then raise exception 'เลือกทีมให้ตรงเงื่อนไข';end if;
+  if p_helpers is null or cardinality(p_helpers)>coalesce((s.rules_snapshot->'schoolCapacity'->level->>'helpers')::int,0) or p_leader is null or p_leader=any(p_helpers) or array_position(p_helpers,null) is not null or cardinality(p_helpers)<>(select count(distinct x) from unnest(p_helpers) x) then raise exception 'เลือกทีมให้ตรงเงื่อนไข';end if;
   -- Stable lock ordering for all team members.
   for pet in select x from unnest(array_append(p_helpers,p_leader)) x order by x loop
    perform 1 from public.pets where id=pet and user_id=p_user and stage between case when pet=p_leader then (s.rules_snapshot->>'leaderStage')::int else 2 end and 4 for update;
@@ -212,7 +212,7 @@ begin
   old_helpers:=s.helper_count;
   seconds:=case when s.ready_at is null then s.remaining_seconds else greatest(0,ceil(extract(epoch from s.ready_at-now())))::int end;
   s.helper_count:=cardinality(p_helpers);
-  s.remaining_seconds:=ceil(seconds::numeric*(10-s.helper_count)/(10-old_helpers))::int;
+  s.remaining_seconds:=ceil(seconds::numeric*(100-s.helper_count*(s.rules_snapshot->>'helperPercent')::int)/(100-old_helpers*(s.rules_snapshot->>'helperPercent')::int))::int;
   perform public.farm_project_release(p_id);
   insert into public.farm_project_assignments values(p_id,p_leader,'leader');
   insert into public.farm_project_assignments select p_id,x,'helper' from unnest(p_helpers) x;
@@ -246,8 +246,8 @@ begin
   next_checkpoint:=s.checkpoint+1;
   duration:=(s.rules_snapshot->'waits'->>next_checkpoint)::int;
   if duration is null then raise exception 'จุดช่วยไม่ตรง snapshot';end if;
-  if s.penalty_applied then duration:=ceil(duration*1.2)::int;end if;
-  duration:=ceil(duration*(10-s.helper_count)::numeric/10)::int;
+  if s.penalty_applied then duration:=ceil(duration*(100+(s.rules_snapshot->>'penaltyPercent')::int)::numeric/100)::int;end if;
+  duration:=ceil(duration*(100-s.helper_count*(s.rules_snapshot->>'helperPercent')::int)::numeric/100)::int;
   update public.farm_project_checkpoints set completed_at=now() where project_id=p_id and checkpoint=s.checkpoint;
   s.checkpoint:=next_checkpoint;
   s.status:=case when next_checkpoint=jsonb_array_length(s.rules_snapshot->'waits')-1 then 'finishing' else 'building' end;
@@ -352,4 +352,6 @@ begin
 end $$;
 create trigger farm_guard_legacy_garden_plot before insert or update of status,tile_x,tile_y on public.farm_garden_projects for each row execute function public.farm_guard_legacy_plot();
 revoke all on function public.farm_guard_legacy_plot() from public,anon,authenticated;
+
+
 
