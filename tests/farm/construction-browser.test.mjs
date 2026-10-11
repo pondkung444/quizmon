@@ -105,6 +105,10 @@ try {
           `[data-${kind === "construction-floor" ? "floor" : "garden"}-cell="${tile.x},${tile.y}"]`,
         )
         .click();
+      if (kind === "construction-path")
+        await page
+          .getByRole("button", { name: "✓ ยืนยันวาง", exact: true })
+          .click();
     }
     await page
       .getByRole("button", {
