@@ -43,7 +43,15 @@ const eq = (a, b) => {
   checks++;
 };
 const reject = async (sql, args, pattern) => {
-  await assert.rejects(db.query(sql, args), pattern);
+  await assert.rejects(
+    db.query(
+      sql,
+      args.map((value) =>
+        Array.isArray(value) ? JSON.stringify(value) : value,
+      ),
+    ),
+    pattern,
+  );
   checks++;
 };
 try {
