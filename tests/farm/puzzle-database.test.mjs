@@ -28,7 +28,16 @@ const u = "00000000-0000-4000-8000-000000000001",
   other = "00000000-0000-4000-8000-000000000002",
   pet = "00000000-0000-4000-8000-000000000003";
 const scalar = async (sql, args = []) =>
-  Object.values((await db.query(sql, args)).rows[0])[0];
+  Object.values(
+    (
+      await db.query(
+        sql,
+        args.map((value) =>
+          Array.isArray(value) ? JSON.stringify(value) : value,
+        ),
+      )
+    ).rows[0],
+  )[0];
 const eq = (a, b) => {
   assert.deepEqual(a, b);
   checks++;
