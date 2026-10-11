@@ -2,6 +2,7 @@ import { PGlite } from "@electric-sql/pglite";
 import fs from "node:fs";
 import assert from "node:assert/strict";
 let db;
+let pool;
 if (process.env.FARM_TEST_DATABASE_URL) {
   const url = new URL(process.env.FARM_TEST_DATABASE_URL);
   if (
@@ -9,7 +10,7 @@ if (process.env.FARM_TEST_DATABASE_URL) {
     url.pathname !== "/qmon_farm_test"
   )
     throw new Error("Refusing a non-local or non-test database");
-  const { Client, types } = await import("pg");
+  const { Client, Pool, types } = await import("pg");
   types.setTypeParser(20, (value) => {
     const n = Number(value);
     if (!Number.isSafeInteger(n)) throw new Error("Unsafe integer");
@@ -17,10 +18,14 @@ if (process.env.FARM_TEST_DATABASE_URL) {
   });
   const client = new Client({ connectionString: url.href });
   await client.connect();
+  pool = new Pool({ connectionString: url.href, max: 2 });
   db = {
     query: (...args) => client.query(...args),
     exec: (sql) => client.query(sql),
-    close: () => client.end(),
+    close: async () => {
+      await client.end();
+      await pool.end();
+    },
   };
 } else db = new PGlite();
 let checks = 0;
@@ -70,6 +75,7 @@ try {
     "20261011144152_qmon_farm_project_foundation.sql",
     "20261011152519_qmon_farm_puzzle_sessions.sql",
     "20261011162721_qmon_farm_school_teams.sql",
+    "20261011170920_qmon_farm_layout_connectors.sql",
   ])
     await db.exec(fs.readFileSync("supabase/migrations/" + name, "utf8"));
   await db.exec(`insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${u}','placed',1,1);
@@ -538,6 +544,96 @@ try {
     await db.query("update dungeon_runs set status='completed' where id=$1", [
       run,
     ]);
+  }
+
+  const ledgerBeforeMove = await scalar(
+    "select count(*) from farm_coin_ledger where user_id=$1",
+    [advanced],
+  );
+  const beforeLayout = await scalar(
+    "select jsonb_agg(to_jsonb(t)) from farm_layout_tiles($1) t",
+    [advanced],
+  );
+  await reject(
+    "select farm_layout_move($1,'main-school',1,0)",
+    [advanced],
+    /เชื่อมกัน/,
+  );
+  eq(
+    await scalar("select jsonb_agg(to_jsonb(t)) from farm_layout_tiles($1) t", [
+      advanced,
+    ]),
+    beforeLayout,
+  );
+  await scalar("select farm_layout_move($1,'egg-storage',0,-1)", [advanced]);
+  await scalar("select farm_layout_move($1,'main-school',0,1)", [advanced]);
+  eq(
+    await scalar(
+      "select count(*) from farm_projects where user_id=$1 and status='placed' and rules_snapshot->>'place'='school' and tile_x=0 and tile_y=1",
+      [advanced],
+    ),
+    3,
+  );
+  eq(
+    await scalar("select balance from farm_wallets where user_id=$1", [
+      advanced,
+    ]),
+    expectedBalance,
+  );
+  eq(
+    await scalar("select count(*) from farm_coin_ledger where user_id=$1", [
+      advanced,
+    ]),
+    ledgerBeforeMove,
+  );
+  const bridgeId = await scalar(
+    "select id from farm_projects where user_id=$1 and catalogue_id='bridge'",
+    [advanced],
+  );
+  await reject(
+    "select farm_layout_move($1,$2,5,0,1)",
+    [advanced, bridgeId],
+    /เชื่อมกัน/,
+  );
+  eq(
+    await scalar("select orientation from farm_projects where id=$1", [
+      bridgeId,
+    ]),
+    0,
+  );
+  await reject(
+    "select farm_layout_move($1,$2,5,0,0)",
+    [other, bridgeId],
+    /ของเรา/,
+  );
+  await db.exec("set role authenticated");
+  await reject(
+    "select farm_layout_move($1,'home-meadow',0,0)",
+    [advanced],
+    /permission/,
+  );
+  await reject("select * from farm_layout_tiles($1)", [advanced], /permission/);
+  await db.exec("reset role");
+
+  if (pool) {
+    const collision = await Promise.allSettled(
+      ["home-meadow", "egg-storage"].map((id) =>
+        pool.query("select farm_layout_move($1,$2,1,2,0)", [u, id]),
+      ),
+    );
+    eq(collision.filter((r) => r.status === "fulfilled").length, 1);
+    eq(collision.filter((r) => r.status === "rejected").length, 1);
+    eq(
+      await scalar(
+        "select count(*) from farm_base_positions where user_id=$1",
+        [u],
+      ),
+      1,
+    );
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [u]),
+      440,
+    );
   }
   console.log(
     `Puzzle sessions: ${checks} checks passed (isolated synthetic database; no real account writes)`,

@@ -1,3 +1,4 @@
+import LayoutPreview from "@/components/farm/LayoutPreview";
 import ProjectQueuePreview from "@/components/farm/ProjectQueuePreview";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -30,6 +31,7 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
+  if(input==='layout17'||input==='layout24')return <main className="mx-auto max-w-4xl p-3"><h1>ผังฟาร์มจำลอง</h1><LayoutPreview count={input==='layout24'?24:17}/></main>;
   if (input === "teams")
     return (
       <main className="mx-auto max-w-xl p-3">

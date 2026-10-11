@@ -2,10 +2,10 @@ import { availableFarmPlots, type FarmTile } from "./world.ts";
 
 export function farmGeometry(tiles: readonly FarmTile[], tileWidth: number) {
   const points = [...tiles, ...availableFarmPlots(tiles)];
-  const left = Math.min(...points.map(p => (p.x - p.y) * tileWidth / 2 - tileWidth / 2), 0);
-  const right = Math.max(...points.map(p => (p.x - p.y) * tileWidth / 2 + tileWidth / 2), tileWidth);
-  const top = Math.min(...points.map(p => (p.x + p.y) * tileWidth / 4), 0);
-  const bottom = Math.max(...points.map(p => (p.x + p.y) * tileWidth / 4 + tileWidth), tileWidth);
+  const left = Math.min(...points.map(p => (p.x - p.y) * tileWidth / 2 - tileWidth / 2));
+  const right = Math.max(...points.map(p => (p.x - p.y) * tileWidth / 2 + tileWidth / 2));
+  const top = Math.min(...points.map(p => (p.x + p.y) * tileWidth / 4));
+  const bottom = Math.max(...points.map(p => (p.x + p.y) * tileWidth / 4 + tileWidth));
   // Fixed camera padding lets a small overview remain centered instead of clamping against scroll origin.
   return { originX: -left + tileWidth * .2 + 300, originY: -top + tileWidth * .25 + 260, width: right - left + tileWidth * .4 + 600, height: bottom - top + tileWidth * .5 + 520, tileWidth };
 }

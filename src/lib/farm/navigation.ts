@@ -1,4 +1,5 @@
 import type { FarmTile } from "./world";
+import {bridgeWalkable} from "./layout.ts";
 import {farmBuildingBlocksCell} from "./buildings.ts";
 
 export const CELLS_PER_TILE = 6;
@@ -11,7 +12,7 @@ export function farmWalkableCells(tiles: readonly FarmTile[]): Map<string, FarmC
     for (let y = 0; y < CELLS_PER_TILE; y++) {
       for (let x = 0; x < CELLS_PER_TILE; x++) {
         // Keep the building footprint blocked; perimeter and front plaza remain connected.
-        if (farmBuildingBlocksCell(tile.kind,x,y)) continue;
+        if (tile.kind==='bridge'?!bridgeWalkable(x,y,tile.orientation??0):farmBuildingBlocksCell(tile.kind,x,y)) continue;
         const cell = { x: tile.x * CELLS_PER_TILE + x, y: tile.y * CELLS_PER_TILE + y };
         cells.set(cellKey(cell), cell);
       }

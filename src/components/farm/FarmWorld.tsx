@@ -5,8 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import FarmResidents from "./FarmResidents";
 import type { FarmPet } from "./FarmMeadow";
-import { availableFarmPlots, tileKey, type FarmTile } from "../../lib/farm/world";
+import { availableFarmPlots,tileKey, type FarmTile } from "../../lib/farm/world";
 import { farmGeometry, projectFarmPoint, occupiedFarmRectangle } from "../../lib/farm/isometric";
+import {connectedTiles} from "@/lib/farm/layout";
 import {farmBuildingLayout} from "@/lib/farm/buildings";
 import styles from "./farm-world.module.css";
 
@@ -22,7 +23,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
   placementLabel?: string;
   previewTile?: FarmTile | null;
 }) {
-  const displayTiles=useMemo(()=>previewTile?[...tiles,previewTile]:tiles,[tiles,previewTile]);
+  const displayTiles=useMemo(()=>previewTile?[...tiles.filter(tile=>tile.id!==previewTile.id),previewTile]:tiles,[tiles,previewTile]);
   const viewport = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [target, setTarget] = useState<"home" | "all">("all");
@@ -30,7 +31,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
   const size = BASE_TILE_SIZE * zoom;
   const geometry = farmGeometry(displayTiles, size);
   const home = tiles.find(tile => tile.kind === "meadow") ?? tiles[0];
-  const occupied = new Set(displayTiles.map(tile => tileKey(tile.x, tile.y)));
+
   const plots = availableFarmPlots(tiles);
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
 
@@ -73,8 +74,8 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
     setRevision(value => value + 1);
   }
 
-  return <div className={styles.world}>
-    <div className={styles.viewport} ref={viewport} tabIndex={0} role="region" aria-label="แผนที่ฟาร์มเกาะลอย เลื่อนเพื่อดูพื้นที่ข้างเคียง"
+  return <div className={styles.world} data-overview={zoom<.45}>
+    <div className={styles.viewport} ref={viewport} tabIndex={0} role="region" data-farm-camera-ready={revision>0} aria-label="แผนที่ฟาร์มเกาะลอย เลื่อนเพื่อดูพื้นที่ข้างเคียง"
       onPointerDown={event => {
         if (event.pointerType !== "mouse" || event.button !== 0 || (event.target as HTMLElement).closest("button,a")) return;
         drag.current = { x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop };
@@ -108,7 +109,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
           </div>;
         })}
         <svg className={styles.paths} width={geometry.width} height={geometry.height} aria-hidden="true">
-          {displayTiles.flatMap(tile => [{x:1,y:0},{x:0,y:1}].filter(offset => occupied.has(tileKey(tile.x+offset.x,tile.y+offset.y))).map(offset => {
+          {displayTiles.flatMap(tile => [{x:1,y:0},{x:0,y:1}].filter(offset => displayTiles.some(next=>next.x===tile.x+offset.x&&next.y===tile.y+offset.y&&connectedTiles(tile,next))).map(offset => {
             const start = projectFarmPoint(tile.x+.5,tile.y+.5,geometry);
             const end = projectFarmPoint(tile.x+offset.x+.5,tile.y+offset.y+.5,geometry);
             return <line key={`${tile.id}:${offset.x},${offset.y}`} x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke="#d8bc7e" strokeWidth={size*.055} strokeLinecap="round" opacity=".6"/>;
@@ -117,14 +118,14 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
         {displayTiles.filter(tile => tile.kind !== "meadow").map(tile => {
           const layout=farmBuildingLayout(tile.kind);
           const foot = projectFarmPoint(tile.x+layout.anchor,tile.y+layout.anchor,geometry);
-          const title = tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : `โรงเรียน ${tile.level}`;
+          const title = tile.kind === "bridge"?"สะพาน":tile.kind=== "pond"?"บ่อน้ำ":tile.kind=== "flower"?"สวนดอกไม้":tile.kind=== "observatory"?"หอดูดาว":tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : `โรงเรียน ${tile.level}`;
           const source = tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : tile.kind === "garden" ? "/farm/qmon-garden-pavilion-v1.webp" : "/farm/qmon-school-l1-v1.webp";
-          const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? (tile.id==='garden-layout-example'?'/collection/school/learn/garden/practice':`/collection/garden?project=${tile.id}`) : "/collection/school";
-          const content = <><Image src={source} alt="" fill sizes="250px" draggable={false} />
+          const destination = ['pond','flower','bridge','observatory'].includes(tile.kind)?"/collection/layout":tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? (tile.id==='garden-layout-example'?'/collection/school/learn/garden/practice':`/collection/garden?project=${tile.id}`) : "/collection/school";
+          const content = <>{tile.kind==='bridge'?<svg width="100%" height="100%" viewBox="0 0 200 120" aria-label="สะพานหัวท้ายสองด้าน"><line x1="15" y1={tile.orientation===1?100:20} x2="185" y2={tile.orientation===1?20:100} stroke="#5c3f29" strokeWidth="35"/><line x1="15" y1={tile.orientation===1?100:20} x2="185" y2={tile.orientation===1?20:100} stroke="#d1a574" strokeWidth="25" strokeDasharray="8 3"/></svg>:['pond','flower','observatory'].includes(tile.kind)?<div style={{fontSize:size*.12,textAlign:"center"}} aria-hidden="true">{tile.kind==='pond'?'💧':tile.kind==='flower'?'🌼':'🔭'}</div>:<Image src={source} alt="" fill sizes="250px" draggable={false} />}
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong>{tile.id===previewTile?.id&&<small>ภาพก่อนวาง</small>}</span></>;
           const placement = {left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)};
           if(tile.id===previewTile?.id)return <div key={tile.id} className={`${styles.building} ${styles.previewBuilding}`} style={placement}>{content}</div>;
-          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : tile.kind === "garden" ? "สวนพักผ่อน ลองต่อทางเดิน" : `โรงเรียน ระดับ ${tile.level} ดูโครงการ`} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
+          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : tile.kind === "garden" ? "สวนพักผ่อน ลองต่อทางเดิน" : `${title} ดูโครงการ`} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
           return <div key={tile.id} className={styles.building} style={{left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)}}>
             {content}
           </div>;
