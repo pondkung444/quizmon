@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { farmSocialAvailable } from "@/lib/farm/social-server";
 import { notFound } from "next/navigation";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { getFriendProfile } from "@/lib/friendProfile";
@@ -31,12 +33,27 @@ export default async function FriendProfilePage({
 
   // เรียกคู่กับ getFriendProfile แทนแก้ signature ของ RPC เดิม (เฟส 6) — ปุ่ม "ส่งกำลังใจ" ต้องรู้
   // สถานะ disabled ตั้งแต่โหลดหน้า ไม่ต้องรอกดก่อนถึงจะรู้
-  const alreadySentEncouragementToday = await getHasSentEncouragementToday(supabase, friendUserId);
+  const alreadySentEncouragementToday = await getHasSentEncouragementToday(
+    supabase,
+    friendUserId,
+  );
 
+  const farmAvailable = await farmSocialAvailable();
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6 pb-24">
       <SignOutLink />
-      <FriendProfileShell profile={profile} initialAlreadySentEncouragementToday={alreadySentEncouragementToday} />
+      <FriendProfileShell
+        profile={profile}
+        initialAlreadySentEncouragementToday={alreadySentEncouragementToday}
+      />
+      {farmAvailable && (
+        <Link
+          className="inline-flex min-h-11 items-center justify-center rounded-xl border border-gold-dim px-3"
+          href={"/collection/visit/" + friendUserId}
+        >
+          เยี่ยมฟาร์มเพื่อน →
+        </Link>
+      )}
     </main>
   );
 }

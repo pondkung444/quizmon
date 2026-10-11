@@ -1,3 +1,4 @@
+import SocialPreview from "@/components/farm/SocialPreview";
 import PlaceHistoryView from "@/components/farm/PlaceHistoryView";
 import ActivitiesPreview from "@/components/farm/ActivitiesPreview";
 import LayoutPreview from "@/components/farm/LayoutPreview";
@@ -33,6 +34,7 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
+  if (input === "social") return <SocialPreview />;
   if (input === "history")
     return (
       <PlaceHistoryView

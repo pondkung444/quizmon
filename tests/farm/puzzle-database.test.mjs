@@ -930,6 +930,287 @@ try {
       expectedBalance,
     );
   }
+  // Social schema mirrors read-only inspection of production; all accounts are disposable.
+  await db.exec(
+    "create table friendships(user_id_low uuid,user_id_high uuid,primary key(user_id_low,user_id_high));create table blocks(blocker_id uuid,blocked_id uuid,primary key(blocker_id,blocked_id));create table profiles(id uuid primary key,username text);alter table pets add column nickname text;",
+  );
+  await db.exec(
+    fs.readFileSync(
+      "supabase/migrations/20261011182216_qmon_farm_friend_visits.sql",
+      "utf8",
+    ),
+  );
+  const friend = other,
+    owner = advanced;
+  await reject("select farm_visit_snapshot($1,$2)", [friend, owner], /เยี่ยม/);
+  await db.query(
+    "insert into friendships values(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))",
+    [friend, owner],
+  );
+  await db.query("insert into profiles values($1,$2)", [owner, "ฟาร์มจำลอง"]);
+  const walletBeforeSocial = await scalar(
+    "select balance from farm_wallets where user_id=$1",
+    [owner],
+  );
+  let visit = await scalar("select farm_visit_snapshot($1,$2)", [
+    friend,
+    owner,
+  ]);
+  eq(visit.username, "ฟาร์มจำลอง");
+  eq(visit.tiles.length, 14);
+  eq(visit.sentToday, false);
+  eq(visit.remainingToday, 10);
+  for (const privateKey of [
+    "wallet",
+    "balance",
+    "draft",
+    "puzzle",
+    "round_deadline",
+    "assignments",
+    "ready_at",
+    "phone",
+    "school",
+  ]) {
+    eq(Object.hasOwn(visit, privateKey), false);
+  }
+  eq(visit.places.filter((p) => p.kind === "school").length, 1);
+  eq(visit.places.find((p) => p.kind === "school").level, 4);
+  eq(await scalar("select farm_visit_preference($1,false)", [owner]), false);
+  await reject("select farm_visit_snapshot($1,$2)", [friend, owner], /เยี่ยม/);
+  await reject(
+    "select farm_sticker_send($1,$2,$3,gen_random_uuid())",
+    [friend, owner, "star"],
+    /กำลังใจ/,
+  );
+  await scalar("select farm_visit_preference($1,true)", [owner]);
+  await reject(
+    "select farm_sticker_send($1,$2,$3,gen_random_uuid())",
+    [friend, owner, "ข้อความอิสระ"],
+    /สติกเกอร์/,
+  );
+  const stickerRequest = await scalar("select gen_random_uuid()");
+  const first = await scalar("select farm_sticker_send($1,$2,$3,$4)", [
+    friend,
+    owner,
+    "star",
+    stickerRequest,
+  ]);
+  eq(first.created, true);
+  eq(
+    (
+      await scalar("select farm_sticker_send($1,$2,$3,$4)", [
+        friend,
+        owner,
+        "star",
+        stickerRequest,
+      ])
+    ).created,
+    false,
+  );
+  eq(
+    (
+      await scalar("select farm_sticker_send($1,$2,$3,gen_random_uuid())", [
+        friend,
+        owner,
+        "heart",
+      ])
+    ).id,
+    first.id,
+  );
+  await reject(
+    "select farm_sticker_send($1,$2,$3,$4)",
+    [friend, owner, "moon", stickerRequest],
+    /ไม่ตรง/,
+  );
+  visit = await scalar("select farm_visit_snapshot($1,$2)", [friend, owner]);
+  eq(visit.sentToday, true);
+  eq(visit.remainingToday, 9);
+  let inbox = await scalar("select farm_sticker_inbox($1)", [owner]);
+  eq(inbox[0].total, 1);
+  eq(inbox[0].unread, 1);
+  eq(inbox[0].stickers, { star: 1 });
+  inbox = await scalar("select farm_sticker_inbox($1,true)", [owner]);
+  eq(inbox[0].unread, 0);
+  await db.query("insert into blocks values($1,$2)", [owner, friend]);
+  await reject("select farm_visit_snapshot($1,$2)", [friend, owner], /เยี่ยม/);
+  await reject(
+    "select farm_sticker_send($1,$2,$3,gen_random_uuid())",
+    [friend, owner, "star"],
+    /กำลังใจ/,
+  );
+  eq(await scalar("select farm_sticker_inbox($1)", [owner]), []);
+  await db.query("delete from blocks where blocker_id=$1", [owner]);
+  await db.query(
+    "delete from friendships where user_id_low=least($1::uuid,$2::uuid) and user_id_high=greatest($1::uuid,$2::uuid)",
+    [friend, owner],
+  );
+  await reject("select farm_visit_snapshot($1,$2)", [friend, owner], /เยี่ยม/);
+  eq(
+    await scalar("select balance from farm_wallets where user_id=$1", [owner]),
+    walletBeforeSocial,
+  );
+  for (let i = 1; i <= 10; i++) {
+    const recipient =
+      "00000000-0000-4000-8000-0000000081" + String(i).padStart(2, "0");
+    await db.query("insert into auth.users values($1)", [recipient]);
+    await db.query(
+      "insert into friendships values(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))",
+      [friend, recipient],
+    );
+    if (i === 10)
+      await reject(
+        "select farm_sticker_send($1,$2,$3,gen_random_uuid())",
+        [friend, recipient, "clap"],
+        /10 ครั้ง/,
+      );
+    else
+      eq(
+        (
+          await scalar("select farm_sticker_send($1,$2,$3,gen_random_uuid())", [
+            friend,
+            recipient,
+            "clap",
+          ])
+        ).created,
+        true,
+      );
+  }
+  eq(
+    await scalar(
+      "select count(*) from farm_stickers where sender_id=$1 and day=(now() at time zone 'Asia/Bangkok')::date",
+      [friend],
+    ),
+    10,
+  );
+  await db.query(
+    "update farm_stickers set day=(now() at time zone 'Asia/Bangkok')::date-1 where id=$1",
+    [first.id],
+  );
+  await db.query(
+    "insert into friendships values(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))",
+    [friend, owner],
+  );
+  eq(
+    (
+      await scalar("select farm_sticker_send($1,$2,$3,gen_random_uuid())", [
+        friend,
+        owner,
+        "flower",
+      ])
+    ).created,
+    true,
+  );
+  inbox = await scalar("select farm_sticker_inbox($1)", [owner]);
+  eq(inbox.length, 2);
+  eq(inbox[0].stickers, { flower: 1 });
+  eq(
+    await scalar("select balance from farm_wallets where user_id=$1", [owner]),
+    walletBeforeSocial,
+  );
+  await db.query(
+    "insert into friendships values(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))",
+    [u, owner],
+  );
+  await scalar("select farm_sticker_send($1,$2,$3,gen_random_uuid())", [
+    u,
+    owner,
+    "flower",
+  ]);
+  inbox = await scalar("select farm_sticker_inbox($1)", [owner]);
+  eq(inbox[0].total, 2);
+  eq(inbox[0].unread, 2);
+  eq(inbox[0].stickers, { flower: 2 });
+  inbox = await scalar("select farm_sticker_inbox($1,true)", [owner]);
+  eq(inbox[0].unread, 0);
+  // Real PostgreSQL pool validates the sender daily cap under concurrent recipients.
+  if (pool) {
+    const sender = "00000000-0000-4000-8000-000000008900";
+    await db.query("insert into auth.users values($1)", [sender]);
+    const recipients = [];
+    for (let i = 1; i <= 11; i++) {
+      const target =
+        "00000000-0000-4000-8000-0000000089" + String(i).padStart(2, "0");
+      recipients.push(target);
+      await db.query("insert into auth.users values($1)", [target]);
+      await db.query(
+        "insert into friendships values(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))",
+        [sender, target],
+      );
+    }
+    const sends = await Promise.allSettled(
+      recipients.map((target) =>
+        pool.query("select farm_sticker_send($1,$2,'star',gen_random_uuid())", [
+          sender,
+          target,
+        ]),
+      ),
+    );
+    eq(sends.filter((r) => r.status === "fulfilled").length, 10);
+    eq(sends.filter((r) => r.status === "rejected").length, 1);
+    eq(
+      await scalar("select count(*) from farm_stickers where sender_id=$1", [
+        sender,
+      ]),
+      10,
+    );
+    const sentTarget = await scalar(
+      "select recipient_id from farm_stickers where sender_id=$1 limit 1",
+      [sender],
+    );
+    const nonce = await scalar("select gen_random_uuid()");
+    const retry = await Promise.all([
+      pool.query("select farm_sticker_send($1,$2,'heart',$3)", [
+        sender,
+        sentTarget,
+        nonce,
+      ]),
+      pool.query("select farm_sticker_send($1,$2,'heart',$3)", [
+        sender,
+        sentTarget,
+        nonce,
+      ]),
+    ]);
+    eq(
+      retry[0].rows[0].farm_sticker_send.id,
+      retry[1].rows[0].farm_sticker_send.id,
+    );
+    eq(
+      await scalar("select count(*) from farm_stickers where sender_id=$1", [
+        sender,
+      ]),
+      10,
+    );
+  }
+  await db.exec(
+    "grant select on friendships,blocks,profiles,pets to service_role;grant update on friendships to service_role",
+  );
+  await db.exec("set role service_role");
+  eq(
+    (await scalar("select farm_visit_snapshot($1,$2)", [friend, owner]))
+      .username,
+    "ฟาร์มจำลอง",
+  );
+  await db.exec("reset role");
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
+    owner,
+  ]);
+  await db.exec("set role authenticated");
+  eq(await scalar("select count(*) from farm_social_settings"), 1);
+  await reject("update farm_social_settings set visit_enabled=false",[],/permission/);
+  eq(await scalar("select count(*) from farm_stickers"), 3);
+  await db.exec("reset role");
+  await db.exec("set role authenticated");
+  await reject(
+    "select farm_visit_snapshot($1,$2)",
+    [friend, owner],
+    /permission/,
+  );
+  await reject(
+    "select farm_sticker_send($1,$2,$3,gen_random_uuid())",
+    [friend, owner, "star"],
+    /permission/,
+  );
+  await db.exec("reset role");
   console.log(
     `Puzzle sessions: ${checks} checks passed (isolated synthetic database; no real account writes)`,
   );

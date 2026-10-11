@@ -15,7 +15,7 @@ import styles from "./farm-world.module.css";
 
 const BASE_TILE_SIZE = 360;
 
-export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, onPlaceTile, placementLabel="โรงเรียน", previewTile }: {
+export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, onPlaceTile, placementLabel="โรงเรียน", previewTile, onInspectTile }: {
   tiles: readonly FarmTile[];
   pets: readonly FarmPet[];
   paused: boolean;
@@ -24,6 +24,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
   onPlaceTile?: (x: number, y: number) => void;
   placementLabel?: string;
   previewTile?: FarmTile | null;
+  onInspectTile?: (tile:FarmTile)=>void;
 }) {
   const displayTiles=useMemo(()=>previewTile?[...tiles.filter(tile=>tile.id!==previewTile.id),previewTile]:tiles,[tiles,previewTile]);
   const viewport = useRef<HTMLDivElement>(null);
@@ -127,6 +128,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong>{tile.id===previewTile?.id&&<small>ภาพก่อนวาง</small>}</span></>;
           const placement = {left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)};
           if(tile.id===previewTile?.id)return <div key={tile.id} className={`${styles.building} ${styles.previewBuilding}`} style={placement}>{content}</div>;
+          if(onInspectTile)return <button type="button" key={tile.id} onClick={()=>onInspectTile(tile)} aria-label={title+" ดูผลงาน"} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</button>;
           if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : tile.kind === "garden" ? "สวนพักผ่อน ลองต่อทางเดิน" : `${title} ดูโครงการ`} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
           return <div key={tile.id} className={styles.building} style={{left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)}}>
             {content}
