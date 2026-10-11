@@ -1211,6 +1211,53 @@ try {
     /permission/,
   );
   await db.exec("reset role");
+
+  // Phase 9 uses only synthetic push metadata; no FCM call or real account.
+  await db.exec(`create table push_preferences(user_id uuid primary key,push_enabled boolean default true);
+ create table push_devices(id uuid primary key,user_id uuid,fcm_token text,platform text,enabled boolean,permission_status text,invalidated_at timestamptz,last_seen_at timestamptz);
+ create table notification_jobs(id uuid default gen_random_uuid(),user_id uuid,idempotency_key text unique);`);
+  await db.exec(fs.readFileSync('supabase/migrations/20261011184521_qmon_farm_attention.sql','utf8'));
+  const attentionBefore=await scalar('select jsonb_agg(to_jsonb(p)) from farm_projects p');
+  eq(await scalar('select farm_notification_preference($1)',[owner]),false);
+  eq(await scalar('select count(*) from farm_notification_recipients()'),0);
+  await db.query('insert into push_preferences values($1,true)',[owner]);
+  await db.query("insert into push_devices values(gen_random_uuid(),$1,'synthetic-token','android',true,'granted',null,now()),(gen_random_uuid(),$1,'synthetic-token-2','ios',true,'granted',null,now()-interval '1 day')",[owner]);
+  await scalar('select farm_notification_preference($1,true)',[owner]);
+  await db.query('update push_devices set enabled=false where user_id=$1',[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),0);
+  await db.query('update push_devices set enabled=true where user_id=$1',[owner]);
+  await scalar('select farm_notification_preference($1,false)',[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),0);
+  await scalar('select farm_notification_preference($1,true)',[owner]);
+  // Legacy paused jobs stay quiet, overdue waits count without refreshing rows.
+  await db.query("update farm_school_projects set status='building',tile_x=null,tile_y=null,ready_at=now()-interval '1 second' where user_id=$1",[owner]);
+  let a=await scalar('select farm_attention($1)',[owner]);
+  eq(a.help>=1,true);
+  const help=a.help;
+  await db.query("update farm_school_projects set status='paused',ready_at=null where user_id=$1",[owner]);
+  eq((await scalar('select farm_attention($1)',[owner])).help,help-1);
+  await db.query("update farm_school_projects set status='finishing',ready_at=now()-interval '1 second' where user_id=$1",[owner]);
+  eq((await scalar('select farm_attention($1)',[owner])).place>=1,true);
+  await db.query("update farm_school_projects set status='building',ready_at=now()+interval '1 day' where user_id=$1",[owner]);
+  eq((await scalar('select farm_attention($1)',[owner])).nextAt!==null,true);
+  await db.query("update farm_school_projects set status='building',ready_at=now()-interval '1 second' where user_id=$1",[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),1);
+  eq(await scalar('select token from farm_notification_recipients() where user_id=$1',[owner]),'synthetic-token');
+  await db.query('update push_preferences set push_enabled=false where user_id=$1',[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),0);
+  await db.query('update push_preferences set push_enabled=true where user_id=$1',[owner]);
+  await db.query("insert into notification_jobs(user_id,idempotency_key) values($1::uuid,$1::text||':farm_attention:'||(now() at time zone 'Asia/Bangkok')::date::text)",[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),0);
+  await db.query("update notification_jobs set idempotency_key=$1::text||':farm_attention:'||((now() at time zone 'Asia/Bangkok')::date-1)::text where user_id=$1::uuid",[owner]);
+  eq(await scalar('select count(*) from farm_notification_recipients() where user_id=$1',[owner]),1);
+  eq(await scalar('select jsonb_agg(to_jsonb(p)) from farm_projects p'),attentionBefore);
+  if(pool){const key=owner+':farm_attention:concurrency-fixture';const claims=await Promise.all(Array.from({length:10},()=>pool.query('insert into notification_jobs(user_id,idempotency_key) values($1,$2) on conflict(idempotency_key) do nothing returning id',[owner,key])));eq(claims.reduce((n,r)=>n+r.rowCount,0),1);}
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+  await db.exec('set role authenticated');
+  eq(await scalar('select enabled from farm_notification_settings'),true);
+  await reject('update farm_notification_settings set enabled=false',[],/permission/);
+  await reject('select farm_attention($1)',[other],/permission/);
+  await db.exec('reset role');
   console.log(
     `Puzzle sessions: ${checks} checks passed (isolated synthetic database; no real account writes)`,
   );
