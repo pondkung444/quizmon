@@ -5,7 +5,7 @@ export type SchoolProject = {
   ready_at: string | null; remaining_seconds: number; round_deadline: string | null;
   failures: number; penalty_applied: boolean; tile_x: number | null; tile_y: number | null;
 };
-export type SchoolPet = { id: string; name: string; imagePath: string; stage: number; busy: boolean };
+export type SchoolPet = { id: string; name: string; imagePath: string; stage: number; busy: boolean;busyProjectId?:string;busyOther?:boolean };
 export type SchoolResult = { project?: SchoolProject; serverNow?: string; message?: string; passed?: boolean; error?: string };
 export const SCHOOL_LABELS: Record<SchoolStatus,string> = {
   draft:"สร้างโรงเรียน", building:"กำลังเตรียมพื้น", puzzle:"พร้อมให้ช่วยจัดพื้น",

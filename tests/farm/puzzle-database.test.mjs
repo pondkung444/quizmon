@@ -69,6 +69,7 @@ try {
     "20261005052159_farm_garden_construction.sql",
     "20261011144152_qmon_farm_project_foundation.sql",
     "20261011152519_qmon_farm_puzzle_sessions.sql",
+    "20261011162721_qmon_farm_school_teams.sql",
   ])
     await db.exec(fs.readFileSync("supabase/migrations/" + name, "utf8"));
   await db.exec(`insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${u}','placed',1,1);
@@ -143,6 +144,19 @@ try {
   ]);
   eq(r.passed, false);
   eq(r.project.failures, 1);
+  eq(r.revision, 2);
+  const continuedDraft = await scalar(
+    "select farm_puzzle_draft($1,$2,$3,$4,$5)",
+    [
+      u,
+      id,
+      session,
+      r.revision,
+      { tiles: [{ r: 1, c: 1, rot: 1, kind: "I" }] },
+    ],
+  );
+  eq(continuedDraft.saved, true);
+  eq(continuedDraft.revision, 3);
   eq(r.project.round_deadline, deadline);
   eq(
     await scalar("select farm_puzzle_submit($1,$2,$3,$4,$5,$6,true)", [
@@ -419,6 +433,112 @@ try {
     await scalar("select balance from farm_wallets where user_id=$1", [u]),
     440,
   ); // Legacy school milestone is credited once by the original wallet command.
+
+  // Entirely synthetic advanced-school fixtures; never run against a real account.
+  const advanced = "00000000-0000-4000-8000-000000009000",
+    head = "00000000-0000-4000-8000-000000009001",
+    assist = "00000000-0000-4000-8000-000000009002";
+  await db.exec(`insert into auth.users values('${advanced}');insert into pets(id,user_id,stage,is_active) values('${head}','${advanced}',4,false),('${assist}','${advanced}',2,false);
+   insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${advanced}','placed',1,1);
+   insert into farm_wallets values('${advanced}',1000);update farm_catalogue set enabled=true;`);
+  const fixture = async (kind, x, y) =>
+    db.query(
+      "insert into farm_projects(user_id,request_id,catalogue_id,rules_snapshot,reward_eligible,reward_key,status,remaining_seconds,tile_x,tile_y) select $1,gen_random_uuid(),id,definition,false,'synthetic-prerequisite-'||id,'placed',0,$3,$4 from farm_catalogue where id=$2",
+      [advanced, kind, x, y],
+    );
+  let expectedBalance = 1000;
+  for (const [kind, prerequisites, price, reward, target] of [
+    ["school-2", ["garden"], 40, 30, 2],
+    ["school-3", ["pond"], 100, 40, 3],
+    ["school-4", ["flower", "bridge"], 160, 60, 4],
+  ]) {
+    await reject(
+      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+      [advanced, kind, head],
+      /ก่อน/,
+    );
+    for (const [i, place] of prerequisites.entries())
+      await fixture(place, target + i, 0);
+    let upgrade = await scalar(
+      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+      [advanced, kind, head],
+    );
+    expectedBalance -= price;
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [
+        advanced,
+      ]),
+      expectedBalance,
+    );
+    if (target > 2) {
+      upgrade = await scalar(
+        "select farm_project_command($1,$2,'team',$3,array[$4]::uuid[])",
+        [advanced, upgrade.id, head, assist],
+      );
+      eq(upgrade.helper_count, 1);
+      await reject(
+        "insert into dungeon_runs(user_id,pet_id,status) values($1,$2,'in_progress')",
+        [advanced, assist],
+        /ติดงาน/,
+      );
+      await reject(
+        "select farm_project_command($1,$2,'team',$3)",
+        [advanced, upgrade.id, assist],
+        /ระยะถึง/,
+      );
+    }
+    for (
+      let index = 0;
+      index < upgrade.rules_snapshot.waits.length - 1;
+      index++
+    ) {
+      await db.query(
+        "update farm_projects set ready_at='2000-01-01' where id=$1",
+        [upgrade.id],
+      );
+      upgrade = await scalar("select farm_project_command($1,$2,'begin')", [
+        advanced,
+        upgrade.id,
+      ]);
+      upgrade = await scalar(
+        "select farm_project_checkpoint_result($1,$2,true)",
+        [advanced, upgrade.id],
+      );
+    }
+    eq(upgrade.status, "finishing");
+    await db.query(
+      "update farm_projects set ready_at='2000-01-01' where id=$1",
+      [upgrade.id],
+    );
+    // Due finishing does not block an adventure even before the explicit refresh.
+    const run = await scalar(
+      "insert into dungeon_runs(user_id,pet_id,status) values($1,$2,'in_progress') returning id",
+      [advanced, head],
+    );
+    upgrade = await scalar("select farm_project_place($1,$2,99,99)", [
+      advanced,
+      upgrade.id,
+    ]);
+    eq([upgrade.tile_x, upgrade.tile_y], [1, 1]);
+    eq(await scalar("select farm_school_level($1)", [advanced]), target);
+    expectedBalance += reward;
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [
+        advanced,
+      ]),
+      expectedBalance,
+    );
+    await scalar("select farm_project_place($1,$2)", [advanced, upgrade.id]);
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [
+        advanced,
+      ]),
+      expectedBalance,
+    );
+    await db.query("update dungeon_runs set status='completed' where id=$1", [
+      run,
+    ]);
+  }
   console.log(
     `Puzzle sessions: ${checks} checks passed (isolated synthetic database; no real account writes)`,
   );

@@ -117,14 +117,14 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
         {displayTiles.filter(tile => tile.kind !== "meadow").map(tile => {
           const layout=farmBuildingLayout(tile.kind);
           const foot = projectFarmPoint(tile.x+layout.anchor,tile.y+layout.anchor,geometry);
-          const title = tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : "โรงเรียน";
+          const title = tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : `โรงเรียน ${tile.level}`;
           const source = tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : tile.kind === "garden" ? "/farm/qmon-garden-pavilion-v1.webp" : "/farm/qmon-school-l1-v1.webp";
           const destination = tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? (tile.id==='garden-layout-example'?'/collection/school/learn/garden/practice':`/collection/garden?project=${tile.id}`) : "/collection/school";
           const content = <><Image src={source} alt="" fill sizes="250px" draggable={false} />
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong>{tile.id===previewTile?.id&&<small>ภาพก่อนวาง</small>}</span></>;
           const placement = {left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)};
           if(tile.id===previewTile?.id)return <div key={tile.id} className={`${styles.building} ${styles.previewBuilding}`} style={placement}>{content}</div>;
-          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : tile.kind === "garden" ? "สวนพักผ่อน ลองต่อทางเดิน" : "โรงเรียน ระดับ 1 ดูโครงการ"} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
+          if (destination) return <Link key={tile.id} href={destination} aria-label={tile.kind === "residence" ? "อาคารฟาร์ม Qmon ดู Qmon ร่าง 4 ที่มี" : tile.kind === "eggs" ? "คลังไข่ ดูไข่ที่มี" : tile.kind === "garden" ? "สวนพักผ่อน ลองต่อทางเดิน" : `โรงเรียน ระดับ ${tile.level} ดูโครงการ`} className={`${styles.building} ${styles.buildingLink}`} style={placement}>{content}</Link>;
           return <div key={tile.id} className={styles.building} style={{left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)}}>
             {content}
           </div>;

@@ -11,7 +11,10 @@ export function gardenPorts(id:string,rotation:number):number[]{
  return (piece.kind==='straight'?[0,2]:[0,1]).map(port=>(port+rotation)%4);
 }
 export type GardenPathResult={valid:boolean;message:string;path:GardenPoint[];stop:GardenPoint};
-export function validateGardenPath(value:unknown):GardenPathResult{
+export type GardenBoardConfig={start:GardenPoint;bench:GardenPoint;blocked:readonly string[];startExit:number;benchEntry:number};
+export const DEFAULT_GARDEN_BOARD:GardenBoardConfig={start:GARDEN_START,bench:GARDEN_BENCH,blocked:GARDEN_BLOCKED,startExit:1,benchEntry:2};
+export function validateGardenPath(value:unknown,config:GardenBoardConfig=DEFAULT_GARDEN_BOARD):GardenPathResult{
+ const {start:GARDEN_START,bench:GARDEN_BENCH,blocked:GARDEN_BLOCKED}=config;
  const path:GardenPoint[]=[GARDEN_START];
  const fail=(message:string,stop=path[path.length-1]):GardenPathResult=>({valid:false,message,path,stop});
  if(!Array.isArray(value)||value.length>GARDEN_PIECES.length)return fail('วางทางเดินจากถาดในสวนก่อน');
@@ -22,16 +25,16 @@ export function validateGardenPath(value:unknown):GardenPathResult{
   const p=item as GardenPlacement;
   if(!GARDEN_PIECES.some(piece=>piece.id===p.id)||![p.x,p.y,p.rotation].every(Number.isInteger)||p.x<0||p.x>3||p.y<0||p.y>3||p.rotation<0||p.rotation>3)return fail('ใช้ชิ้นทางเดินในถาดและวางภายในสวน');
   const key=p.x+','+p.y;
-  if(ids.has(p.id)||cells.has(key)||GARDEN_BLOCKED.includes(key)||key==='0,3'||key==='3,0')return fail('ทางเดินต้องไม่ซ้อนกันหรือทับบ่อ ต้นไม้ และม้านั่ง');
+  if(ids.has(p.id)||cells.has(key)||GARDEN_BLOCKED.includes(key)||key===GARDEN_START.x+','+GARDEN_START.y||key===GARDEN_BENCH.x+','+GARDEN_BENCH.y)return fail('ทางเดินต้องไม่ซ้อนกันหรือทับบ่อ ต้นไม้ และม้านั่ง');
   ids.add(p.id);cells.add(key);layout.push(p);
  }
  const vectors=[[0,-1],[1,0],[0,1],[-1,0]];
- let current=GARDEN_START,exit=1;
+ let current=GARDEN_START,exit=config.startExit;
  const visited=new Set<string>();
  for(let step=0;step<17;step++){
   const [dx,dy]=vectors[exit],next={x:current.x+dx,y:current.y+dy},entry=(exit+2)%4;
   if(next.x===GARDEN_BENCH.x&&next.y===GARDEN_BENCH.y){
-   if(entry!==2)return fail('ม้านั่งเข้าจากด้านล่าง ต่อทางให้ถึงหน้าม้านั่ง');
+   if(entry!==config.benchEntry)return fail('ต่อทางตามลูกศรให้ถึงทางเข้าม้านั่ง');
    path.push(next);
    if(layout.length!==GARDEN_PIECES.length||visited.size!==layout.length)return fail('ต่อทางให้ใช้ครบทั้ง 5 ชิ้นก่อนถึงม้านั่ง',next);
    return {valid:true,message:'ถึงม้านั่งแล้ว! คู่หูได้นั่งพักในสวนของเรา',path,stop:next};

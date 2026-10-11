@@ -5,10 +5,10 @@ import {useDraftAutosave} from './useDraftAutosave';
 import styles from "./school.module.css";
 const names:Record<string,string>={sun:"ดอกทอง",leaf:"ใบไม้",water:"สายน้ำ",stone:"อเมทิสต์"};
 const filters:Record<string,string>={sun:"none",leaf:"hue-rotate(55deg)",water:"hue-rotate(150deg)",stone:"hue-rotate(235deg)"};
-export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenHidden=false,feedback,initialDraft=[],onDraft}:{initialDraft?:FloorPlacement[];onDraft?:(layout:FloorPlacement[])=>Promise<void>;busy:boolean;practice:boolean;screenHeader?:ReactNode;screenHidden?:boolean;feedback?:string;onSubmit:(layout:FloorPlacement[])=>void}) {
- const [layout,setLayout]=useState<FloorPlacement[]>(initialDraft);
+export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenHidden=false,feedback,initialDraft=[],onDraft,fixed}:{fixed?:FloorPlacement;initialDraft?:FloorPlacement[];onDraft?:(layout:FloorPlacement[])=>Promise<void>;busy:boolean;practice:boolean;screenHeader?:ReactNode;screenHidden?:boolean;feedback?:string;onSubmit:(layout:FloorPlacement[])=>void}) {
+ const [layout,setLayout]=useState<FloorPlacement[]>(()=>fixed?[...initialDraft.filter(p=>p.id!==fixed.id),fixed]:initialDraft);
  useDraftAutosave(layout,onDraft);
- const [selected,setSelected]=useState("sun");
+ const [selected,setSelected]=useState(()=>FLOOR_PIECES.find(p=>p.id!==fixed?.id)!.id as string);
  const [rotation,setRotation]=useState(0);
  const [hint,setHint]=useState("");
  const [ghost,setGhost]=useState<FloorPlacement|null>(null);
@@ -19,7 +19,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
  const suppress=useRef(false);
  const tap=useRef<{id:string;rotate:boolean}|null>(null);
  function place(x:number,y:number,id=selected,r=rotation){
-  if(busy)return;
+  if(busy||id===fixed?.id)return;
   if(floorCells(id,r).some(([dx,dy])=>x+dx>3||y+dy>3||x+dx<0||y+dy<0)){setHint("ชิ้นนี้เลยขอบห้อง ลองหมุนหรือย้ายเข้าด้านใน");return;}
   setLayout(p=>[...p.filter(t=>t.id!==id),{id,x,y,rotation:r}]);setHint("วางแล้ว · แตะกระเบื้องเพื่อหมุน หรือลากเพื่อย้าย");
  }
@@ -31,7 +31,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
  }
  function position(e:PointerEvent){const b=board.current!.getBoundingClientRect();return {x:Math.floor((e.clientX-b.left)/b.width*4),y:Math.floor((e.clientY-b.top)/b.height*4)};}
  function down(e:PointerEvent<HTMLButtonElement>,id:string,p?:FloorPlacement){
-  if(busy||!e.isPrimary||e.button!==0)return;
+  if(busy||id===fixed?.id||!e.isPrimary||e.button!==0)return;
   const pos=position(e),r=p?.rotation??layout.find(t=>t.id===id)?.rotation??(id===selected?rotation:0);
   tap.current={id,rotate:!!p||id===selected};
   setSelected(id);setRotation(r);suppress.current=false;
@@ -59,7 +59,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
     {Array.from({length:16},(_,i)=><button key={i} type="button" className={styles.emptyTile} style={{gridColumn:i%4+1,gridRow:Math.floor(i/4)+1}} disabled={busy} data-floor-cell={i%4+","+Math.floor(i/4)} onClick={()=>place(i%4,Math.floor(i/4))} aria-label={"วางชิ้นที่เลือก แถว "+(Math.floor(i/4)+1)+" ช่อง "+(i%4+1)}><span aria-hidden="true">＋</span></button>)}
     {layout.map(p=>{const cells=floorCells(p.id,p.rotation),w=Math.max(...cells.map(c=>c[0]))+1,h=Math.max(...cells.map(c=>c[1]))+1;
      const overlap=layout.some(o=>o.id!==p.id&&floorCells(o.id,o.rotation).some(([ox,oy])=>cells.some(([x,y])=>p.x+x===o.x+ox&&p.y+y===o.y+oy)));
-     return <button key={p.id} type="button" disabled={busy} className={[styles.floorPiece,selected===p.id?styles.selectedTile:"",overlap?styles.overlap:""].join(" ")} style={{gridColumn:(p.x+1)+" / span "+w,gridRow:(p.y+1)+" / span "+h,gridTemplateColumns:"repeat("+w+",1fr)"}} {...handlers(p.id,p)} onClick={()=>click(p.id,true)} aria-label={"กระเบื้อง"+names[p.id]+" แตะเพื่อหมุน ลากเพื่อย้าย"+(overlap?" มีชิ้นซ้อนกัน":"")}>
+     return <button key={p.id} type="button" disabled={busy||p.id===fixed?.id} className={[styles.floorPiece,selected===p.id?styles.selectedTile:"",overlap?styles.overlap:""].join(" ")} style={{gridColumn:(p.x+1)+" / span "+w,gridRow:(p.y+1)+" / span "+h,gridTemplateColumns:"repeat("+w+",1fr)"}} {...handlers(p.id,p)} onClick={()=>click(p.id,true)} aria-label={"กระเบื้อง"+names[p.id]+" แตะเพื่อหมุน ลากเพื่อย้าย"+(overlap?" มีชิ้นซ้อนกัน":"")}>
       {cells.map(([x,y])=><i key={x+","+y} className={styles.ceramic} style={{filter:filters[p.id],gridColumn:x+1,gridRow:y+1}}/>)}<span className={styles.rotateBadge} aria-hidden="true">{overlap?"!":"↻"}</span>
      </button>;
     })}
@@ -68,7 +68,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
   </div>
   <div className={styles.trayTitle}>ถาดกระเบื้อง <span>ลากลงห้อง · แตะเพื่อหมุน</span></div>
   <div className={styles.pieces} aria-label="ถาดกระเบื้อง 4 ชิ้น">
-   {FLOOR_PIECES.map(piece=>{const p=layout.find(t=>t.id===piece.id),cells=floorCells(piece.id,p?.rotation??(selected===piece.id?rotation:0));return <button key={piece.id} type="button" disabled={busy} aria-pressed={selected===piece.id} className={styles.piece} {...handlers(piece.id)} onClick={()=>click(piece.id,false)}>
+   {FLOOR_PIECES.map(piece=>{const p=layout.find(t=>t.id===piece.id),cells=floorCells(piece.id,p?.rotation??(selected===piece.id?rotation:0));return <button key={piece.id} type="button" disabled={busy||piece.id===fixed?.id} aria-pressed={selected===piece.id} className={styles.piece} {...handlers(piece.id)} onClick={()=>click(piece.id,false)}>
     <span className={styles.mini} aria-hidden="true">{cells.map(([x,y])=><i key={x+","+y} className={styles.ceramic} style={{filter:filters[piece.id],gridColumn:x+1,gridRow:y+1}}/>)}</span>
     <strong>{names[piece.id]}</strong><span>{p?"วางแล้ว":"ลากลงพื้น"} <b aria-hidden="true">↻</b></span>
    </button>;})}
@@ -76,7 +76,7 @@ export default function FloorPuzzle({busy,practice,onSubmit,screenHeader,screenH
   <div className={styles.buttons}>
    <button type="button" disabled={busy} onClick={()=>rotate()}>↻ หมุน</button>
    <button type="button" disabled={busy||!layout.some(p=>p.id===selected)} onClick={()=>{setLayout(p=>p.filter(t=>t.id!==selected));setHint("ยกกลับถาดแล้ว ลากลงพื้นใหม่ได้");}}>ยกออก</button>
-   <button type="button" disabled={busy||!layout.length} onClick={()=>{setLayout([]);setSelected("sun");setRotation(0);setHint("");}}>จัดใหม่</button>
+   <button type="button" disabled={busy||!layout.length} onClick={()=>{setLayout(fixed?[fixed]:[]);setSelected(FLOOR_PIECES.find(p=>p.id!==fixed?.id)!.id);setRotation(0);setHint("");}}>จัดใหม่</button>
   </div>
   <p role="status" className={styles.floorHint}>{feedback||hint||"ลากจากถาดลงพื้น · แตะชิ้นบนพื้นเพื่อหมุน"}</p>
   <button type="button" className={styles.primary} disabled={busy} onClick={()=>{if(practice){setHint(validateFloor(layout).message);return;}onSubmit(layout);}}>{busy?"กำลังตรวจ…":practice?"✓ ตรวจพื้น":"✓ ตรวจงาน"}</button>

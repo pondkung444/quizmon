@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/lib/farm/**'
+      - 'src/lib/dungeon.ts'
       - 'src/components/farm/**'
       - 'src/app/collection/**'
       - 'src/app/layout.tsx'
@@ -72,4 +73,4 @@ jobs:
         env:
           FARM_TEST_DATABASE_URL: postgres://postgres:test-only@127.0.0.1:5432/qmon_farm_test
       - run: node --test tests/farm/puzzle-server.test.cjs
-      - run: ./node_modules/.bin/eslint src/lib/farm/puzzle-engine.ts src/lib/farm/puzzle-server.ts src/lib/farm/lesson-server.ts src/lib/farm/puzzles/flower.ts src/lib/farm/puzzles/content.ts src/components/farm/SubjectPuzzle.tsx src/components/farm/SubjectLessonClient.tsx src/components/farm/SubjectPreview.tsx src/components/farm/useDraftAutosave.ts src/components/farm/SchoolClient.tsx src/components/farm/GardenClient.tsx src/components/farm/FloorPuzzle.tsx src/components/farm/GardenPathPuzzle.tsx src/app/collection/preview/page.tsx src/app/collection/school/learn/subject src/app/collection/school/learn/page.tsx tests/farm/puzzle-server.test.cjs tests/farm/puzzle-database.test.mjs
+      - run: ./node_modules/.bin/eslint src/lib/farm/puzzle-engine.ts src/lib/farm/puzzle-server.ts src/lib/farm/lesson-server.ts src/lib/farm/puzzles/flower.ts src/lib/farm/puzzles/content.ts src/components/farm/SubjectPuzzle.tsx src/components/farm/SubjectLessonClient.tsx src/components/farm/SubjectPreview.tsx src/components/farm/ProjectPuzzleClient.tsx src/components/farm/ProjectQueueClient.tsx src/components/farm/ConstructionPreview.tsx src/components/farm/ProjectQueuePreview.tsx src/lib/farm/construction-puzzles.ts src/lib/farm/project-overview.ts src/lib/farm/project-overview-server.ts src/lib/farm/busy-pets.ts src/lib/dungeon.ts src/app/collection/projects src/components/farm/useDraftAutosave.ts src/components/farm/SchoolClient.tsx src/components/farm/GardenClient.tsx src/components/farm/FloorPuzzle.tsx src/components/farm/GardenPathPuzzle.tsx src/app/collection/preview/page.tsx src/app/collection/school/learn/subject src/app/collection/school/learn/page.tsx tests/farm/puzzle-server.test.cjs tests/farm/puzzle-database.test.mjs

@@ -13,3 +13,5 @@
 @media(max-height:620px){.game{gap:5px;padding-bottom:6px;}.guide h2{font-size:17px;}.guide p{font-size:11px;}.controls{gap:5px;}.tray button{max-height:54px;aspect-ratio:auto;height:54px;}.hint{font-size:11px;min-height:30px;}.primary{min-height:44px;}.tools button{min-height:32px;}}
 @media(max-height:500px) and (min-width:600px){.game{display:grid;max-width:850px;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:8px 16px;}.guide{grid-column:1 / span 2;}.gardenArea{grid-column:1;grid-row:2;}.controls{grid-column:2;grid-row:2;justify-content:center;}.tray button{height:58px;}.board{border-width:4px;}}
 @media(prefers-reduced-motion:reduce){.qmon{transition:none;}}
+
+.embedded .gardenArea{flex:none;aspect-ratio:1;container-type:inline-size;width:100%;}.embedded .board{width:100%;}
