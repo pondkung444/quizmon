@@ -1,3 +1,5 @@
+import { farmNotificationPreference } from "@/lib/farm/attention-server";
+import FarmNotificationSettings from "@/components/settings/FarmNotificationSettings";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { createClient, getUser } from "@/lib/supabase/server";
@@ -16,14 +18,19 @@ import packageJson from "../../../package.json";
 export default async function SettingsPage() {
   const user = await getUser();
   const supabase = await createClient();
+  const farmNotifications = user ? await farmNotificationPreference() : null;
   const isAnonymous = user?.is_anonymous === true;
-  const appTheme = parseAppTheme((await cookies()).get(APP_THEME_COOKIE)?.value);
+  const appTheme = parseAppTheme(
+    (await cookies()).get(APP_THEME_COOKIE)?.value,
+  );
 
   // push_preferences ควรมีเสมอ (backfill + trigger handle_new_user ครอบคลุมแล้ว)
   // แต่กัน edge case ไว้ด้วยค่า default ปลอดภัยถ้าหาไม่เจอจริงๆ
   const { data: prefs } = await supabase
     .from("push_preferences")
-    .select("push_enabled, daily_quest_enabled, daily_exp_enabled, adventure_enabled, social_enabled, guardian_enabled")
+    .select(
+      "push_enabled, daily_quest_enabled, daily_exp_enabled, adventure_enabled, social_enabled, guardian_enabled",
+    )
     .eq("user_id", user?.id ?? "")
     .maybeSingle();
 
@@ -43,12 +50,18 @@ export default async function SettingsPage() {
     .eq("is_active", true)
     .maybeSingle();
 
-  const { gradeLevel } = user ? await getGradeProfile(user.id) : { gradeLevel: null };
+  const { gradeLevel } = user
+    ? await getGradeProfile(user.id)
+    : { gradeLevel: null };
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 p-6 pb-24">
       <div className="flex items-center gap-2">
-        <Link href="/pet" aria-label="กลับ" className="flex h-8 w-8 items-center justify-center text-text2">
+        <Link
+          href="/pet"
+          aria-label="กลับ"
+          className="flex h-8 w-8 items-center justify-center text-text2"
+        >
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-lg font-bold text-gold-hi">ตั้งค่า</h1>
@@ -66,6 +79,13 @@ export default async function SettingsPage() {
         showGuardian={!!guardianLink}
       />
 
+      {farmNotifications !== null && (
+        <FarmNotificationSettings
+          initial={farmNotifications}
+          masterEnabled={prefs?.push_enabled ?? true}
+        />
+      )}
+
       <AppThemeSettings initial={appTheme} />
 
       <SoundSettings />
@@ -78,7 +98,8 @@ export default async function SettingsPage() {
           <>
             <GuestLinkAccountRow />
             <p className="pb-2 text-xs text-text3">
-              ตอนนี้เล่นแบบยังไม่ผูกไอดี — ผูกไว้เพื่อกันข้อมูลหายและเล่นต่อได้ทุกเครื่อง
+              ตอนนี้เล่นแบบยังไม่ผูกไอดี —
+              ผูกไว้เพื่อกันข้อมูลหายและเล่นต่อได้ทุกเครื่อง
             </p>
           </>
         ) : (
@@ -92,12 +113,18 @@ export default async function SettingsPage() {
         )}
         <div className="my-1 border-t border-border" />
         <form action={signOut}>
-          <button type="submit" className="w-full py-3 text-left text-sm font-medium text-red active:opacity-70">
+          <button
+            type="submit"
+            className="w-full py-3 text-left text-sm font-medium text-red active:opacity-70"
+          >
             ออกจากระบบ
           </button>
         </form>
         <div className="my-1 border-t border-border" />
-        <Link href="/settings/delete-account" className="block w-full py-3 text-left text-sm font-medium text-red active:opacity-70">
+        <Link
+          href="/settings/delete-account"
+          className="block w-full py-3 text-left text-sm font-medium text-red active:opacity-70"
+        >
           ลบบัญชี
         </Link>
       </section>
@@ -118,7 +145,9 @@ export default async function SettingsPage() {
         </Link>
       </section>
 
-      <p className="mt-2 text-center text-xs text-text3">เวอร์ชัน {packageJson.version}</p>
+      <p className="mt-2 text-center text-xs text-text3">
+        เวอร์ชัน {packageJson.version}
+      </p>
     </main>
   );
 }

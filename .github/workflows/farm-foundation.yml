@@ -3,6 +3,12 @@ on:
   pull_request:
     paths:
       - 'src/lib/farm/**'
+      - 'src/lib/push/farmAttention.ts'
+      - 'src/components/BottomNav.tsx'
+      - 'src/app/api/farm/**'
+      - 'src/app/api/cron/push-*/**'
+      - 'src/app/settings/**'
+      - 'src/components/settings/**'
       - 'src/lib/dungeon.ts'
       - 'src/components/farm/**'
       - 'src/app/collection/**'
@@ -72,5 +78,6 @@ jobs:
       - run: node tests/farm/puzzle-database.test.mjs
         env:
           FARM_TEST_DATABASE_URL: postgres://postgres:test-only@127.0.0.1:5432/qmon_farm_test
-      - run: node --test tests/farm/puzzle-server.test.cjs tests/farm/layout-server.test.cjs tests/farm/history-server.test.cjs tests/farm/practice-server.test.cjs tests/farm/social-server.test.cjs
+      - run: node --test tests/farm/puzzle-server.test.cjs tests/farm/layout-server.test.cjs tests/farm/history-server.test.cjs tests/farm/practice-server.test.cjs tests/farm/social-server.test.cjs tests/farm/attention-server.test.cjs
+      - run: ./node_modules/.bin/eslint src/lib/farm/attention.ts src/lib/farm/attention-server.ts src/lib/push/farmAttention.ts src/components/farm/useFarmAttention.ts src/components/farm/FarmStartGuide.tsx src/components/farm/AttentionPreview.tsx src/components/BottomNav.tsx src/components/settings/FarmNotificationSettings.tsx src/app/api/farm/attention src/app/settings/farm-notifications.ts tests/farm/attention-server.test.cjs
       - run: ./node_modules/.bin/eslint src/lib/farm/social.ts src/lib/farm/social-server.ts src/components/farm/VisitFarmClient.tsx src/components/farm/FarmEncouragementClient.tsx src/components/farm/SocialPreview.tsx src/app/collection/visit src/app/collection/encouragement tests/farm/social-server.test.cjs src/lib/farm/activities.ts src/lib/farm/history-server.ts src/components/farm/FarmResidents.tsx src/components/farm/PlaceHistoryView.tsx src/components/farm/ActivitiesPreview.tsx src/app/collection/places src/app/collection/practice tests/farm/history-server.test.cjs tests/farm/practice-server.test.cjs src/lib/farm/puzzle-engine.ts src/lib/farm/puzzle-server.ts src/lib/farm/lesson-server.ts src/lib/farm/puzzles/flower.ts src/lib/farm/puzzles/content.ts src/components/farm/SubjectPuzzle.tsx src/components/farm/SubjectLessonClient.tsx src/components/farm/SubjectPreview.tsx src/components/farm/ProjectPuzzleClient.tsx src/components/farm/ProjectQueueClient.tsx src/components/farm/ConstructionPreview.tsx src/components/farm/ProjectQueuePreview.tsx src/lib/farm/construction-puzzles.ts src/lib/farm/project-overview.ts src/lib/farm/project-overview-server.ts src/lib/farm/busy-pets.ts src/lib/dungeon.ts src/app/collection/projects src/app/collection/layout src/lib/farm/layout.ts src/lib/farm/layout-server.ts src/components/farm/LayoutClient.tsx src/components/farm/LayoutPreview.tsx src/components/farm/FarmWorld.tsx src/components/farm/useDraftAutosave.ts src/components/farm/SchoolClient.tsx src/components/farm/GardenClient.tsx src/components/farm/FloorPuzzle.tsx src/components/farm/GardenPathPuzzle.tsx src/app/collection/preview/page.tsx src/app/collection/school/learn/subject src/app/collection/school/learn/page.tsx tests/farm/puzzle-server.test.cjs tests/farm/puzzle-database.test.mjs

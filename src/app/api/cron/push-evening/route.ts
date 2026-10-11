@@ -1,3 +1,4 @@
+import {safeDispatchFarmAttention} from "@/lib/push/farmAttention";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyCronRequest } from "@/lib/push/verifyCronRequest";
@@ -15,7 +16,8 @@ export async function GET(request: Request) {
     const admin = createAdminClient();
     const recipients = await getEligibleRecipients(admin, "daily_exp_enabled");
     const summary = await dispatchNotifications(admin, "daily_exp_evening", recipients, buildDailyExpMessage);
-    return NextResponse.json({ ok: true, summary });
+    const farm = await safeDispatchFarmAttention(admin);
+    return NextResponse.json({ ok: true, farm, summary });
   } catch (err) {
     console.error("[cron/push-evening] failed:", err);
     return NextResponse.json(

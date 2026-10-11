@@ -1,3 +1,4 @@
+import {safeDispatchFarmAttention} from "@/lib/push/farmAttention";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyCronRequest } from "@/lib/push/verifyCronRequest";
@@ -29,7 +30,8 @@ export async function GET(request: Request) {
       console.error("[cron/push-morning-weekend] guardian flush failed:", err);
       guardianDeferred = { error: err instanceof Error ? err.message : "unknown error" };
     }
-    return NextResponse.json({ ok: true, summary, guardianDeferred });
+    const farm = await safeDispatchFarmAttention(admin);
+    return NextResponse.json({ ok: true, farm, summary, guardianDeferred });
   } catch (err) {
     console.error("[cron/push-morning-weekend] failed:", err);
     return NextResponse.json(

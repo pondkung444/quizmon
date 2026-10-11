@@ -1,3 +1,5 @@
+import FarmStartGuide from "@/components/farm/FarmStartGuide";
+import { loadSchoolPets } from "@/lib/farm/school-server";
 import Link from "next/link";
 import { farmSocialAvailable } from "@/lib/farm/social-server";
 import { loadFarmLayoutIfAvailable } from "@/lib/farm/layout-server";
@@ -26,6 +28,8 @@ export default async function CollectionFarmPage({
       loadConfirmedSchoolLevel(),
       loadFarmLayoutIfAvailable(),
     ]);
+  const starterPets =
+    !school || school.status === "draft" ? await loadSchoolPets() : [];
   const socialAvailable = await farmSocialAvailable();
   const tiles: FarmTile[] =
     school?.status === "placed" &&
@@ -45,6 +49,9 @@ export default async function CollectionFarmPage({
   tiles.push(...gardenTiles(gardens));
   return (
     <main data-app-wide className="w-full min-h-[100dvh] pb-20">
+      {(!school || school.status === "draft") && (
+        <FarmStartGuide ready={starterPets.length > 0} />
+      )}
       {socialAvailable && (
         <Link
           className="inline-flex min-h-11 items-center p-3"

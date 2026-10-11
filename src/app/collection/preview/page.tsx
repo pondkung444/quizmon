@@ -1,3 +1,4 @@
+import AttentionPreview from "@/components/farm/AttentionPreview";
 import SocialPreview from "@/components/farm/SocialPreview";
 import PlaceHistoryView from "@/components/farm/PlaceHistoryView";
 import ActivitiesPreview from "@/components/farm/ActivitiesPreview";
@@ -34,6 +35,7 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
+  if (input === "attention") return <AttentionPreview />;
   if (input === "social") return <SocialPreview />;
   if (input === "history")
     return (
