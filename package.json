@@ -17,6 +17,7 @@
     "test:ux-phase0": "node --experimental-strip-types --test tests/ux-phase0/*.test.ts",
     "test:ux-phase2": "node --experimental-strip-types --test tests/ux-phase2/*.test.ts",
     "test:grade-band": "node --experimental-strip-types --test tests/grade-band/*.test.ts",
+    "test:farm-foundation": "node --test tests/farm/catalogue.test.ts tests/farm/projects-server.test.cjs && node tests/farm/projects-database.test.mjs",
     "test:farm-puzzles": "node --experimental-strip-types --test tests/farm/puzzles.test.ts",
     "test:focus": "node --experimental-strip-types --test tests/focus-mode/*.test.ts",
     "test:team-battle": "node --experimental-strip-types --test tests/team-battle/*.test.ts",

@@ -1,0 +1,143 @@
+import {PGlite} from '@electric-sql/pglite';
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+let pool;
+let db;
+if(process.env.FARM_TEST_DATABASE_URL){
+ const url=new URL(process.env.FARM_TEST_DATABASE_URL);
+ if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname)||url.pathname!=='/qmon_farm_test')throw new Error('Refusing a non-local or non-test database');
+ const {Client,Pool,types}=await import('pg');types.setTypeParser(20,value=>{const n=Number(value);if(!Number.isSafeInteger(n))throw new Error('Unsafe integer in synthetic fixture');return n;});const client=new Client({connectionString:url.href});await client.connect();
+ pool=new Pool({connectionString:url.href,max:10});
+ db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql),close:async()=>{await client.end();await pool.end();}};
+}else db=new PGlite();
+const u='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002',pet='00000000-0000-4000-8000-000000000003',helper='00000000-0000-4000-8000-000000000004';
+const req='00000000-0000-4000-8000-000000000005';
+let checks=0;
+const scalar=async(sql,args=[])=>Object.values((await db.query(sql,args)).rows[0])[0];
+const eq=(a,b)=>{assert.deepEqual(a,b);checks++;};
+const reject=async(sql,args,pattern)=>{await assert.rejects(db.query(sql,args),pattern);checks++;};
+try{
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
+ create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;
+ create table pets(id uuid primary key,user_id uuid,stage int,is_active boolean,exp int default 0);
+ create table daily_missions(id uuid primary key,user_id uuid,target_count int,bonus_exp smallint,bonus_awarded_at timestamptz);
+ create table quiz_attempts(id serial primary key,user_id uuid,mission_id uuid);
+ create table dungeon_runs(id serial primary key,pet_id uuid,user_id uuid,status text);
+ insert into auth.users values('${u}'),('${other}');insert into pets values('${pet}','${u}',4,true,0),('${helper}','${u}',2,false,0);`);
+ for(const name of ['20261004143439_farm_school_tutorial.sql','20261005023219_farm_blueprint_discovery.sql','20261005052159_farm_garden_construction.sql'])await db.exec(fs.readFileSync('supabase/migrations/'+name,'utf8'));
+ await db.exec(`insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${u}','placed',1,1);
+ insert into farm_blueprint_discoveries(user_id,blueprint_id,pet_id) values('${u}','garden-rest-v1','${pet}');
+ insert into farm_wallets values('${u}',500);
+ insert into farm_garden_projects(user_id,request_id,builder_id,status,remaining_seconds,price,finish_seconds,round_seconds,penalty_seconds,tile_x,tile_y,layout)
+ values('${u}',gen_random_uuid(),'${helper}','placed',0,40,300,180,60,2,1,'[]');`);
+ for(const [index,status] of ['draft','building','puzzle','finishing','paused','ready','placed'].entries()){
+  const user=`00000000-0000-4000-8000-${String(index+100).padStart(12,'0')}`;
+  const leader=`00000000-0000-4000-8000-${String(index+200).padStart(12,'0')}`;
+  await db.query('insert into auth.users values($1)',[user]);await db.query('insert into pets(id,user_id,stage,is_active) values($1,$2,2,false)',[leader,user]);
+  await db.query('insert into farm_school_projects(user_id,leader_id,status,resume_status,ready_at,remaining_seconds,round_deadline,failures,penalty_applied,tile_x,tile_y) values($1,$2,$3,$4,$5,123,$6,4,true,$7,$8)',[user,leader,status,status==='paused'?'puzzle':null,'2030-01-01','2029-01-01',status==='placed'?index:null,status==='placed'?2:null]);
+  if(status!=='draft')await db.query(`insert into farm_garden_projects(user_id,request_id,leader_id,builder_id,status,resume_status,ready_at,remaining_seconds,round_deadline,failures,penalty_applied,price,finish_seconds,round_seconds,penalty_seconds,tile_x,tile_y,layout) values($1,gen_random_uuid(),$2,$2,$3,$4,$5,123,$6,4,true,40,300,180,60,$7,$8,'[{"id":"bend-a","x":1,"y":2,"rotation":3}]')`,[user,null,status,status==='paused'?'puzzle':null,'2030-01-01','2029-01-01',status==='placed'?index:null,status==='placed'?3:null]);
+ }
+ const legacyBefore=await db.query('select to_jsonb(s) from farm_school_projects s union all select to_jsonb(g) from farm_garden_projects g');
+ await db.exec(fs.readFileSync('supabase/migrations/20261011144152_qmon_farm_project_foundation.sql','utf8'));
+ eq((await db.query('select to_jsonb(s) from farm_school_projects s union all select to_jsonb(g) from farm_garden_projects g')).rows,legacyBefore.rows);
+ eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),500);
+ eq(await scalar('select count(*) from farm_coin_ledger'),0);
+ eq(await scalar('select count(*) from farm_project_compatibility where user_id=$1',[u]),2);
+ eq(await scalar('select count(*) from farm_catalogue where enabled'),0);
+ await reject('select farm_project_buy($1,$2,$3,$4)',[u,'school-2',req,pet],/ยังไม่เปิด/);
+ await db.exec("update farm_catalogue set enabled=true where id in ('school-2','garden');");
+ let p=await scalar('select farm_project_buy($1,$2,$3,$4)',[u,'school-2',req,pet]);const id=p.id;
+ eq(p.status,'building');eq(p.rules_snapshot.waits,[21600,28800,28800]);eq(p.reward_eligible,true);
+ eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),460);
+ eq((await scalar('select farm_project_buy($1,$2,$3,$4)',[u,'school-2',req,pet])).id,id);
+ eq(await scalar('select count(*) from farm_coin_ledger'),1);
+ await reject('select farm_project_buy($1,$2,$3,$4)',[u,'garden',req,pet],/คำขอ/);
+ await reject('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',helper],/ช่องงานเต็ม/);
+ await reject("select farm_garden_command($1,'buy',null,$2,gen_random_uuid())",[u,helper],/ช่องงาน/);
+ await reject("insert into dungeon_runs(pet_id,status) values($1,'in_progress')",[pet],/ติดงาน/);
+ await reject('select to_jsonb(farm_project_refresh($1,$2))',[other,id],/ไม่พบ/);
+ await db.exec("update farm_catalogue set definition=definition||'{\"price\":999,\"firstReward\":999,\"waits\":[1,1,1]}';");
+ eq((await scalar('select to_jsonb(farm_project_refresh($1,$2))',[u,id])).rules_snapshot.price,40);
+ p=await scalar("select farm_project_command($1,$2,'pause')",[u,id]);eq(p.status,'paused');eq(await scalar('select count(*) from farm_project_assignments'),0);
+ const pausedSeconds=p.remaining_seconds;
+ p=await scalar("select farm_project_command($1,$2,'resume',$3)",[u,id,helper]);eq(p.remaining_seconds,pausedSeconds);
+ eq(await scalar('select count(*) from farm_project_contributions where project_id=$1',[id]),2);
+ await reject("select farm_project_command($1,$2,'team',$3,array[$4]::uuid[])",[u,id,pet,helper],/เลือกทีม/);
+ await db.query("update farm_projects set ready_at='2000-01-01' where id=$1",[id]);
+ p=await scalar("select farm_project_command($1,$2,'begin')",[u,id]);eq(p.status,'puzzle');let deadline=p.round_deadline;
+ eq((await scalar("select farm_project_command($1,$2,'begin')",[u,id])).round_deadline,deadline);
+ await db.query("insert into farm_project_checkpoints values($1,0,1,'{\"secret\":42}','{\"draft\":1}',null)",[id]);
+ for(let i=0;i<4;i++)p=await scalar('select farm_project_checkpoint_result($1,$2,false)',[u,id]);
+ eq(p.round_deadline,deadline);eq(p.failures,4);eq(p.penalty_applied,true);
+ eq(await scalar('select draft from farm_project_checkpoints where project_id=$1',[id]),{draft:1});
+ p=await scalar('select farm_project_checkpoint_result($1,$2,true)',[u,id]);eq(p.checkpoint,1);eq(p.status,'building');eq(p.remaining_seconds,34560);eq(p.failures,0);
+ await db.query("update farm_projects set ready_at='2000-01-01' where id=$1",[id]);
+ await scalar("select farm_project_command($1,$2,'begin')",[u,id]);
+ await db.query("update farm_projects set round_deadline='2000-01-01' where id=$1",[id]);
+ p=await scalar('select farm_project_checkpoint_result($1,$2,true)',[u,id]);eq(p.failures,1);eq(p.round_deadline,null);
+ await scalar("select farm_project_command($1,$2,'begin')",[u,id]);
+ p=await scalar('select farm_project_checkpoint_result($1,$2,true)',[u,id]);eq(p.status,'finishing');eq(p.remaining_seconds,28800);
+ await db.query("update farm_projects set ready_at='2000-01-01' where id=$1",[id]);
+ p=await scalar('select to_jsonb(farm_project_refresh($1,$2))',[u,id]);eq(p.status,'ready');eq(await scalar('select count(*) from farm_project_assignments'),0);
+ await reject('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',pet],/ช่องงานเต็ม/);
+ p=await scalar('select farm_project_place($1,$2)',[u,id]);eq(p.status,'placed');eq(p.tile_x,1);eq(p.tile_y,1);
+ eq(await scalar('select farm_school_level($1)',[u]),2);eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),490);
+ await scalar('select farm_project_place($1,$2)',[u,id]);eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),490);
+ // Exact owner read and denial checks, including protected puzzle JSON and RPCs.
+ await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${other}',false);`);
+ for(const table of ['farm_projects','farm_project_assignments','farm_project_contributions'])eq((await db.query('select * from '+table)).rows.length,0);
+ await reject('select * from farm_project_checkpoints',[],/permission/);
+ await reject('select * from farm_project_compatibility',[],/permission/);
+ await reject('select farm_project_buy($1,$2,$3,$4)',[u,'garden',req,pet],/permission/);
+ await reject('select farm_project_checkpoint_result($1,$2,true)',[u,id],/permission/);
+ await reject("update farm_projects set status='placed'",[],/permission/);
+ await db.exec(`select set_config('request.jwt.claim.sub','${u}',false);`);eq((await db.query('select * from farm_projects')).rows.length,1);
+ eq((await db.query('select * from farm_project_contributions')).rows.length,2);
+ for(const table of ['farm_projects','farm_project_assignments','farm_project_contributions','farm_project_checkpoints','farm_legacy_contributions']){
+  await reject('insert into '+table+' default values',[],/permission/);
+  await reject('delete from '+table,[],/permission/);
+ }
+ await db.exec('reset role;set role anon');await reject('select * from farm_projects',[],/permission/);await db.exec('reset role');
+ // A failing purchase rolls back row, assignment and ledger together.
+ const balance=await scalar('select balance from farm_wallets where user_id=$1',[u]);
+ await reject('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',pet],/เหรียญ/);
+ eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),balance);
+ eq(await scalar('select count(*) from farm_projects'),1);
+ await db.exec(`update farm_catalogue set definition=definition||'{"price":40,"firstReward":20,"waits":[300,300]}' where id='garden'`);
+ const concurrentReq='00000000-0000-4000-8000-000000000099';
+ const garden=await scalar('select farm_project_buy($1,$2,$3,$4)',[u,'garden',concurrentReq,pet]);
+ eq(garden.reward_eligible,false);
+ let team=await scalar("select farm_project_command($1,$2,'team',$3,array[$4]::uuid[])",[u,garden.id,pet,helper]);
+ eq(team.helper_count,1);assert.ok(team.remaining_seconds<=270&&team.remaining_seconds>250);checks++;
+ team=await scalar("select farm_project_command($1,$2,'pause')",[u,garden.id]);eq(team.helper_count,1);
+ const remaining=team.remaining_seconds;
+ team=await scalar("select farm_project_command($1,$2,'resume',$3)",[u,garden.id,pet]);eq(team.remaining_seconds,Math.ceil(remaining*10/9));
+ assert.ok(team.remaining_seconds<=300);checks++;
+ eq(await scalar('select count(*) from farm_project_contributions where project_id=$1',[garden.id]),4);
+ await db.exec('begin');
+ await scalar('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',helper]);
+ await db.exec('rollback');
+ eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),450);
+ eq(await scalar('select count(*) from farm_projects'),2);
+ if(pool){
+  const overlapping=await Promise.allSettled(Array.from({length:2},()=>pool.query('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',pet])));
+  eq(overlapping.filter(r=>r.status==='rejected').length,2);eq(await scalar('select count(*) from farm_projects'),2);
+  const freshRequest='00000000-0000-4000-8000-000000000098';
+  const results=await Promise.all(Array.from({length:10},()=>pool.query('select farm_project_buy($1,$2,$3,$4) as p',[u,'garden',freshRequest,helper])));
+  eq(new Set(results.map(r=>r.rows[0].p.id)).size,1);
+  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),410);
+  eq(await scalar('select count(*) from farm_projects'),3);
+  eq(await scalar('select count(*) from farm_coin_ledger where amount<0'),3);
+  // Fast-forward only the synthetic fixture so there is exactly one free slot.
+  const completedId=results[0].rows[0].p.id;
+  await db.query("update farm_projects set status='finishing',ready_at='2000-01-01' where id=$1",[completedId]);
+  await scalar('select farm_project_place($1,$2,0,-1)',[u,completedId]);
+  const racer1='00000000-0000-4000-8000-000000001000',racer2='00000000-0000-4000-8000-000000001001';
+  await db.query('insert into pets(id,user_id,stage,is_active) values($1,$3,4,false),($2,$3,4,false)',[racer1,racer2,u]);
+  const raced=await Promise.allSettled([racer1,racer2].map(leader=>pool.query('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',leader])));
+  eq(raced.filter(r=>r.status==='fulfilled').length,1);eq(raced.filter(r=>r.status==='rejected').length,1);
+  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),370);eq(await scalar('select count(*) from farm_projects'),4);
+ }
+ console.log(`Foundation SQL integration: ${checks} checks passed (${pool?'isolated PostgreSQL, 10 connections':'synthetic PGlite database only'})`);
+}finally{await db.close();}
