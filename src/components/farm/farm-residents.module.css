@@ -7,3 +7,11 @@
 .pet:focus-visible { outline: 3px solid #ecd7a0; outline-offset: 2px; }
 @keyframes stroll-bob { 0%, 100% { transform: scaleX(var(--facing)) translateY(0); } 50% { transform: scaleX(var(--facing)) translateY(-2px); } }
 @media (prefers-reduced-motion: reduce) { .sprite { animation: none !important; } }
+.activityLabel {position:absolute;bottom:100%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;color:#fcf0cb;background:#223329e8;border-radius:8px;padding:3px 6px;display:none;}
+.mover[data-activity]:not([data-activity=""]) .activityLabel {display:block;}
+.butterfly {display:none;position:absolute;right:-10px;top:-12px;animation:butterfly-float 2s ease-in-out infinite;}
+.mover[data-activity="butterflies"] .butterfly {display:block;}
+.mover[data-paused="true"] .butterfly {animation-play-state:paused;}
+.mover[data-activity="bench"] .sprite,.mover[data-activity="pond-rest"] .sprite {transform:scaleX(var(--facing)) translateY(3px);}
+@keyframes butterfly-float {0%,100% {transform:translate(0,0) rotate(-8deg);}50% {transform:translate(-6px,-6px) rotate(8deg);}}
+@media(prefers-reduced-motion:reduce){.butterfly {animation:none;}}

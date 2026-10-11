@@ -1,3 +1,5 @@
+import PlaceHistoryView from "@/components/farm/PlaceHistoryView";
+import ActivitiesPreview from "@/components/farm/ActivitiesPreview";
 import LayoutPreview from "@/components/farm/LayoutPreview";
 import ProjectQueuePreview from "@/components/farm/ProjectQueuePreview";
 import Link from "next/link";
@@ -31,12 +33,64 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
-  if(input==='layout17'||input==='layout24')return <main className="mx-auto max-w-4xl p-3"><h1>ผังฟาร์มจำลอง</h1><LayoutPreview count={input==='layout24'?24:17}/></main>;
-  if (input === "teams" || input === "catalogue" || input === "catalogue-endgame")
+  if (input === "history")
+    return (
+      <PlaceHistoryView
+        place={{
+          id: "main-school",
+          kind: "school",
+          level: 4,
+          image: "/farm/qmon-school-l4-v1.png",
+          completedAt: "2026-10-12T12:00:00Z",
+          legacyNote: true,
+          contributors: [
+            {
+              name: "หัวหน้าคนแรก",
+              role: "leader",
+              joinedAt: "2026-10-01T12:00:00Z",
+              leftAt: "2026-10-02T12:00:00Z",
+            },
+            {
+              name: "คู่หูผู้ช่วย",
+              role: "helper",
+              joinedAt: "2026-10-03T12:00:00Z",
+              leftAt: "2026-10-04T12:00:00Z",
+            },
+            {
+              name: "Qmon ที่เคยร่วมงาน",
+              role: "legacy",
+              joinedAt: null,
+              leftAt: null,
+            },
+          ],
+        }}
+      />
+    );
+  if (input === "activities")
+    return (
+      <main className="mx-auto max-w-4xl p-3">
+        <ActivitiesPreview />
+      </main>
+    );
+  if (input === "layout17" || input === "layout24")
+    return (
+      <main className="mx-auto max-w-4xl p-3">
+        <h1>ผังฟาร์มจำลอง</h1>
+        <LayoutPreview count={input === "layout24" ? 24 : 17} />
+      </main>
+    );
+  if (
+    input === "teams" ||
+    input === "catalogue" ||
+    input === "catalogue-endgame"
+  )
     return (
       <main className="mx-auto max-w-xl p-3">
         <h1>ทีมจำลอง · ไม่เชื่อมฐานจริง</h1>
-        <ProjectQueuePreview catalogueMode={input!=="teams"} endgame={input==="catalogue-endgame"} />
+        <ProjectQueuePreview
+          catalogueMode={input !== "teams"}
+          endgame={input === "catalogue-endgame"}
+        />
       </main>
     );
   if (input === "construction-floor" || input === "construction-path") {
