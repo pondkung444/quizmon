@@ -14,7 +14,10 @@ export function catalogueGate(
   context: CatalogueContext,
 ) {
   const reasons: string[] = [];
-  if (context.level < def.schoolLevel)
+  if (
+    context.level < def.schoolLevel ||
+    (def.place === "school" && context.level !== def.schoolLevel)
+  )
     reasons.push(`โรงเรียนระดับ ${def.schoolLevel}`);
   if (def.blueprint && !context.blueprints.includes(def.blueprint))
     reasons.push("เรียนเพื่อค้นพบแบบสร้างก่อน");
@@ -43,6 +46,8 @@ export function catalogueGate(
   return { ready: reasons.length === 0, reasons };
 }
 export const PLACE_ART = {
+  bridge: "/farm/qmon-bridge-v1.png",
+  observatory: "/farm/qmon-observatory-v1.png",
   pond: "/farm/qmon-pond-v1.png",
   flower: "/farm/qmon-flower-v1.png",
 } as const;

@@ -62,20 +62,35 @@ function fixture(): Awaited<ReturnType<typeof loadProjectOverview>> {
 }
 export default function ProjectQueuePreview({
   catalogueMode = false,
+  endgame = false,
 }: {
   catalogueMode?: boolean;
+  endgame?: boolean;
 }) {
   const [overview] = useState(() =>
       catalogueMode
         ? {
             ...fixture(),
+            level: endgame ? 4 : 2,
             projects: [],
             assignments: [],
             catalogue: [
               { id: "pond", enabled: true },
               { id: "flower", enabled: true },
+              ...(endgame
+                ? [
+                    { id: "bridge", enabled: true },
+                    { id: "observatory", enabled: true },
+                  ]
+                : []),
             ],
-            blueprints: ["pond-cycle-v1", "flower-photosynthesis-v1"],
+            blueprints: [
+              "pond-cycle-v1",
+              "flower-photosynthesis-v1",
+              ...(endgame
+                ? ["bridge-balance-v1", "observatory-orbits-v1"]
+                : []),
+            ],
           }
         : fixture(),
     ),
@@ -103,7 +118,15 @@ export default function ProjectQueuePreview({
       };
       purchases.current.set(nonce, project);
       setEvents((rows) => [...rows, nonce]);
-      return { ...project, walletBalance: 500 - 50 * purchases.current.size };
+      return {
+        ...project,
+        walletBalance:
+          500 -
+          [...purchases.current.values()].reduce(
+            (total, p) => total + p.rules_snapshot.price,
+            0,
+          ),
+      };
     }
     if (input.projectId !== current.current.id)
       throw Error("โครงการจำลองไม่ตรง");

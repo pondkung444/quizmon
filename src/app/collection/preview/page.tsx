@@ -32,11 +32,11 @@ export default async function FarmPuzzlePreview({
     notFound();
   const input = (await searchParams).kind ?? "pond";
   if(input==='layout17'||input==='layout24')return <main className="mx-auto max-w-4xl p-3"><h1>ผังฟาร์มจำลอง</h1><LayoutPreview count={input==='layout24'?24:17}/></main>;
-  if (input === "teams" || input === "catalogue")
+  if (input === "teams" || input === "catalogue" || input === "catalogue-endgame")
     return (
       <main className="mx-auto max-w-xl p-3">
         <h1>ทีมจำลอง · ไม่เชื่อมฐานจริง</h1>
-        <ProjectQueuePreview catalogueMode={input==="catalogue"} />
+        <ProjectQueuePreview catalogueMode={input!=="teams"} endgame={input==="catalogue-endgame"} />
       </main>
     );
   if (input === "construction-floor" || input === "construction-path") {

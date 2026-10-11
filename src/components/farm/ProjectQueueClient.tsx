@@ -1,4 +1,5 @@
 "use client";
+import { schoolArt } from "@/lib/farm/school-art";
 import Image from "next/image";
 import { catalogueGate, PLACE_ART } from "@/lib/farm/catalogue-gates";
 import type { FarmPlace } from "@/lib/farm/catalogue";
@@ -124,6 +125,7 @@ export default function ProjectQueueClient({
         งาน {occupied}/{capacity.jobs} ช่อง · ผู้ช่วยได้สูงสุด{" "}
         {capacity.helpers} ตัว · ผู้ช่วยลดเวลารอคนละ 10%
       </p>
+      <p>เหรียญฟาร์ม {balance.toLocaleString("th-TH")} เหรียญ</p>
       {message && <p role="alert">{message}</p>}
       {session && (
         <ProjectPuzzleClient
@@ -164,14 +166,20 @@ export default function ProjectQueueClient({
                   ? " ระดับ " + p.rules_snapshot.targetLevel
                   : ""}
               </h2>
-              {(p.rules_snapshot.place === "pond" ||
-                p.rules_snapshot.place === "flower") && (
+              {(p.rules_snapshot.place in PLACE_ART ||
+                p.rules_snapshot.place === "school") && (
                 <div className="relative w-40">
                   <Image
                     className={
                       p.status === "ready" ? "" : "opacity-50 saturate-50"
                     }
-                    src={PLACE_ART[p.rules_snapshot.place]}
+                    src={
+                      p.rules_snapshot.place === "school"
+                        ? schoolArt(p.rules_snapshot.targetLevel ?? 1)
+                        : PLACE_ART[
+                            p.rules_snapshot.place as keyof typeof PLACE_ART
+                          ]
+                    }
                     alt={
                       p.status === "ready"
                         ? "สถานที่สร้างเสร็จ"
@@ -365,8 +373,7 @@ export default function ProjectQueueClient({
       {FARM_CATALOGUE.filter(
         (c) =>
           (c.place === "school" && c.targetLevel === overview.level + 1) ||
-          c.place === "pond" ||
-          c.place === "flower",
+          (c.place !== "school" && c.place !== "garden"),
       ).map((c) => {
         const enabled = overview.catalogue.some(
           (row) => row.id === c.id && row.enabled,
@@ -381,6 +388,15 @@ export default function ProjectQueueClient({
           coins: balance,
           leaderStages: pets.filter((p) => available(p)).map((p) => p.stage),
         });
+        if (
+          projects.some(
+            (p) => p.catalogue_id === c.id && p.status !== "placed",
+          ) &&
+          c.place === "school"
+        ) {
+          gate.ready = false;
+          gate.reasons.push("มีโครงการอัปเกรดนี้อยู่ในคิวแล้ว");
+        }
         return (
           <section
             className="space-y-2 rounded-xl border border-white/20 p-4"
@@ -395,18 +411,18 @@ export default function ProjectQueueClient({
               {c.place === "school"
                 ? "ใช้แปลงเดิม"
                 : "เลือกแปลงเมื่อสร้างเสร็จ"}{" "}
-              · รางวัลครั้งแรก {c.firstReward} เหรียญ · จุดช่วย{" "}
-              {c.waits.length - 1} ครั้ง
+              · รางวัลครั้งแรก {c.firstReward} เหรียญ (รับได้ครั้งเดียว) ·
+              จุดช่วย {c.waits.length - 1} ครั้ง
             </p>
             <p>
               {enabled
                 ? "เลือกหัวหน้าทีมเริ่มงาน"
                 : "กำลังเตรียมเปิดโครงการตามแผน"}
             </p>
-            {(c.place === "pond" || c.place === "flower") && (
+            {c.place in PLACE_ART && (
               <>
                 <Image
-                  src={PLACE_ART[c.place]}
+                  src={PLACE_ART[c.place as keyof typeof PLACE_ART]}
                   alt={labels[c.place]}
                   width={160}
                   height={160}
@@ -426,6 +442,16 @@ export default function ProjectQueueClient({
                 {gate.reasons.map((reason) => (
                   <li key={reason}>{reason}</li>
                 ))}
+                {gate.reasons.some((r) => r.startsWith("มี Qmon")) && (
+                  <li>
+                    <Link
+                      className="inline-flex min-h-11 items-center underline"
+                      href="/collection"
+                    >
+                      กลับไปเลี้ยง Qmon ตัวเดิม →
+                    </Link>
+                  </li>
+                )}
               </ul>
             )}
             {enabled && (

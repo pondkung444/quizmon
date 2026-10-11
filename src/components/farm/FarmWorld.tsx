@@ -7,6 +7,7 @@ import FarmResidents from "./FarmResidents";
 import type { FarmPet } from "./FarmMeadow";
 import { availableFarmPlots,tileKey, type FarmTile } from "../../lib/farm/world";
 import { farmGeometry, projectFarmPoint, occupiedFarmRectangle } from "../../lib/farm/isometric";
+import {schoolArt} from "@/lib/farm/school-art";
 import {PLACE_ART} from "@/lib/farm/catalogue-gates";
 import {connectedTiles} from "@/lib/farm/layout";
 import {farmBuildingLayout} from "@/lib/farm/buildings";
@@ -120,9 +121,9 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
           const layout=farmBuildingLayout(tile.kind);
           const foot = projectFarmPoint(tile.x+layout.anchor,tile.y+layout.anchor,geometry);
           const title = tile.kind === "bridge"?"สะพาน":tile.kind=== "pond"?"บ่อน้ำ":tile.kind=== "flower"?"สวนดอกไม้":tile.kind=== "observatory"?"หอดูดาว":tile.kind === "residence" ? "ฟาร์ม Qmon" : tile.kind === "eggs" ? "คลังไข่" : tile.kind === "garden" ? "สวนพักผ่อน" : `โรงเรียน ${tile.level}`;
-          const source = tile.kind==='pond'?PLACE_ART.pond:tile.kind==='flower'?PLACE_ART.flower:tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : tile.kind === "garden" ? "/farm/qmon-garden-pavilion-v1.webp" : "/farm/qmon-school-l1-v1.webp";
+          const source = tile.kind in PLACE_ART?PLACE_ART[tile.kind as keyof typeof PLACE_ART]:tile.kind === "residence" ? "/farm/qmon-residence-v2.webp" : tile.kind === "eggs" ? "/farm/qmon-egg-storage-v2.webp" : tile.kind === "garden" ? "/farm/qmon-garden-pavilion-v1.webp" : schoolArt(tile.level??1);
           const destination = ['pond','flower','bridge','observatory'].includes(tile.kind)?"/collection/layout":tile.kind === "residence" ? "/collection/qmon" : tile.kind === "eggs" ? "/eggs" : tile.kind === "garden" ? (tile.id==='garden-layout-example'?'/collection/school/learn/garden/practice':`/collection/garden?project=${tile.id}`) : "/collection/school";
-          const content = <>{tile.kind==='bridge'?<svg width="100%" height="100%" viewBox="0 0 200 120" aria-label="สะพานหัวท้ายสองด้าน"><line x1="15" y1={tile.orientation===1?100:20} x2="185" y2={tile.orientation===1?20:100} stroke="#5c3f29" strokeWidth="35"/><line x1="15" y1={tile.orientation===1?100:20} x2="185" y2={tile.orientation===1?20:100} stroke="#d1a574" strokeWidth="25" strokeDasharray="8 3"/></svg>:tile.kind==='observatory'?<div style={{fontSize:size*.12,textAlign:"center"}} aria-hidden="true">🔭</div>:<Image src={source} alt="" fill sizes="250px" draggable={false} />}
+          const content = <><Image src={source} alt="" fill sizes="250px" draggable={false} style={tile.kind==='bridge'&&tile.orientation===1?{transform:'scaleX(-1)'}:undefined} />
             <span className={`${styles.buildingLabel} ${tile.kind === "residence" ? styles.residenceLabel : tile.kind === "eggs" ? styles.eggsLabel : ""}`}><strong>{title}</strong>{tile.id===previewTile?.id&&<small>ภาพก่อนวาง</small>}</span></>;
           const placement = {left:foot.x,top:foot.y,width:size*layout.widthRatio,height:size*layout.widthRatio,zIndex:10000+Math.round(foot.y*10)};
           if(tile.id===previewTile?.id)return <div key={tile.id} className={`${styles.building} ${styles.previewBuilding}`} style={placement}>{content}</div>;

@@ -447,26 +447,105 @@ try {
   await db.exec(`insert into auth.users values('${advanced}');insert into pets(id,user_id,stage,is_active) values('${head}','${advanced}',4,false),('${assist}','${advanced}',2,false);
    insert into farm_school_projects(user_id,status,tile_x,tile_y) values('${advanced}','placed',1,1);
    insert into farm_wallets values('${advanced}',1000);update farm_catalogue set enabled=true;`);
-  const fixture = async (kind, x, y) =>
-    db.query(
-      "insert into farm_projects(user_id,request_id,catalogue_id,rules_snapshot,reward_eligible,reward_key,status,remaining_seconds,tile_x,tile_y) select $1,gen_random_uuid(),id,definition,false,'synthetic-prerequisite-'||id,'placed',0,$3,$4 from farm_catalogue where id=$2",
-      [advanced, kind, x, y],
-    );
+  await reject(
+    "select farm_lesson_open($1,$2,$3,$4,false)",
+    [advanced, "bridge-balance-v1", head, { version: 1 }],
+    /โรงเรียน/,
+  );
+  await reject(
+    "select farm_lesson_open($1,$2,$3,$4,false)",
+    [advanced, "observatory-orbits-v1", head, { version: 1 }],
+    /โรงเรียน/,
+  );
   let expectedBalance = 1000;
-  for (const [kind, prerequisites, price, reward, target] of [
+  const buildPlace = async (kind, blueprint, price, reward, x, y) => {
+    await reject(
+      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+      [advanced, kind, head],
+      /ค้นพบ/,
+    );
+    if (kind === "garden")
+      await scalar("select farm_discover_blueprint($1,$2,$3)", [
+        advanced,
+        head,
+        blueprint,
+      ]);
+    else {
+      const lesson = await scalar(
+        "select farm_lesson_open($1,$2,$3,$4,false)",
+        [advanced, blueprint, head, { version: 1, kind, seed: 125 }],
+      );
+      await scalar("select farm_lesson_answer($1,$2,0,$3,true,true)", [
+        advanced,
+        lesson.session_id,
+        { tiles: [] },
+      ]);
+    }
+    let place = await scalar(
+      "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+      [advanced, kind, head],
+    );
+    expectedBalance -= price;
+    for (
+      let point = 0;
+      point < place.rules_snapshot.waits.length - 1;
+      point++
+    ) {
+      await db.query(
+        "update farm_projects set ready_at='2000-01-01' where id=$1",
+        [place.id],
+      );
+      await scalar("select farm_project_command($1,$2,'begin')", [
+        advanced,
+        place.id,
+      ]);
+      place = await scalar(
+        "select farm_project_checkpoint_result($1,$2,true)",
+        [advanced, place.id],
+      );
+      eq(place.checkpoint, point + 1);
+    }
+    eq(place.status, "finishing");
+    await db.query(
+      "update farm_projects set ready_at='2000-01-01' where id=$1",
+      [place.id],
+    );
+    place = await scalar("select farm_layout_place($1,$2,$3,$4,0)", [
+      advanced,
+      place.id,
+      x,
+      y,
+    ]);
+    expectedBalance += reward;
+    eq(place.status, "placed");
+    await scalar("select farm_layout_place($1,$2,$3,$4,0)", [
+      advanced,
+      place.id,
+      x,
+      y,
+    ]);
+    eq(
+      await scalar("select balance from farm_wallets where user_id=$1", [
+        advanced,
+      ]),
+      expectedBalance,
+    );
+    return place;
+  };
+
+  for (const [kind, , price, reward, target] of [
     ["school-2", ["garden"], 40, 30, 2],
     ["school-3", ["pond"], 100, 40, 3],
     ["school-4", ["flower", "bridge"], 160, 60, 4],
   ]) {
-    if (target !== 3)
+    if (target === 2)
       await reject(
         "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
         [advanced, kind, head],
         /ก่อน/,
       );
-    for (const [i, place] of prerequisites.entries())
-      if (!["pond", "flower"].includes(place))
-        await fixture(place, target + i, 0);
+    if (target === 2)
+      await buildPlace("garden", "garden-rest-v1", 40, 20, 2, 0);
     let upgrade = await scalar(
       "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
       [advanced, kind, head],
@@ -602,7 +681,11 @@ try {
         );
         eq(place.rules_snapshot.waits, [28800, 28800, 28800]);
         eq(place.rules_snapshot.puzzleSeconds, kind === "pond" ? 180 : 240);
-        for (let point = 0; point < 2; point++) {
+        for (
+          let point = 0;
+          point < place.rules_snapshot.waits.length - 1;
+          point++
+        ) {
           await db.query(
             "update farm_projects set ready_at='2000-01-01' where id=$1",
             [place.id],
@@ -661,6 +744,40 @@ try {
           expectedBalance,
         );
       }
+    }
+    if (target === 3) {
+      await reject(
+        "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+        [advanced, "school-4", head],
+        /ก่อน/,
+      );
+      const bridge = await buildPlace(
+        "bridge",
+        "bridge-balance-v1",
+        90,
+        30,
+        5,
+        0,
+      );
+      eq(bridge.rules_snapshot.waits, [43200, 43200, 43200, 43200]);
+      eq(bridge.rules_snapshot.puzzleSeconds, 240);
+    }
+    if (target === 4) {
+      const observatory = await buildPlace(
+        "observatory",
+        "observatory-orbits-v1",
+        150,
+        40,
+        6,
+        0,
+      );
+      eq(observatory.rules_snapshot.waits, [64800, 64800, 64800, 64800, 64800]);
+      eq(observatory.rules_snapshot.puzzleSeconds, 300);
+      await reject(
+        "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
+        [advanced, "observatory", head],
+        /เพดาน/,
+      );
     }
   }
 
@@ -754,15 +871,23 @@ try {
     );
   }
   // Repeat builds and caps use only the isolated synthetic owner above.
-  for (const kind of ["pond", "flower"]) {
-    for (let repeat = 1; repeat <= 2; repeat++) {
+  for (const [kind, maxRepeat, price] of [
+    ["pond", 2, 50],
+    ["flower", 2, 50],
+    ["bridge", 1, 90],
+  ]) {
+    for (let repeat = 1; repeat <= maxRepeat; repeat++) {
       let place = await scalar(
         "select farm_project_buy($1,$2,gen_random_uuid(),$3)",
         [advanced, kind, head],
       );
-      expectedBalance -= 50;
+      expectedBalance -= price;
       eq(place.reward_eligible, false);
-      for (let point = 0; point < 2; point++) {
+      for (
+        let point = 0;
+        point < place.rules_snapshot.waits.length - 1;
+        point++
+      ) {
         await db.query(
           "update farm_projects set ready_at='2000-01-01' where id=$1",
           [place.id],
@@ -783,7 +908,7 @@ try {
       await scalar("select farm_project_place($1,$2,$3,$4)", [
         advanced,
         place.id,
-        -repeat,
+        kind === "bridge" ? -3 : -repeat,
         kind === "flower" ? 1 : 0,
       ]);
       eq(

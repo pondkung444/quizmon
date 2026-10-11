@@ -65,3 +65,43 @@ test("completed places still count towards the repeat cap", () => {
     true,
   );
 });
+
+test("endgame gates require placed flower and bridge plus grown existing Qmon", () => {
+  const ready = {
+    ...context,
+    level: 3,
+    leaderStages: [4],
+    coins: 500,
+    placed: { flower: 1, bridge: 1 },
+  };
+  assert.equal(catalogueGate(def("school-4"), ready).ready, true);
+  assert.equal(
+    catalogueGate(def("school-4"), { ...ready, placed: { flower: 1 } }).ready,
+    false,
+  );
+  assert.equal(
+    catalogueGate(def("school-4"), { ...ready, leaderStages: [3] }).ready,
+    false,
+  );
+  const observer = {
+    ...ready,
+    level: 4,
+    blueprints: ["observatory-orbits-v1"],
+  };
+  assert.equal(catalogueGate(def("observatory"), observer).ready, true);
+  assert.equal(
+    catalogueGate(def("observatory"), {
+      ...observer,
+      reserved: { observatory: 1 },
+    }).ready,
+    false,
+  );
+  assert.equal(
+    catalogueGate(def("bridge"), {
+      ...ready,
+      blueprints: ["bridge-balance-v1"],
+      reserved: { bridge: 2 },
+    }).ready,
+    false,
+  );
+});

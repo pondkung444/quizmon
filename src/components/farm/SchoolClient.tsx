@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
+import {schoolArt} from "@/lib/farm/school-art";
 import Image from "next/image";
 import Link from "next/link";
 import {schoolCommand} from "@/app/collection/school/actions";
@@ -36,7 +37,7 @@ export default function SchoolClient({initialProject,pets,serverNow,level=1}:{in
     finally {setBusy(false);}
   }
   return <section className={styles.school}>
-    <header className={styles.hero}><Image src="/farm/qmon-school-l1-v1.webp" width={180} height={180} alt="โรงเรียนหลังคาสีเขียวอมฟ้า ตราหนังสือ" priority/><div><h1>โรงเรียนของเรา</h1><p>ระดับ {level}{level===1?' · โครงการแรก':''}</p><strong>{status==='placed'?`โรงเรียน ระดับ ${level}`:SCHOOL_LABELS[status]}</strong></div></header>
+    <header className={styles.hero}><Image src={schoolArt(level)} width={180} height={180} alt="โรงเรียนหลังคาสีเขียวอมฟ้า ตราหนังสือ" priority/><div><h1>โรงเรียนของเรา</h1><p>ระดับ {level}{level===1?' · โครงการแรก':''}</p><strong>{status==='placed'?`โรงเรียน ระดับ ${level}`:SCHOOL_LABELS[status]}</strong></div></header>
     <ol className={styles.steps} aria-label="ขั้นตอนสร้างโรงเรียน">{["คุมงาน","เตรียมพื้น","จัดพื้น","เก็บงาน","วางโรงเรียน"].map((name,index)=><li key={name} aria-current={index===step?"step":undefined}>{index<step?"✓":index+1} {name}</li>)}</ol>
     {(status==="draft"||status==="paused") && <div className={styles.panel}>
       <h2>{status==="paused"?"เลือกหัวหน้าเพื่อทำงานต่อ":"เลือก Qmon คุมงาน"}</h2>
