@@ -24,6 +24,6 @@ export default async function BlueprintLibraryPage(){
     <Link className={styles.back} href="/collection/school/learn/garden/practice">ลองต่อทาง · รอบฝึก ไม่รับแบบ →</Link><Link className={styles.primary} href='/collection/garden'>ซื้อโครงการและดูงานสร้างสวน →</Link><Link className={styles.back} href="/collection/garden-plan">ดูตัวอย่างการวางสวน →</Link>
    </div>
   </article>
-  <h2 className={styles.upcomingTitle}>แบบที่จะตามมา</h2><div className={styles.upcoming}><strong>💧 บ่อน้ำ Qmon</strong><p>รายละเอียดบทเรียนและเงื่อนไขกำลังออกแบบ</p></div><div className={styles.upcoming}><strong>🏫 โรงเรียนระดับ 2</strong><p>การอัปเกรดและเงื่อนไขปลดล็อกจะมาในเฟสถัดไป</p></div>
+  <h2 className={styles.upcomingTitle}>บทเรียนที่เตรียมเปิด</h2>{([{kind:'pond',name:'บ่อน้ำ · วัฏจักรน้ำ',level:2},{kind:'flower',name:'สวนดอกไม้ · พืชสร้างอาหาร',level:2},{kind:'bridge',name:'สะพาน · สมดุล',level:3},{kind:'observatory',name:'หอดูดาว · วงโคจร',level:4}] as const).map(lesson=><div key={lesson.kind} className={styles.upcoming}><strong>{lesson.name}</strong><p>โรงเรียนระดับ {lesson.level} · Qmon ระยะ 2–4 · เรียนแบบมีคำแนะนำ ไม่จับเวลา</p><Link href={`/collection/school/learn/subject/${lesson.kind}`}>ดูบทเรียนและเงื่อนไข →</Link></div>)}<h2 className={styles.upcomingTitle}>โครงการที่จะตามมา</h2><div className={styles.upcoming}><strong>💧 บ่อน้ำ Qmon</strong><p>รายละเอียดบทเรียนและเงื่อนไขกำลังออกแบบ</p></div><div className={styles.upcoming}><strong>🏫 โรงเรียนระดับ 2</strong><p>การอัปเกรดและเงื่อนไขปลดล็อกจะมาในเฟสถัดไป</p></div>
  </main>;
 }

@@ -3,6 +3,10 @@ on:
   pull_request:
     paths:
       - 'src/lib/farm/**'
+      - 'src/components/farm/**'
+      - 'src/app/collection/**'
+      - 'src/app/layout.tsx'
+      - 'src/lib/supabase/middleware.ts'
       - 'supabase/migrations/*farm*'
       - 'tests/farm/**'
       - '.github/workflows/farm-foundation.yml'
@@ -41,3 +45,31 @@ jobs:
           FARM_TEST_FOUNDATION: '1'
       - run: ./node_modules/.bin/tsc --noEmit --incremental false
       - run: ./node_modules/.bin/eslint src/lib/farm/catalogue.ts src/lib/farm/projects.ts src/lib/farm/projects-server.ts tests/farm/catalogue.test.ts tests/farm/projects-database.test.mjs
+  puzzles:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: qmon_farm_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm install --no-save --ignore-scripts pg@8.16.3
+      - run: node tests/farm/puzzle-database.test.mjs
+        env:
+          FARM_TEST_DATABASE_URL: postgres://postgres:test-only@127.0.0.1:5432/qmon_farm_test
+      - run: node --test tests/farm/puzzle-server.test.cjs
+      - run: ./node_modules/.bin/eslint src/lib/farm/puzzle-engine.ts src/lib/farm/puzzle-server.ts src/lib/farm/lesson-server.ts src/lib/farm/puzzles/flower.ts src/lib/farm/puzzles/content.ts src/components/farm/SubjectPuzzle.tsx src/components/farm/SubjectLessonClient.tsx src/components/farm/SubjectPreview.tsx src/components/farm/useDraftAutosave.ts src/components/farm/SchoolClient.tsx src/components/farm/GardenClient.tsx src/components/farm/FloorPuzzle.tsx src/components/farm/GardenPathPuzzle.tsx src/app/collection/preview/page.tsx src/app/collection/school/learn/subject src/app/collection/school/learn/page.tsx tests/farm/puzzle-server.test.cjs tests/farm/puzzle-database.test.mjs

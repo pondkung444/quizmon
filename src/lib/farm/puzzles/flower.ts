@@ -25,7 +25,7 @@ export interface FlowerPuzzle {
   version: number;
   seed: number;
   params: FlowerParams;
-  plots: { index: number; plantId: string; plantLabel: string }[];
+  plots: { index: number; plantId: string; plantLabel: string; observations: string[] }[];
   factors: { id: string; label: string }[];
   cards: FlowerCard[];
   /** เฉลย (เซิร์ฟเวอร์เท่านั้น): `${plot}:${factorId}` -> แท็กระดับที่ถูก */
@@ -35,7 +35,7 @@ export interface FlowerPuzzle {
 export interface FlowerPublic {
   kind: 'flower';
   version: number;
-  plots: { index: number; plantId: string; plantLabel: string }[];
+  plots: { index: number; plantId: string; plantLabel: string; observations: string[] }[];
   factors: { id: string; label: string }[];
   /** ส่งระดับของการ์ดไม่ได้ (เป็นเฉลยบางส่วน) ส่งแค่ป้ายและปัจจัย */
   cards: { id: string; factorId: string | null; label: string }[];
@@ -76,7 +76,7 @@ export function createFlowerPuzzle(
   const generate = (seed: number): FlowerPuzzle => {
     const rng = makeRng(seed);
     const chosen = rng.shuffle(content.plants).slice(0, params.plots);
-    const plots = chosen.map((pl, i) => ({ index: i, plantId: pl.id, plantLabel: pl.label }));
+    const plots = chosen.map((pl, i) => ({ index: i, plantId: pl.id, plantLabel: pl.label,observations:content.factors.map(f=> 'ผลทดลองของแปลงนี้: '+labelOf(f,pl.needs[f.id] as string)) }));
     const needs: Record<string, string> = {};
     const raw: Omit<FlowerCard, 'id'>[] = [];
     chosen.forEach((pl, i) => {
@@ -114,6 +114,7 @@ export function createFlowerPuzzle(
     const bad = new Set<string>();
     if (ans && Array.isArray(ans.slots)) {
       for (const s of ans.slots) {
+        if(!s || typeof s!=="object") continue;
         const key = `${s.plot}:${s.factorId}`;
         if (!(key in p.needs)) continue; // ช่องที่ไม่มีอยู่จริง ไม่นับ
         if (placed.has(key)) { bad.add(key); continue; } // ซ้ำช่อง
@@ -136,7 +137,7 @@ export function createFlowerPuzzle(
   };
 
   const validate = (p: FlowerPuzzle, ans: FlowerAnswer): ValidateResult => {
-    if (!ans || !Array.isArray(ans.slots)) return { ok: false, wrong: [], reason: 'malformed' };
+    if (!ans || !Array.isArray(ans.slots) || ans.slots.length>p.plots.length*p.factors.length || ans.slots.some(s=>!s||typeof s!=='object'||!Number.isInteger(s.plot)||typeof s.factorId!=='string'||typeof s.cardId!=='string'||!(`${s.plot}:${s.factorId}` in p.needs))) return { ok: false, wrong: [], reason: 'malformed' };
     const w = wrongSlots(p, ans);
     return { ok: w.length === 0, wrong: w.map((x) => `plot:${x.plot}:${x.factorId}`), reason: w[0]?.reason };
   };

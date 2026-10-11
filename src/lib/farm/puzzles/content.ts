@@ -40,16 +40,17 @@ export const FLOWER_CONTENT: {
   factors: [
     { id: 'light', label: 'แสง', levels: ['high', 'low'], levelLabels: ['แสงมาก', 'แสงน้อย'] },
     { id: 'water', label: 'น้ำ', levels: ['high', 'low'], levelLabels: ['น้ำมาก', 'น้ำน้อย'] },
-    { id: 'soil', label: 'ดิน', levels: ['rich', 'sandy'], levelLabels: ['ดินอุดม', 'ดินทราย'] },
+    { id: 'soil', label: 'ดินและแร่ธาตุ', levels: ['rich', 'sandy'], levelLabels: ['ดินอุดม', 'ดินทราย'] },
   ],
   // โปรไฟล์ความต้องการของแต่ละต้นต้องไม่ซ้ำกัน (ตัวทดสอบตรวจให้)
+  // Fictional experiment plots, not unsupported claims about real species.
   plants: [
-    { id: 'cactus', label: 'กระบองเพชร', needs: { light: 'high', water: 'low', soil: 'sandy' } },
-    { id: 'fern', label: 'เฟิร์น', needs: { light: 'low', water: 'high', soil: 'rich' } },
-    { id: 'lotus', label: 'บัวหลวง', needs: { light: 'high', water: 'high', soil: 'rich' } },
-    { id: 'snakeplant', label: 'ลิ้นมังกร', needs: { light: 'low', water: 'low', soil: 'sandy' } },
-    { id: 'sunflower', label: 'ทานตะวัน', needs: { light: 'high', water: 'low', soil: 'rich' } },
-    { id: 'moss', label: 'มอส', needs: { light: 'low', water: 'high', soil: 'sandy' } },
+    {id:'plot-a',label:'แปลงทดลอง A',needs:{light:'high',water:'low',soil:'sandy'}},
+    {id:'plot-b',label:'แปลงทดลอง B',needs:{light:'low',water:'high',soil:'rich'}},
+    {id:'plot-c',label:'แปลงทดลอง C',needs:{light:'high',water:'high',soil:'rich'}},
+    {id:'plot-d',label:'แปลงทดลอง D',needs:{light:'low',water:'low',soil:'sandy'}},
+    {id:'plot-e',label:'แปลงทดลอง E',needs:{light:'high',water:'low',soil:'rich'}},
+    {id:'plot-f',label:'แปลงทดลอง F',needs:{light:'low',water:'high',soil:'sandy'}},
   ],
   distractors: [
     { id: 'wind', label: 'ลมแรง' },

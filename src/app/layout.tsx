@@ -63,6 +63,9 @@ export default async function RootLayout({
   if (process.env.NODE_ENV === "development" && process.env.RAID_CARD_PREVIEW === "true" && pathname === "/raid/preview") {
     return <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}><body>{children}</body></html>;
   }
+  if (process.env.NODE_ENV === 'development' && process.env.FARM_PREVIEW === 'true' && pathname === '/collection/preview') {
+    return <html lang="th" className={`${kanit.variable} ${sarabun.variable} h-full antialiased`}><body>{children}</body></html>;
+  }
   const supabase = await createClient();
   const user = await getUser();
 
