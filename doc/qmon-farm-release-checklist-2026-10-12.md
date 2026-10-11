@@ -14,7 +14,7 @@ This is a review candidate, not a production release or acceptance of phase 9. P
 | 6 | https://github.com/pondkung444/quizmon/pull/315 | Bridge, observatory, school levels 2–4 |
 | 7 | https://github.com/pondkung444/quizmon/pull/316 | Activities, contributor history, reward-free replay |
 | 8 | https://github.com/pondkung444/quizmon/pull/317 | Permissioned friend visits and capped stickers |
-| 9 | Pending PR link in Notion | Attention, opt-in FCM, start guidance and release verification |
+| 9 | https://github.com/pondkung444/quizmon/pull/318 | Attention, opt-in FCM, start guidance and release verification |
 
 PRs are stacked, unmerged. Review/merge them in order and adjust each remaining base to main after its prerequisite merges. Recheck the final combined diff and CI after retargeting. A preview deployment does not mean production was published.
 
