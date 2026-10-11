@@ -94,6 +94,10 @@ try{
  await reject("update farm_projects set status='placed'",[],/permission/);
  await db.exec(`select set_config('request.jwt.claim.sub','${u}',false);`);eq((await db.query('select * from farm_projects')).rows.length,1);
  eq((await db.query('select * from farm_project_contributions')).rows.length,2);
+ for(const table of ['farm_projects','farm_project_assignments','farm_project_contributions','farm_project_checkpoints','farm_legacy_contributions']){
+  await reject('insert into '+table+' default values',[],/permission/);
+  await reject('delete from '+table,[],/permission/);
+ }
  await db.exec('reset role;set role anon');await reject('select * from farm_projects',[],/permission/);await db.exec('reset role');
  // A failing purchase rolls back row, assignment and ledger together.
  const balance=await scalar('select balance from farm_wallets where user_id=$1',[u]);
@@ -111,23 +115,29 @@ try{
  team=await scalar("select farm_project_command($1,$2,'resume',$3)",[u,garden.id,pet]);eq(team.remaining_seconds,Math.ceil(remaining*10/9));
  assert.ok(team.remaining_seconds<=300);checks++;
  eq(await scalar('select count(*) from farm_project_contributions where project_id=$1',[garden.id]),4);
+ await db.exec('begin');
+ await scalar('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',helper]);
+ await db.exec('rollback');
+ eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),450);
+ eq(await scalar('select count(*) from farm_projects'),2);
  if(pool){
-  await db.exec(`update farm_catalogue set definition=definition||'{"price":40,"firstReward":20,"waits":[300,300]}' where id='garden'`);
-
-  const results=await Promise.all(Array.from({length:10},()=>pool.query('select farm_project_buy($1,$2,$3,$4) as p',[u,'garden',concurrentReq,pet])));
-  eq(new Set(results.map(r=>r.rows[0].p.id)).size,1);
-  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),450);
-  eq(await scalar('select count(*) from farm_projects'),2);
-  eq(await scalar('select count(*) from farm_coin_ledger where amount<0'),2);
   const overlapping=await Promise.allSettled(Array.from({length:2},()=>pool.query('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',pet])));
-  eq(overlapping.filter(r=>r.status==='rejected').length,2);
-  eq(await scalar('select count(*) from farm_projects'),2);
+  eq(overlapping.filter(r=>r.status==='rejected').length,2);eq(await scalar('select count(*) from farm_projects'),2);
+  const freshRequest='00000000-0000-4000-8000-000000000098';
+  const results=await Promise.all(Array.from({length:10},()=>pool.query('select farm_project_buy($1,$2,$3,$4) as p',[u,'garden',freshRequest,helper])));
+  eq(new Set(results.map(r=>r.rows[0].p.id)).size,1);
+  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),410);
+  eq(await scalar('select count(*) from farm_projects'),3);
+  eq(await scalar('select count(*) from farm_coin_ledger where amount<0'),3);
+  // Fast-forward only the synthetic fixture so there is exactly one free slot.
+  const completedId=results[0].rows[0].p.id;
+  await db.query("update farm_projects set status='finishing',ready_at='2000-01-01' where id=$1",[completedId]);
+  await scalar('select farm_project_place($1,$2,0,-1)',[u,completedId]);
+  const racer1='00000000-0000-4000-8000-000000001000',racer2='00000000-0000-4000-8000-000000001001';
+  await db.query('insert into pets(id,user_id,stage,is_active) values($1,$3,4,false),($2,$3,4,false)',[racer1,racer2,u]);
+  const raced=await Promise.allSettled([racer1,racer2].map(leader=>pool.query('select farm_project_buy($1,$2,gen_random_uuid(),$3)',[u,'garden',leader])));
+  eq(raced.filter(r=>r.status==='fulfilled').length,1);eq(raced.filter(r=>r.status==='rejected').length,1);
+  eq(await scalar('select balance from farm_wallets where user_id=$1',[u]),370);eq(await scalar('select count(*) from farm_projects'),4);
  }
  console.log(`Foundation SQL integration: ${checks} checks passed (${pool?'isolated PostgreSQL, 10 connections':'synthetic PGlite database only'})`);
 }finally{await db.close();}
-
-
-
-
-
-
