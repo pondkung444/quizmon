@@ -6,7 +6,7 @@ import type {SchoolStatus} from './school';
 
 export type FarmProject = {
  id:string;user_id:string;catalogue_id:string;rules_snapshot:Omit<ProjectDefinition,'id'> & {catalogueVersion:number;helperPercent:number;penaltyPercent:number;areaCap:number;schoolCapacity:{jobs:number;helpers:number}[]};
- status:Exclude<SchoolStatus,'draft'>;checkpoint:number;ready_at:string|null;
+ resume_status?:Exclude<SchoolStatus,'draft'>|null;status:Exclude<SchoolStatus,'draft'>;checkpoint:number;ready_at:string|null;
  remaining_seconds:number;round_deadline:string|null;failures:number;penalty_applied:boolean;
  tile_x:number|null;tile_y:number|null;helper_count:number;
 };

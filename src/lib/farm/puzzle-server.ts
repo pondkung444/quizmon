@@ -3,14 +3,14 @@ import { randomInt } from "node:crypto";
 import { getUser } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  generatePuzzle,
-  publicPuzzle,
-  validatePuzzle,
-  puzzleAnswer,
-  puzzleHint,
-  type StoredPuzzle,
-  type PuzzleKind,
-} from "./puzzle-engine";
+  generateProjectPuzzle as generatePuzzle,
+  publicProjectPuzzle as publicPuzzle,
+  validateProjectPuzzle as validatePuzzle,
+  projectAnswer as puzzleAnswer,
+  hintProjectPuzzleEngine as puzzleHint,
+  type StoredProjectPuzzle as StoredPuzzle,
+  type ProjectPuzzleKind as PuzzleKind,
+} from "./project-puzzle-engine";
 import type { FarmProject } from "./projects-server";
 import type { HintTier } from "./puzzles/core";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,8 +18,8 @@ function projectKind(p: FarmProject): PuzzleKind {
   const place = p.rules_snapshot.place;
   if (["pond", "flower", "bridge", "observatory"].includes(place))
     return place as PuzzleKind;
-  // School tile/path checkpoints are connected by the school upgrade phase.
-  if (place === "school") throw new Error("จุดช่วยโรงเรียนนี้ยังไม่เปิด");
+  if (place === "school")return p.checkpoint%2===0?'construction-floor':'construction-path';
+  if (place === "garden")return 'construction-path';
   throw new Error("โครงการนี้ใช้บทเรียนสวนเดิม");
 }
 async function owner(projectId: string) {
@@ -149,7 +149,7 @@ export async function submitProjectPuzzle(
     return { ...previous.data.response, wrong: [] } as {
       passed: boolean;
       project: FarmProject;
-      wrong: string[];
+      wrong: string[];revision?:number;
     };
   }
   const { puzzle } = await saved(projectId, sessionId);
@@ -173,7 +173,7 @@ export async function submitProjectPuzzle(
   return { ...data, wrong: verdict.wrong } as {
     passed: boolean;
     project: FarmProject;
-    wrong: string[];
+    wrong: string[];revision:number;
   };
 }
 export async function hintProjectPuzzle(

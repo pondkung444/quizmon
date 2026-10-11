@@ -1,5 +1,13 @@
+import ProjectQueuePreview from "@/components/farm/ProjectQueuePreview";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import ConstructionPreview from "@/components/farm/ConstructionPreview";
+import {
+  generateConstruction,
+  publicConstruction,
+  validateConstruction,
+  hintConstruction,
+} from "@/lib/farm/construction-puzzles";
 import SubjectPreview from "@/components/farm/SubjectPreview";
 import {
   generatePuzzle,
@@ -22,6 +30,53 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
+  if (input === "teams")
+    return (
+      <main className="mx-auto max-w-xl p-3">
+        <h1>ทีมจำลอง · ไม่เชื่อมฐานจริง</h1>
+        <ProjectQueuePreview />
+      </main>
+    );
+  if (input === "construction-floor" || input === "construction-path") {
+    const board = generateConstruction(input, 17445);
+    async function constructionSubmit(draft: unknown) {
+      "use server";
+      if (
+        process.env.NODE_ENV !== "development" ||
+        process.env.FARM_PREVIEW !== "true"
+      )
+        throw Error("Preview unavailable");
+      const result = validateConstruction(board, draft);
+      return {
+        passed: result.ok,
+        message: result.ok
+          ? "ผ่านผังจำลอง · ไม่เปลี่ยนข้อมูลบัญชีจริง"
+          : result.message,
+      };
+    }
+    async function constructionHint(draft: unknown, tier: HintTier) {
+      "use server";
+      if (
+        process.env.NODE_ENV !== "development" ||
+        process.env.FARM_PREVIEW !== "true" ||
+        ![1, 2, 3].includes(tier)
+      )
+        throw Error("Preview unavailable");
+      return hintConstruction(board, draft, tier);
+    }
+    return (
+      <main className="mx-auto max-w-xl p-3">
+        <h1>ผังโรงเรียนจำลอง</h1>
+        <p>ข้อมูลจำลอง ไม่เชื่อมฐานจริง</p>
+        <ConstructionPreview
+          key={input}
+          puzzle={publicConstruction(board)}
+          submit={constructionSubmit}
+          hint={constructionHint}
+        />
+      </main>
+    );
+  }
   if (!["pond", "flower", "bridge", "observatory"].includes(input)) notFound();
   const kind = input as PuzzleKind,
     puzzle = generatePuzzle(kind, 17445);

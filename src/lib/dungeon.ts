@@ -1,3 +1,4 @@
+import {farmBusyPets} from "./farm/busy-pets";
 import type { createClient } from "@/lib/supabase/server";
 import { getPetImagePath } from "@/lib/petImage";
 import { getSpeciesName } from "@/lib/petLine";
@@ -105,8 +106,10 @@ export async function getEligiblePets(
     .eq("is_active", false)
     .order("hatched_at", { ascending: false });
 
+  const busy=await farmBusyPets(supabase,userId);
   const pets: EligiblePet[] = [];
   for (const row of data ?? []) {
+    if(busy.all.has(row.id))continue;
     const eggType = pickEggType(row.egg_types as EggTypeJoin | EggTypeJoin[] | null);
     if (!eggType || !row.subline || !row.personality) continue;
     try {

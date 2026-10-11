@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState,type PointerEvent} from 'react';
 import Image from 'next/image';
 import {completeGardenLesson} from '@/app/collection/school/learn/actions';
-import {GARDEN_PIECES,GARDEN_START,GARDEN_BLOCKED,validateGardenPath,type GardenPlacement,type GardenPoint} from '@/lib/farm/garden-path';
+import {GARDEN_PIECES,GARDEN_START as DEFAULT_START,GARDEN_BLOCKED as DEFAULT_BLOCKED,validateGardenPath,type GardenPlacement,type GardenPoint,type GardenBoardConfig} from '@/lib/farm/garden-path';
 import type {SchoolPet} from '@/lib/farm/school';
 import type {BlueprintDiscovery} from '@/lib/farm/blueprints';
 import {useDraftAutosave} from './useDraftAutosave';
@@ -12,7 +12,9 @@ function Road({kind,rotation}:{kind:string;rotation:number}){
 }
 function Bench(){return <svg viewBox="0 0 100 100" aria-hidden="true" className={styles.decor}><path d="M21 57 V84 M79 57 V84" stroke="#543b2b" strokeWidth="8"/><path d="M18 39 H82 M18 51 H82 M13 65 H87" stroke="#c9904f" strokeWidth="10" strokeLinecap="round"/><path d="M20 28 V58 M80 28 V58" stroke="#65472b" strokeWidth="6"/><path d="M20 33 H80" stroke="#efd195" strokeWidth="3"/></svg>;}
 function GardenDecor({pond}:{pond:boolean}){return pond?<svg viewBox="0 0 100 100" aria-hidden="true" className={styles.decor}><ellipse cx="50" cy="52" rx="42" ry="35" fill="#6c8a63"/><ellipse cx="50" cy="52" rx="35" ry="28" fill="#4eb7bc"/><path d="M29 47 Q40 41 51 47 M46 65 Q57 58 71 63" fill="none" stroke="#b3f0e0" strokeWidth="3"/><ellipse cx="70" cy="42" rx="10" ry="5" fill="#739d4c"/></svg>:<svg viewBox="0 0 100 100" aria-hidden="true" className={styles.decor}><path d="M51 39 V86" stroke="#8e6334" strokeWidth="12"/><circle cx="34" cy="43" r="23" fill="#558846"/><circle cx="67" cy="43" r="24" fill="#6b9a4c"/><circle cx="50" cy="27" r="26" fill="#8caf51"/><circle cx="40" cy="24" r="11" fill="#aec564"/></svg>;}
-export default function GardenPathPuzzle({pet,onDiscovered,practice=false,onCheck,onBuilt,onWalkFinished,initialDraft=[],onDraft}:{initialDraft?:GardenPlacement[];onDraft?:(layout:GardenPlacement[])=>Promise<void>;pet:SchoolPet;practice?:boolean;onDiscovered?:(discovery:BlueprintDiscovery,created:boolean)=>void;onCheck?:(layout:GardenPlacement[])=>Promise<{error?:string;valid?:boolean;message?:string;path?:GardenPoint[]}>;onBuilt?:()=>void;onWalkFinished?:(valid:boolean)=>void}){
+export default function GardenPathPuzzle({pet,onDiscovered,practice=false,onCheck,onBuilt,onWalkFinished,initialDraft=[],onDraft,boardConfig,embedded=false}:{embedded?:boolean;boardConfig?:GardenBoardConfig;initialDraft?:GardenPlacement[];onDraft?:(layout:GardenPlacement[])=>Promise<void>;pet:SchoolPet;practice?:boolean;onDiscovered?:(discovery:BlueprintDiscovery,created:boolean)=>void;onCheck?:(layout:GardenPlacement[])=>Promise<{error?:string;valid?:boolean;message?:string;path?:GardenPoint[]}>;onBuilt?:()=>void;onWalkFinished?:(valid:boolean)=>void}){
+ const GARDEN_START=boardConfig?.start??DEFAULT_START,GARDEN_BLOCKED=boardConfig?.blocked??DEFAULT_BLOCKED,bench=boardConfig?.bench??{x:3,y:0};
+ const startExit=boardConfig?.startExit??1,benchEntry=boardConfig?.benchEntry??2,arrows=['↑','→','↓','←'];
  const [layout,setLayout]=useState<GardenPlacement[]>(initialDraft),[selected,setSelected]=useState<string>(GARDEN_PIECES[0].id),[rotation,setRotation]=useState(0);
  useDraftAutosave(layout,onDraft);
  const [hint,setHint]=useState('เลือกชิ้นจากถาด แล้วแตะช่องหญ้า · แตะทางเดินเพื่อหมุน');
@@ -23,7 +25,7 @@ export default function GardenPathPuzzle({pet,onDiscovered,practice=false,onChec
  const board=useRef<HTMLDivElement>(null),suppress=useRef(false),tapRotate=useRef<boolean|null>(null);
  const gesture=useRef<{id:string;r:number;sx:number;sy:number;moved:boolean;placed:boolean}|null>(null);
  const locked=busy||!!walk||seated;
- useEffect(()=>{if(!practice)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous;};},[practice]);
+ useEffect(()=>{if(!practice||embedded)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous;};},[practice,embedded]);
  useEffect(()=>{
   if(!walk)return;
   let index=0;
@@ -37,7 +39,7 @@ export default function GardenPathPuzzle({pet,onDiscovered,practice=false,onChec
  function edit(){setPosition(GARDEN_START);setStop(null);setHint('วางแล้ว · แตะทางเดินเพื่อหมุน หรือลากย้าย');}
  function place(x:number,y:number,id=selected,r=rotation){
   if(locked)return;
-  if(x<0||x>3||y<0||y>3||GARDEN_BLOCKED.includes(x+','+y)||(x===0&&y===3)||(x===3&&y===0)){setHint('วางได้เฉพาะช่องหญ้าว่าง');return;}
+  if(x<0||x>3||y<0||y>3||GARDEN_BLOCKED.includes(x+','+y)||(x===GARDEN_START.x&&y===GARDEN_START.y)||(x===bench.x&&y===bench.y)){setHint('วางได้เฉพาะช่องหญ้าว่าง');return;}
   if(layout.some(p=>p.id!==id&&p.x===x&&p.y===y)){setHint('ช่องนี้มีทางอยู่แล้ว ย้ายหรือยกชิ้นเดิมก่อน');return;}
   setLayout(old=>[...old.filter(p=>p.id!==id),{id,x,y,rotation:r}]);edit();
  }
@@ -51,15 +53,15 @@ export default function GardenPathPuzzle({pet,onDiscovered,practice=false,onChec
  function reset(){setLayout([]);setSeated(false);setSelected(GARDEN_PIECES[0].id);setRotation(0);result.current=null;edit();}
  async function walkToBench(){
   if(locked)return;setBusy(true);setStop(null);setPosition(GARDEN_START);setHint('กำลังตรวจทางเดิน…');
-  try{const r:Awaited<ReturnType<typeof completeGardenLesson>>=onCheck?await onCheck(layout):practice?validateGardenPath(layout):await completeGardenLesson(pet.id,layout);if(r.error){setHint(r.error);return;}if(r.path){if(r.discovery)result.current={discovery:r.discovery,created:!!r.created};setWalk({path:r.path,valid:!!r.valid,message:r.message??''});setHint('คู่หูกำลังลองเดินตามทาง…');}}
+  try{const r:Awaited<ReturnType<typeof completeGardenLesson>>=onCheck?await onCheck(layout):practice?validateGardenPath(layout,boardConfig):await completeGardenLesson(pet.id,layout);if(r.error){setHint(r.error);return;}if(r.path){if(r.discovery)result.current={discovery:r.discovery,created:!!r.created};setWalk({path:r.path,valid:!!r.valid,message:r.message??''});setHint('คู่หูกำลังลองเดินตามทาง…');}}
   catch{setHint('เชื่อมต่อไม่สำเร็จ ทางที่จัดยังอยู่ กดเดินอีกครั้งได้');}finally{setBusy(false);}
  }
- return <div className={styles.game}>
-  <div className={styles.guide}><h2>ต่อทางไปม้านั่ง</h2><p>ใช้ทางทั้ง 5 ชิ้น · เริ่มด้านขวาของคู่หู → เข้าหน้าม้านั่ง</p></div>
+ return <div className={[styles.game,embedded?styles.embedded:''].join(' ')}>
+  <div className={styles.guide}><h2>ต่อทางไปม้านั่ง</h2><p>ใช้ทางทั้ง 5 ชิ้น · เริ่มตามลูกศรของคู่หู → เข้าหน้าม้านั่ง</p></div>
   <div className={styles.gardenArea}><div ref={board} className={styles.board} aria-label="สวน 4 แถว 4 ช่อง">
-   {Array.from({length:16},(_,i)=>{const x=i%4,y=Math.floor(i/4),p=layout.find(p=>p.x===x&&p.y===y),blocked=GARDEN_BLOCKED.includes(x+','+y),start=x===0&&y===3,bench=x===3&&y===0;
+   {Array.from({length:16},(_,i)=>{const x=i%4,y=Math.floor(i/4),p=layout.find(p=>p.x===x&&p.y===y),blocked=GARDEN_BLOCKED.includes(x+','+y),start=x===GARDEN_START.x&&y===GARDEN_START.y,isBench=x===bench.x&&y===bench.y;
     return <div key={i} className={[styles.cell,blocked?styles.blocked:'',stop?.x===x&&stop?.y===y?styles.stop:''].join(' ')} style={{gridColumn:x+1,gridRow:y+1}}>
-     {blocked?<GardenDecor pond={x===0}/>:bench?<><span className={styles.benchPath}/><Bench/><small>ม้านั่ง ↓</small></>:start?<><span className={styles.startPath}/><small>เริ่ม →</small></>:p?<button type="button" disabled={locked} className={[styles.tile,selected===p.id?styles.selected:''].join(' ')} {...handlers(p.id,true)} onClick={()=>click(p.id,true)} aria-label={'ทาง'+(p.id.startsWith('straight')?'ตรง':'โค้ง')+' แถว '+(y+1)+' ช่อง '+(x+1)+' แตะหมุน ลากย้าย'}><Road kind={GARDEN_PIECES.find(t=>t.id===p.id)!.kind} rotation={p.rotation}/><b aria-hidden="true">↻</b></button>:<button type="button" disabled={locked} className={styles.empty} onClick={()=>{if(suppress.current){suppress.current=false;tapRotate.current=null;return;}place(x,y);}} data-garden-cell={x+','+y} aria-label={'วางทาง แถว '+(y+1)+' ช่อง '+(x+1)}><span aria-hidden="true">＋</span></button>}
+     {blocked?<GardenDecor pond={x===0}/>:isBench?<><span className={styles.benchPath} style={{transform:`rotate(${(benchEntry-2)*90}deg)`}}/><Bench/><small>ม้านั่ง {arrows[benchEntry]}</small></>:start?<><span className={styles.startPath} style={{transform:`rotate(${(startExit-1)*90}deg)`}}/><small>เริ่ม {arrows[startExit]}</small></>:p?<button type="button" disabled={locked} className={[styles.tile,selected===p.id?styles.selected:''].join(' ')} {...handlers(p.id,true)} onClick={()=>click(p.id,true)} aria-label={'ทาง'+(p.id.startsWith('straight')?'ตรง':'โค้ง')+' แถว '+(y+1)+' ช่อง '+(x+1)+' แตะหมุน ลากย้าย'}><Road kind={GARDEN_PIECES.find(t=>t.id===p.id)!.kind} rotation={p.rotation}/><b aria-hidden="true">↻</b></button>:<button type="button" disabled={locked} className={styles.empty} onClick={()=>{if(suppress.current){suppress.current=false;tapRotate.current=null;return;}place(x,y);}} data-garden-cell={x+','+y} aria-label={'วางทาง แถว '+(y+1)+' ช่อง '+(x+1)}><span aria-hidden="true">＋</span></button>}
      {ghost?.x===x&&ghost?.y===y&&<span className={styles.ghost}/>}
     </div>;
    })}

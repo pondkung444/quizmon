@@ -8,7 +8,7 @@ import type {FloorPlacement} from "@/lib/farm/floor-puzzle";
 import FloorPuzzle from "./FloorPuzzle";
 import styles from "./school.module.css";
 
-export default function SchoolClient({initialProject,pets,serverNow}:{initialProject:SchoolProject|null;pets:SchoolPet[];serverNow:string}) {
+export default function SchoolClient({initialProject,pets,serverNow,level=1}:{initialProject:SchoolProject|null;pets:SchoolPet[];serverNow:string;level?:number}) {
   const [project,setProject]=useState(initialProject);
   const [selected,setSelected]=useState("");
   const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
@@ -36,7 +36,7 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
     finally {setBusy(false);}
   }
   return <section className={styles.school}>
-    <header className={styles.hero}><Image src="/farm/qmon-school-l1-v1.webp" width={180} height={180} alt="โรงเรียนหลังคาสีเขียวอมฟ้า ตราหนังสือ" priority/><div><h1>โรงเรียนของเรา</h1><p>ระดับ 1 · โครงการแรก</p><strong>{SCHOOL_LABELS[status]}</strong></div></header>
+    <header className={styles.hero}><Image src="/farm/qmon-school-l1-v1.webp" width={180} height={180} alt="โรงเรียนหลังคาสีเขียวอมฟ้า ตราหนังสือ" priority/><div><h1>โรงเรียนของเรา</h1><p>ระดับ {level}{level===1?' · โครงการแรก':''}</p><strong>{status==='placed'?`โรงเรียน ระดับ ${level}`:SCHOOL_LABELS[status]}</strong></div></header>
     <ol className={styles.steps} aria-label="ขั้นตอนสร้างโรงเรียน">{["คุมงาน","เตรียมพื้น","จัดพื้น","เก็บงาน","วางโรงเรียน"].map((name,index)=><li key={name} aria-current={index===step?"step":undefined}>{index<step?"✓":index+1} {name}</li>)}</ol>
     {(status==="draft"||status==="paused") && <div className={styles.panel}>
       <h2>{status==="paused"?"เลือกหัวหน้าเพื่อทำงานต่อ":"เลือก Qmon คุมงาน"}</h2>
@@ -66,7 +66,7 @@ export default function SchoolClient({initialProject,pets,serverNow}:{initialPro
       <button onClick={()=>{setPractice(value=>!value);setPuzzleOpen(true);}} disabled={busy}>เล่นรอบฝึก · ไม่จับเวลา</button>
 </div>}
     {status==="ready" && <div className={styles.panel}><h2>โรงเรียนสร้างเสร็จแล้ว!</h2><p>เลือกพื้นที่ว่างที่เชื่อมกับฟาร์ม เพื่อวางโรงเรียนของเรา หัวหน้าว่างจากงานนี้แล้ว</p><Link className={styles.primary} href="/collection?place=school">เลือกที่วางในฟาร์ม →</Link></div>}
-    {status==="placed" && <div className={styles.panel}><h2>โรงเรียนระดับ 1 พร้อมแล้ว</h2><p>โรงเรียนพร้อมแล้ว! มาเรียนกับคู่หูเพื่อค้นพบแบบสวนแห่งแรก</p><Link className={styles.primary} href="/collection/school/learn">เรียนกับ Qmon · ค้นพบแบบสร้าง →</Link><Link href="/collection" className={styles.back}>กลับไปดูโรงเรียนในฟาร์ม →</Link></div>}
+    {status==="placed" && <div className={styles.panel}><h2>โรงเรียนระดับ {level} พร้อมแล้ว</h2><p>โรงเรียนพร้อมแล้ว! มาเรียนกับคู่หูเพื่อค้นพบแบบสวนแห่งแรก</p><Link className={styles.primary} href="/collection/school/learn">เรียนกับ Qmon · ค้นพบแบบสร้าง →</Link><Link href="/collection" className={styles.back}>กลับไปดูโรงเรียนในฟาร์ม →</Link></div>}
     {status!=="placed"&&<div className={styles.panel}><h2>สมุดแบบสร้าง</h2><p>ดูสถานที่ที่เราจะเรียนรู้และสิ่งที่ต้องทำก่อนปลดล็อก</p><Link className={styles.primary} href="/collection/school/learn">ดูแบบสร้างและเงื่อนไข →</Link></div>}
     <div className={styles.panel}><h2>ห้องฝึกจัดพื้น</h2><p>กลับมาเล่นพัซเซิลได้เสมอ ไม่จับเวลา และไม่กระทบงานก่อสร้าง</p><Link className={styles.primary} href="/collection/school/practice">เล่นจัดพื้นอีกครั้ง →</Link></div>
     {message && <p role="status" className={styles.notice}>{message}</p>}
