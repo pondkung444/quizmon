@@ -128,9 +128,9 @@ export default async function BlueprintLibraryPage() {
         ] as const
       ).map((lesson) => (
         <div key={lesson.kind} className={styles.upcoming}>
-          {(lesson.kind === "pond" || lesson.kind === "flower") && (
+          {lesson.kind in PLACE_ART && (
             <Image
-              src={PLACE_ART[lesson.kind]}
+              src={PLACE_ART[lesson.kind as keyof typeof PLACE_ART]}
               alt={lesson.name}
               width={200}
               height={200}
