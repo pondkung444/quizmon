@@ -12,7 +12,7 @@ const pets: SchoolPet[] = Array.from({ length: 4 }, (_, i) => ({
   stage: i === 0 ? 4 : 2,
   busy: i === 3,
   busyOther: i === 3,
-  imagePath: "/pets/anim/egg5_stage3_science_idle.webp",
+  imagePath: "/pets/egg3_stage4_science_A.png",
 }));
 function fixture(): Awaited<ReturnType<typeof loadProjectOverview>> {
   const definition = FARM_CATALOGUE.find((c) => c.id === "school-3")!;

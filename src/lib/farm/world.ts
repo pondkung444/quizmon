@@ -1,9 +1,10 @@
 export type FarmTile = {
   id: string;
-  kind: "meadow" | "school" | "residence" | "eggs" | "garden";
+  kind: "meadow" | "school" | "residence" | "eggs" | "garden" | "pond" | "flower" | "bridge" | "observatory";
   x: number;
   y: number;
   level: number;
+  orientation?:0|1;
 };
 
 export const INITIAL_FARM: FarmTile[] = [

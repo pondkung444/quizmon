@@ -303,7 +303,7 @@ export default function ProjectQueueClient({
                 ) : (
                   <Link
                     className="inline-flex min-h-11 items-center"
-                    href="/collection"
+                    href="/collection/layout"
                   >
                     ไปเลือกพื้นที่ในฟาร์ม
                   </Link>

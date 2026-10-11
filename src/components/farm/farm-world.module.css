@@ -32,3 +32,5 @@
 @media (max-width:360px) { .viewport { height: calc(100dvh - 80px); } }
 
 .previewIsland {opacity:.55;}.previewBuilding {opacity:.75;filter:drop-shadow(0 0 7px #eaffb9);pointer-events:none;}
+
+.world[data-overview=true] .buildingLabel{display:none;}

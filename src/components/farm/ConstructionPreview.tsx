@@ -54,7 +54,7 @@ export default function ConstructionPreview({
             name: "Qmon จำลอง",
             stage: 2,
             busy: false,
-            imagePath: "/pets/anim/egg5_stage3_science_idle.webp",
+            imagePath: "/pets/egg3_stage4_science_A.png",
           }}
           boardConfig={puzzle.board}
           initialDraft={layout as GardenPlacement[]}

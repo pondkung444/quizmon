@@ -1,0 +1,70 @@
+{
+  "environment": "development mock route, local desktop browser, no real account",
+  "checks": 59,
+  "timings": [
+    {
+      "count": 17,
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "controlsMs": 334
+    },
+    {
+      "count": 24,
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "controlsMs": 254
+    },
+    {
+      "count": 17,
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "controlsMs": 242
+    },
+    {
+      "count": 24,
+      "viewport": {
+        "width": 375,
+        "height": 667
+      },
+      "controlsMs": 321
+    },
+    {
+      "count": 17,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "controlsMs": 248
+    },
+    {
+      "count": 24,
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "controlsMs": 284
+    },
+    {
+      "count": 17,
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "controlsMs": 261
+    },
+    {
+      "count": 24,
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "controlsMs": 360
+    }
+  ]
+}
