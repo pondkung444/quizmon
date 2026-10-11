@@ -31,7 +31,7 @@ export default function FarmWorld({ tiles, pets, paused, focusedId, onSelect, on
   const size = BASE_TILE_SIZE * zoom;
   const geometry = farmGeometry(displayTiles, size);
   const home = tiles.find(tile => tile.kind === "meadow") ?? tiles[0];
-  
+
   const plots = availableFarmPlots(tiles);
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
 
