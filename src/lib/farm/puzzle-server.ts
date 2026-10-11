@@ -18,11 +18,8 @@ function projectKind(p: FarmProject): PuzzleKind {
   const place = p.rules_snapshot.place;
   if (["pond", "flower", "bridge", "observatory"].includes(place))
     return place as PuzzleKind;
-  // School checkpoints rotate disciplines as the school level grows.
-  if (place === "school")
-    return (["pond", "flower", "bridge", "observatory"] as const)[
-      p.checkpoint % 4
-    ];
+  // School tile/path checkpoints are connected by the school upgrade phase.
+  if (place === "school") throw new Error("จุดช่วยโรงเรียนนี้ยังไม่เปิด");
   throw new Error("โครงการนี้ใช้บทเรียนสวนเดิม");
 }
 async function owner(projectId: string) {

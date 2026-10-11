@@ -74,7 +74,7 @@ export default function SubjectPuzzle({
     [working, setWorking] = useState(false),
     [completed, setCompleted] = useState(false),
     [message, setMessage] = useState("");
-  useDraftAutosave(draft, onDraft);
+  const saveFailure = useDraftAutosave(draft, onDraft);
   const locked = disabled || working || completed;
   async function submit() {
     if (locked) return;
@@ -376,6 +376,7 @@ export default function SubjectPuzzle({
           </button>
         ))}
       </div>
+      {saveFailure && <p role="alert">{saveFailure}</p>}
       <p className={styles.message} role="status">
         {message}
       </p>

@@ -40,4 +40,3 @@ The teaching content and difficulty remain reviewable before the corresponding p
 This is stacked on phase 1 PR #310. Do not merge/deploy or apply migrations to monschool without the production approval required by the plan. Apply only new migrations once, in chronological order after checking the recorded migration history.
 
 Phase 3 connects school upgrades, queues and teams to these project puzzle sessions. The old school and gardens continue to use their original commands, with additive draft support. Geometry/bridges, place unlocks, ambient activity, friends and notifications follow in the specified order. Nothing here enables production catalogue rows.
-

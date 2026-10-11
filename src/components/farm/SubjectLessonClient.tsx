@@ -13,9 +13,12 @@ export default function SubjectLessonClient({
 }) {
   const revision = useRef(session.revision),
     queue = useRef(Promise.resolve()),
-    completed = useRef(false);
+    completed = useRef(false),
+    conflict = useRef(false);
   async function save(draft: unknown) {
     if (completed.current) return;
+    if (conflict.current)
+      throw new Error("ผังถูกแก้จากอีกหน้า กรุณาโหลดใหม่ก่อนแก้ต่อ");
     queue.current = queue.current
       .catch(() => {})
       .then(async () => {
@@ -26,7 +29,10 @@ export default function SubjectLessonClient({
           false,
         );
         revision.current = r.revision;
-        if (!r.saved) throw new Error("ผังถูกแก้จากอีกหน้าหนึ่ง กรุณาโหลดใหม่");
+        if (!r.saved) {
+          conflict.current = true;
+          throw new Error("ผังถูกแก้จากอีกหน้าหนึ่ง กรุณาโหลดใหม่");
+        }
       });
     await queue.current;
   }
@@ -37,6 +43,8 @@ export default function SubjectLessonClient({
       initialDraft={session.draft}
       onDraft={save}
       onSubmit={async (draft) => {
+        if (conflict.current)
+          throw new Error("ผังถูกแก้จากอีกหน้า กรุณาโหลดใหม่");
         await queue.current;
         const r = await lessonAnswer(
           session.sessionId,
@@ -46,6 +54,7 @@ export default function SubjectLessonClient({
         );
         revision.current = r.revision;
         completed.current = r.passed;
+        if (!r.saved && !r.passed) conflict.current = true;
         return {
           passed: r.passed,
           message: r.passed

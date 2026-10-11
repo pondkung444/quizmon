@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 /** Debounce edits, serialize requests, and flush a pending edit on screen exit. */
 export function useDraftAutosave<T>(
   value: T,
@@ -9,6 +9,7 @@ export function useDraftAutosave<T>(
     pending = useRef<T | undefined>(undefined),
     queue = useRef(Promise.resolve());
   const initial = useRef(true);
+  const [failure, setFailure] = useState<string | null>(null);
   useEffect(() => {
     callback.current = save;
   }, [save]);
@@ -17,8 +18,19 @@ export function useDraftAutosave<T>(
     pending.current = undefined;
     if (draft === undefined || !callback.current) return;
     const fn = callback.current;
-    queue.current = queue.current.catch(() => {}).then(() => fn(draft));
-    void queue.current.catch(() => {});
+    queue.current = queue.current
+      .catch(() => {})
+      .then(async () => {
+        await fn(draft);
+        setFailure(null);
+      });
+    void queue.current.catch((error) =>
+      setFailure(
+        error instanceof Error
+          ? error.message
+          : "บันทึกผังไม่สำเร็จ กรุณาลองอีกครั้ง",
+      ),
+    );
   }, []);
   useEffect(() => {
     if (initial.current) {
@@ -30,4 +42,5 @@ export function useDraftAutosave<T>(
     return () => clearTimeout(timer);
   }, [value, flush]);
   useEffect(() => () => flush(), [flush]);
+  return failure;
 }
