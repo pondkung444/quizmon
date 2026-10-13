@@ -1217,6 +1217,12 @@ try {
  create table push_devices(id uuid primary key,user_id uuid,fcm_token text,platform text,enabled boolean,permission_status text,invalidated_at timestamptz,last_seen_at timestamptz);
  create table notification_jobs(id uuid default gen_random_uuid(),user_id uuid,idempotency_key text unique);`);
   await db.exec(fs.readFileSync('supabase/migrations/20261011184521_qmon_farm_attention.sql','utf8'));
+  // Reproduce Supabase's inherited API-role table grants before hardening.
+  await db.exec('grant all on farm_notification_settings to anon,authenticated');
+  await db.exec(fs.readFileSync('supabase/migrations/20261013142020_qmon_farm_notification_privileges.sql','utf8'));
+  eq(await scalar("select has_table_privilege('authenticated','farm_notification_settings','INSERT')"),false);
+  eq(await scalar("select has_table_privilege('authenticated','farm_notification_settings','TRUNCATE')"),false);
+  eq(await scalar("select has_table_privilege('anon','farm_notification_settings','SELECT')"),false);
   const attentionBefore=await scalar('select jsonb_agg(to_jsonb(p)) from farm_projects p');
   eq(await scalar('select farm_notification_preference($1)',[owner]),false);
   eq(await scalar('select count(*) from farm_notification_recipients()'),0);
