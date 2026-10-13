@@ -9,7 +9,14 @@ import { schoolDisplayState, type SchoolPet, type SchoolProject } from "./school
 export async function loadSchoolProject(): Promise<SchoolProject | null> {
   const user = await getUser(); if (!user) return null;
   const db = await createClient();
-  const {data,error} = await db.from("farm_school_projects").select("draft_layout,status,leader_id,resume_status,ready_at,remaining_seconds,round_deadline,failures,penalty_applied,tile_x,tile_y").eq("user_id",user.id).maybeSingle();
+  const fields="status,leader_id,resume_status,ready_at,remaining_seconds,round_deadline,failures,penalty_applied,tile_x,tile_y";
+  let result = await db.from("farm_school_projects").select("draft_layout,"+fields).eq("user_id",user.id).maybeSingle();
+  // The application can reach production before the additive draft migration.
+  // Retry only this missing optional column; never hide other database failures.
+  if(result.error && ["42703","PGRST204"].includes(result.error.code) && result.error.message.includes("draft_layout")) {
+    result = await db.from("farm_school_projects").select(fields).eq("user_id",user.id).maybeSingle();
+  }
+  const {data,error}=result;
   if(error) throw new Error("ไม่สามารถโหลดงานโรงเรียนได้ กรุณาลองใหม่");
   return schoolDisplayState(data as SchoolProject | null);
 }
