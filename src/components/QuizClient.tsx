@@ -109,6 +109,30 @@ type BackgroundSubmission =
   | { ok: true; expEarned: number; category: string; subject: Subject }
   | { ok: false };
 
+// เด็กเจอ "ค้างข้อสุดท้าย" จริง: คำขอที่เน็ตหลุดกลางทาง (หรือ iOS พักแอป) ไม่ resolve/reject เลย
+// คิว submission + Promise.all ตอนจบรอบเลยรอตลอดไป ปุ่มกด disabled ค้าง — ทุกจุดที่ UI รอ server
+// ต้องมีเพดานเวลาเสมอ
+const SUBMIT_TIMEOUT_MS = 8000;
+const FINISH_WAIT_MS = 15000;
+
+class TimeoutError extends Error {}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError()), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
 async function submitAnswerWithRetry(input: {
   questionId: number;
   choiceIndex: number;
@@ -118,9 +142,11 @@ async function submitAnswerWithRetry(input: {
   source?: "topic_select" | null;
 }): Promise<BackgroundSubmission> {
   try {
-    const res = await submitAnswer(input);
+    const res = await withTimeout(submitAnswer(input), SUBMIT_TIMEOUT_MS);
     return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
-  } catch {
+  } catch (err) {
+    // timeout ไม่ retry — คำขอเดิมอาจยังวิ่งอยู่และบันทึกสำเร็จทีหลัง retry ซ้ำจะได้ quiz_attempts ซ้อน
+    if (err instanceof TimeoutError) return { ok: false };
     try {
       const res = await submitAnswer(input);
       return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
@@ -601,7 +627,12 @@ export default function QuizClient({
     window.scrollTo({ top: 0, behavior: "instant" });
     startTransition(async () => {
       try {
-      const submissions = await Promise.all(pendingSubmissionsRef.current);
+      // รอแต่ละข้อพร้อมกันภายในเพดานเดียว — ข้อที่ยังไม่กลับมาถือว่าบันทึกไม่สำเร็จ (ใช้ EXP ประมาณแทน)
+      const submissions = await Promise.all(
+        pendingSubmissionsRef.current.map((p) =>
+          withTimeout(p, FINISH_WAIT_MS).catch((): BackgroundSubmission => ({ ok: false }))
+        )
+      );
       const anyFailed = submissions.some((s) => !s.ok);
       if (anyFailed) {
         setSaveWarning("รอบนี้บันทึกผลไม่ครบทุกข้อ (เน็ตอาจหลุด) ตัวเลขด้านล่างอาจไม่ตรงเป๊ะ แต่เล่นต่อได้เลยนะ");
@@ -611,7 +642,12 @@ export default function QuizClient({
         0
       );
       setFinalExpEarned(roundExpEarned);
-      const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
+      // ไม่ retry finishQuizRound อัตโนมัติ (อาจบันทึกสำเร็จไปแล้ว retry = EXP ซ้อน) — timeout แล้วไป
+      // catch ด้านล่างที่มีปุ่มกลับหน้าน้องให้แทนการค้าง
+      const finishResult = await withTimeout(
+        finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current),
+        FINISH_WAIT_MS
+      );
       setSummary(finishResult);
       markQuizHappy(getSessionStorage(), Date.now()); // ให้ /pet เล่น Happy ตอนกลับมา (เขียนทุกรอบ ไม่ขึ้นกับคะแนน)
       if (finishResult.premiumBiweeklyEgg) {
