@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,7 +26,7 @@ import {
 const ROUND_SIZE = 5;
 
 // milestone คอมโบ (ทุก 3 ข้อติด) + สูตร EXP ต่อข้อ ย้ายไปอยู่ใน submit_quiz_answer() (SQL) แล้ว —
-// แก้ src/lib/exp.ts เมื่อไหร่ต้องแก้ migration 20261020150000 ให้ตรงกันด้วย
+// แก้ src/lib/exp.ts เมื่อไหร่ต้องแก้ migration 20261020143750 ให้ตรงกันด้วย
 
 // "ใกล้วิวัฒนาการ" = exp คงเหลือก่อนถึง threshold ถัดไป <= 15% ของช่วง exp ทั้งหมดใน stage ปัจจุบัน
 // (ช่วง = threshold ของ stage นี้ - threshold ของ stage ก่อนหน้า เพราะ pets.exp สะสมข้าม stage ไม่รีเซ็ต)
@@ -498,7 +498,7 @@ export async function submitAnswer(input: {
   // สำคัญ: server เช็คถูก/ผิดจาก DB เองเสมอ ไม่รับ flag ถูก/ผิดจาก client (client ส่งมาแค่
   // questionId + choiceIndex) — ทั้งหมด (อ่านเฉลย/pet/accuracy, insert attempt, อัปเดตสถิติ pets
   // แบบ atomic) อยู่ใน RPC เดียว = 1 round-trip ต่อข้อ ดู
-  // supabase/migrations/20261020150000_quiz_submit_and_round_award_rpc.sql (สูตร EXP ต้องตรงกับ src/lib/exp.ts)
+  // supabase/migrations/20261020143750_quiz_submit_and_round_award_rpc.sql (สูตร EXP ต้องตรงกับ src/lib/exp.ts)
   const admin = createAdminClient();
   const { data, error } = await admin
     .rpc("submit_quiz_answer", {
@@ -564,7 +564,7 @@ export async function finishQuizRound(
   // EXP รอบนี้ = ผลรวม quiz_attempts.exp_earned ของ round_id (server คิดเองทุกข้อตอน submit) ไม่รับ
   // ตัวเลขจาก client แล้ว — award_quiz_round_exp() เรียก award_quiz_exp() (เพดานรายวันฟรี 180 /
   // premium 300, ล็อกแถว pets) และ idempotent ต่อ round_id: เรียกซ้ำหลัง timeout ไม่บวก EXP ซ้อน
-  // ดู supabase/migrations/20261020150000_quiz_submit_and_round_award_rpc.sql
+  // ดู supabase/migrations/20261020143750_quiz_submit_and_round_award_rpc.sql
   // activePet.id มาจาก select ด้านบนที่กรอง user_id แล้ว ไม่รับ pet id จาก client
   const admin = createAdminClient();
   const { data: award, error: awardError } = await admin
