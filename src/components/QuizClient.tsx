@@ -117,6 +117,17 @@ const FINISH_WAIT_MS = 15000;
 
 class TimeoutError extends Error {}
 
+// crypto.randomUUID ใช้ได้เฉพาะ secure context (https/localhost) — เปิดผ่าน IP ในวง LAN ตอน dev จะไม่มี
+function newRoundId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new TimeoutError()), ms);
@@ -140,6 +151,7 @@ async function submitAnswerWithRetry(input: {
   mode: QuizMode;
   missionId?: string | null;
   source?: "topic_select" | null;
+  roundId: string;
 }): Promise<BackgroundSubmission> {
   try {
     const res = await withTimeout(submitAnswer(input), SUBMIT_TIMEOUT_MS);
@@ -227,6 +239,9 @@ export default function QuizClient({
   // finishQuizRound ใช้เช็ค enterGame/comeback เพราะพอรอบนี้เริ่มตอบ จะมีแถวใหม่ของรอบนี้เอง
   // insert เข้าไปแล้ว ถ้าไปอ่านใหม่ตอนจบรอบจะเจอแถวตัวเองแทน
   const lastAttemptBeforeRoundRef = useRef<string | null>(null);
+  // id รอบปัจจุบัน — แนบทุก submitAnswer แล้ว finishQuizRound รวม EXP จาก DB ตาม id นี้เอง
+  // (และใช้กันบวก EXP ซ้ำถ้า finish ถูกเรียกซ้ำ) ตั้งใหม่ทุกครั้งที่เริ่มรอบ
+  const roundIdRef = useRef<string>(newRoundId());
 
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
@@ -403,6 +418,7 @@ export default function QuizClient({
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         const firstQuestion = round[0];
@@ -455,6 +471,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         const firstQuestion = round[0];
@@ -502,6 +519,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         track("mission_started", {
@@ -579,6 +597,7 @@ export default function QuizClient({
         mode: mode!,
         missionId: missionInfo?.missionId ?? null,
         source: topicFilter ? "topic_select" : null,
+        roundId: roundIdRef.current,
       })
     );
     submissionQueueRef.current = submissionPromise;
@@ -645,7 +664,7 @@ export default function QuizClient({
       // ไม่ retry finishQuizRound อัตโนมัติ (อาจบันทึกสำเร็จไปแล้ว retry = EXP ซ้อน) — timeout แล้วไป
       // catch ด้านล่างที่มีปุ่มกลับหน้าน้องให้แทนการค้าง
       const finishResult = await withTimeout(
-        finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current),
+        finishQuizRound(roundIdRef.current, lastAttemptBeforeRoundRef.current),
         FINISH_WAIT_MS
       );
       setSummary(finishResult);

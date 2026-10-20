@@ -4,13 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAllRows } from "@/lib/supabase/pagination";
 import type { QuizRoundQuestion, QuizMode, Subject } from "@/types/quiz";
-import {
-  BASE_EXP_PER_CORRECT,
-  calculateExpForAnswer,
-  getAccuracyMultiplier,
-  getComboMultiplier,
-  getTodayInBangkok,
-} from "@/lib/exp";
+import { getTodayInBangkok } from "@/lib/exp";
 import { getEvolutionProgress } from "@/lib/evolution";
 import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
 import { getGradeProfile, visibleBands } from "@/lib/gradeBand";
@@ -31,10 +25,8 @@ import {
 
 const ROUND_SIZE = 5;
 
-// milestone คอมโบ (raw SPD) นับทุกครั้งที่ current streak หารด้วยเลขนี้ลงตัว — ค่าคงที่แยกเฉพาะจุดนี้
-// แม้จะบังเอิญเท่ากับ threshold คอมโบต่ำสุดใน exp.ts (getComboMultiplier) ก็เป็นคนละความหมาย
-// ห้าม import จาก exp.ts มาแทน
-const MILESTONE_INTERVAL = 3;
+// milestone คอมโบ (ทุก 3 ข้อติด) + สูตร EXP ต่อข้อ ย้ายไปอยู่ใน submit_quiz_answer() (SQL) แล้ว —
+// แก้ src/lib/exp.ts เมื่อไหร่ต้องแก้ migration 20261020150000 ให้ตรงกันด้วย
 
 // "ใกล้วิวัฒนาการ" = exp คงเหลือก่อนถึง threshold ถัดไป <= 15% ของช่วง exp ทั้งหมดใน stage ปัจจุบัน
 // (ช่วง = threshold ของ stage นี้ - threshold ของ stage ก่อนหน้า เพราะ pets.exp สะสมข้าม stage ไม่รีเซ็ต)
@@ -493,83 +485,41 @@ export async function submitAnswer(input: {
   missionId?: string | null;
   // 'topic_select' = โหมดเลือกบทฝึกฝน (ไม่นับ leaderboard, EXP ปกติ) — null = ฝึก/ภารกิจปกติ
   source?: "topic_select" | null;
+  // รอบที่คำตอบนี้สังกัด — finishQuizRound รวม EXP จาก quiz_attempts ของ round_id นี้เอง
+  roundId: string;
 }): Promise<SubmitAnswerResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("ต้องเข้าสู่ระบบก่อนตอบคำถาม");
+  // getClaims ตรวจ JWT ในเครื่อง (ไม่ยิง Supabase Auth ทุกข้อแบบ getUser) — action นี้ถูกเรียกทุกคำตอบ
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims?.sub;
+  if (!userId) throw new Error("ต้องเข้าสู่ระบบก่อนตอบคำถาม");
+  if (!UUID_RE.test(input.roundId)) throw new Error("รอบไม่ถูกต้อง");
 
-  // สำคัญ: server เช็คถูก/ผิดจาก DB เองเสมอ ไม่รับ flag ถูก/ผิดจาก client
-  // (client ส่งมาแค่ questionId + choiceIndex เท่านั้น) เพื่อกัน EXP โกง
-  //
-  // 3 read นี้ไม่ขึ้นต่อกัน — ยิงพร้อมกัน (action นี้ถูกเรียกทุกข้อที่ตอบ waterfall สะสมแล้วหน่วง
-  // ตอนจบรอบที่ finishQuizRound ต้องรอคิว submission ทั้งหมด)
+  // สำคัญ: server เช็คถูก/ผิดจาก DB เองเสมอ ไม่รับ flag ถูก/ผิดจาก client (client ส่งมาแค่
+  // questionId + choiceIndex) — ทั้งหมด (อ่านเฉลย/pet/accuracy, insert attempt, อัปเดตสถิติ pets
+  // แบบ atomic) อยู่ใน RPC เดียว = 1 round-trip ต่อข้อ ดู
+  // supabase/migrations/20261020150000_quiz_submit_and_round_award_rpc.sql (สูตร EXP ต้องตรงกับ src/lib/exp.ts)
   const admin = createAdminClient();
-  const [{ data: question, error }, { data: recentAttempts }, { data: activePet }] = await Promise.all([
-    admin
-      .from("questions")
-      .select("correct_index, subject, category")
-      .eq("id", input.questionId)
-      .single(),
-    supabase
-      .from("quiz_attempts")
-      .select("is_correct")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("pets")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .single(),
-  ]);
-  if (error || !question) throw new Error("ไม่พบคำถามนี้");
-  if (!activePet) throw new Error("ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่");
-
-  const isCorrect = input.choiceIndex === question.correct_index;
-
-  const accuracyMultiplier = getAccuracyMultiplier(recentAttempts ?? []);
-  const newCombo = isCorrect ? input.comboBefore + 1 : 0;
-  const comboMultiplier = getComboMultiplier(newCombo);
-  const expEarned = calculateExpForAnswer(isCorrect, accuracyMultiplier, comboMultiplier, BASE_EXP_PER_CORRECT);
-
-  // best_combo/combo_milestones/math_correct/science_correct ห้ามคำนวณฝั่ง app แบบ
-  // read-modify-write (เจอ lost-update race condition จริงตอนมีคำขอทับซ้อนกัน เช่น เปิดสองแท็บ/
-  // อุปกรณ์พร้อมกัน — พิสูจน์แล้วทั้ง combo_milestones ค้าง 0 และ math_correct/science_correct
-  // undercount จริงในข้อมูล user 'Dawu') เรียก RPC apply_quiz_answer_pet_update() ที่ทำ atomic
-  // SQL update ทั้ง 4 คอลัมน์ในสเตทเมนต์เดียวแทน ดู supabase/migrations/020_atomic_combo_update.sql
-  const milestoneIncrement = isCorrect && newCombo % MILESTONE_INTERVAL === 0 ? 1 : 0;
-  const mathIncrement = isCorrect && question.subject === "math" ? 1 : 0;
-  const scienceIncrement = isCorrect && question.subject === "science" ? 1 : 0;
-
-  // insert attempt กับ RPC อัปเดต pets ไม่แตะแถวเดียวกัน — เขียนพร้อมกันได้
-  // RPC เป็น security invoker -> เรียกผ่าน admin (Premium 1.5d: ผู้ใช้จะไม่มีสิทธิ์ UPDATE pets เอง)
-  // activePet.id มาจาก select ด้านบนที่กรอง user_id = user.id แล้ว
-  const [, { error: petUpdateError }] = await Promise.all([
-    supabase.from("quiz_attempts").insert({
-      user_id: user.id,
-      question_id: input.questionId,
-      is_correct: isCorrect,
-      pet_id: activePet.id,
-      mission_id: input.missionId ?? null,
-      source: input.source ?? null,
-    }),
-    admin.rpc("apply_quiz_answer_pet_update", {
-      p_pet_id: activePet.id,
-      p_new_combo: newCombo,
-      p_milestone_increment: milestoneIncrement,
-      p_math_increment: mathIncrement,
-      p_science_increment: scienceIncrement,
-    }),
-  ]);
-  if (petUpdateError) {
-    console.error("submitAnswer: apply_quiz_answer_pet_update failed", user.id, activePet.id, petUpdateError);
+  const { data, error } = await admin
+    .rpc("submit_quiz_answer", {
+      p_user_id: userId,
+      p_question_id: input.questionId,
+      p_choice_index: input.choiceIndex,
+      p_combo_before: input.comboBefore,
+      p_mission_id: input.missionId ?? null,
+      p_source: input.source ?? null,
+      p_round_id: input.roundId,
+    })
+    .single<{ is_correct: boolean; exp_earned: number; subject: string; category: string }>();
+  if (error || !data) {
+    console.error("submitAnswer: submit_quiz_answer failed", userId, input.questionId, error);
+    throw new Error("บันทึกคำตอบไม่สำเร็จ");
   }
 
-  return { expEarned, category: question.category, subject: question.subject as Subject };
+  return { expEarned: data.exp_earned, category: data.category, subject: data.subject as Subject };
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type RoundFinishResult = {
   expAddedToPet: number;
@@ -591,7 +541,7 @@ export type RoundFinishResult = {
 };
 
 export async function finishQuizRound(
-  roundExpEarned: number,
+  roundId: string,
   lastAttemptBeforeRound: string | null
 ): Promise<RoundFinishResult> {
   const supabase = await createClient();
@@ -599,6 +549,7 @@ export async function finishQuizRound(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ต้องเข้าสู่ระบบก่อน");
+  if (!UUID_RE.test(roundId)) throw new Error("รอบไม่ถูกต้อง");
 
   const { data: activePet } = await supabase
     .from("pets")
@@ -610,18 +561,25 @@ export async function finishQuizRound(
 
   const today = getTodayInBangkok();
 
-  // Premium 1.5d: บวก EXP ผ่าน award_quiz_exp() (security definer, service_role เท่านั้น) — DB ล็อกแถว
-  // บวก exp/exp_today แบบ atomic, reset วันตามเวลาไทย และอ่านเพดานรายวันของผู้ใช้เอง (ฟรี 180 /
-  // premium 300 จาก get_daily_exp_cap) ดู supabase/migrations/20260925153832_premium_1_5c_award_quiz_exp.sql
+  // EXP รอบนี้ = ผลรวม quiz_attempts.exp_earned ของ round_id (server คิดเองทุกข้อตอน submit) ไม่รับ
+  // ตัวเลขจาก client แล้ว — award_quiz_round_exp() เรียก award_quiz_exp() (เพดานรายวันฟรี 180 /
+  // premium 300, ล็อกแถว pets) และ idempotent ต่อ round_id: เรียกซ้ำหลัง timeout ไม่บวก EXP ซ้อน
+  // ดู supabase/migrations/20261020150000_quiz_submit_and_round_award_rpc.sql
   // activePet.id มาจาก select ด้านบนที่กรอง user_id แล้ว ไม่รับ pet id จาก client
-  const amount = Number.isFinite(roundExpEarned) ? Math.min(1000, Math.max(0, Math.floor(roundExpEarned))) : 0;
   const admin = createAdminClient();
   const { data: award, error: awardError } = await admin
-    .rpc("award_quiz_exp", { p_user_id: user.id, p_pet_id: activePet.id, p_amount: amount })
-    .single<{ added: number; total_exp: number; today_exp: number; daily_cap: number; was_capped: boolean }>();
+    .rpc("award_quiz_round_exp", { p_user_id: user.id, p_pet_id: activePet.id, p_round_id: roundId })
+    .single<{
+      added: number;
+      total_exp: number;
+      today_exp: number;
+      daily_cap: number;
+      was_capped: boolean;
+      already_awarded: boolean;
+    }>();
   if (awardError || !award) {
     // บวกไม่สำเร็จ = รอบนี้ไม่ได้ EXP และไม่ evolve แต่หน้าสรุปรอบต้องไปต่อได้ ไม่ throw
-    console.error("finishQuizRound: award_quiz_exp failed", user.id, activePet.id, amount, awardError);
+    console.error("finishQuizRound: award_quiz_round_exp failed", user.id, activePet.id, roundId, awardError);
   }
   const expAddedToPet = award?.added ?? 0;
   const capped = award?.was_capped ?? false;
