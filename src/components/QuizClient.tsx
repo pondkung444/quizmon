@@ -109,6 +109,41 @@ type BackgroundSubmission =
   | { ok: true; expEarned: number; category: string; subject: Subject }
   | { ok: false };
 
+// เด็กเจอ "ค้างข้อสุดท้าย" จริง: คำขอที่เน็ตหลุดกลางทาง (หรือ iOS พักแอป) ไม่ resolve/reject เลย
+// คิว submission + Promise.all ตอนจบรอบเลยรอตลอดไป ปุ่มกด disabled ค้าง — ทุกจุดที่ UI รอ server
+// ต้องมีเพดานเวลาเสมอ
+const SUBMIT_TIMEOUT_MS = 8000;
+const FINISH_WAIT_MS = 15000;
+
+class TimeoutError extends Error {}
+
+// crypto.randomUUID ใช้ได้เฉพาะ secure context (https/localhost) — เปิดผ่าน IP ในวง LAN ตอน dev จะไม่มี
+function newRoundId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TimeoutError()), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
 async function submitAnswerWithRetry(input: {
   questionId: number;
   choiceIndex: number;
@@ -116,11 +151,14 @@ async function submitAnswerWithRetry(input: {
   mode: QuizMode;
   missionId?: string | null;
   source?: "topic_select" | null;
+  roundId: string;
 }): Promise<BackgroundSubmission> {
   try {
-    const res = await submitAnswer(input);
+    const res = await withTimeout(submitAnswer(input), SUBMIT_TIMEOUT_MS);
     return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
-  } catch {
+  } catch (err) {
+    // timeout ไม่ retry — คำขอเดิมอาจยังวิ่งอยู่และบันทึกสำเร็จทีหลัง retry ซ้ำจะได้ quiz_attempts ซ้อน
+    if (err instanceof TimeoutError) return { ok: false };
     try {
       const res = await submitAnswer(input);
       return { ok: true, expEarned: res.expEarned, category: res.category, subject: res.subject };
@@ -201,6 +239,9 @@ export default function QuizClient({
   // finishQuizRound ใช้เช็ค enterGame/comeback เพราะพอรอบนี้เริ่มตอบ จะมีแถวใหม่ของรอบนี้เอง
   // insert เข้าไปแล้ว ถ้าไปอ่านใหม่ตอนจบรอบจะเจอแถวตัวเองแทน
   const lastAttemptBeforeRoundRef = useRef<string | null>(null);
+  // id รอบปัจจุบัน — แนบทุก submitAnswer แล้ว finishQuizRound รวม EXP จาก DB ตาม id นี้เอง
+  // (และใช้กันบวก EXP ซ้ำถ้า finish ถูกเรียกซ้ำ) ตั้งใหม่ทุกครั้งที่เริ่มรอบ
+  const roundIdRef = useRef<string>(newRoundId());
 
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
@@ -377,6 +418,7 @@ export default function QuizClient({
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         const firstQuestion = round[0];
@@ -429,6 +471,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         const firstQuestion = round[0];
@@ -476,6 +519,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        roundIdRef.current = newRoundId();
         setPhase("playing");
 
         track("mission_started", {
@@ -553,6 +597,7 @@ export default function QuizClient({
         mode: mode!,
         missionId: missionInfo?.missionId ?? null,
         source: topicFilter ? "topic_select" : null,
+        roundId: roundIdRef.current,
       })
     );
     submissionQueueRef.current = submissionPromise;
@@ -601,7 +646,12 @@ export default function QuizClient({
     window.scrollTo({ top: 0, behavior: "instant" });
     startTransition(async () => {
       try {
-      const submissions = await Promise.all(pendingSubmissionsRef.current);
+      // รอแต่ละข้อพร้อมกันภายในเพดานเดียว — ข้อที่ยังไม่กลับมาถือว่าบันทึกไม่สำเร็จ (ใช้ EXP ประมาณแทน)
+      const submissions = await Promise.all(
+        pendingSubmissionsRef.current.map((p) =>
+          withTimeout(p, FINISH_WAIT_MS).catch((): BackgroundSubmission => ({ ok: false }))
+        )
+      );
       const anyFailed = submissions.some((s) => !s.ok);
       if (anyFailed) {
         setSaveWarning("รอบนี้บันทึกผลไม่ครบทุกข้อ (เน็ตอาจหลุด) ตัวเลขด้านล่างอาจไม่ตรงเป๊ะ แต่เล่นต่อได้เลยนะ");
@@ -611,7 +661,12 @@ export default function QuizClient({
         0
       );
       setFinalExpEarned(roundExpEarned);
-      const finishResult = await finishQuizRound(roundExpEarned, lastAttemptBeforeRoundRef.current);
+      // ไม่ retry finishQuizRound อัตโนมัติ (อาจบันทึกสำเร็จไปแล้ว retry = EXP ซ้อน) — timeout แล้วไป
+      // catch ด้านล่างที่มีปุ่มกลับหน้าน้องให้แทนการค้าง
+      const finishResult = await withTimeout(
+        finishQuizRound(roundIdRef.current, lastAttemptBeforeRoundRef.current),
+        FINISH_WAIT_MS
+      );
       setSummary(finishResult);
       markQuizHappy(getSessionStorage(), Date.now()); // ให้ /pet เล่น Happy ตอนกลับมา (เขียนทุกรอบ ไม่ขึ้นกับคะแนน)
       if (finishResult.premiumBiweeklyEgg) {
