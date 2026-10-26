@@ -2,7 +2,7 @@ import { BASE_EXP_PER_CORRECT } from "./exp.ts";
 import { STAGE_EXP_THRESHOLD, getEvolutionProgress } from "./evolution.ts";
 import { eggAnswersLeft } from "./homeTrail.ts";
 
-// หน้า /quiz "ตามหาประกายดาว" (flag QUIZ_STARDUST_ENABLED) — ส่วนที่คำนวณได้โดยไม่แตะ DOM/DB อยู่ที่นี่ทั้งหมด
+// หน้า /quiz "ตามหาประกายดาว" — ส่วนที่คำนวณได้โดยไม่แตะ DOM/DB อยู่ที่นี่ทั้งหมด
 // ข้อความทุกคำของหน้าอยู่ใน STARDUST_TEXT จุดเดียว · ต้นแบบ .oil-ui/quiz-play/ (design.md + proto/)
 // "ประกายดาว" = ชื่อในโลกของ EXP ไม่ใช่สกุลเงินใหม่ — ตัวเลขยังเขียน EXP เสมอ
 
