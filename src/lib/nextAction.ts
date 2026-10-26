@@ -24,7 +24,7 @@ export type NextAction = {
 export type NextActionState = {
   hasPet: boolean;
   evolutionReady?: boolean;
-  mission?: { id: string; remaining: number; bonusExp: number } | null;
+  mission?: { id: string; remaining: number; bonusExp: number; target?: number } | null;
   adventureStatus?: "invite" | "ready" | "traveling" | "claimable";
   adventureMinutes?: number | null;
   pvpTurnCount?: number;
@@ -34,6 +34,9 @@ export type NextActionState = {
   dailyExpCap?: number;
   hasEverAnswered?: boolean;
   weakTopic?: string | null;
+  // ไม่บังคับ — ไม่ส่ง = ข้อความภารกิจไม่มีหัวข้อ / ยังไม่เริ่ม
+  missionTopic?: string | null;
+  missionStarted?: boolean;
 };
 
 export function resolveNextAction(state: NextActionState): NextAction {
@@ -41,10 +44,21 @@ export function resolveNextAction(state: NextActionState): NextAction {
     return { id: "hatch_pet", title: "ฟัก Qmon ตัวแรก", description: "เลือกไข่ ตั้งชื่อ แล้วเริ่มเรียนไปด้วยกัน", cta: "เลือกไข่", href: "/eggs", activity: "hatch", meta: "ประมาณ 1 นาที" };
   }
   if (state.evolutionReady) {
-    return { id: "collect_evolution", title: "Qmon โตเต็มที่แล้ว", description: "เก็บเข้าฟาร์มเพื่อเปิดรอบการเลี้ยงตัวถัดไป", cta: "รับการเติบโต", href: "#collect-qmon", activity: "hatch", meta: "พร้อมรับทันที" };
+    return { id: "collect_evolution", title: "น้องโตครบแล้ว", description: "เก็บเข้าฟาร์ม แล้วเลือกไข่ใบใหม่มาฟัก", cta: "เก็บเข้าฟาร์ม", href: "#collect-qmon", activity: "hatch", meta: "พร้อมเก็บ" };
   }
   if (state.mission && state.mission.remaining > 0) {
-    return { id: "daily_mission", title: "ทำภารกิจวันนี้ต่อ", description: `เหลืออีก ${state.mission.remaining} ข้อ รับโบนัส ${state.mission.bonusExp} EXP`, cta: "เริ่มภารกิจ", href: `/quiz?mission=${state.mission.id}`, activity: "mission", meta: `${state.mission.remaining} ข้อ` };
+    const { remaining, bonusExp, target } = state.mission;
+    const count = `${target ?? remaining} ข้อ`;
+    return {
+      id: "daily_mission",
+      title: "ภารกิจวันนี้",
+      description: state.missionTopic ? `${state.missionTopic} · ${count}` : count,
+      cta: state.missionStarted ? `ทำต่อ · อีก ${remaining} ข้อ` : "เริ่มภารกิจ",
+      href: `/quiz?mission=${state.mission.id}`,
+      activity: "mission",
+      // รางวัลภารกิจตอนนี้คือ EXP + เหรียญฟาร์ม (farm_claim_daily_mission_bonus ไม่ให้อาหารแล้ว)
+      meta: `+${bonusExp} EXP และเหรียญฟาร์ม`,
+    };
   }
   const dailyExpCap = state.dailyExpCap ?? DAILY_EXP_CAP;
   const expToday = Math.max(0, state.expToday ?? 0);
@@ -52,37 +66,39 @@ export function resolveNextAction(state: NextActionState): NextAction {
     const remainingExp = dailyExpCap - expToday;
     return {
       id: "train_to_cap",
-      title: "ฝึก Qmon ต่อให้เต็ม",
-      description: `วันนี้ได้ ${expToday}/${dailyExpCap} EXP แล้ว เหลืออีก ${remainingExp} EXP เพื่อให้ Qmon เติบโตเต็มที่`,
-      cta: "ฝึก Qmon ต่อ",
+      title: "ฝึกเพิ่มอีกรอบ",
+      description: `วันนี้ยังได้อีก ${remainingExp} EXP`,
+      cta: "ฝึกอีกรอบ",
       href: "/quiz",
       activity: "practice",
-      meta: `เหลืออีก ${remainingExp} EXP`,
+      meta: `${expToday}/${dailyExpCap} EXP`,
     };
   }
   const advancedActivitiesUnlocked = state.advancedActivitiesUnlocked ?? false;
   if (advancedActivitiesUnlocked && state.adventureStatus === "claimable") {
-    return { id: "claim_adventure", title: "Qmon กลับจากผจญภัยแล้ว", description: "เปิดผลการเดินทางและรับรางวัลที่รออยู่", cta: "รับผลผจญภัย", href: "/adventure", activity: "adventure", meta: "มีรางวัลรอรับ" };
+    return { id: "claim_adventure", title: "น้องกลับมาแล้ว", description: "มีของรางวัลจากการผจญภัย", cta: "รับของรางวัล", href: "/adventure", activity: "adventure", meta: "มีรางวัลรอรับ" };
   }
   if (advancedActivitiesUnlocked && state.adventureStatus === "ready") {
-    return { id: "start_adventure", title: "ส่ง Qmon ไปผจญภัย", description: "เลือกเส้นทางแล้วกลับมารับของรางวัล", cta: "เลือกการผจญภัย", href: "/adventure", activity: "adventure", meta: state.adventureMinutes ? `ประมาณ ${state.adventureMinutes} นาที` : "เลือกเส้นทางได้" };
+    return { id: "start_adventure", title: "ส่งน้องไปผจญภัย", description: "เลือกเส้นทาง แล้วกลับมารับของ", cta: "เลือกเส้นทาง", href: "/adventure", activity: "adventure", meta: state.adventureMinutes ? `ประมาณ ${state.adventureMinutes} นาที` : "เลือกเส้นทางได้" };
   }
   if (advancedActivitiesUnlocked && (state.raidTicketCount ?? 0) > 0) {
-    return { id: "start_raid", title: "พร้อมท้าทายด่าน", description: "ใช้กุญแจที่มีเพื่อพา Qmon ลุยด่าน", cta: "เลือกด่าน", href: "/raid", activity: "raid", meta: `มีกุญแจ ${state.raidTicketCount} ดอก` };
+    return { id: "start_raid", title: "ท้าทายด่าน", description: `มีกุญแจ ${state.raidTicketCount} ดอก`, cta: "เลือกด่าน", href: "/raid", activity: "raid", meta: `มีกุญแจ ${state.raidTicketCount} ดอก` };
   }
   if ((state.pvpTurnCount ?? 0) > 0) {
-    return { id: "resume_pvp", title: "ถึงตาคุณประลองแล้ว", description: `มี ${(state.pvpTurnCount ?? 0)} เกมที่รอการตัดสินใจ`, cta: "เล่นเทิร์นต่อ", href: "/pvp", activity: "pvp", meta: `${state.pvpTurnCount} เกม` };
+    return { id: "resume_pvp", title: "ถึงตาเล่นประลอง", description: `มี ${state.pvpTurnCount ?? 0} เกมรออยู่`, cta: "เล่นต่อ", href: "/pvp", activity: "pvp", meta: `${state.pvpTurnCount} เกม` };
   }
   const dailyCapped = dailyExpCap > 0 && expToday >= dailyExpCap;
   return {
     id: "practice",
-    title: dailyCapped ? "Qmon ฝึกเต็มแล้ววันนี้" : state.hasEverAnswered ? "ทบทวนให้แม่นขึ้น" : "เริ่มบทเรียนแรก",
+    title: dailyCapped ? "วันนี้ครบทุกจุดแล้ว" : state.hasEverAnswered ? "ทบทวนให้แม่นขึ้น" : "เริ่มบทเรียนแรก",
     description: dailyCapped
-      ? `เก็บครบ ${dailyExpCap}/${dailyExpCap} EXP แล้ว จะทบทวนเพิ่มหรือพักก่อนก็ได้${state.weakTopic ? ` · หัวข้อแนะนำ: ${state.weakTopic}` : ""}`
-      : state.weakTopic ? `หัวข้อแนะนำ: ${state.weakTopic}` : "เลือกวิชาและฝึกสั้น ๆ เพื่อเพิ่มพลังให้ Qmon",
-    cta: dailyCapped ? "ทบทวนเพิ่มเติม" : state.hasEverAnswered ? "เริ่มทบทวน" : "เริ่มฝึก Qmon",
+      ? "พรุ่งนี้มีภารกิจใหม่รออยู่"
+      : state.hasEverAnswered
+        ? state.weakTopic ? `หัวข้อแนะนำ: ${state.weakTopic}` : "เลือกบทแล้วฝึกสั้นๆ กับน้อง"
+        : "เลือกวิชาแล้วฝึกสั้นๆ กับน้อง",
+    cta: dailyCapped ? "ทบทวนบทที่ชอบ" : state.hasEverAnswered ? "เริ่มทบทวน" : "เริ่มฝึก",
     href: "/quiz",
     activity: "practice",
-    meta: dailyCapped ? "ครบเป้าหมายวันนี้ · ทบทวนเพิ่มไม่ให้ EXP" : "ประมาณ 3 นาที",
+    meta: dailyCapped ? "วันนี้ได้ EXP ครบแล้ว ทบทวนต่อได้ตามสบาย" : "ประมาณ 3 นาที",
   };
 }
