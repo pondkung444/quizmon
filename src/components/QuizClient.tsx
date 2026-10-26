@@ -589,9 +589,13 @@ export default function QuizClient({
 
     // เด้งเฉพาะตอน "แตะพอดี" 3/5/8 (ไม่ใช่ >=) กันเด้งซ้ำทุกข้อหลังจากนั้น — ตอบผิดรีเซ็ต
     // combo กลับ 0 แล้ว ไต่ขึ้นไปแตะ 3 ใหม่ได้อีกครั้ง ถือเป็นคอมโบใหม่
-    if (newCombo === 3) queuePersonalityEvent("combo3");
-    else if (newCombo === 5) queuePersonalityEvent("combo5");
-    else if (newCombo === 8) queuePersonalityEvent("combo8");
+    // stardust: แผ่นผลพูดเรื่องคอมโบเองแล้ว (นับในรอบ) — ไม่ส่งเข้าคิวบุคลิก กันไปโผล่ซ้ำในฟองหน้าจบรอบ
+    // (เฉพาะคิวข้อความ ค่า combo ที่ส่ง server / ตัวคูณ EXP ไม่เปลี่ยน)
+    if (!stardust) {
+      if (newCombo === 3) queuePersonalityEvent("combo3");
+      else if (newCombo === 5) queuePersonalityEvent("combo5");
+      else if (newCombo === 8) queuePersonalityEvent("combo8");
+    }
 
     nextLock.current = false;
     setSelectedChoice(choiceIndex);
