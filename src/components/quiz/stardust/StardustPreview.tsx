@@ -25,7 +25,7 @@ const QUESTIONS: Q[] = [
 
 const expFor = (combo: number) => (combo >= 3 ? 11 : 10);
 
-function initial(kind: StardustPreviewKind) {
+function initial(kind: StardustPreviewKind, endResults: boolean[] | null) {
   const at = (results: boolean[], idx: number, pick?: number) => ({ results, idx, pick, ended: false });
   switch (kind) {
     case "egg-intro": return at([], 0);
@@ -34,7 +34,7 @@ function initial(kind: StardustPreviewKind) {
     case "correct": return at([true, true], 2, QUESTIONS[2].ok);
     case "wrong": return at([true, true, true], 3, 2);
     case "end":
-    case "egg-end": return { results: [true, true, false, true, true], idx: 4, pick: undefined, ended: true };
+    case "egg-end": return { results: endResults ?? [true, true, false, true, true], idx: 4, pick: undefined, ended: true };
   }
 }
 
@@ -42,19 +42,22 @@ export default function StardustPreview({
   kind,
   element,
   prior = 0,
+  endResults = null,
   petImg,
   eggImg,
 }: {
   kind: StardustPreviewKind;
   element: StardustElement;
   prior?: number;
+  // &r=11010 — ผลของ 5 ข้อสำหรับหน้าจบรอบ (1 = ถูก)
+  endResults?: boolean[] | null;
   petImg: string;
   eggImg: string;
 }) {
   const router = useRouter();
   const isEgg = kind.startsWith("egg");
   const pet = isEgg ? { name: "ไข่", stage: 1, exp: 10 } : { name: "ข้าวปั้น", stage: 2, exp: 230 };
-  const start = initial(kind);
+  const start = initial(kind, endResults);
   // answers[i] = ผลข้อ i · ข้อที่ preset ให้ตอบแล้ว (pick) ใส่ผลไว้ตั้งแต่ต้น
   const [answers, setAnswers] = useState<boolean[]>(() =>
     start.pick === undefined ? start.results : [...start.results, start.pick === QUESTIONS[start.idx].ok]
@@ -97,6 +100,7 @@ export default function StardustPreview({
           total={prior + QUESTIONS.length}
           priorCount={prior}
           correctCount={prior + answers.filter(Boolean).length}
+          starsLit={answers.filter(Boolean).length}
           gainExp={gain}
           expAddedToPet={gain}
           evolved={false}
@@ -130,7 +134,6 @@ export default function StardustPreview({
         isMission={true}
         selectedChoice={selected}
         result={result}
-        combo={combo}
         isLast={idx === QUESTIONS.length - 1}
         choicesDisabled={answered}
         nextDisabled={false}

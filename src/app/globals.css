@@ -1518,6 +1518,7 @@ body {
 .sd-node.now svg { transform: scale(1.25); }
 .sd-node.now .sd-shape { fill: var(--trail-surface2); stroke: var(--trail-gold); stroke-width: 1.8; }
 .sd-node.lit .sd-shape { stroke: none; filter: drop-shadow(0 0 5px var(--stardust-el-glow)); }
+.sd-node.done-prior .sd-shape { fill: var(--trail-text3); stroke: none; opacity: .4; }
 .sd-node.soft .sd-shape { fill: none; stroke: var(--trail-text3); stroke-width: 1.6; stroke-dasharray: 2 2; }
 .sd-node.sd-pop svg { animation: sd-pop .5s var(--sd-ease-pop) both; }
 .sd-traveler { position: absolute; top: 0; width: 30px; height: 30px; transform: translateX(-50%); transition: left .42s var(--sd-ease-out); }
@@ -1618,6 +1619,7 @@ body {
 .sd-ln { fill: none; stroke: color-mix(in srgb, var(--stardust-el-a) 45%, var(--stardust-el-b)); stroke-width: 1.1; stroke-linecap: round; }
 .sd-ln.soft { stroke: var(--trail-line); stroke-dasharray: .7 2.2; }
 .sd-st { filter: drop-shadow(0 0 7px var(--stardust-el-glow)); transform-box: fill-box; transform-origin: center; animation: sd-pop .5s var(--sd-ease-pop) both; }
+.sd-st.prior { fill: var(--trail-text3); opacity: .4; filter: none; }
 .sd-st.soft { fill: none; stroke: var(--trail-text3); stroke-width: 1.4; stroke-dasharray: 2 2; filter: none; }
 .sd-sky-pet { position: absolute; left: 50%; bottom: -4px; width: 44%; transform: translateX(-50%); filter: drop-shadow(0 10px 12px rgba(0, 0, 0, .3)); animation: sd-absorb .9s var(--sd-ease-out) .9s both; }
 .sd-sky-pet.egg { width: 34%; bottom: 6px; }

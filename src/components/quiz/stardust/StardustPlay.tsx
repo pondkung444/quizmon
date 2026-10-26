@@ -6,6 +6,7 @@ import {
   buildStarStates,
   CHOICE_LETTERS,
   countLit,
+  roundStreak,
   eggCracks,
   EGG_HATCH_ANSWERS,
   pickQmonLine,
@@ -45,7 +46,6 @@ export default function StardustPlay({
   badges,
   selectedChoice,
   result,
-  combo,
   isLast,
   choicesDisabled,
   nextDisabled,
@@ -70,7 +70,6 @@ export default function StardustPlay({
   badges?: ReactNode;
   selectedChoice: number | null;
   result: StardustResult | null;
-  combo: number;
   isLast: boolean;
   choicesDisabled: boolean;
   nextDisabled: boolean;
@@ -186,7 +185,8 @@ export default function StardustPlay({
         line: pickQmonLine({
           isEgg,
           correct: result.correct,
-          combo,
+          streak: roundStreak(results),
+          roundAllCorrect: isLast && results.length === index + 1 && results.every(Boolean),
           cracksLeft: EGG_HATCH_ANSWERS - cracks,
           index,
         }),
@@ -224,7 +224,9 @@ export default function StardustPlay({
         ariaLabel={
           isEgg
             ? STARDUST_TEXT.stripLabelEgg(cracks, questionNo, total)
-            : STARDUST_TEXT.stripLabel(correctSoFar + priorCount, questionNo, total)
+            : priorCount > 0
+              ? STARDUST_TEXT.stripLabelPrior(questionNo, total, correctSoFar)
+              : STARDUST_TEXT.stripLabel(correctSoFar, questionNo, total)
         }
         onExit={onExit}
       />

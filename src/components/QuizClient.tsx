@@ -249,8 +249,8 @@ export default function QuizClient({
   // id รอบปัจจุบัน — แนบทุก submitAnswer แล้ว finishQuizRound รวม EXP จาก DB ตาม id นี้เอง
   // (และใช้กันบวก EXP ซ้ำถ้า finish ถูกเรียกซ้ำ) ตั้งใหม่ทุกครั้งที่เริ่มรอบ
   const roundIdRef = useRef<string>(newRoundId());
-  // stardust: ฉากเปิดของไข่ขึ้นเฉพาะรอบที่ยังไม่เคยตอบเลย (lastAttemptBeforeRound === null) · ปิดแล้วไม่ขึ้นอีกในรอบนั้น
-  const [firstEverRound, setFirstEverRound] = useState(false);
+  // stardust: ฉากเปิดของไข่ (ไข่ใบนี้ยังไม่เคยได้ EXP — stardust.showEggIntro จาก page.tsx) ปิดแล้วไม่ขึ้นอีกในหน้านี้
+  const [eggIntroDone, setEggIntroDone] = useState(false);
 
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
@@ -427,7 +427,6 @@ export default function QuizClient({
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
-        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -481,7 +480,6 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
-        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -530,7 +528,6 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
-        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -872,7 +869,6 @@ export default function QuizClient({
             }
             selectedChoice={selectedChoice}
             result={result}
-            combo={combo}
             isLast={isLastQuestion}
             choicesDisabled={!!result || isPending}
             nextDisabled={isPending || arrived}
@@ -893,8 +889,8 @@ export default function QuizClient({
                 {exitConfirm}
               </>
             }
-            showIntro={stardust.stage === 1 && firstEverRound && index === 0 && !result}
-            onIntroDone={() => setFirstEverRound(false)}
+            showIntro={stardust.showEggIntro && !eggIntroDone && index === 0 && !result}
+            onIntroDone={() => setEggIntroDone(true)}
             onSelect={handleSelectChoice}
             onNext={handleNext}
             onExit={() => setShowExitConfirm(true)}
@@ -1086,6 +1082,7 @@ export default function QuizClient({
           total={missionInfo?.targetCount ?? questions.length}
           priorCount={missionInfo?.answeredCountBefore ?? 0}
           correctCount={endCorrect}
+          starsLit={correctInRound}
           gainExp={finalExpEarned}
           expAddedToPet={summary ? summary.expAddedToPet : null}
           evolved={!!summary?.evolved}

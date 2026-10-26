@@ -17,7 +17,7 @@ export default async function QuizPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { mission, stardustPreview: stardustPreviewParam, element: elementParam, prior: priorParam } = await searchParams;
+  const { mission, stardustPreview: stardustPreviewParam, element: elementParam, prior: priorParam, r: endResultsParam } = await searchParams;
   const initialMissionId = typeof mission === "string" ? mission : null;
   // หน้าตอบคำถาม "ตามหาประกายดาว" — เปิดเมื่อ QUIZ_STARDUST_ENABLED=1 เท่านั้น ค่าอื่น/ไม่ตั้ง = หน้าเดิม
   const stardustEnabled = process.env.QUIZ_STARDUST_ENABLED === "1";
@@ -98,11 +98,12 @@ export default async function QuizPage({
           stage: pet.stage,
           exp: pet.exp,
           cracksBefore: pet.stage === 1 ? eggCracksBefore(pet.exp) : 0,
+          showEggIntro: pet.stage === 1 && pet.exp === 0,
         }
       : null;
 
   if (stardustPreview) {
-    // &element=fire|wood|water|sky|earth|divine · &prior=0–5 = ภารกิจที่ทำต่อจากรอบก่อน (ข้อก่อนหน้าไม่รู้ผล)
+    // &element=fire|wood|water|sky|earth|divine · &prior=0–5 = ภารกิจที่ทำต่อจากรอบก่อน (ข้อก่อนหน้าไม่รู้ผล) · &r=11010 = ผลหน้าจบรอบ
     const prefix = previewSpritePrefix(elementParam);
     const element = elementFromSpritePrefix(prefix);
     const prior = Math.min(5, Math.max(0, Number.parseInt(typeof priorParam === "string" ? priorParam : "0", 10) || 0));
@@ -114,6 +115,11 @@ export default async function QuizPage({
           kind={stardustPreview}
           element={element}
           prior={prior}
+          endResults={
+            typeof endResultsParam === "string" && /^[01]{5}$/.test(endResultsParam)
+              ? [...endResultsParam].map((c) => c === "1")
+              : null
+          }
           petImg={`/pets/${prefix}_stage2_baby.png`}
           eggImg={`/pets/${prefix}_stage1_egg.png`}
         />

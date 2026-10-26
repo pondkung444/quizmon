@@ -63,6 +63,7 @@ export default function StarStrip({
         {w > 0 && (
           <svg className="sd-links" aria-hidden focusable="false">
             {links.map((s, i) => {
+              if (s === "none") return null;
               const x1 = px(i);
               const x2 = px(i + 1);
               const draw = s === "lit" && popIndex === i + 1;

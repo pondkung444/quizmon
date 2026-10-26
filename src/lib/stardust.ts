@@ -6,8 +6,10 @@ import { eggAnswersLeft } from "./homeTrail.ts";
 // ข้อความทุกคำของหน้าอยู่ใน STARDUST_TEXT จุดเดียว · ต้นแบบ .oil-ui/quiz-play/ (design.md + proto/)
 // "ประกายดาว" = ชื่อในโลกของ EXP ไม่ใช่สกุลเงินใหม่ — ตัวเลขยังเขียน EXP เสมอ
 
-export type StarState = "lit" | "soft" | "now" | "todo";
-export type LinkState = "lit" | "soft" | "todo";
+// done-prior = ข้อภารกิจที่ทำไปแล้วก่อนรอบนี้ (ไม่รู้ผล) — ดาวจาง ไม่นับเป็นประกายดาวของรอบ
+// none = ไม่วาดเส้น (ช่วงที่แตะ done-prior)
+export type StarState = "lit" | "soft" | "now" | "todo" | "done-prior";
+export type LinkState = "lit" | "soft" | "todo" | "none";
 
 // ธาตุไข่ — egg_types ไม่มี column ธาตุ จึง map จาก sprite_prefix (ชื่อไข่/ชื่อสายพันธุ์ใน evolution.ts ยืนยันธาตุ)
 // neutral = ไม่รู้ธาตุ → ทองกลาง
@@ -35,7 +37,7 @@ export function elementFromSpritePrefix(prefix: string | null | undefined): Star
 // ---------- แถบดาว ----------
 
 // results = ผลของข้อในรอบนี้เรียงตามลำดับ (undefined = ยังไม่ตอบ) · total = ดาวทั้งแถบ
-// priorCount = ข้อที่ทำไปแล้วก่อนรอบนี้ (ภารกิจที่ทำต่อ) — ไม่รู้ผลถูก/ผิด → ดาวติดแต่ไม่มีเส้น
+// priorCount = ข้อที่ทำไปแล้วก่อนรอบนี้ (ภารกิจที่ทำต่อ) — ไม่รู้ผลถูก/ผิด → done-prior ไม่มีเส้นเข้า/ออก
 // currentIndex = ตำแหน่งดาวของข้อปัจจุบันบนแถบ (นับรวม priorCount แล้ว)
 export function buildStarStates(
   results: readonly (boolean | undefined)[],
@@ -48,7 +50,8 @@ export function buildStarStates(
   const stars: StarState[] = [];
   for (let i = 0; i < n; i++) {
     const r = resultAt(i);
-    if (r === "prior" || r === true) stars.push("lit");
+    if (r === "prior") stars.push("done-prior");
+    else if (r === true) stars.push("lit");
     else if (r === false) stars.push("soft");
     else stars.push(i === currentIndex ? "now" : "todo");
   }
@@ -56,7 +59,8 @@ export function buildStarStates(
   for (let i = 1; i < n; i++) {
     const a = resultAt(i - 1);
     const b = resultAt(i);
-    if (a === true && b === true) links.push("lit");
+    if (a === "prior" || b === "prior") links.push("none");
+    else if (a === true && b === true) links.push("lit");
     else if (b === undefined) links.push("todo");
     else links.push("soft");
   }
@@ -65,6 +69,13 @@ export function buildStarStates(
 
 export function countLit(results: readonly (boolean | undefined)[]): number {
   return results.filter((r) => r === true).length;
+}
+
+// ข้อถูกติดกันท้ายสุด "ในรอบนี้" (ผลบนจอ) — ใช้เลือกประโยคน้องเท่านั้น ไม่เกี่ยวกับ combo/ตัวคูณ EXP ของ server
+export function roundStreak(results: readonly (boolean | undefined)[]): number {
+  let c = 0;
+  for (let i = results.length - 1; i >= 0 && results[i] === true; i--) c++;
+  return c;
 }
 
 // ---------- ช่วงไข่ ----------
@@ -96,37 +107,40 @@ export function stageGrowth(stage: number, expBefore: number, added: number) {
 
 // ---------- คำพูดน้อง ----------
 
-export function starComboLine(combo: number): string | null {
-  if (combo === 3) return STARDUST_TEXT.say.combo3;
-  if (combo === 5) return STARDUST_TEXT.say.combo5;
-  if (combo === 8) return STARDUST_TEXT.say.combo8;
+// streak = ข้อถูกติดกันในรอบนี้ (roundStreak) แตะพอดี 3/5/8
+export function starComboLine(streak: number): string | null {
+  if (streak === 3) return STARDUST_TEXT.say.combo3;
+  if (streak === 5) return STARDUST_TEXT.say.combo5Streak;
+  if (streak === 8) return STARDUST_TEXT.say.combo8;
   return null;
 }
 
-// combo = คอมโบหลังตอบข้อนี้ (นับข้ามรอบตามระบบเดิม) — แตะพอดี 3/5/8 เหมือนคิว event เดิม
+// roundAllCorrect = ข้อสุดท้ายของรอบ และทุกข้อในรอบถูก → "ต่อกันครบทุกดวงเลย!" (มาก่อนประโยคคอมโบ)
 export function pickQmonLine(input: {
   isEgg: boolean;
   correct: boolean;
-  combo: number;
+  streak: number;
+  roundAllCorrect: boolean;
   cracksLeft: number;
   index?: number;
 }): string {
   const { say } = STARDUST_TEXT;
   if (input.isEgg) return input.correct ? say.eggOk(input.cracksLeft) : say.eggMiss;
   if (!input.correct) return say.miss;
-  return starComboLine(input.combo) ?? say.ok[(input.index ?? 0) % say.ok.length];
+  if (input.roundAllCorrect) return say.comboAll;
+  return starComboLine(input.streak) ?? say.ok[(input.index ?? 0) % say.ok.length];
 }
 
 // ---------- กลุ่มดาวตอนจบรอบ (พิกัด 0–100) ----------
 
-// พฤกษ์/เพลิงตามต้นแบบ · อีก 4 ธาตุเป็นร่าง รอปอนด์ดู
+// พฤกษ์/เพลิงตามต้นแบบ · ธาร/นภา/ธรา/เทพ ตามคำตอบปอนด์ (2026-10-26) — เส้นต่อเฉพาะดวงติดกันในลำดับ
 export const CONSTELLATIONS: Record<StardustElement, [number, number][]> = {
   fire: [[32, 92], [22, 58], [50, 6], [78, 52], [68, 92]], // เปลวไฟ
   wood: [[50, 96], [40, 66], [14, 40], [58, 30], [86, 6]], // กิ่งงอก
-  water: [[8, 40], [30, 64], [52, 40], [74, 64], [94, 40]], // ร่าง: คลื่น
-  sky: [[10, 70], [32, 30], [52, 58], [74, 16], [92, 46]], // ร่าง: สายฟ้า/ปีก
-  earth: [[8, 92], [30, 44], [50, 70], [70, 30], [92, 92]], // ร่าง: ภูเขา
-  divine: [[50, 4], [62, 40], [96, 46], [64, 64], [36, 64]], // ร่าง: ดาวประกาย
+  water: [[8, 40], [30, 64], [52, 40], [74, 64], [94, 40]], // คลื่น
+  sky: [[78, 6], [40, 38], [64, 50], [28, 82], [40, 96]], // สายฟ้าซิกแซก บนขวา → ล่างซ้าย
+  earth: [[28, 40], [6, 90], [94, 90], [72, 40], [50, 16]], // ภูเขาฐานกว้าง: ไหล่ซ้าย → ฐาน (เส้นนอน) → ไหล่ขวา → ยอด
+  divine: [[50, 4], [22, 92], [94, 36], [6, 36], [78, 92]], // ดาวแผ่รัศมี: ลากเส้นดาว 5 แฉกตามลำดับ (ไม่ซ้ำ W ของธาร)
   neutral: [[8, 70], [30, 40], [50, 60], [70, 30], [92, 50]],
 };
 
@@ -169,7 +183,8 @@ export const STARDUST_TEXT = {
   say: {
     ok: ["เห็นรูปแบบแล้ว! เก็บประกายดาวได้อีกดวง", "ดาวดวงนี้สว่างมาก ไปต่อกันเลย", "เราเข้าใจตรงนี้แล้ว ดาวติดอีกดวง"],
     combo3: "ดาวต่อกันสามดวงแล้ว เริ่มเห็นรูปร่างของเราแล้วนะ",
-    combo5: "ต่อกันครบทุกดวงเลย! รูปของเราชัดมาก",
+    comboAll: "ต่อกันครบทุกดวงเลย! รูปของเราชัดมาก",
+    combo5Streak: "ดาวต่อกันห้าดวงแล้ว รูปของเราชัดขึ้นเรื่อยๆ",
     combo8: "ดาวต่อกันแปดดวงแล้ว! เราสว่างขึ้นเรื่อยๆ เลย",
     miss: "วิธีนี้ยังไม่ลงตัว ลองดูตรงนี้อีกทีนะ",
     eggOk: (left: number) => (left > 0 ? `ไข่ร้าวอีกนิดแล้ว อีก ${left} ข้อเราจะตื่น` : "ไข่ร้าวครบแล้ว! จบรอบนี้เราจะตื่นมาเจอกัน"),
@@ -177,6 +192,7 @@ export const STARDUST_TEXT = {
   },
   meta: (isMission: boolean, n: number, total: number) => `${isMission ? "ภารกิจวันนี้" : "ฝึกฝน"} · ข้อ ${n} จาก ${total}`,
   stripLabel: (lit: number, n: number, total: number) => `เก็บประกายดาวแล้ว ${lit} ดวง · ข้อ ${n} จาก ${total}`,
+  stripLabelPrior: (n: number, total: number, lit: number) => `ข้อ ${n} จาก ${total} · รอบนี้เก็บประกายดาวได้ ${lit} ดวง`,
   stripLabelEgg: (cracks: number, n: number, total: number) =>
     `ไข่ร้าวแล้ว ${cracks} จาก ${EGG_HATCH_ANSWERS} ช่อง · ข้อ ${n} จาก ${total}`,
   exit: "ออกจากรอบทำโจทย์",

@@ -29,6 +29,7 @@ export default function StardustEnd({
   total,
   priorCount,
   correctCount,
+  starsLit,
   gainExp,
   expAddedToPet,
   evolved,
@@ -56,7 +57,10 @@ export default function StardustEnd({
   results: boolean[];
   total: number;
   priorCount: number;
+  // ตอบถูกทั้งภารกิจ (DB: missionClaim.correctCount) / ทั้งรอบ (โหมดฝึก) — ใช้ในบรรทัด "ตอบถูก N จาก M"
   correctCount: number;
+  // ดาวที่เก็บได้ "ในรอบนี้" เท่านั้น (ไม่นับข้อภารกิจที่ทำก่อนรอบ) — ใช้ในหัวข้อ
+  starsLit: number;
   gainExp: number;
   // null = ยังไม่มีผลจาก finishQuizRound (เช่นภารกิจที่ครบตั้งแต่ก่อนเปิดหน้า) → ใช้ gainExp แทนเพื่อแสดงแถบ
   expAddedToPet: number | null;
@@ -98,11 +102,11 @@ export default function StardustEnd({
   if (isEgg && hatchReady) {
     head = T.hatchHead;
     lead = T.hatchLead;
-  } else if (correctCount === 0) {
+  } else if (starsLit === 0) {
     head = T.zeroHead;
     lead = T.zeroLead;
   } else {
-    head = T.head(correctCount);
+    head = T.head(starsLit);
     lead = isEgg ? T.eggLead(correctCount, n, EGG_HATCH_ANSWERS - cracks) : T.lead(correctCount, n);
   }
 
@@ -121,6 +125,7 @@ export default function StardustEnd({
       <div className="sd-sky">
         <svg className="sd-cons" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden focusable="false">
           {links.map((s, i) => {
+            if (s === "none") return null;
             const [x1, y1] = points[i];
             const [x2, y2] = points[i + 1];
             const lit = s === "lit";
@@ -146,7 +151,7 @@ export default function StardustEnd({
           {points.map(([x, y], i) => (
             <g key={i} transform={`translate(${x} ${y}) scale(.55)`}>
               <path
-                className={`sd-st${stars[i] === "lit" ? "" : " soft"}`}
+                className={`sd-st${stars[i] === "lit" ? "" : stars[i] === "done-prior" ? " prior" : " soft"}`}
                 d={STAR_PATH}
                 style={{
                   ...(stars[i] === "lit" ? { fill: `url(#${gradientId})` } : {}),

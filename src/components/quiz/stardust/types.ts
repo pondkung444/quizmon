@@ -7,4 +7,6 @@ export type StardustPetInfo = {
   stage: number;
   exp: number;
   cracksBefore: number;
+  // ฉากเปิดของไข่: stage 1 และ exp === 0 (ไข่ใบนี้ยังไม่เคยได้ EXP — ไข่ใหม่เริ่มที่ exp 0 ดู eggs/actions.ts)
+  showEggIntro: boolean;
 };

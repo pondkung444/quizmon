@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildStarStates,
+  CONSTELLATIONS,
+  countLit,
+  roundStreak,
   constellationPoints,
   eggCracks,
   eggCracksBefore,
@@ -36,12 +39,33 @@ test("กลางรอบ: ข้อปัจจุบันเป็น now �
   assert.deepEqual(links, ["lit", "todo", "todo", "todo"]);
 });
 
-test("คอมโบ 3 / 5 / 8 ได้ข้อความคอมโบ · ไม่แตะพอดีได้ข้อความถูกปกติ", () => {
-  assert.equal(pickQmonLine({ isEgg: false, correct: true, combo: 3, cracksLeft: 0 }), STARDUST_TEXT.say.combo3);
-  assert.equal(pickQmonLine({ isEgg: false, correct: true, combo: 5, cracksLeft: 0 }), STARDUST_TEXT.say.combo5);
-  assert.equal(pickQmonLine({ isEgg: false, correct: true, combo: 8, cracksLeft: 0 }), STARDUST_TEXT.say.combo8);
-  assert.ok(STARDUST_TEXT.say.ok.includes(pickQmonLine({ isEgg: false, correct: true, combo: 4, cracksLeft: 0, index: 1 }) as never));
-  assert.equal(pickQmonLine({ isEgg: false, correct: false, combo: 0, cracksLeft: 0 }), STARDUST_TEXT.say.miss);
+const line = (o: { correct: boolean; streak: number; roundAllCorrect?: boolean; index?: number }) =>
+  pickQmonLine({ isEgg: false, cracksLeft: 0, roundAllCorrect: false, ...o });
+
+test("คอมโบในรอบ 3 / 5 / 8 ได้ประโยคคอมโบ · ไม่แตะพอดีได้ประโยคถูกปกติ", () => {
+  assert.equal(line({ correct: true, streak: 3 }), STARDUST_TEXT.say.combo3);
+  assert.equal(line({ correct: true, streak: 5 }), STARDUST_TEXT.say.combo5Streak);
+  assert.equal(line({ correct: true, streak: 8 }), STARDUST_TEXT.say.combo8);
+  assert.ok((STARDUST_TEXT.say.ok as readonly string[]).includes(line({ correct: true, streak: 4, index: 1 })));
+  assert.equal(line({ correct: false, streak: 0 }), STARDUST_TEXT.say.miss);
+});
+
+test("ครบทุกดวงขึ้นเฉพาะข้อสุดท้ายที่ถูกทุกข้อของรอบ", () => {
+  const results = [true, true, true, true, true];
+  assert.equal(roundStreak(results), 5);
+  assert.equal(line({ correct: true, streak: 5, roundAllCorrect: true }), STARDUST_TEXT.say.comboAll);
+  // ภารกิจ 8 ข้อ ถูกติดกัน 5 แต่ยังไม่จบรอบ → ประโยคคอมโบ 5 ไม่ใช่ "ครบทุกดวง"
+  assert.notEqual(line({ correct: true, streak: 5 }), STARDUST_TEXT.say.comboAll);
+});
+
+test("คอมโบข้ามรอบ: server combo = 4 ตอนเริ่ม ข้อแรกของรอบถูก → ไม่ขึ้นประโยคคอมโบ", () => {
+  // ประโยคใช้ผลบนจอของรอบนี้เท่านั้น (server combo 4+1 = 5 ไม่เกี่ยว)
+  const streak = roundStreak([true]);
+  assert.equal(streak, 1);
+  const said = line({ correct: true, streak, index: 0 });
+  assert.notEqual(said, STARDUST_TEXT.say.combo5Streak);
+  assert.notEqual(said, STARDUST_TEXT.say.comboAll);
+  assert.equal(said, STARDUST_TEXT.say.ok[0]);
 });
 
 test("ไข่: เกณฑ์ฟัก 5 ข้อ รอยร้าวจำกัดที่ 5", () => {
@@ -51,8 +75,8 @@ test("ไข่: เกณฑ์ฟัก 5 ข้อ รอยร้าวจ�
   assert.equal(eggCracksBefore(50), 5);
   assert.equal(eggCracks(3, 4), 5);
   assert.equal(eggCracks(1, 2), 3);
-  assert.equal(pickQmonLine({ isEgg: true, correct: true, combo: 3, cracksLeft: 2 }), "ไข่ร้าวอีกนิดแล้ว อีก 2 ข้อเราจะตื่น");
-  assert.equal(pickQmonLine({ isEgg: true, correct: false, combo: 0, cracksLeft: 2 }), STARDUST_TEXT.say.eggMiss);
+  assert.equal(pickQmonLine({ isEgg: true, correct: true, streak: 3, roundAllCorrect: false, cracksLeft: 2 }), "ไข่ร้าวอีกนิดแล้ว อีก 2 ข้อเราจะตื่น");
+  assert.equal(pickQmonLine({ isEgg: true, correct: false, streak: 0, roundAllCorrect: false, cracksLeft: 2 }), STARDUST_TEXT.say.eggMiss);
 });
 
 test("จำนวนข้อ 3", () => {
@@ -62,14 +86,26 @@ test("จำนวนข้อ 3", () => {
   assert.equal(constellationPoints("wood", 3).length, 3);
 });
 
-test("จำนวนข้อ 8 + ภารกิจทำต่อ (3 ข้อก่อนหน้าไม่รู้ผล → ดาวติด ไม่มีเส้น)", () => {
-  const { stars, links } = buildStarStates([true, true], 8, 5, 3);
-  assert.deepEqual(stars, ["lit", "lit", "lit", "lit", "lit", "now", "todo", "todo"]);
-  assert.deepEqual(links, ["soft", "soft", "soft", "lit", "todo", "todo", "todo"]);
+test("จำนวนข้อ 8 + ภารกิจทำต่อ prior=3: ข้อก่อนหน้าเป็น done-prior ไม่มีเส้นแตะ ไม่นับดวง", () => {
+  const round = [true, true];
+  const { stars, links } = buildStarStates(round, 8, 5, 3);
+  assert.deepEqual(stars, ["done-prior", "done-prior", "done-prior", "lit", "lit", "now", "todo", "todo"]);
+  // เส้น 1–2, 2–3, 3–4 แตะข้อก่อนหน้า → none · 4–5 ถูกทั้งคู่ → lit
+  assert.deepEqual(links, ["none", "none", "none", "lit", "todo", "todo", "todo"]);
+  assert.equal(countLit(round), 2);
+  assert.equal(STARDUST_TEXT.stripLabelPrior(6, 8, countLit(round)), "ข้อ 6 จาก 8 · รอบนี้เก็บประกายดาวได้ 2 ดวง");
   const pts = constellationPoints("fire", 8);
   assert.equal(pts.length, 8);
   assert.deepEqual(pts[0], [32, 92]);
   assert.deepEqual(pts[7], [68, 92]);
+});
+
+test("กลุ่มดาว 6 ธาตุไม่ซ้ำกัน · ธราเส้นฐานแนวนอน", () => {
+  const keys = ["fire", "wood", "water", "sky", "earth", "divine"] as const;
+  const shapes = keys.map((k) => JSON.stringify(CONSTELLATIONS[k]));
+  assert.equal(new Set(shapes).size, 6);
+  const e = CONSTELLATIONS.earth;
+  assert.ok(e.slice(1).some((p, i) => p[1] === e[i][1] && Math.abs(p[0] - e[i][0]) >= 60));
 });
 
 test("ธาตุจาก sprite_prefix + fallback", () => {
