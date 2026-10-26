@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { PERSONALITY_MESSAGES } from "../../src/lib/personalityMessages.ts";
 import { PERSONALITY_QUESTIONS } from "../../src/lib/personalityQuestions.ts";
@@ -87,4 +88,16 @@ test("personalityQuestions: ไม่มีสรรพนามต้องห�
 
 test(`personalityQuestions: ยาวไม่เกิน ${MAX_LEN} ตัวอักษร (ไม่นับชื่อสายพันธุ์)`, () => {
   assert.deepEqual(questionEntries.filter((e) => e.text.length > MAX_LEN), []);
+});
+
+// personaPrompt.ts ใช้ alias "@/" ซึ่ง node --test โหลดตรงไม่ได้ — ตรวจจากซอร์ส: ทุก prompt (ทุกบรรทัด "บุคลิกของคุณตอนนี้")
+// ต้องตามด้วยกติกาเสียงน้องทันที และทั้งไฟล์ไม่มี emoji (เดิมโทน balance มี 🌿)
+test("personaPrompt: ทุก prompt มีกติกาเสียงน้อง และไม่มี emoji", () => {
+  const src = readFileSync(new URL("../../src/lib/qmon/personaPrompt.ts", import.meta.url), "utf8");
+  const toneLines = src.match(/`บุคลิกของคุณตอนนี้: \$\{tone\}`,\r?\n\s*QMON_VOICE_RULES,/g) ?? [];
+  const allToneLines = src.match(/`บุคลิกของคุณตอนนี้: \$\{tone\}`,/g) ?? [];
+  assert.ok(allToneLines.length >= 5);
+  assert.equal(toneLines.length, allToneLines.length);
+  assert.equal(EMOJI.test(src), false);
+  for (const word of ["ข้า", "เจ้า", "หนู", "คุณ", "เธอ", "ท่าน"]) assert.ok(src.includes(word), `กติกาต้องห้าม ${word}`);
 });
