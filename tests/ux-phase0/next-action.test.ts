@@ -34,9 +34,8 @@ test("training Qmon to the daily cap comes before adventures and challenges", ()
 
   assert.equal(action.id, "train_to_cap");
   assert.equal(action.href, "/quiz");
-  assert.match(action.description, /125\/180 EXP/);
+  assert.match(action.meta, /125\/180 EXP/);
   assert.match(action.description, /55 EXP/);
-  assert.match(action.meta, /55 EXP/);
 });
 
 test("daily mission stays ahead of training Qmon", () => {
@@ -64,7 +63,20 @@ test("mission recommendation carries remaining work into the CTA", () => {
   const action = resolveNextAction({ ...base, mission: { id: "mission-1", remaining: 3, bonusExp: 10 } });
   assert.equal(action.href, "/quiz?mission=mission-1");
   assert.match(action.description, /3 ข้อ/);
-  assert.match(action.description, /10 EXP/);
+  assert.match(action.meta, /10 EXP/);
+  assert.equal(action.cta, "เริ่มภารกิจ");
+});
+
+test("mission copy uses topic, target and started state when given", () => {
+  const action = resolveNextAction({
+    ...base,
+    mission: { id: "mission-1", remaining: 2, bonusExp: 10, target: 5 },
+    missionTopic: "แรงและการเคลื่อนที่",
+    missionStarted: true,
+  });
+  assert.equal(action.id, "daily_mission");
+  assert.equal(action.description, "แรงและการเคลื่อนที่ · 5 ข้อ");
+  assert.equal(action.cta, "ทำต่อ · อีก 2 ข้อ");
 });
 
 test("premium daily cap (300) drives train-to-cap and capped copy", () => {
@@ -72,16 +84,17 @@ test("premium daily cap (300) drives train-to-cap and capped copy", () => {
 
   const training = resolveNextAction({ ...premium, expToday: 200 });
   assert.equal(training.id, "train_to_cap");
-  assert.match(training.description, /200\/300 EXP/);
-  assert.match(training.meta, /100 EXP/);
+  assert.match(training.meta, /200\/300 EXP/);
+  assert.match(training.description, /100 EXP/);
 
   const capped = resolveNextAction({ ...premium, expToday: 300 });
   assert.equal(capped.id, "practice");
-  assert.match(capped.description, /300\/300 EXP/);
+  assert.equal(capped.title, "วันนี้ครบทุกจุดแล้ว");
+  assert.match(capped.meta, /EXP ครบแล้ว/);
 });
 
 test("missing dailyExpCap falls back to the free cap", () => {
   const action = resolveNextAction({ ...base, dailyExpCap: undefined, expToday: 125 });
   assert.equal(action.id, "train_to_cap");
-  assert.match(action.description, /125\/180 EXP/);
+  assert.match(action.meta, /125\/180 EXP/);
 });

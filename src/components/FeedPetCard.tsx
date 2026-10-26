@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { feedPet } from "@/app/pet/actions";
 import { FOOD_LABEL, FOOD_IMAGE_PATH } from "@/lib/labels";
@@ -18,12 +18,15 @@ export default function FeedPetCard({
   initialFoodA,
   initialFoodB,
   variant = "button",
+  renderTrigger,
 }: {
   petId: string;
   initialFoodA: number;
   initialFoodB: number;
   // "tile" = ไทล์สีในส่วนกิจกรรมหน้า /pet (ดู ActivityTile.tsx) ส่วน sheet เลือกอาหารเหมือนเดิม
   variant?: "button" | "tile";
+  // ผู้เรียกวาดปุ่มเอง (แถว "อื่นๆ" หน้าแรกทางเดิน) — ใช้ sheet ชุดเดิม ข้าม variant
+  renderTrigger?: (open: () => void, totalFood: number) => ReactNode;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [foodA, setFoodA] = useState(initialFoodA);
@@ -65,7 +68,7 @@ export default function FeedPetCard({
 
   return (
     <>
-      {variant === "tile" ? (
+      {renderTrigger ? renderTrigger(openSheet, foodA + foodB) : variant === "tile" ? (
         <button type="button" onClick={openSheet} className={activityTileClass("food")}>
           <ActivityTileContent icon="🍽️" title="ป้อนอาหาร" subtitle={`มี ${foodA + foodB} ชิ้น`} />
         </button>

@@ -1204,3 +1204,236 @@ body {
   --color-on-amber: #15171c;
   color-scheme: dark;
 }
+
+/* ── หน้าแรก /pet ทาง A "เส้นทางวันนี้" (HOME_TRAIL_ENABLED=1, components/homeTrail/*) ─────────────
+   token --trail-* ครบ 3 ชุด: :root (ไม่มีธีม) / dusk / day — ค่าจากต้นแบบ .oil-ui/home-trail/proto/app.css
+   โครงหน้า: มือถือตั้ง (ค่าเริ่มต้น) / จอเตี้ยแนวนอน (landscape + สูง ≤540) / จอกว้าง (≥1024 + สูง >540)
+   หน้าอื่นไม่โดน: ทุก selector ผูกกับ .ht-* หรือ :root:has([data-home-trail]) */
+:root {
+  --trail-surface: var(--color-card);
+  --trail-surface2: var(--color-track);
+  --trail-line: var(--color-border);
+  --trail-track: var(--color-track);
+  --trail-text: var(--color-text);
+  --trail-text2: var(--color-text2);
+  --trail-text3: var(--color-text3);
+  --trail-gold: var(--color-gold);
+  --trail-gold-text: var(--color-gold-hi);
+  --trail-hero-a: #c2410c;
+  --trail-hero-b: #be3455;
+  --trail-hero-text: #ffffff;
+  --trail-hero-sub: #fff3ea;
+  --trail-cta-bg: #ffffff;
+  --trail-cta-text: #b8264f;
+  --trail-cta-shadow: #8e1d3d;
+  --trail-done: #5fd3b0;
+  --trail-done-text: #06382c;
+  --trail-path: var(--color-border);
+  --trail-path-done: #5fd3b0;
+  --trail-lock-bg: var(--color-bg);
+  --trail-lock-line: var(--color-border);
+  --trail-sky: var(--color-card);
+  --trail-hill: var(--color-track);
+}
+:root:has([data-app-theme="dusk"]) {
+  --trail-surface: #262052;
+  --trail-surface2: #2f2870;
+  --trail-line: #3f3a7a;
+  --trail-track: #15123a;
+  --trail-text: #ffffff;
+  --trail-text2: #d4d1f2;
+  --trail-text3: #b3afe0;
+  --trail-gold: #ffd166;
+  --trail-gold-text: #ffe08a;
+  --trail-hero-a: #f0782a;
+  --trail-hero-b: #e04f7c;
+  --trail-hero-text: #ffffff;
+  --trail-hero-sub: #fff3ea;
+  --trail-cta-bg: #ffffff;
+  --trail-cta-text: #b8264f;
+  --trail-cta-shadow: #8e1d3d;
+  --trail-done: #5fd3b0;
+  --trail-done-text: #06382c;
+  --trail-path: #4b4596;
+  --trail-path-done: #5fd3b0;
+  --trail-lock-bg: #211b4a;
+  --trail-lock-line: #4b4596;
+  --trail-sky: #2a2462;
+  --trail-hill: #342c7c;
+}
+:root:has([data-app-theme="day"]) {
+  --trail-surface: #ffffff;
+  --trail-surface2: #fff4dd;
+  --trail-line: #dfe6ef;
+  --trail-track: #e9eef5;
+  --trail-text: #23324a;
+  --trail-text2: #44536b;
+  --trail-text3: #5c6b82;
+  --trail-gold: #e3a02f;
+  --trail-gold-text: #9a4a07;
+  --trail-hero-a: #c2410c;
+  --trail-hero-b: #d94a2a;
+  --trail-hero-text: #ffffff;
+  --trail-hero-sub: #fff1e6;
+  --trail-cta-bg: #ffffff;
+  --trail-cta-text: #b3360b;
+  --trail-cta-shadow: #8f2c08;
+  --trail-done: #1f9d7a;
+  --trail-done-text: #ffffff;
+  --trail-path: #cfd9e6;
+  --trail-path-done: #1f9d7a;
+  --trail-lock-bg: #f3f5f9;
+  --trail-lock-line: #c6d1df;
+  --trail-sky: #e6f1ff;
+  --trail-hill: #fbe7c2;
+}
+
+.ht-main { width: 100%; margin: 0 auto; max-width: var(--app-frame-w); padding: 16px 18px 96px; display: flex; flex-direction: column; gap: 16px; }
+.ht { color: var(--trail-text); }
+.ht-side { display: block; }
+.ht-art { display: none; }
+.ht-title { font-size: 15px; font-weight: 500; color: var(--trail-text3); margin: 22px 4px 10px; }
+.ht-title-trail { margin-top: 18px; }
+
+.ht-me { display: flex; align-items: center; gap: 12px; }
+.ht-ava { width: 54px; height: 54px; border-radius: 50%; flex: none; background: var(--trail-surface); border: 2px solid var(--trail-gold); overflow: hidden; display: grid; place-items: center; }
+.ht-ava img { width: 64px; height: 64px; object-fit: cover; margin-top: 12px; }
+.ht-who { flex: 1; min-width: 0; }
+.ht-who h1 { font-size: 20px; font-weight: 500; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ht-sub { font-size: 14px; color: var(--trail-text2); font-family: var(--font-sarabun); line-height: 1.4; }
+.ht-bar { height: 10px; border-radius: 99px; background: var(--trail-track); margin-top: 7px; overflow: hidden; }
+.ht-bar i { display: block; height: 100%; border-radius: 99px; background: var(--trail-gold); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+.ht-week { flex: none; text-align: center; line-height: 1.2; font-size: 12px; color: var(--trail-text2); padding: 6px 8px; border-radius: 14px; background: var(--trail-surface); border: 1px solid var(--trail-line); min-width: 62px; }
+.ht-week b { display: block; font-size: 20px; font-weight: 700; color: var(--trail-gold-text); }
+.ht-sub { white-space: nowrap; }
+.ht-week-only-ic { display: none; }
+@media (max-width: 380px) {
+  .ht-me { gap: 8px; }
+  .ht-week { min-width: 54px; padding: 6px 4px; }
+}
+.ht-week-ic { display: block; width: 20px; height: 20px; margin: 2px auto 3px; color: var(--trail-gold-text); }
+.ht-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ht-title-row .ht-title { margin-right: 0; }
+.ht-chat { position: relative; width: 44px; height: 44px; flex: none; }
+
+.ht-trail { position: relative; }
+.ht-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.ht-line path { fill: none; stroke-width: 6; stroke-linecap: round; }
+.ht-line .p-todo { stroke: var(--trail-path); stroke-dasharray: 1 13; }
+.ht-line .p-done { stroke: var(--trail-path-done); }
+.ht-stops { list-style: none; position: relative; display: flex; flex-direction: column; gap: 36px; padding: 6px 0 4px; margin: 0; }
+.ht-stop { display: flex; align-items: center; gap: 14px; min-height: 64px; }
+.ht-stop.r { flex-direction: row-reverse; text-align: right; }
+.ht-dot { width: 62px; height: 62px; border-radius: 50%; flex: none; display: grid; place-items: center; position: relative; z-index: 1; background: var(--trail-surface); border: 2px solid var(--trail-gold); color: var(--trail-gold-text); }
+.ht-dot svg { width: 28px; height: 28px; }
+.ht-txt { min-width: 0; max-width: 62%; }
+.ht-t { font-size: 17px; font-weight: 500; line-height: 1.3; }
+.ht-d { font-size: 14px; color: var(--trail-text2); font-family: var(--font-sarabun); line-height: 1.45; }
+.ht-pill { display: inline-block; margin-top: 4px; font-size: 13px; font-weight: 500; padding: 2px 10px; border-radius: 99px; background: var(--trail-surface2); color: var(--trail-gold-text); }
+.ht-stop.done .ht-dot { background: var(--trail-done); border-color: var(--trail-done); color: var(--trail-done-text); }
+.ht-stop.done .ht-t { color: var(--trail-text2); }
+.ht-stop.locked .ht-dot { background: var(--trail-lock-bg); border: 2px dashed var(--trail-lock-line); color: var(--trail-text3); }
+.ht-stop.locked .ht-t { color: var(--trail-text2); }
+.ht-stop.locked .ht-d { color: var(--trail-text3); }
+.ht-stop.here .ht-dot { background: var(--trail-hero-b); border-color: var(--trail-hero-a); color: #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--trail-hero-a) 30%, transparent); }
+
+.ht-now { position: relative; border-radius: 24px; padding: 16px; color: var(--trail-hero-text); background: linear-gradient(135deg, var(--trail-hero-a), var(--trail-hero-b)); box-shadow: 0 10px 24px rgba(0,0,0,.18); scroll-margin-top: 96px; }
+.ht-now-top { position: relative; padding-left: 118px; min-height: 118px; }
+.ht-q { position: absolute; left: -14px; bottom: -10px; width: 136px; height: 136px; display: flex; align-items: flex-end; justify-content: center; filter: drop-shadow(0 8px 10px rgba(0,0,0,.25)); }
+.ht-q > button { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.ht-k { font-size: 14px; font-weight: 500; color: var(--trail-hero-sub); }
+.ht-now h3 { font-size: 23px; font-weight: 700; line-height: 1.25; margin: 2px 0 4px; }
+.ht-nd { font-size: 15px; color: var(--trail-hero-sub); font-family: var(--font-sarabun); line-height: 1.45; }
+.ht-pips { display: flex; gap: 5px; margin: 10px 0 0; }
+.ht-pips i { flex: 1; max-width: 30px; height: 9px; border-radius: 5px; background: rgba(255,255,255,.32); }
+.ht-pips i.on { background: #fff; }
+.ht-meter { height: 9px; border-radius: 5px; background: rgba(255,255,255,.32); margin-top: 10px; overflow: hidden; }
+.ht-meter i { display: block; height: 100%; background: #fff; border-radius: 5px; }
+.ht-reward { font-size: 14px; margin-top: 8px; color: var(--trail-hero-sub); font-family: var(--font-sarabun); }
+.ht-go { margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 10px 18px; border-radius: 14px; background: var(--trail-cta-bg); color: var(--trail-cta-text); font-size: 17px; font-weight: 700; box-shadow: 0 5px 0 var(--trail-cta-shadow); white-space: nowrap; transition: transform .08s ease-out, box-shadow .08s ease-out; width: 100%; }
+.ht-go:active { transform: translateY(3px) scale(.98); box-shadow: 0 2px 0 var(--trail-cta-shadow); }
+.ht-go:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.ht-go:disabled { opacity: .7; }
+.ht-err { margin-top: 8px; font-size: 13px; color: #fff; }
+.ht-say { position: absolute; left: 4px; bottom: calc(100% + 6px); z-index: 20; text-align: left; }
+
+.ht-more { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-radius: 20px; overflow: hidden; background: var(--trail-surface); border: 1px solid var(--trail-line); }
+.ht-more li + li { border-top: 1px solid var(--trail-line); }
+.ht-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 13px 16px; min-height: 56px; text-align: left; color: var(--trail-text); }
+.ht-row .ht-mi { width: 22px; height: 22px; flex: none; color: var(--trail-gold-text); }
+.ht-row .l { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ht-row .t { font-size: 16px; line-height: 1.3; }
+.ht-row .d { font-size: 13px; color: var(--trail-text3); font-family: var(--font-sarabun); }
+.ht-row .chev { width: 18px; height: 18px; color: var(--trail-text3); flex: none; }
+.ht-stats { margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; border-radius: 20px; border: 1px solid var(--trail-line); background: var(--trail-surface); padding: 16px; text-align: center; }
+.ht-footer { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
+.ht-top-now { margin-top: 16px; }
+/* การ์ด "ตอนนี้" render ทั้งตำแหน่งมือถือตั้ง (บนทาง/ใต้หัว) และฝั่งซ้าย (จอเตี้ย/จอกว้าง) — สลับด้วย CSS ล้วน ไม่กระพริบตอน hydrate */
+.ht-vis-two { display: none; }
+@media (orientation: landscape) and (max-height: 540px), (min-width: 1024px) and (min-height: 541px) {
+  .ht-vis-portrait { display: none; }
+  .ht-vis-two { display: block; }
+  .ht-stop.ht-vis-two { display: flex; }
+}
+
+/* จอเตี้ยแนวนอน (มือถือนอน) */
+@media (orientation: landscape) and (max-height: 540px) {
+  .ht-main { max-width: none; padding: 14px 24px 24px calc(72px + env(safe-area-inset-left) + 20px); }
+  .ht-grid { display: grid; grid-template-columns: minmax(280px, 40%) minmax(0, 1fr); gap: 24px; max-width: 1000px; }
+  .ht-side { position: sticky; top: 14px; align-self: start; }
+  .ht-ava { width: 46px; height: 46px; }
+  .ht-who h1 { font-size: 18px; }
+  /* ข้อความใต้ชื่อห้ามถูกตัด: ชิปสัปดาห์เหลือไอคอน + ปุ่มแชต 40px · ไม่พอให้ขึ้นบรรทัดสองทั้งก้อน "อีก {x} EXP" */
+  .ht-sub { white-space: normal; }
+  .ht-week { min-width: 0; padding: 8px; }
+  .ht-week-full { display: none; }
+  .ht-week-only-ic { display: block; width: 22px; height: 22px; color: var(--trail-gold-text); }
+  .ht-chat { width: 40px; height: 40px; }
+  .ht-chat > button { width: 40px; height: 40px; right: 0; bottom: 0; }
+  .ht-side .ht-now { margin-top: 12px; padding: 14px; }
+  .ht-now-top { padding-left: 100px; min-height: 96px; }
+  .ht-q { width: 112px; height: 112px; left: -12px; }
+  .ht-now h3 { font-size: 20px; }
+  .ht-go { min-height: 44px; margin-top: 10px; }
+  .ht-title-trail { margin-top: 2px; }
+  .ht-stops { gap: 20px; }
+  .ht-stop.r { flex-direction: row; text-align: left; }
+  .ht-txt { max-width: none; }
+  .ht-dot { width: 54px; height: 54px; }
+}
+/* เมนูล่างเป็นราวซ้าย 72px — เฉพาะหน้าที่มี [data-home-trail] (หน้าอื่นเมนูล่างเหมือนเดิม) */
+@media (orientation: landscape) and (max-height: 540px) and (max-width: 63.99rem) {
+  :root:has([data-home-trail]) [data-bottom-nav] { top: 0; right: auto; width: calc(72px + env(safe-area-inset-left)); padding: 8px 0 8px env(safe-area-inset-left) !important; border-top: 0; border-right: 1px solid var(--color-gold-dim); }
+  :root:has([data-home-trail]) [data-bottom-nav] > div { height: 100%; flex-direction: column; justify-content: center; gap: 6px; }
+  :root:has([data-home-trail]) [data-bottom-nav] > div > a { flex: none; }
+}
+
+/* จอกว้าง (iPad นอน / คอม) — /pet ใส่ data-app-wide เฉพาะตอนเปิด flag → --app-frame-w กว้างขึ้น rail/BGM/ฉากตาม */
+@media (min-width: 1024px) and (min-height: 541px) {
+  .ht-main { padding: 36px 24px 48px; }
+  .ht-grid { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 48px; }
+  .ht-side { position: sticky; top: 36px; align-self: start; }
+  .ht-art { display: block; position: relative; height: 260px; margin: 18px 0 0; border-radius: 28px; background: radial-gradient(120% 80% at 50% 105%, var(--trail-hill) 0 45%, var(--trail-sky) 46% 100%); }
+  .ht-art .ht-q { left: 50%; bottom: 6px; width: 240px; height: 240px; transform: translateX(-50%); filter: drop-shadow(0 12px 14px rgba(0,0,0,.28)); }
+  .ht-art .ht-say { left: auto; right: 14px; top: 14px; bottom: auto; max-width: 230px; }
+  .ht-side .ht-now { margin-top: 16px; padding: 18px; }
+  .ht-side .ht-now-top { padding-left: 0; min-height: 0; }
+  .ht-side .ht-now .ht-q { display: none; }
+  .ht-title-trail { margin-top: 4px; }
+  .ht-stops { gap: 30px; }
+  .ht-txt { max-width: 70%; }
+}
+
+/* การเคลื่อนไหว: เปิดหน้าครั้งแรกไล่ขึ้นทีละส่วน (เล่นตอน mount ครั้งเดียว) + pop จุดที่เพิ่งเสร็จ */
+@keyframes ht-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes ht-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.ht-intro .ht-me, .ht-intro .ht-art, .ht-intro .ht-now, .ht-intro .ht-stop, .ht-intro .ht-more { animation: ht-rise .42s cubic-bezier(.2,.8,.2,1) both; }
+.ht-intro .ht-now { animation-delay: .06s; }
+.ht-intro .ht-stops > :nth-child(2) > * { animation-delay: .1s; }
+.ht-intro .ht-stops > :nth-child(3) > * { animation-delay: .14s; }
+.ht-intro .ht-stops > :nth-child(4) > * { animation-delay: .18s; }
+.ht-intro .ht-stops > :nth-child(n+5) > * { animation-delay: .22s; }
+.ht-stop.just-done .ht-dot { animation: ht-pop .45s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .ht *, .ht *::before, .ht *::after { animation: none !important; transition: none !important; }
+}

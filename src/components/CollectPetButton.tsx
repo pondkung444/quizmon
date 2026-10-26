@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { collectPet, chooseEggAfterCollect } from "@/app/pet/actions";
 import EggChoiceModal, { type EggChoice } from "@/components/EggChoiceModal";
 
-export default function CollectPetButton({ eggChoices }: { eggChoices: EggChoice[] }) {
+export default function CollectPetButton({
+  eggChoices,
+  renderButton,
+}: {
+  eggChoices: EggChoice[];
+  // ผู้เรียกวาดปุ่มเอง (การ์ด "ตอนนี้" หน้าแรกทางเดิน) — flow เก็บ + เลือกไข่ชุดเดิม
+  renderButton?: (onCollect: () => void, isPending: boolean, errorMessage: string | null) => ReactNode;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -47,6 +54,8 @@ export default function CollectPetButton({ eggChoices }: { eggChoices: EggChoice
       />
     );
   }
+
+  if (renderButton) return <>{renderButton(handleCollect, isPending, errorMessage)}</>;
 
   return (
     <div className="flex w-full max-w-xs flex-col items-center gap-2">

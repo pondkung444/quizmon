@@ -25,6 +25,7 @@ import { Suspense } from "react";
 import GuardianHubLink from "@/components/guardian/GuardianHubLink";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
 import PetCard from "@/components/PetCard";
+import PetHomeTrail from "@/components/homeTrail/PetHomeTrail";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
 import TrackOnMount from "@/components/TrackOnMount";
 import type { EggChoice } from "@/components/EggChoiceModal";
@@ -35,6 +36,7 @@ import { RecentPremiumOrderBanner } from "@/components/PremiumOrderBanner";
 import HomeNextAction from "@/components/HomeNextAction";
 import Forest2048Entry from "@/components/Forest2048Entry";
 import { resolveNextAction } from "@/lib/nextAction";
+import { parseTrailPreview } from "@/lib/homeTrail";
 import { getPvpBadgeCount } from "@/lib/pvp";
 
 export default async function PetPage({
@@ -42,7 +44,7 @@ export default async function PetPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { evolved, animKey, animClip, animFps, animRandom, animQuizHappy } = await searchParams;
+  const { evolved, animKey, animClip, animFps, animRandom, animQuizHappy, trailPreview: trailPreviewParam } = await searchParams;
   const justEvolved = evolved === "1";
   const isProduction = process.env.VERCEL_ENV === "production";
 
@@ -52,6 +54,10 @@ export default async function PetPage({
   // Qmon Animation v1: เปิด sprite ให้ทุกคนทุก environment · ปิดฉุกเฉิน = ตั้ง QMON_ANIM_DISABLED=1 บน Vercel แล้ว redeploy
   // ตัวช่วยตรวจ ?animKey=<key>&animClip=idle|happy ใช้เฉพาะที่ไม่ใช่ production — production ไม่สนใจ param นี้
   const qmonSpriteEnabled = process.env.QMON_ANIM_DISABLED !== "1";
+  // หน้าแรกทาง A "เส้นทางวันนี้" (components/homeTrail) · เปิด = ตั้ง HOME_TRAIL_ENABLED=1 · ค่าอื่น/ไม่ตั้ง = PetCard เดิม
+  const homeTrailEnabled = process.env.HOME_TRAIL_ENABLED === "1";
+  // ?trailPreview=egg|mission|train|unlocked|collect|rest (ไม่ใช่ production เท่านั้น): ป้อนข้อมูลสมมติเข้าทางเดิน ไม่แตะ DB
+  const trailPreview = isProduction ? null : parseTrailPreview(trailPreviewParam);
   const animKeyParam = typeof animKey === "string" && /^egg[1-5]_stage[23]_[a-z]+$/.test(animKey) ? animKey : null;
   const spriteDebug =
     !isProduction && animKeyParam ? { key: animKeyParam, clip: animClip === "happy" ? ("happy" as const) : ("idle" as const) } : null;
@@ -312,6 +318,75 @@ export default async function PetPage({
     } catch (err) {
       console.error(err);
     }
+  }
+
+  // เส้นทางวันนี้: ต่อท้าย (ผู้พิทักษ์/พรีเมียม) ส่งเป็น footer ให้ไปอยู่คอลัมน์ขวาบนจอกว้าง — ลำดับเดิม
+  // 2048 ย้ายไปเป็นแถวใน "อื่นๆ" ของ PetHomeTrail (เฉพาะตอนเปิด flag — หน้าเดิมยังมีการ์ด Forest2048Entry)
+  const footer = (
+    <>
+      {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (junior ทุกคนเห็น: CTA พรีเมียม / แผนของฉัน / เตือนต่ออายุ — ดู SelfServePlanCard) */}
+      {/* ทางเข้าศูนย์ผู้พิทักษ์ (เฟส 1) — แถวเล็ก เฉพาะเด็กที่มีผู้พิทักษ์ claimed, streamed ไม่ถ่วงหน้า */}
+      {user && (
+        <Suspense fallback={null}>
+          <GuardianHubLink />
+        </Suspense>
+      )}
+      {user && <SelfServePlanCard />}
+    </>
+  );
+
+  if (homeTrailEnabled && pet && !needsPersonalityChoice) {
+    return (
+      <main data-home-trail data-app-wide className="ht-main">
+        {/* ปุ่มเพลงอยู่ในแถวหัวข้อ "เส้นทางวันนี้" (PetHomeTrail) แทนปุ่มลอย */}
+        {user && <WeeklyRewardCelebration />}
+        {user && <RecentPremiumOrderBanner userId={user.id} />}
+        <TrackOnMount event="pet_detail_open" props={{ source: "active" }} petId={pet.id} />
+        <PetHomeTrail
+          petId={pet.id}
+          stage={stage}
+          stageName={stageInfo.name}
+          exp={exp}
+          nextThreshold={nextThreshold}
+          progress={progress}
+          nickname={pet.nickname}
+          speciesName={speciesName}
+          petImagePath={petImagePath}
+          personalityKey={personalityKey}
+          statHp={statHp}
+          statAtk={statAtk}
+          statDef={statDef}
+          statSpd={statSpd}
+          statFoc={statFoc}
+          mathCorrect={mathCorrect}
+          scienceCorrect={scienceCorrect}
+          comboMilestones={comboMilestones}
+          expToday={expToday}
+          dailyCap={dailyCap}
+          justEvolved={justEvolved}
+          eggChoices={eggChoices}
+          journeyDays={journeyDays}
+          topicStats={topicStats}
+          mission={mission}
+          hasEverAnswered={hasEverAnswered}
+          myWeeklyRank={myWeeklyRank}
+          gradeBand={gradeBand}
+          subline={(subline ?? null) as Subline | null}
+          foodA={foodInventory.A}
+          foodB={foodInventory.B}
+          dungeonCard={dungeonCard}
+          raidTicketCount={raidTicketCount}
+          pvpTurnCount={pvpTurnCount}
+          qmonSpriteEnabled={qmonSpriteEnabled}
+          spriteDebug={spriteDebug}
+          spriteFps={spriteFps}
+          spriteRandomFast={spriteRandomFast}
+          spriteQuizHappy={spriteQuizHappy}
+          footer={footer}
+          trailPreview={trailPreview}
+        />
+      </main>
+    );
   }
 
   return (
