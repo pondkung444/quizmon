@@ -40,6 +40,10 @@ import QuizQuestionImage from "@/components/quiz/QuizQuestionImage";
 import { getSessionStorage, markQuizHappy } from "@/lib/qmonHappyTriggers";
 import MiniReviewRound from "@/components/quiz/MiniReviewRound";
 import { selectMissedQuestions } from "@/lib/learningFeedback";
+import { Sparkle } from "lucide-react";
+import StardustPlay from "@/components/quiz/stardust/StardustPlay";
+import StardustEnd from "@/components/quiz/stardust/StardustEnd";
+import type { StardustPetInfo } from "@/components/quiz/stardust/types";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -176,6 +180,7 @@ export default function QuizClient({
   initialMissionId = null,
   gradeBand = "junior",
   gradeLevel = null,
+  stardust = null,
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
@@ -184,6 +189,8 @@ export default function QuizClient({
   initialMissionId?: string | null;
   gradeBand?: GradeBand;
   gradeLevel?: string | null;
+  // flag QUIZ_STARDUST_ENABLED (page.tsx) — null = หน้าเดิมทุกอย่าง · ไม่ null = phase playing/summary แบบ "ตามหาประกายดาว"
+  stardust?: StardustPetInfo | null;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -242,6 +249,8 @@ export default function QuizClient({
   // id รอบปัจจุบัน — แนบทุก submitAnswer แล้ว finishQuizRound รวม EXP จาก DB ตาม id นี้เอง
   // (และใช้กันบวก EXP ซ้ำถ้า finish ถูกเรียกซ้ำ) ตั้งใหม่ทุกครั้งที่เริ่มรอบ
   const roundIdRef = useRef<string>(newRoundId());
+  // stardust: ฉากเปิดของไข่ขึ้นเฉพาะรอบที่ยังไม่เคยตอบเลย (lastAttemptBeforeRound === null) · ปิดแล้วไม่ขึ้นอีกในรอบนั้น
+  const [firstEverRound, setFirstEverRound] = useState(false);
 
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
@@ -418,6 +427,7 @@ export default function QuizClient({
         // sync คอมโบกับค่าจริงจาก server เสมอ (นับข้ามรอบได้ ไม่ hardcode 0)
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -471,6 +481,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -519,6 +530,7 @@ export default function QuizClient({
         setQuestions(round);
         setCombo(currentCombo);
         lastAttemptBeforeRoundRef.current = lastAttemptBeforeRound;
+        setFirstEverRound(lastAttemptBeforeRound === null);
         roundIdRef.current = newRoundId();
         setPhase("playing");
 
@@ -792,6 +804,105 @@ export default function QuizClient({
     // ตัดสินครั้งเดียวต่อข้อจากข้อมูลข้อนั้น — ไม่เปลี่ยนระหว่างตอบ
     const choicesInGrid = current.choices.every((c) => c.length <= CHOICE_GRID_MAX_CHARS);
 
+    const exitConfirm = showExitConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
+        <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5 text-center">
+          <p className="mb-1 text-sm font-bold text-text">ออกตอนนี้เลยไหม?</p>
+          <p className="mb-4 text-xs text-text3">ข้อที่ตอบไปแล้วยังนับคะแนนตามปกตินะ</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowExitConfirm(false)}
+              className="flex-1 rounded-2xl border border-gold-dim py-2.5 text-sm font-bold text-text2"
+            >
+              เล่นต่อ
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/pet")}
+              className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber"
+            >
+              ออก
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+
+    if (stardust) {
+      const guardianHere = guardianQuest?.questionIds.includes(current.id) ? guardianQuest : null;
+      return (
+        <div data-app-wide data-stardust data-element={stardust.element} className="quiz-play">
+          <StardustPlay
+            isEgg={stardust.stage === 1}
+            img={petAvatarPath}
+            cracksBefore={stardust.cracksBefore}
+            question={current}
+            index={index}
+            total={journeyTotal}
+            priorCount={missionInfo?.answeredCountBefore ?? 0}
+            results={answers.map((a) => a.isCorrect)}
+            isMission={!!missionInfo}
+            badges={
+              <>
+                {planInfo && (
+                  <div className="sd-badge">
+                    <span>กำลังทบทวน: {planInfo.chapterLabel}</span>
+                    <button type="button" onClick={handlePauseReview} disabled={pausingReview}>
+                      พักวันนี้
+                    </button>
+                  </div>
+                )}
+                {guardianHere && (
+                  <div className="sd-guardian">
+                    {guardianHere.message ? (
+                      <>
+                        <b>
+                          <Sparkle strokeWidth={2.4} aria-hidden />
+                          ผู้พิทักษ์ส่งมา
+                        </b>
+                        <p>{guardianHere.message}</p>
+                      </>
+                    ) : (
+                      <b>จากผู้พิทักษ์</b>
+                    )}
+                  </div>
+                )}
+              </>
+            }
+            selectedChoice={selectedChoice}
+            result={result}
+            combo={combo}
+            isLast={isLastQuestion}
+            choicesDisabled={!!result || isPending}
+            nextDisabled={isPending || arrived}
+            saving={isPending && arrived}
+            sheetFooter={
+              errorMessage && (
+                <div role="alert" className="sd-sheet-err">
+                  <p>{errorMessage}</p>
+                  <button type="button" onClick={() => router.push("/pet")}>
+                    กลับไปหา Qmon
+                  </button>
+                </div>
+              )
+            }
+            overlay={
+              <>
+                {pauseToastMessage && <Toast message={pauseToastMessage} onDone={() => setPauseToastMessage(null)} />}
+                {exitConfirm}
+              </>
+            }
+            showIntro={stardust.stage === 1 && firstEverRound && index === 0 && !result}
+            onIntroDone={() => setFirstEverRound(false)}
+            onSelect={handleSelectChoice}
+            onNext={handleNext}
+            onExit={() => setShowExitConfirm(true)}
+          />
+        </div>
+      );
+    }
+
     return (
       // data-app-wide: ≥ lg ขยายกรอบ (quiz-shell + ฉาก + BGM) ผ่าน --app-frame-w · 2 panel ดู .quiz-split ใน globals.css
       <div data-app-wide className="quiz-play flex flex-col gap-4">
@@ -807,30 +918,7 @@ export default function QuizClient({
           </button>
         </div>
 
-        {showExitConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
-            <div className="w-full max-w-xs rounded-2xl border border-gold-dim bg-card p-5 text-center">
-              <p className="mb-1 text-sm font-bold text-text">ออกตอนนี้เลยไหม?</p>
-              <p className="mb-4 text-xs text-text3">ข้อที่ตอบไปแล้วยังนับคะแนนตามปกตินะ</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowExitConfirm(false)}
-                  className="flex-1 rounded-2xl border border-gold-dim py-2.5 text-sm font-bold text-text2"
-                >
-                  เล่นต่อ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => router.push("/pet")}
-                  className="flex-1 rounded-2xl border border-gold bg-amber py-2.5 text-sm font-bold text-on-amber"
-                >
-                  ออก
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {exitConfirm}
 
         <QuizJourney completed={journeyCompleted} total={journeyTotal} avatar={petAvatarPath} />
         <div className="quiz-question-card flex flex-col gap-4">
@@ -971,6 +1059,68 @@ export default function QuizClient({
         </div>
 
         <button type="button" disabled={isPending} onClick={handleClaimReward} className="min-h-12 rounded-2xl border border-gold bg-amber/10 p-4 font-bold text-gold-hi disabled:opacity-50">{isPending?'กำลังรับรางวัล…':'รับโบนัสและเหรียญฟาร์ม'}</button>
+      </div>
+    );
+  }
+
+  if (phase === "summary" && stardust) {
+    // ตัวเลขชุดเดียวกับหน้าสรุปเดิมด้านล่าง: ภารกิจใช้ถูก/target จาก DB (missionClaim) · โหมดฝึกใช้ answers ของรอบ
+    const isEgg = stardust.stage === 1;
+    const name = isEgg ? "ไข่" : stardust.name;
+    const correctInRound = answers.filter((a) => a.isCorrect).length;
+    const endCorrect = missionInfo
+      ? missionClaim
+        ? missionClaim.correctCount
+        : missionInfo.answeredCountBefore + correctInRound
+      : correctInRound;
+    return (
+      <div data-app-wide data-stardust data-element={stardust.element} className="quiz-play">
+        <StardustEnd
+          element={stardust.element}
+          isEgg={isEgg}
+          img={petAvatarPath}
+          name={name}
+          stage={stardust.stage}
+          expBefore={stardust.exp}
+          results={answers.map((a) => a.isCorrect)}
+          total={missionInfo?.targetCount ?? questions.length}
+          priorCount={missionInfo?.answeredCountBefore ?? 0}
+          correctCount={endCorrect}
+          gainExp={finalExpEarned}
+          expAddedToPet={summary ? summary.expAddedToPet : null}
+          evolved={!!summary?.evolved}
+          toStage={summary?.toStage ?? null}
+          capped={!!summary?.capped}
+          missionBonusExp={missionClaim?.claimed ? missionClaim.bonusExp : null}
+          farmCoins={missionClaim?.coinsCredited ?? null}
+          saveWarning={saveWarning}
+          missionClaimFailed={missionClaimFailed}
+          missedCount={missionInfo ? 0 : missedQuestions.length}
+          onReview={missionInfo ? null : () => setPhase("review")}
+          onPlayAgain={missionInfo ? null : handlePlayAgain}
+          onBack={handleBackToSubjects}
+          onGoHatch={() => router.push("/pet")}
+          speech={
+            <SpeechBubble
+              message={personalityMessage}
+              avatarPath={petAvatarPath}
+              evolutionProgress={petEvolutionProgress}
+              dailyCapped={petDailyCapped}
+            />
+          }
+          rewards={summary && <GuardianRoundRewards summary={summary} />}
+          overlays={
+            <>
+              {summary?.reachedStage4 && <PersonalityDecisionModal onClose={() => router.push("/pet")} />}
+              {missionInfo && showFeedbackModal && (
+                <FeedbackModal petId={feedbackPetId} onClose={() => setShowFeedbackModal(false)} />
+              )}
+              {eggToastMessage && (
+                <Toast message={eggToastMessage.replace(/\s*🥚$/u, "")} onDone={() => setEggToastMessage(null)} />
+              )}
+            </>
+          }
+        />
       </div>
     );
   }
