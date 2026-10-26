@@ -190,7 +190,7 @@ export default function QuizClient({
   initialMissionId?: string | null;
   gradeBand?: GradeBand;
   gradeLevel?: string | null;
-  // flag QUIZ_STARDUST_ENABLED (page.tsx) — null = หน้าเดิมทุกอย่าง · ไม่ null = phase playing/summary แบบ "ตามหาประกายดาว"
+  // "ตามหาประกายดาว" (page.tsx ส่งมาเมื่อมี Qmon active) — null = หน้าเดิม · ไม่ null = phase playing/summary แบบใหม่
   stardust?: StardustPetInfo | null;
 }) {
   const router = useRouter();

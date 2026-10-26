@@ -19,11 +19,9 @@ export default async function QuizPage({
 }) {
   const { mission, stardustPreview: stardustPreviewParam, element: elementParam, prior: priorParam, r: endResultsParam } = await searchParams;
   const initialMissionId = typeof mission === "string" ? mission : null;
-  // หน้าตอบคำถาม "ตามหาประกายดาว" — เปิดเมื่อ QUIZ_STARDUST_ENABLED=1 เท่านั้น ค่าอื่น/ไม่ตั้ง = หน้าเดิม
-  const stardustEnabled = process.env.QUIZ_STARDUST_ENABLED === "1";
   // ?stardustPreview=egg-intro|egg|image|correct|wrong|end|egg-end (ไม่ใช่ production เท่านั้น): ข้อมูลตัวอย่าง ไม่ยิง action/event
   const stardustPreview =
-    stardustEnabled && process.env.VERCEL_ENV !== "production" ? parseStardustPreview(stardustPreviewParam) : null;
+    process.env.VERCEL_ENV !== "production" ? parseStardustPreview(stardustPreviewParam) : null;
 
   const supabase = await createClient();
   const user = await getUser();
@@ -91,8 +89,10 @@ export default async function QuizPage({
   const dailyCap = await dailyCapPromise;
   const petDailyCapped = petExpTodaySoFar >= dailyCap;
 
+  // หน้าตอบคำถาม "ตามหาประกายดาว" ใช้กับทุกคนที่มี Qmon active (เดิมซ่อนหลัง QUIZ_STARDUST_ENABLED — เอาออก 2026-10-27)
+  // ไม่มี pet (เคสหายาก) → stardust = null → QuizClient ใช้หน้าเดิม
   const stardust: StardustPetInfo | null =
-    stardustEnabled && pet
+    pet
       ? {
           element: elementFromSpritePrefix(eggType?.sprite_prefix),
           name: pet.nickname?.trim() || STARDUST_TEXT.fallbackName,
