@@ -25,7 +25,7 @@ import { applyTrailPreview, buildHomeTrail, type HomeTrailInput, type TrailPrevi
 import { track } from "@/lib/analytics";
 import { uxFunnelProps } from "@/lib/analyticsContract";
 
-// หน้าแรก /pet ทาง A "เส้นทางวันนี้" (เปิดด้วย HOME_TRAIL_ENABLED=1 ใน pet/page.tsx) — รับ props ชุดเดียวกับ PetCard
+// หน้าแรก /pet ทาง A "เส้นทางวันนี้" (ใช้เมื่อมี Qmon แล้ว ดู pet/page.tsx) — รับ props ชุดเดียวกับ PetCard
 // โครงหน้า 3 แบบตามจอ (CSS .ht-* ใน globals.css) — การ์ด "ตอนนี้" render ทุกตำแหน่งแล้วซ่อนด้วย CSS (ไม่กระพริบ)
 // ส่วนน้อง (sprite) ยังเลือกตำแหน่งด้วย JS เพราะ sprite หลายตัวพร้อมกันหนักเกินและ Happy ต้องมีตัวเดียว
 type Mode = "portrait" | "short" | "wide";
