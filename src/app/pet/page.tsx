@@ -24,7 +24,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import GuardianHubLink from "@/components/guardian/GuardianHubLink";
 import WeeklyRewardCelebration from "@/components/WeeklyRewardCelebration";
-import PetCard from "@/components/PetCard";
 import PetHomeTrail from "@/components/homeTrail/PetHomeTrail";
 import PendingPersonalityCard from "@/components/PendingPersonalityCard";
 import TrackOnMount from "@/components/TrackOnMount";
@@ -54,8 +53,6 @@ export default async function PetPage({
   // Qmon Animation v1: เปิด sprite ให้ทุกคนทุก environment · ปิดฉุกเฉิน = ตั้ง QMON_ANIM_DISABLED=1 บน Vercel แล้ว redeploy
   // ตัวช่วยตรวจ ?animKey=<key>&animClip=idle|happy ใช้เฉพาะที่ไม่ใช่ production — production ไม่สนใจ param นี้
   const qmonSpriteEnabled = process.env.QMON_ANIM_DISABLED !== "1";
-  // หน้าแรกทาง A "เส้นทางวันนี้" (components/homeTrail) · เปิด = ตั้ง HOME_TRAIL_ENABLED=1 · ค่าอื่น/ไม่ตั้ง = PetCard เดิม
-  const homeTrailEnabled = process.env.HOME_TRAIL_ENABLED === "1";
   // ?trailPreview=egg|mission|train|unlocked|collect|rest (ไม่ใช่ production เท่านั้น): ป้อนข้อมูลสมมติเข้าทางเดิน ไม่แตะ DB
   const trailPreview = isProduction ? null : parseTrailPreview(trailPreviewParam);
   const animKeyParam = typeof animKey === "string" && /^egg[1-5]_stage[23]_[a-z]+$/.test(animKey) ? animKey : null;
@@ -321,7 +318,7 @@ export default async function PetPage({
   }
 
   // เส้นทางวันนี้: ต่อท้าย (ผู้พิทักษ์/พรีเมียม) ส่งเป็น footer ให้ไปอยู่คอลัมน์ขวาบนจอกว้าง — ลำดับเดิม
-  // 2048 ย้ายไปเป็นแถวใน "อื่นๆ" ของ PetHomeTrail (เฉพาะตอนเปิด flag — หน้าเดิมยังมีการ์ด Forest2048Entry)
+  // 2048 อยู่เป็นแถวใน "อื่นๆ" ของ PetHomeTrail (หน้าไม่มี Qmon ยังใช้การ์ด Forest2048Entry)
   const footer = (
     <>
       {/* ไว้ล่างสุดของหน้า — ไม่ให้เด่นกว่า PetCard/ภารกิจ (junior ทุกคนเห็น: CTA พรีเมียม / แผนของฉัน / เตือนต่ออายุ — ดู SelfServePlanCard) */}
@@ -335,7 +332,8 @@ export default async function PetPage({
     </>
   );
 
-  if (homeTrailEnabled && pet && !needsPersonalityChoice) {
+  // มี Qmon แล้ว = หน้าแรกทาง A "เส้นทางวันนี้" (components/homeTrail) · ยังไม่มี Qmon / รอเลือกบุคลิก = ด้านล่าง
+  if (pet && !needsPersonalityChoice) {
     return (
       <main data-home-trail data-app-wide className="ht-main">
         {/* ปุ่มเพลงอยู่ในแถวหัวข้อ "เส้นทางวันนี้" (PetHomeTrail) แทนปุ่มลอย */}
@@ -402,51 +400,6 @@ export default async function PetPage({
       {user && <RecentPremiumOrderBanner userId={user.id} />}
       {pet && needsPersonalityChoice ? (
         <PendingPersonalityCard />
-      ) : pet ? (
-        <>
-        <TrackOnMount event="pet_detail_open" props={{ source: "active" }} petId={pet.id} />
-        <PetCard
-          petId={pet.id}
-          stage={stage}
-          stageName={stageInfo.name}
-          exp={exp}
-          nextThreshold={nextThreshold}
-          progress={progress}
-          nickname={pet.nickname}
-          speciesName={speciesName}
-          petImagePath={petImagePath}
-          personalityKey={personalityKey}
-          statHp={statHp}
-          statAtk={statAtk}
-          statDef={statDef}
-          statSpd={statSpd}
-          statFoc={statFoc}
-          mathCorrect={mathCorrect}
-          scienceCorrect={scienceCorrect}
-          comboMilestones={comboMilestones}
-          expToday={expToday}
-          dailyCap={dailyCap}
-          justEvolved={justEvolved}
-          eggChoices={eggChoices}
-          journeyDays={journeyDays}
-          topicStats={topicStats}
-          mission={mission}
-          hasEverAnswered={hasEverAnswered}
-          myWeeklyRank={myWeeklyRank}
-          gradeBand={gradeBand}
-          subline={(subline ?? null) as Subline | null}
-          foodA={foodInventory.A}
-          foodB={foodInventory.B}
-          dungeonCard={dungeonCard}
-          raidTicketCount={raidTicketCount}
-          pvpTurnCount={pvpTurnCount}
-          qmonSpriteEnabled={qmonSpriteEnabled}
-          spriteDebug={spriteDebug}
-          spriteFps={spriteFps}
-          spriteRandomFast={spriteRandomFast}
-          spriteQuizHappy={spriteQuizHappy}
-        />
-        </>
       ) : (
         <div className="flex flex-col gap-4">
           <HomeNextAction action={resolveNextAction({ hasPet: false })} learnerState="no_pet" />

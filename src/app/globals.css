@@ -1205,7 +1205,7 @@ body {
   color-scheme: dark;
 }
 
-/* ── หน้าแรก /pet ทาง A "เส้นทางวันนี้" (HOME_TRAIL_ENABLED=1, components/homeTrail/*) ─────────────
+/* ── หน้าแรก /pet ทาง A "เส้นทางวันนี้" (components/homeTrail/*) ─────────────
    token --trail-* ครบ 3 ชุด: :root (ไม่มีธีม) / dusk / day — ค่าจากต้นแบบ .oil-ui/home-trail/proto/app.css
    โครงหน้า: มือถือตั้ง (ค่าเริ่มต้น) / จอเตี้ยแนวนอน (landscape + สูง ≤540) / จอกว้าง (≥1024 + สูง >540)
    หน้าอื่นไม่โดน: ทุก selector ผูกกับ .ht-* หรือ :root:has([data-home-trail]) */
