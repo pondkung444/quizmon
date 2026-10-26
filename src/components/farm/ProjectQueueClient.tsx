@@ -4,6 +4,8 @@ import Image from "next/image";
 import { catalogueGate, PLACE_ART } from "@/lib/farm/catalogue-gates";
 import type { FarmPlace } from "@/lib/farm/catalogue";
 import { useState } from "react";
+import FarmPurchaseReview from "./FarmPurchaseReview";
+import type {ProjectDefinition} from "@/lib/farm/catalogue";
 import Link from "next/link";
 import type { loadProjectOverview } from "@/lib/farm/project-overview-server";
 import type { SchoolPet } from "@/lib/farm/school";
@@ -47,6 +49,7 @@ export default function ProjectQueueClient({
         FARM_CATALOGUE.map((c) => [c.id, crypto.randomUUID()]),
       ),
     );
+  const [purchase,setPurchase] = useState<{definition:ProjectDefinition;leaderId:string;requestId:string}|null>(null);
   const capacity = SCHOOL_CAPACITY[overview.level as 0 | 1 | 2 | 3 | 4];
   const occupied =
     projects.filter((p) => p.status !== "placed").length +
@@ -117,9 +120,15 @@ export default function ProjectQueueClient({
     ]);
   }
   return (
-    <div className="space-y-4">
+    <div className="farm-queue space-y-4">
+      {purchase && <FarmPurchaseReview title={labels[purchase.definition.place]+(purchase.definition.targetLevel ? " ระดับ "+purchase.definition.targetLevel : "")} price={purchase.definition.price} balance={balance} leader={pets.find(p=>p.id===purchase.leaderId)?.name??"คู่หู"} busy={busy} error={message} onCancel={()=>{setPurchase(null);setMessage("");}} onConfirm={()=>act(async()=>{
+        const p=await command("buy",{catalogueId:purchase.definition.id,requestId:purchase.requestId,leaderId:purchase.leaderId});
+        change(p);if(p.walletBalance!==undefined)setBalance(p.walletBalance);
+        setRequests(old=>({...old,[purchase.definition.id]:crypto.randomUUID()}));
+        setAssignments(rows=>[...rows,{project_id:p.id,pet_id:purchase.leaderId,role:"leader"}]);setPurchase(null);
+      })}/> }
       <h1 className="text-xl font-bold">
-        คิวงานฟาร์ม · โรงเรียนระดับ {overview.level}
+        งานก่อสร้าง · โรงเรียนระดับ {overview.level}
       </h1>
       <p>
         งาน {occupied}/{capacity.jobs} ช่อง · ผู้ช่วยได้สูงสุด{" "}
@@ -158,7 +167,7 @@ export default function ProjectQueueClient({
           return (
             <section
               key={p.id}
-              className="space-y-3 rounded-xl border border-white/20 p-4"
+              data-farm-panel className="space-y-3"
             >
               <h2 className="font-bold">
                 {labels[p.rules_snapshot.place]}
@@ -196,7 +205,7 @@ export default function ProjectQueueClient({
                   )}
                 </div>
               )}
-              <p>
+              <p className="farm-job-status">
                 {p.status === "ready"
                   ? "พร้อมยืนยันงาน"
                   : p.status === "paused"
@@ -209,7 +218,7 @@ export default function ProjectQueueClient({
               {p.ready_at && (
                 <p>
                   {p.status === "finishing" ? "เก็บงานเสร็จ" : "จุดช่วยถัดไป"}{" "}
-                  {new Date(p.ready_at).toLocaleString("th-TH")}
+                  <time dateTime={p.ready_at}>{new Date(p.ready_at).toLocaleString("th-TH")}</time>
                 </p>
               )}
               {["building", "puzzle", "finishing", "paused"].includes(
@@ -311,7 +320,7 @@ export default function ProjectQueueClient({
               )}
               {p.status === "puzzle" && (
                 <button
-                  className="min-h-11 rounded bg-amber-700 px-3"
+                  className="farm-primary"
                   disabled={busy}
                   onClick={() =>
                     act(async () => setSession(await beginProjectPuzzle(p.id)))
@@ -370,10 +379,11 @@ export default function ProjectQueueClient({
           </Link>
         ))}
       <h2 className="font-bold">โครงการถัดไป</h2>
+      {overview.level===0 && <div data-farm-panel><h3>เริ่มจากโรงเรียนหลังแรก</h3><p>วางโรงเรียนเพื่อเปิดงานก่อสร้างและสมุดแบบสร้าง</p><Link className="farm-primary" href="/collection/school">ไปสร้างโรงเรียน →</Link></div>}
       {FARM_CATALOGUE.filter(
         (c) =>
-          (c.place === "school" && c.targetLevel === overview.level + 1) ||
-          (c.place !== "school" && c.place !== "garden"),
+          (overview.level > 0 && c.place === "school" && c.targetLevel === overview.level + 1) ||
+          (c.place !== "school" && c.place !== "garden" && c.schoolLevel <= overview.level),
       ).map((c) => {
         const enabled = overview.catalogue.some(
           (row) => row.id === c.id && row.enabled,
@@ -399,7 +409,7 @@ export default function ProjectQueueClient({
         }
         return (
           <section
-            className="space-y-2 rounded-xl border border-white/20 p-4"
+            data-farm-panel className="space-y-2"
             key={c.id}
           >
             <h3>
@@ -476,30 +486,7 @@ export default function ProjectQueueClient({
                 <button
                   className="min-h-11 rounded bg-amber-700 px-3"
                   disabled={busy || !leader[c.id] || !gate.ready}
-                  onClick={() =>
-                    act(async () => {
-                      const p = await command("buy", {
-                        catalogueId: c.id,
-                        requestId: requests[c.id],
-                        leaderId: leader[c.id],
-                      });
-                      change(p);
-                      if (p.walletBalance !== undefined)
-                        setBalance(p.walletBalance);
-                      setRequests((old) => ({
-                        ...old,
-                        [c.id]: crypto.randomUUID(),
-                      }));
-                      setAssignments((rows) => [
-                        ...rows,
-                        {
-                          project_id: p.id,
-                          pet_id: leader[c.id],
-                          role: "leader",
-                        },
-                      ]);
-                    })
-                  }
+                  onClick={() => {setMessage("");setPurchase({definition:c,leaderId:leader[c.id],requestId:requests[c.id]});}}
                 >
                   {c.place === "school" ? "เริ่มอัปเกรด" : "เริ่มสร้าง"}{" "}
                   {c.price} เหรียญ

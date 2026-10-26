@@ -63,9 +63,11 @@ function fixture(): Awaited<ReturnType<typeof loadProjectOverview>> {
 export default function ProjectQueuePreview({
   catalogueMode = false,
   endgame = false,
+  failOnce = false,
 }: {
   catalogueMode?: boolean;
   endgame?: boolean;
+  failOnce?: boolean;
 }) {
   const [overview] = useState(() =>
       catalogueMode
@@ -96,11 +98,12 @@ export default function ProjectQueuePreview({
     ),
     [events, setEvents] = useState<string[]>([]),
     current = useRef(overview.projects[0]);
+  const failed = useRef(false);
   const purchases = useRef(new Map<string, FarmProject>());
   const command: typeof projectCommand = async (operation, input) => {
     if (catalogueMode && operation === "buy") {
       const nonce = input.requestId!;
-      if (purchases.current.has(nonce)) return purchases.current.get(nonce)!;
+      if (purchases.current.has(nonce)) return {...purchases.current.get(nonce)!, walletBalance:500-[...purchases.current.values()].reduce((n,p)=>n+p.rules_snapshot.price,0)};
       const definition = FARM_CATALOGUE.find(
         (c) => c.id === input.catalogueId,
       )!;
@@ -118,6 +121,7 @@ export default function ProjectQueuePreview({
       };
       purchases.current.set(nonce, project);
       setEvents((rows) => [...rows, nonce]);
+      if(failOnce&&!failed.current){failed.current=true;throw Error("การตอบกลับขาดหาย ลองยืนยันอีกครั้งได้");}
       return {
         ...project,
         walletBalance:

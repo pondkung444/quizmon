@@ -11,9 +11,9 @@ try {
     { width: 844, height: 390 },
   ]) {
     await p.setViewportSize(size);
-    await p.goto("http://localhost:3107/collection/preview?kind=teams");
+    await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=teams");
     await p
-      .getByRole("heading", { name: "คิวงานฟาร์ม · โรงเรียนระดับ 2" })
+      .getByRole("heading", { name: "งานก่อสร้าง · โรงเรียนระดับ 2" })
       .waitFor();
     assert.equal(
       await p.evaluate(

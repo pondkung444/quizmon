@@ -20,7 +20,7 @@ try {
     await page.route("**/api/farm/attention", (route) =>
       route.fulfill({ json: state }),
     );
-    await page.goto("http://localhost:3107/collection/preview?kind=attention");
+    await page.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=attention");
     await page.getByRole("link", { name: "ไปฟักไข่ →" }).waitFor();
     assert.equal(
       await page

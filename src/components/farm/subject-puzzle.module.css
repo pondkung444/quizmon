@@ -126,3 +126,7 @@
     font-size: 14px;
   }
 }
+
+.puzzle{background:#fff;color:#443052;border:1px solid #e0d4ed;border-radius:22px}.puzzle h2{color:#4c3567}.puzzle button,.puzzle select{border-color:#d7c7e6}.submit{background:#6549c9!important;color:#fff!important;border-color:#6549c9!important}.fact{background:#eee7fa;color:#58416d}.message{color:#5d4478}
+
+.puzzle button[aria-pressed="true"]{background:#eee5fb;border-color:#9876d1}.puzzle fieldset{border-color:#d9cbe9;padding:12px}.tools{gap:8px}.tools button{color:#5f4380}.pipe span{color:#665176;font-size:12px;line-height:1.4}.pipe .remove{font-size:12px;color:#805569}

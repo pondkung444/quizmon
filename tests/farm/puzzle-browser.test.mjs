@@ -18,7 +18,7 @@ try {
   ]) {
     await page.setViewportSize(viewport);
     for (const kind of ["pond", "flower", "bridge", "observatory"]) {
-      await page.goto("http://localhost:3107/collection/preview?kind=" + kind);
+      await page.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=" + kind);
       await page.getByRole("button", { name: "ตรวจผังนี้" }).waitFor();
       assert.equal(
         await page.evaluate(
@@ -43,7 +43,7 @@ try {
   await page.setViewportSize({ width: 375, height: 667 });
   for (const kind of ["pond", "flower", "bridge", "observatory"]) {
     const p = generatePuzzle(kind, 17445);
-    await page.goto("http://localhost:3107/collection/preview?kind=" + kind);
+    await page.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=" + kind);
     await page.getByRole("button", { name: "ตรวจผังนี้" }).waitFor();
     // Incomplete submission keeps the existing puzzle and permits another answer.
     await page.getByRole("button", { name: "ตรวจผังนี้" }).click();

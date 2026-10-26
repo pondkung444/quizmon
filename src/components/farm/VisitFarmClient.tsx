@@ -91,7 +91,7 @@ export default function VisitFarmClient({
         </div>
       </section>
       {place && (
-        <section className="space-y-2 rounded-xl border border-white/20 p-4">
+        <section data-farm-panel className="space-y-2">
           <h2 className="font-bold">
             {labels[place.kind]}
             {place.kind === "school" ? " ระดับ " + place.level : ""}
@@ -126,7 +126,7 @@ export default function VisitFarmClient({
           </button>
         </section>
       )}
-      <section className="space-y-3 rounded-xl border border-white/20 p-4">
+      <section data-farm-panel className="space-y-3">
         <h2 className="font-bold">ส่งกำลังใจให้ฟาร์ม</h2>
         <p>
           {sent

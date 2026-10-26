@@ -1,0 +1,698 @@
+:root:has([data-farm-shell][data-farm-version="2"]) {
+  --background:#f7f5fc;
+  --foreground:#2c2643;
+  --color-bg:#f7f5fc;
+  --color-card:#fff;
+  --color-border:#ded7eb;
+  --color-text:#2c2643;
+  --color-text2:#655d76;
+  --color-text3:#71687e;
+  --color-track:#eee9f8;
+  --color-gold-hi:#6046b9;
+  --color-gold:#6c52bd;
+  --color-gold-dim:#dad1eb;
+  --color-amber:#6549c9;
+  --color-amber-dim:#e6dff7;
+  --color-on-amber:#fff;
+  --color-red:#b63245;
+  --color-indigo:#6550bd;
+  --color-indigo-dim:#e5def5;
+  --color-indigo-hi:#423579;
+  --color-good:#276e50;
+  --color-warn:#946522;
+  --color-mint:#276e50
+}
+
+.farm-shell {
+  background:#f7f5fc;
+  color:#2c2643;
+  min-height:100dvh;
+  font-family:var(--font-farm),var(--font-kanit),sans-serif;
+  --farm-accent:#6549c9;
+  --farm-soft:#eee8fc;
+  --farm-muted:#655d76;
+  padding:0 20px 100px;
+  line-height:1.6
+}
+.farm-topbar,.farm-tabs,.farm-content {
+  width:100%;
+  max-width:1120px;
+  margin-inline:auto
+}
+.farm-topbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:72px;
+  gap:16px
+}
+.farm-brand {
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  font-size:19px;
+  text-decoration:none;
+  color:#312645
+}
+.farm-brand>span {
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:#6549c9;
+  color:#fff
+}
+.farm-brand em {
+  font-style:normal;
+  font-weight:500;
+  color:#716180
+}
+.farm-back {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:44px;
+  color:#6046b9;
+  font-size:14px
+}
+.farm-tabs {
+  display:flex;
+  gap:5px;
+  padding:6px;
+  border:1px solid #e2dbef;
+  border-radius:16px;
+  background:#fff;
+  margin-bottom:26px;
+  overflow:auto;
+  scrollbar-width:none
+}
+.farm-tabs a {
+  flex:1;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  min-height:45px;
+  border-radius:11px;
+  padding:8px 12px;
+  text-decoration:none;
+  font-weight:500;
+  font-size:14px;
+  color:#6a607a;
+  white-space:nowrap
+}
+.farm-tabs a[aria-current=page] {
+  color:#5d42b8;
+  background:#eee8fc
+}
+.farm-content {
+  min-width:0
+}
+.farm-shell main {
+  min-height:0;
+  padding-top:0
+}
+.farm-shell a,.farm-shell button,.farm-shell input,.farm-shell select {
+  touch-action:manipulation
+}
+.farm-shell button,.farm-shell input,.farm-shell select,.farm-shell textarea {
+  font:inherit;
+  max-width:100%
+}
+.farm-shell button,.farm-shell select {
+  min-height:44px
+}
+.farm-shell select {
+  border:1px solid #d8cfe9;
+  border-radius:12px;
+  background:#fff!important;
+  color:#312645!important;
+  padding:10px 12px
+}
+.farm-shell input[type=checkbox] {
+  accent-color:#6549c9;
+  width:19px;
+  height:19px
+}
+.farm-shell :focus-visible {
+  outline:3px solid #8c74d4;
+  outline-offset:3px
+}
+.farm-shell h1 {
+  font-size:clamp(24px,3vw,30px);
+  font-weight:700;
+  line-height:1.35;
+  letter-spacing:-.4px
+}
+.farm-shell h2 {
+  line-height:1.4
+}
+.farm-shell p,.farm-shell li {
+  overflow-wrap:anywhere
+}
+.farm-primary {
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  gap:8px;
+  min-height:48px;
+  padding:11px 17px;
+  background:#6549c9;
+  color:#fff;
+  border:1px solid #6549c9;
+  border-radius:13px;
+  font-weight:600;
+  text-align:center;
+  box-shadow:0 3px 0 #4d359f;
+  transition:transform .14s,box-shadow .14s
+}
+.farm-primary:active {
+  transform:translateY(2px);
+  box-shadow:0 1px 0 #4d359f
+}
+.farm-secondary {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:44px;
+  padding:9px 14px;
+  border:1px solid #d9cfe9;
+  border-radius:12px;
+  background:#fff;
+  color:#5c478e;
+  font-weight:500
+}
+.farm-muted {
+  color:#655d76;
+  font-size:14px;
+  line-height:1.7
+}
+.farm-alert {
+  padding:13px 15px;
+  border:1px solid #e7bbc2;
+  background:#fff0f3;
+  color:#9b2e42;
+  border-radius:12px;
+  line-height:1.6
+}
+.farm-shell [role=alert] {
+  color:#9b2e42
+}
+.farm-shell button:disabled {
+  cursor:not-allowed;
+  opacity:.55
+}
+.farm-content>main>h1 {
+  margin-top:10px
+}
+.farm-content>main>h1+p {
+  color:#655d76;
+  margin:8px 0 22px
+}
+.farm-content>main>section {
+  min-width:0
+}
+.farm-shell [class~="bg-slate-950/90"] {
+  background:#443359;
+  color:#fff
+}
+.farm-shell .bg-amber-700 {
+  background:#6549c9;
+  color:#fff
+}
+.farm-shell [class~="border-white/20"] {
+  border-color:#ded7eb
+}
+.farm-shell [class~="bg-white/10"] {
+  background:#eee8fc;
+  color:#6046b9
+}
+.farm-shell button.rounded {
+  border-radius:12px;
+  padding:10px 15px
+}
+.farm-purchase {
+  width:min(440px,calc(100vw - 32px));
+  margin:auto;
+  padding:24px;
+  border:1px solid #d9d0eb;
+  border-radius:24px;
+  background:#fff;
+  color:#2c2643;
+  box-shadow:0 25px 80px #29203935;
+  max-height:calc(100dvh - 40px);
+  overflow:auto;
+  animation:farm-dialog-in .2s ease-out
+}
+.farm-purchase::backdrop {
+  background:#211a3b75;
+  backdrop-filter:blur(3px)
+}
+.farm-purchase header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between
+}
+.farm-purchase header button {
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  border-radius:12px
+}
+.farm-dialog-icon {
+  background:#eee8fc;
+  color:#6046b9;
+  padding:11px;
+  border-radius:15px
+}
+.farm-purchase h2 {
+  font-size:24px;
+  font-weight:700;
+  margin:18px 0 6px
+}
+.farm-purchase>p {
+  margin-bottom:15px
+}
+.farm-purchase dl {
+  background:#f8f5fd;
+  border-radius:15px;
+  padding:10px 16px;
+  margin:20px 0
+}
+.farm-purchase dl>div {
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  padding:9px 0;
+  font-size:14px
+}
+.farm-purchase dt {
+  color:#6a607b
+}
+.farm-purchase dd {
+  display:flex;
+  align-items:center;
+  gap:5px;
+  text-align:right;
+  font-weight:600
+}
+.farm-purchase>.farm-primary,.farm-purchase>.farm-secondary {
+  width:100%;
+  margin-top:10px
+}
+.farm-shell [data-farm-panel] {
+  background:#fff;
+  border:1px solid #ded7eb;
+  border-radius:20px;
+  padding:20px
+}
+.farm-shell [data-farm-panel] h2 {
+  font-size:19px;
+  font-weight:600
+}
+.farm-shell [data-farm-panel] h3 {
+  font-size:18px;
+  font-weight:600
+}
+.farm-shell [data-farm-panel] p {
+  font-size:14px;
+  line-height:1.65
+}
+.farm-shell [data-farm-panel] fieldset {
+  padding:12px;
+  border:1px solid #e4dcef;
+  border-radius:13px
+}
+.farm-shell [data-farm-panel] legend {
+  padding:0 6px;
+  font-weight:500
+}
+.farm-shell [data-farm-panel] button {
+  min-height:44px
+}
+.farm-shell [data-farm-panel] ul {
+  color:#685f78;
+  font-size:14px
+}
+.farm-shell [data-farm-panel] a {
+  color:#6046b9
+}
+.farm-shell .farm-game-panel {
+  border:1px solid #ddd4ed;
+  border-radius:22px;
+  padding:20px;
+  background:#fff
+}
+
+:root:has([data-farm-shell][data-farm-version="2"]) nav[data-app-navigation] {
+  border-color:#e0d8ef;
+  background:#fcfbffef;
+  backdrop-filter:blur(14px);
+  font-family:var(--font-kanit),sans-serif
+}
+
+@keyframes farm-dialog-in {
+  from {
+  transform:translateY(12px);
+  opacity:0
+}
+to {
+  transform:none;
+  opacity:1
+}
+
+}
+@keyframes farm-appear {
+  from {
+  opacity:0;
+  transform:translateY(6px)
+}
+to {
+  opacity:1;
+  transform:none
+}
+
+}
+.farm-content>main {
+  animation:farm-appear .25s ease-out
+}
+
+@media(max-width:600px) {
+  .farm-shell {
+  padding-inline:14px
+}
+.farm-topbar {
+  min-height:64px
+}
+.farm-brand {
+  font-size:17px
+}
+.farm-brand>span {
+  width:30px;
+  height:30px
+}
+.farm-tabs {
+  margin-bottom:22px;
+  padding:4px;
+  gap:2px
+}
+.farm-tabs a {
+  font-size:12px;
+  padding:8px;
+  gap:5px
+}
+.farm-tabs svg {
+  width:16px;
+  height:16px
+}
+.farm-shell [data-farm-panel] {
+  padding:16px;
+  border-radius:17px
+}
+.farm-purchase {
+  padding:20px
+}
+.farm-purchase dl>div {
+  font-size:13px
+}
+
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .farm-content>main,.farm-purchase {
+  animation:none
+}
+.farm-primary {
+  transition:none
+}
+
+}
+
+
+.farm-dashboard-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin:0 0 22px
+}
+.farm-dashboard-heading p {
+  font-size:14px;
+  color:#756785;
+  margin-bottom:5px
+}
+.farm-wallet {
+  background:#fff;
+  border:1px solid #e3d8ed;
+  border-radius:100px;
+  padding:10px 16px;
+  font-size:13px;
+  white-space:nowrap
+}
+.farm-wallet b {
+  color:#74502b;
+  margin-left:8px;
+  font-size:18px
+}
+.farm-dashboard-grid {
+  display:grid;
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+  gap:24px;
+  align-items:start
+}
+.farm-mission {
+  background:linear-gradient(135deg,#eae1ff,#f2eafa);
+  border:1px solid #dfd0f5;
+  border-radius:24px;
+  padding:24px;
+  position:relative;
+  overflow:hidden
+}
+.farm-eyebrow {
+  color:#69518b;
+  font-size:13px;
+  font-weight:600;
+  display:block;
+  margin-bottom:22px
+}
+.farm-mission-pet {
+  float:right;
+  object-fit:contain;
+  margin:8px -7px 12px 8px;
+  filter:drop-shadow(0 8px 9px #67518328)
+}
+.farm-mission h2 {
+  font-size:26px;
+  font-weight:700;
+  line-height:1.45;
+  margin-bottom:12px;
+  color:#392c58
+}
+.farm-mission p {
+  font-size:15px;
+  color:#655575;
+  margin-bottom:24px;
+  min-height:48px
+}
+.farm-mission .farm-primary {
+  width:100%;
+  clear:both
+}
+.farm-mission small {
+  display:block;
+  text-align:center;
+  font-size:12px;
+  color:#706080;
+  margin-top:13px
+}
+.farm-map-panel {
+  min-width:0
+}
+.farm-shortcuts {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:16px;
+  margin-top:24px
+}
+.farm-shortcuts a {
+  padding:18px;
+  border-top:2px solid #e2d8ef;
+  display:flex;
+  flex-direction:column;
+  gap:6px
+}
+.farm-shortcuts b {
+  font-size:16px
+}
+.farm-shortcuts span {
+  font-size:13px;
+  color:#71617d
+}
+@media(max-width:700px) {
+  .farm-dashboard-grid {
+  grid-template-columns:1fr;
+  gap:18px
+}
+.farm-dashboard-heading {
+  align-items:flex-start
+}
+.farm-dashboard-heading p {
+  font-size:12px
+}
+.farm-wallet {
+  padding:6px 10px;
+  font-size:11px
+}
+.farm-wallet b {
+  font-size:16px
+}
+.farm-mission {
+  padding:20px
+}
+.farm-mission h2 {
+  font-size:25px
+}
+.farm-mission-pet {
+  width:90px;
+  height:90px
+}
+.farm-eyebrow {
+  margin-bottom:14px
+}
+.farm-mission p {
+  margin-bottom:20px
+}
+.farm-shortcuts {
+  grid-template-columns:1fr;
+  gap:0
+}
+.farm-shortcuts a {
+  padding:14px 4px
+}
+.farm-dashboard-heading {
+  margin-bottom:18px
+}
+
+}
+
+
+.farm-shell [data-farm-panel] a.farm-primary {
+  color:#fff
+}
+.farm-queue {
+  max-width:720px;
+  margin:auto
+}
+.farm-shell [data-farm-panel]>img {
+  margin:12px auto
+}
+.farm-shell [data-farm-panel]>p {
+  color:#6b5d79
+}
+
+
+.farm-mission h2 {
+  overflow-wrap:normal
+}
+.farm-mission-pet {
+  margin-left:14px
+}
+.farm-queue [data-farm-panel]>p.farm-job-status {
+  font-weight:600;
+  color:#60417e;
+  background:#f1ebfa;
+  padding:10px 12px;
+  border-radius:12px
+}
+.farm-queue time {
+  font-variant-numeric:tabular-nums;
+  font-weight:500
+}
+.farm-shell [data-farm-panel] .farm-primary {
+  margin-top:12px
+}
+@media(max-width:600px) {
+  .farm-topbar {
+  min-height:56px
+}
+.farm-mission-pet {
+  width:80px;
+  height:90px;
+  margin-left:8px
+}
+
+}
+
+
+.farm-purchase-actions {
+  position:sticky;
+  bottom:-24px;
+  background:#fff;
+  padding:12px 0 4px;
+  border-top:1px solid #e9e1f1
+}
+.farm-purchase-actions>button {
+  width:100%;
+  margin-top:8px
+}
+.farm-purchase-actions .farm-alert {
+  font-size:14px;
+  margin-bottom:8px
+}
+@media(max-height:500px) {
+  .farm-purchase {
+  padding:16px;
+  max-height:calc(100dvh - 24px)
+}
+.farm-purchase header {
+  float:right
+}
+.farm-purchase h2 {
+  font-size:21px;
+  margin:0 0 4px
+}
+.farm-purchase>p {
+  margin-bottom:6px
+}
+.farm-purchase dl {
+  margin:10px 0;
+  padding:4px 12px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px
+}
+.farm-purchase dl>div {
+  display:block;
+  padding:6px 0;
+  font-size:13px
+}
+.farm-purchase dd {
+  justify-content:flex-start;
+  text-align:left
+}
+.farm-purchase>.farm-muted {
+  font-size:12px
+}
+.farm-purchase-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  bottom:-16px;
+  padding:8px 0 0
+}
+.farm-purchase-actions .farm-alert {
+  width:100%;
+  margin:0;
+  padding:8px 12px
+}
+.farm-purchase-actions>button {
+  width:auto;
+  flex:1;
+  margin:0;
+  font-size:13px
+}
+
+}
