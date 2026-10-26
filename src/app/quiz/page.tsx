@@ -43,6 +43,7 @@ export default async function QuizPage({
   }
 
   let pet: {
+    id: string;
     nickname: string | null;
     stage: number;
     subline: string | null;
@@ -56,7 +57,7 @@ export default async function QuizPage({
   if (user) {
     const { data } = await supabase
       .from("pets")
-      .select("nickname, stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
+      .select("id, nickname, stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
@@ -99,6 +100,7 @@ export default async function QuizPage({
           exp: pet.exp,
           cracksBefore: pet.stage === 1 ? eggCracksBefore(pet.exp) : 0,
           showEggIntro: pet.stage === 1 && pet.exp === 0,
+          petId: pet.id,
         }
       : null;
 

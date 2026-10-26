@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  eggIntroKey,
+  markEggIntroSeen,
+  readEggIntroSeen,
   buildStarStates,
   CONSTELLATIONS,
   countLit,
@@ -120,4 +123,31 @@ test("กล่องการเติบโต: ใช้ threshold จาก 
   assert.equal(g.left, 200);
   assert.ok(g.now > g.was);
   assert.equal(stageGrowth(4, 950, 10).left, null);
+});
+
+test("ฉากเปิดไข่: อ่าน/เขียนคีย์ต่อไข่ · storage throw = แสดงฉาก ไม่พัง", () => {
+  const map = new Map<string, string>();
+  const ok = () => ({ getItem: (k: string) => map.get(k) ?? null, setItem: (k: string, v: string) => void map.set(k, v) });
+  assert.equal(eggIntroKey("p1"), "qm:eggIntroSeen:p1");
+  assert.equal(readEggIntroSeen(ok, "p1"), false);
+  markEggIntroSeen(ok, "p1");
+  assert.equal(readEggIntroSeen(ok, "p1"), true);
+  assert.equal(readEggIntroSeen(ok, "p2"), false);
+
+  const accessThrows = () => {
+    throw new Error("SecurityError");
+  };
+  assert.equal(readEggIntroSeen(accessThrows, "p1"), false);
+  assert.doesNotThrow(() => markEggIntroSeen(accessThrows, "p1"));
+
+  const methodsThrow = () => ({
+    getItem: () => {
+      throw new Error("denied");
+    },
+    setItem: () => {
+      throw new Error("QuotaExceededError");
+    },
+  });
+  assert.equal(readEggIntroSeen(methodsThrow, "p1"), false);
+  assert.doesNotThrow(() => markEggIntroSeen(methodsThrow, "p1"));
 });

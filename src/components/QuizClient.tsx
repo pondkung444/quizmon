@@ -44,6 +44,7 @@ import { Sparkle } from "lucide-react";
 import StardustPlay from "@/components/quiz/stardust/StardustPlay";
 import StardustEnd from "@/components/quiz/stardust/StardustEnd";
 import type { StardustPetInfo } from "@/components/quiz/stardust/types";
+import { markEggIntroSeen, readEggIntroSeen } from "@/lib/stardust";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -249,8 +250,15 @@ export default function QuizClient({
   // id รอบปัจจุบัน — แนบทุก submitAnswer แล้ว finishQuizRound รวม EXP จาก DB ตาม id นี้เอง
   // (และใช้กันบวก EXP ซ้ำถ้า finish ถูกเรียกซ้ำ) ตั้งใหม่ทุกครั้งที่เริ่มรอบ
   const roundIdRef = useRef<string>(newRoundId());
-  // stardust: ฉากเปิดของไข่ (ไข่ใบนี้ยังไม่เคยได้ EXP — stardust.showEggIntro จาก page.tsx) ปิดแล้วไม่ขึ้นอีกในหน้านี้
-  const [eggIntroDone, setEggIntroDone] = useState(false);
+  // stardust: ฉากเปิดของไข่ (ไข่ใบนี้ยังไม่เคยได้ EXP — stardust.showEggIntro จาก page.tsx) ขึ้นครั้งเดียวต่อไข่ต่อเครื่อง
+  // null = ยังไม่ได้อ่าน localStorage (อ่านใน effect ฝั่ง client เท่านั้น) — ระหว่างนี้ไม่แสดง กันฉากกระพริบ
+  const [eggIntroSeen, setEggIntroSeen] = useState<boolean | null>(null);
+  const eggIntroPetId = stardust?.showEggIntro ? stardust.petId : null;
+  useEffect(() => {
+    if (!eggIntroPetId) return;
+    const t = setTimeout(() => setEggIntroSeen(readEggIntroSeen(() => window.localStorage, eggIntroPetId)), 0);
+    return () => clearTimeout(t);
+  }, [eggIntroPetId]);
 
   const { message: personalityMessage, triggerEvent: triggerPersonalityEvent } =
     usePersonalityMessage(personalityKey);
@@ -889,8 +897,11 @@ export default function QuizClient({
                 {exitConfirm}
               </>
             }
-            showIntro={stardust.showEggIntro && !eggIntroDone && index === 0 && !result}
-            onIntroDone={() => setEggIntroDone(true)}
+            showIntro={stardust.showEggIntro && eggIntroSeen === false && index === 0 && !result}
+            onIntroDone={() => {
+              markEggIntroSeen(() => window.localStorage, stardust.petId);
+              setEggIntroSeen(true);
+            }}
             onSelect={handleSelectChoice}
             onNext={handleNext}
             onExit={() => setShowExitConfirm(true)}

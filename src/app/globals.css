@@ -1509,8 +1509,8 @@ body {
 .sd-strip { flex: 1; min-width: 0; position: relative; height: 58px; }
 .sd-links { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .sd-seg { fill: none; stroke-width: 3; stroke-linecap: round; }
-.sd-seg.todo { stroke: var(--trail-line); stroke-dasharray: 1 7; }
-.sd-seg.soft { stroke: var(--trail-line); }
+/* เส้นที่ยังไม่ติด: เส้นประ text3 45% หนาเท่าเส้นติด — อ่านรูปได้ แต่เส้นติดเด่นกว่า */
+.sd-seg.todo, .sd-seg.soft { stroke: var(--trail-text3); stroke-opacity: .45; stroke-dasharray: 6 5; stroke-linecap: butt; }
 .sd-seg.lit { stroke: color-mix(in srgb, var(--stardust-el-a) 45%, var(--stardust-el-b)); }
 .sd-node { position: absolute; bottom: 4px; width: 22px; height: 22px; transform: translateX(-50%); display: grid; place-items: center; }
 .sd-node svg { width: 22px; height: 22px; overflow: visible; transition: transform .2s var(--sd-ease-out); }
@@ -1617,7 +1617,7 @@ body {
 .sd-sky { position: relative; margin: 4px auto 0; width: 100%; max-width: 360px; aspect-ratio: 1 / 1; border-radius: 28px; background: radial-gradient(80% 70% at 50% 35%, color-mix(in srgb, var(--stardust-el-b) 18%, var(--trail-surface)) 0%, var(--trail-surface) 75%); border: 1px solid var(--trail-line); overflow: hidden; }
 .sd-cons { position: absolute; left: 10%; top: 6%; width: 80%; height: 50%; overflow: visible; }
 .sd-ln { fill: none; stroke: color-mix(in srgb, var(--stardust-el-a) 45%, var(--stardust-el-b)); stroke-width: 1.1; stroke-linecap: round; }
-.sd-ln.soft { stroke: var(--trail-line); stroke-dasharray: .7 2.2; }
+.sd-ln.soft { stroke: var(--trail-text3); stroke-opacity: .45; stroke-dasharray: 2.4 2; stroke-linecap: butt; }
 .sd-st { filter: drop-shadow(0 0 7px var(--stardust-el-glow)); transform-box: fill-box; transform-origin: center; animation: sd-pop .5s var(--sd-ease-pop) both; }
 .sd-st.prior { fill: var(--trail-text3); opacity: .4; filter: none; }
 .sd-st.soft { fill: none; stroke: var(--trail-text3); stroke-width: 1.4; stroke-dasharray: 2 2; filter: none; }

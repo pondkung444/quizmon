@@ -92,6 +92,30 @@ export function eggCracks(cracksBefore: number, correctInRound: number): number 
   return Math.min(EGG_HATCH_ANSWERS, Math.max(0, cracksBefore + correctInRound));
 }
 
+// ฉากเปิดของไข่ขึ้นครั้งเดียวต่อไข่ต่อเครื่อง — getStorage แยกเป็นฟังก์ชันเพราะแค่แตะ window.localStorage ก็ throw ได้
+// (Safari private / ปิด site data) · อ่านไม่ได้ = ถือว่ายังไม่เคยเห็น (แสดงฉากตามเดิม) · เขียนไม่ได้ = เงียบ
+type KeyValueStorage = Pick<Storage, "getItem" | "setItem">;
+
+export function eggIntroKey(petId: string): string {
+  return `qm:eggIntroSeen:${petId}`;
+}
+
+export function readEggIntroSeen(getStorage: () => KeyValueStorage, petId: string): boolean {
+  try {
+    return getStorage().getItem(eggIntroKey(petId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+export function markEggIntroSeen(getStorage: () => KeyValueStorage, petId: string): void {
+  try {
+    getStorage().setItem(eggIntroKey(petId), "1");
+  } catch {
+    // storage ใช้ไม่ได้ — รอบหน้าฉากจะขึ้นอีก ยอมรับได้
+  }
+}
+
 // ---------- กล่องการเติบโต ----------
 
 // was/now = สัดส่วน 0–1 ภายในระยะ · left = EXP ที่ยังขาดถึงเปลี่ยนร่าง (null = ระยะสูงสุด ไม่มีเกณฑ์ต่อ)

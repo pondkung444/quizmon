@@ -9,4 +9,6 @@ export type StardustPetInfo = {
   cracksBefore: number;
   // ฉากเปิดของไข่: stage 1 และ exp === 0 (ไข่ใบนี้ยังไม่เคยได้ EXP — ไข่ใหม่เริ่มที่ exp 0 ดู eggs/actions.ts)
   showEggIntro: boolean;
+  // คีย์ "ดูฉากเปิดแล้ว" ต่อไข่ต่อเครื่อง (localStorage qm:eggIntroSeen:<petId>)
+  petId: string;
 };
