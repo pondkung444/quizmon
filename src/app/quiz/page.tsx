@@ -8,14 +8,22 @@ import { getGradeBand } from "@/lib/gradeBand";
 import QuizClient from "@/components/QuizClient";
 import AppThemeMarker from "@/components/AppThemeMarker";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
+import { elementFromSpritePrefix, eggCracksBefore, parseStardustPreview, previewSpritePrefix, STARDUST_TEXT } from "@/lib/stardust";
+import StardustPreview from "@/components/quiz/stardust/StardustPreview";
+import type { StardustPetInfo } from "@/components/quiz/stardust/types";
 
 export default async function QuizPage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const { mission } = await searchParams;
+  const { mission, stardustPreview: stardustPreviewParam, element: elementParam, prior: priorParam, r: endResultsParam } = await searchParams;
   const initialMissionId = typeof mission === "string" ? mission : null;
+  // หน้าตอบคำถาม "ตามหาประกายดาว" — เปิดเมื่อ QUIZ_STARDUST_ENABLED=1 เท่านั้น ค่าอื่น/ไม่ตั้ง = หน้าเดิม
+  const stardustEnabled = process.env.QUIZ_STARDUST_ENABLED === "1";
+  // ?stardustPreview=egg-intro|egg|image|correct|wrong|end|egg-end (ไม่ใช่ production เท่านั้น): ข้อมูลตัวอย่าง ไม่ยิง action/event
+  const stardustPreview =
+    stardustEnabled && process.env.VERCEL_ENV !== "production" ? parseStardustPreview(stardustPreviewParam) : null;
 
   const supabase = await createClient();
   const user = await getUser();
@@ -35,6 +43,8 @@ export default async function QuizPage({
   }
 
   let pet: {
+    id: string;
+    nickname: string | null;
     stage: number;
     subline: string | null;
     personality: string | null;
@@ -47,7 +57,7 @@ export default async function QuizPage({
   if (user) {
     const { data } = await supabase
       .from("pets")
-      .select("stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
+      .select("id, nickname, stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
@@ -81,6 +91,44 @@ export default async function QuizPage({
   const dailyCap = await dailyCapPromise;
   const petDailyCapped = petExpTodaySoFar >= dailyCap;
 
+  const stardust: StardustPetInfo | null =
+    stardustEnabled && pet
+      ? {
+          element: elementFromSpritePrefix(eggType?.sprite_prefix),
+          name: pet.nickname?.trim() || STARDUST_TEXT.fallbackName,
+          stage: pet.stage,
+          exp: pet.exp,
+          cracksBefore: pet.stage === 1 ? eggCracksBefore(pet.exp) : 0,
+          showEggIntro: pet.stage === 1 && pet.exp === 0,
+          petId: pet.id,
+        }
+      : null;
+
+  if (stardustPreview) {
+    // &element=fire|wood|water|sky|earth|divine · &prior=0–5 = ภารกิจที่ทำต่อจากรอบก่อน (ข้อก่อนหน้าไม่รู้ผล) · &r=11010 = ผลหน้าจบรอบ
+    const prefix = previewSpritePrefix(elementParam);
+    const element = elementFromSpritePrefix(prefix);
+    const prior = Math.min(5, Math.max(0, Number.parseInt(typeof priorParam === "string" ? priorParam : "0", 10) || 0));
+    return (
+      <main className="quiz-shell mx-auto flex min-h-screen w-full flex-col gap-6">
+        <AppThemeMarker />
+        <BgmMuteButton className="fixed left-3 top-[calc(env(safe-area-inset-top)+0.75rem)] z-[70] lg:left-[calc(50%-var(--app-frame-w)/2+0.75rem)]" />
+        <StardustPreview
+          kind={stardustPreview}
+          element={element}
+          prior={prior}
+          endResults={
+            typeof endResultsParam === "string" && /^[01]{5}$/.test(endResultsParam)
+              ? [...endResultsParam].map((c) => c === "1")
+              : null
+          }
+          petImg={`/pets/${prefix}_stage2_baby.png`}
+          eggImg={`/pets/${prefix}_stage1_egg.png`}
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="quiz-shell mx-auto flex min-h-screen w-full flex-col gap-6">
       {/* ธีมแอป (dusk/day) — สีเฉพาะหน้านี้อยู่ที่ --quiz-* / --color-correct ใน globals.css */}
@@ -95,6 +143,7 @@ export default async function QuizPage({
         initialMissionId={initialMissionId}
         gradeBand={gradeBand}
         gradeLevel={gradeLevel}
+        stardust={stardust}
       />
     </main>
   );

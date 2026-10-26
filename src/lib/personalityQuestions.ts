@@ -9,19 +9,19 @@ export type PersonalityQuestion = {
 export const PERSONALITY_QUESTIONS: PersonalityQuestion[] = [
   {
     id: "departure",
-    prompt: "เจ้า{speciesName}กำลังจะออกผจญภัยครั้งแรก มันหันมามองเจ้า…",
+    prompt: "{speciesName}กำลังจะออกผจญภัยครั้งแรก แล้วหันมามองเหมือนรอคำตอบ…",
     choiceA: "ลุยเลย! เจออะไรค่อยว่ากัน",
     choiceB: "สำรวจให้รอบก่อน แล้วค่อยไป",
   },
   {
     id: "obstacle",
-    prompt: "ข้างหน้ามีเจ้าตัวใหญ่ยืนขวางทางอยู่…",
+    prompt: "ข้างหน้ามีสัตว์ตัวใหญ่ยืนขวางทางอยู่…",
     choiceA: "พุ่งเข้าใส่ก่อนเลย!",
     choiceB: "ตั้งหลักไว้ รอดูจังหวะมันก่อน",
   },
   {
     id: "free_day",
-    prompt: "วันสบายๆ ไม่มีอะไรทำ เจ้า{speciesName}อยาก…",
+    prompt: "วันสบายๆ ไม่มีอะไรทำ {speciesName}อยาก…",
     choiceA: "วิ่งซนไปทั่ว อยู่นิ่งไม่ได้",
     choiceB: "นอนอาบแดดเงียบๆ สบายใจ",
   },
