@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, X } from "lucide-react";
 import { getWeeklyLeaderboardTop5 } from "@/app/pet/actions";
 import type { LeaderboardEntry, MyWeeklyRank } from "@/lib/weeklyLeaderboard";
@@ -24,9 +24,13 @@ type Tier = "champ" | "podium" | "climb";
 export default function WeeklyLeaderboardCard({
   myWeeklyRank,
   gradeBand,
+  renderTrigger,
 }: {
   myWeeklyRank: MyWeeklyRank;
   gradeBand: GradeBand | null;
+  // ไม่ส่ง = แถบเดิม · ส่ง = ผู้เรียกวาดปุ่มเอง (แถว "อื่นๆ" ของหน้าแรกทางเดิน) แต่ใช้แผ่น Top 5 ชุดเดิม
+  // open = null เมื่อยังไม่มีอันดับ (ไม่มีแผ่นให้เปิด เหมือนแถบเดิม)
+  renderTrigger?: (open: (() => void) | null, text: { headline: string; subline: string }) => ReactNode;
 }) {
   const sfx = useSfx();
   const [open, setOpen] = useState(false);
@@ -62,6 +66,7 @@ export default function WeeklyLeaderboardCard({
   }
 
   if (!myWeeklyRank.hasRank) {
+    if (renderTrigger) return <>{renderTrigger(null, { headline: `แข่งอันดับสัปดาห์นี้ (${groupLabelTh})`, subline: "ตอบวันนี้สักข้อ เข้าร่วมแข่งได้เลย!" })}</>;
     return (
       <div className="rank-strip-none flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-track text-xl" aria-hidden>
@@ -108,7 +113,7 @@ export default function WeeklyLeaderboardCard({
 
   return (
     <>
-      <button
+      {renderTrigger ? renderTrigger(openSheet, { headline, subline }) : <button
         type="button"
         onClick={openSheet}
         aria-haspopup="dialog"
@@ -129,7 +134,7 @@ export default function WeeklyLeaderboardCard({
           </span>
         </span>
         <ChevronRight size={18} className="rank-strip-sub shrink-0" aria-hidden />
-      </button>
+      </button>}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setOpen(false)}>
