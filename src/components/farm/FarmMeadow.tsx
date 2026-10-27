@@ -12,8 +12,8 @@ import styles from "./farm-meadow.module.css";
 
 export type FarmPet = { id: string; nickname: string | null; imagePath: string; speciesName: string };
 
-export default function FarmMeadow({ pets, tiles = INITIAL_FARM, onPlaceTile, school = null, placing = false, walletBalance, gardenActive=false,layoutAvailable=false }: {
-  layoutAvailable?:boolean;walletBalance?:number;gardenActive?:boolean;
+export default function FarmMeadow({ compact=false, pets, tiles = INITIAL_FARM, onPlaceTile, school = null, placing = false, walletBalance, gardenActive=false,layoutAvailable=false }: {
+  compact?:boolean;layoutAvailable?:boolean;walletBalance?:number;gardenActive?:boolean;
   pets: FarmPet[];
   school?: SchoolProject | null;
   placing?: boolean;
@@ -41,12 +41,12 @@ export default function FarmMeadow({ pets, tiles = INITIAL_FARM, onPlaceTile, sc
 
   return <section className={styles.card} aria-labelledby="meadow-heading">
     <div className={styles.heading}>
-      <h1 id="meadow-heading">ฟาร์มของเรา</h1>{walletBalance!==undefined&&<Link href='/collection/garden' className={styles.secondaryButton}>เหรียญ {walletBalance}</Link>}
+      <h2 id="meadow-heading">แผนที่ฟาร์ม</h2>{!compact&&walletBalance!==undefined&&<Link href='/collection/garden' className={styles.secondaryButton}>เหรียญ {walletBalance}</Link>}
       {layoutAvailable&&<Link href="/collection/layout" className={styles.secondaryButton}>จัดผัง</Link>}
       <Link href="/collection/album" className={styles.secondaryButton}>สมุดสะสม</Link>
     </div>
-    {school?.status !== "placed" && <Link href="/collection/school" className={styles.schoolEntry}>🏫 {SCHOOL_LABELS[school?.status ?? "draft"]}<small>แตะเพื่อดูโครงการและ Qmon คุมงาน →</small></Link>}
-    {gardenActive&&<Link href='/collection/garden' className={styles.schoolEntry}>🌿 ดูงานสร้างสวน<small>กลับไปช่วยคู่หูหรือเลือกที่วาง →</small></Link>}
+    {!compact&&school?.status !== "placed" && <Link href="/collection/school" className={styles.schoolEntry}>🏫 {SCHOOL_LABELS[school?.status ?? "draft"]}<small>แตะเพื่อดูโครงการและ Qmon คุมงาน →</small></Link>}
+    {!compact&&gardenActive&&<Link href='/collection/garden' className={styles.schoolEntry}>🌿 ดูงานสร้างสวน<small>กลับไปช่วยคู่หูหรือเลือกที่วาง →</small></Link>}
     <FarmWorld tiles={tiles} pets={visitors} paused={paused} focusedId={focusedId} onSelect={setFocusedId} onPlaceTile={placing ? placeSchool : onPlaceTile} />
     <div className={styles.toolbar}>
       <p>{placing ? (saving ? "กำลังวางโรงเรียน…" : placementError || "แตะช่อง ＋ เพื่อวางโรงเรียนบนพื้นที่ที่ต่อกับฟาร์ม") : pets.length === 0 ? "เมื่อเก็บ Qmon ร่าง 4 เข้าฟาร์ม คู่หูจะออกมาเดินเล่นเอง" : "Qmon สุ่มออกมาเดินเล่นครั้งละไม่เกิน 3 ตัว · แตะตัวเพื่อดูรายละเอียด"}</p>

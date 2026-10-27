@@ -12,7 +12,7 @@ try {
     { width: 844, height: 390 },
   ]) {
     await p.setViewportSize(size);
-    await p.goto("http://localhost:3107/collection/preview?kind=social");
+    await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=social");
     await p.locator('[data-farm-camera-ready="true"]').waitFor();
     assert.equal(
       await p.evaluate(

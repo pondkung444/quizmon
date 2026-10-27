@@ -34,3 +34,5 @@
 .previewIsland {opacity:.55;}.previewBuilding {opacity:.75;filter:drop-shadow(0 0 7px #eaffb9);pointer-events:none;}
 
 .world[data-overview=true] .buildingLabel{display:none;}
+
+.world{background:#edf4ed}.viewport{height:clamp(300px,45dvh,480px);min-height:300px}.camera{position:static;padding:10px 12px 4px;justify-content:center}.camera button{color:#4e4262;background:#fff;border-color:#d6cde4;font-size:13px}.camera span{color:#5d5369;font-size:13px}.hint{position:static;padding:5px 12px 12px;color:#4e5c51;font-size:12px}@media(max-width:360px){.viewport{height:310px;min-height:300px}}

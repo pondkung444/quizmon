@@ -12,7 +12,7 @@ try {
     { width: 844, height: 390 },
   ]) {
     await p.setViewportSize(size);
-    await p.goto("http://localhost:3107/collection/preview?kind=catalogue");
+    await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=catalogue");
     const pond = p
       .locator("section")
       .filter({
@@ -34,9 +34,11 @@ try {
       .selectOption("00000000-0000-4000-8000-000000000001");
     const buy = pond.getByRole("button", { name: "เริ่มสร้าง 50 เหรียญ" });
     await buy.click();
+    await p.getByRole("dialog").getByRole("button",{name:/ยืนยันเริ่มงาน/}).click();
     await p.getByRole("link", { name: "ไปเลือกพื้นที่ในฟาร์ม" }).waitFor();
     checks++;
     await buy.click();
+    await p.getByRole("dialog").getByRole("button",{name:/ยืนยันเริ่มงาน/}).click();
     await p.waitForFunction(
       () =>
         document.querySelector("[data-team-events]").textContent.split(" | ")

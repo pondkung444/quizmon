@@ -1,3 +1,7 @@
+import GardenLesson from "@/components/farm/GardenLesson";
+import SchoolClient from "@/components/farm/SchoolClient";
+import FarmDashboard from "@/components/farm/FarmDashboard";
+import FarmMeadow from "@/components/farm/FarmMeadow";
 import AttentionPreview from "@/components/farm/AttentionPreview";
 import SocialPreview from "@/components/farm/SocialPreview";
 import PlaceHistoryView from "@/components/farm/PlaceHistoryView";
@@ -35,6 +39,10 @@ export default async function FarmPuzzlePreview({
   )
     notFound();
   const input = (await searchParams).kind ?? "pond";
+  if(input === "ui-garden-lesson") return <GardenLesson schoolPlaced pets={[{id:"synthetic",name:"คู่หูฟ้า",imagePath:"/pets/egg1_stage2_baby.png",stage:2,busy:false}]} initialDiscovery={null} />;
+  if(input === "ui-school-work") return <SchoolClient initialProject={{status:"puzzle",leader_id:"synthetic",resume_status:null,ready_at:null,remaining_seconds:0,round_deadline:new Date(new Date().getTime()+90000).toISOString(),failures:0,penalty_applied:false,tile_x:null,tile_y:null}} pets={[{id:"synthetic",name:"คู่หูฟ้า",imagePath:"/pets/egg1_stage2_baby.png",stage:2,busy:false}]} serverNow={new Date().toISOString()} />;
+  if(input === "ui-school") return <main className="mx-auto max-w-xl"><SchoolClient initialProject={null} pets={[{id:'synthetic',name:'คู่หูฟ้า',imagePath:'/pets/egg1_stage2_baby.png',stage:2,busy:false}]} serverNow={new Date().toISOString()} /></main>;
+  if(input === "ui-home") return <FarmDashboard now={new Date().getTime()} school={null} gardens={[]} balance={60} level={0} placing={false}><FarmMeadow compact pets={[]} walletBalance={60} layoutAvailable /></FarmDashboard>;
   if (input === "attention") return <AttentionPreview />;
   if (input === "social") return <SocialPreview />;
   if (input === "history")
@@ -84,6 +92,7 @@ export default async function FarmPuzzlePreview({
       </main>
     );
   if (
+    input === "catalogue-failure" ||
     input === "teams" ||
     input === "catalogue" ||
     input === "catalogue-endgame"
@@ -92,6 +101,7 @@ export default async function FarmPuzzlePreview({
       <main className="mx-auto max-w-xl p-3">
         <h1>ทีมจำลอง · ไม่เชื่อมฐานจริง</h1>
         <ProjectQueuePreview
+          failOnce={input === "catalogue-failure"}
           catalogueMode={input !== "teams"}
           endgame={input === "catalogue-endgame"}
         />

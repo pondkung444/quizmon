@@ -10,7 +10,7 @@ try {
     { width: 844, height: 390 },
   ]) {
     await p.setViewportSize(size);
-    await p.goto("http://localhost:3107/collection/preview?kind=history");
+    await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=history");
     await p
       .getByRole("heading", { name: "โรงเรียน ระดับ 4", exact: true })
       .waitFor();

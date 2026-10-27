@@ -19,7 +19,7 @@ try {
     await p.setViewportSize(size);
     for (const count of [17, 24]) {
       await p.goto(
-        "http://localhost:3107/collection/preview?kind=layout" + count,
+        (process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=layout" + count,
       );
       await p.locator('[data-farm-camera-ready="true"]').waitFor();
       assert.equal(await p.locator("[data-farm-tile]").count(), count);
@@ -54,7 +54,7 @@ try {
     }
   }
   await p.setViewportSize({ width: 375, height: 667 });
-  await p.goto("http://localhost:3107/collection/preview?kind=layout17");
+  await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=layout17");
   await p
     .getByLabel("ย้ายชิ้นที่มี", { exact: true })
     .selectOption("egg-storage");

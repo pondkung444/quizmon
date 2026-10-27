@@ -123,7 +123,7 @@ export default function BottomNav({
 
   return (
     <>
-      <nav
+      <nav data-app-navigation
         data-bottom-nav
         className={`fixed inset-x-0 bottom-0 z-40 border-t border-gold-dim bg-card ${showRail ? "lg:hidden" : ""}`}
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -154,7 +154,7 @@ export default function BottomNav({
         </div>
       </nav>
       {showRail && (
-        <nav
+        <nav data-app-navigation
           className="fixed top-1/2 z-40 hidden -translate-y-1/2 flex-col gap-1 rounded-2xl border border-gold-dim bg-card p-1.5 lg:flex"
           style={{
             left: "calc(50% - var(--app-frame-w) / 2 - var(--app-rail-w) - var(--app-rail-gap))",

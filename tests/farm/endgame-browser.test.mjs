@@ -11,7 +11,7 @@ try {
   ]) {
     await p.setViewportSize(size);
     await p.goto(
-      "http://localhost:3107/collection/preview?kind=catalogue-endgame",
+      (process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=catalogue-endgame",
     );
     const bridge = p
       .locator("section")
@@ -45,6 +45,7 @@ try {
         await card
           .getByRole("button", { name: `เริ่มสร้าง ${price} เหรียญ` })
           .click();
+        await p.getByRole("dialog").getByRole("button",{name:/ยืนยันเริ่มงาน/}).click();
         await card
           .getByText(`ครบเพดาน ${quantity} แห่งแล้ว`, { exact: true })
           .waitFor({ state: i === quantity - 1 ? "visible" : "hidden" });

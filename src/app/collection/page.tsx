@@ -1,7 +1,5 @@
-import FarmStartGuide from "@/components/farm/FarmStartGuide";
-import { loadSchoolPets } from "@/lib/farm/school-server";
-import Link from "next/link";
-import { farmSocialAvailable } from "@/lib/farm/social-server";
+import {loadSchoolPets} from "@/lib/farm/school-server";
+import FarmDashboard from "@/components/farm/FarmDashboard";
 import { loadFarmLayoutIfAvailable } from "@/lib/farm/layout-server";
 import { loadGardenProjects, loadFarmWallet } from "@/lib/farm/garden-server";
 import { gardenTiles } from "@/lib/farm/garden";
@@ -28,9 +26,7 @@ export default async function CollectionFarmPage({
       loadConfirmedSchoolLevel(),
       loadFarmLayoutIfAvailable(),
     ]);
-  const starterPets =
-    !school || school.status === "draft" ? await loadSchoolPets() : [];
-  const socialAvailable = await farmSocialAvailable();
+  const starterPets = !school || school.status === "draft" ? await loadSchoolPets() : [];
   const tiles: FarmTile[] =
     school?.status === "placed" &&
     school.tile_x !== null &&
@@ -49,18 +45,8 @@ export default async function CollectionFarmPage({
   tiles.push(...gardenTiles(gardens));
   return (
     <main data-app-wide className="w-full min-h-[100dvh] pb-20">
-      {(!school || school.status === "draft") && (
-        <FarmStartGuide ready={starterPets.length > 0} />
-      )}
-      {socialAvailable && (
-        <Link
-          className="inline-flex min-h-11 items-center p-3"
-          href="/collection/encouragement"
-        >
-          เยี่ยมเพื่อนและกำลังใจ →
-        </Link>
-      )}
-      <FarmMeadow
+      <FarmDashboard canStartSchool={starterPets.length > 0} now={new Date().getTime()} school={school} gardens={gardens} balance={wallet.balance} level={schoolLevel} placing={school?.status === "ready" && params.place === "school"}>
+      <FarmMeadow compact
         walletBalance={wallet.balance}
         gardenActive={gardens.some((p) => p.status !== "placed")}
         pets={pets}
@@ -69,6 +55,7 @@ export default async function CollectionFarmPage({
         school={school}
         placing={school?.status === "ready" && params.place === "school"}
       />
+      </FarmDashboard>
     </main>
   );
 }

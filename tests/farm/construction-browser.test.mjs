@@ -17,7 +17,7 @@ try {
   ]) {
     await page.setViewportSize(viewport);
     for (const kind of ["construction-floor", "construction-path"]) {
-      await page.goto("http://localhost:3107/collection/preview?kind=" + kind);
+      await page.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=" + kind);
       await page
         .getByRole("button", { name: "คำใบ้ 1", exact: true })
         .waitFor();
@@ -67,7 +67,7 @@ try {
   await page.setViewportSize({ width: 375, height: 667 });
   for (const kind of ["construction-floor", "construction-path"]) {
     const puzzle = generateConstruction(kind, 17445);
-    await page.goto("http://localhost:3107/collection/preview?kind=" + kind);
+    await page.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=" + kind);
     const names = {
       sun: "ดอกทอง",
       leaf: "ใบไม้",

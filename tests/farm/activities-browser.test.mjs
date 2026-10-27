@@ -6,7 +6,7 @@ try {
   const p = await b.newPage();
   p.setDefaultNavigationTimeout(120000);
   p.on("pageerror", (e) => console.log("Page error:", e.message));
-  await p.goto("http://localhost:3107/collection/preview?kind=activities");
+  await p.goto((process.env.FARM_TEST_URL ?? "http://localhost:3107")+"/collection/preview?kind=activities");
   await p
     .locator('[data-farm-camera-ready="true"]')
     .waitFor({ timeout: 60000 });
