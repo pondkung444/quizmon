@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildHomeTrail, type HomeTrailInput } from "../../src/lib/homeTrail.ts";
+import {
+  STOP_LOCK_MESSAGE, buildHomeTrail, resolveStopTap, stopTapOutcome, type HomeTrailInput, type TrailStop,
+} from "../../src/lib/homeTrail.ts";
 import { resolveNextAction } from "../../src/lib/nextAction.ts";
 
 const mission = (answeredCount: number, correctCount = answeredCount) => ({
@@ -84,4 +86,113 @@ test("nowId always mirrors resolver for the same state", () => {
   const direct = resolveNextAction({ hasPet: true, expToday: 180, dailyExpCap: 180, pvpTurnCount: 2, hasEverAnswered: true });
   assert.equal(trail.action.id, direct.id);
   assert.equal(trail.nowId, "pvp");
+});
+
+// ── กดจุดบนทาง (resolveStopTap) ──
+const member = { missionId: "m1", isGuest: false };
+const guest = { missionId: "m1", isGuest: true };
+const stopOf = (input: HomeTrailInput, id: TrailStop["id"]) => {
+  const s = buildHomeTrail(input).stops.find((x) => x.id === id);
+  assert.ok(s, `${id} stop missing`);
+  return s;
+};
+const unlockedReady: HomeTrailInput = {
+  ...base, stage: 3, exp: 610, expToday: 180, mission: mission(5), advancedUnlocked: true, adventureOpen: true,
+  dungeonStatus: "ready", raidTicketCount: 2,
+};
+
+test("tap: hatch opens growth sheet in todo and done", () => {
+  for (const stage of [1, 2]) {
+    const s = stopOf({ ...base, stage, exp: stage === 1 ? 20 : 155 }, "hatch");
+    assert.deepEqual(resolveStopTap(s, member), { kind: "sheet", sheet: "growth" });
+    assert.equal(stopTapOutcome(resolveStopTap(s, member)), "sheet");
+  }
+});
+
+test("tap: collect uses the collect flow", () => {
+  const s = stopOf({ ...base, stage: 4, exp: 905 }, "collect");
+  assert.equal(s.status, "now");
+  assert.deepEqual(resolveStopTap(s, member), { kind: "collect" });
+});
+
+test("tap: mission now/todo hard-navigates with id, done goes to /quiz", () => {
+  const now = stopOf(base, "mission");
+  assert.equal(now.status, "now");
+  assert.deepEqual(resolveStopTap(now, member), { kind: "navigate", href: "/quiz?mission=m1", hard: true });
+  const todo: TrailStop = { ...now, status: "todo" };
+  assert.deepEqual(resolveStopTap(todo, member), { kind: "navigate", href: "/quiz?mission=m1", hard: true });
+  const done = stopOf({ ...base, mission: mission(5) }, "mission");
+  assert.equal(done.status, "done");
+  assert.deepEqual(resolveStopTap(done, member), { kind: "navigate", href: "/quiz", hard: false });
+});
+
+test("tap: train always goes to /quiz", () => {
+  for (const input of [{ ...base, mission: mission(5) }, base, unlockedReady]) {
+    assert.deepEqual(resolveStopTap(stopOf(input, "train"), member), { kind: "navigate", href: "/quiz", hard: false });
+  }
+});
+
+test("tap: adventure todo/wait/now goes to /adventure", () => {
+  const todo = stopOf({ ...unlockedReady, raidTicketCount: 0, pvpTurnCount: 1 }, "adventure");
+  const wait = stopOf({ ...unlockedReady, dungeonStatus: "traveling" }, "adventure");
+  const now = stopOf({ ...unlockedReady, raidTicketCount: 0 }, "adventure");
+  assert.equal(wait.status, "wait");
+  assert.equal(now.status, "now");
+  for (const s of [todo, wait, now]) assert.deepEqual(resolveStopTap(s, member), { kind: "navigate", href: "/adventure", hard: false });
+});
+
+test("tap: adventure/raid locked below stage 4 with no farm Qmon shows farm message", () => {
+  for (const id of ["adventure", "raid"] as const) {
+    const s = stopOf(base, id);
+    assert.equal(s.status, "locked");
+    assert.equal(s.detail, "เปิดเมื่อมี Qmon ในฟาร์ม");
+    const tap = resolveStopTap(s, member);
+    assert.deepEqual(tap, { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
+    assert.equal(stopTapOutcome(tap), "locked_message");
+  }
+});
+
+test("tap: stage 4 with no eligible farm Qmon counts as locked (adventureOpen=false)", () => {
+  const input = { ...base, stage: 4, exp: 905, advancedUnlocked: true, adventureOpen: false, raidTicketCount: 3 };
+  for (const id of ["adventure", "raid"] as const) {
+    const s = stopOf(input, id);
+    assert.equal(s.status, "locked");
+    assert.equal(s.detail, "เปิดเมื่อมี Qmon ในฟาร์ม");
+    assert.deepEqual(resolveStopTap(s, member), { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
+  }
+});
+
+test("tap: raid todo/now goes to /raid, wait (no keys) shows keys message", () => {
+  const now = stopOf({ ...unlockedReady, dungeonStatus: "traveling" }, "raid");
+  assert.equal(now.status, "now");
+  assert.deepEqual(resolveStopTap(now, member), { kind: "navigate", href: "/raid", hard: false });
+  const todo = stopOf(unlockedReady, "raid");
+  assert.equal(todo.status, "todo");
+  assert.deepEqual(resolveStopTap(todo, member), { kind: "navigate", href: "/raid", hard: false });
+  const wait = stopOf({ ...unlockedReady, raidTicketCount: 0 }, "raid");
+  assert.equal(wait.status, "wait");
+  assert.deepEqual(resolveStopTap(wait, member), { kind: "locked", message: STOP_LOCK_MESSAGE.keys });
+});
+
+test("tap: pvp always goes to /pvp, also for guest", () => {
+  for (const ctx of [member, guest]) {
+    for (const input of [base, { ...base, pvpTurnCount: 2 }]) {
+      assert.deepEqual(resolveStopTap(stopOf(input, "pvp"), ctx), { kind: "navigate", href: "/pvp", hard: false });
+    }
+  }
+});
+
+test("tap: guest gets login message on adventure/raid in every status", () => {
+  for (const input of [base, unlockedReady, { ...unlockedReady, raidTicketCount: 0 }]) {
+    for (const id of ["adventure", "raid"] as const) {
+      assert.deepEqual(resolveStopTap(stopOf(input, id), guest), { kind: "locked", message: STOP_LOCK_MESSAGE.guest });
+    }
+  }
+});
+
+test("lock messages stay on house wording", () => {
+  for (const m of Object.values(STOP_LOCK_MESSAGE)) {
+    assert.doesNotMatch(m, /คุณ|(?<!เ)ข้า|เจ้า|เธอ/); // "เข้า" ไม่นับ
+    assert.doesNotMatch(m, /\p{Extended_Pictographic}/u);
+  }
 });

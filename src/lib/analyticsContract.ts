@@ -10,6 +10,7 @@ export const UX_FUNNEL_EVENTS = [
   "reward_claimed",
   "review_opened",
   "locked_cta_clicked",
+  "home_trail_stop_clicked",
 ] as const;
 
 export type UxFunnelEvent = (typeof UX_FUNNEL_EVENTS)[number];

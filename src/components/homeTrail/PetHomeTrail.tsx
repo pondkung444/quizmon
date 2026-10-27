@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { BarChart3, ChevronRight, DoorOpen, LayoutGrid, Settings, Trophy, UtensilsCrossed } from "lucide-react";
 import type PetCard from "@/components/PetCard";
@@ -12,6 +13,9 @@ import QmonSprite, { type QmonSpriteHandle } from "@/components/QmonSprite";
 import WeeklyLeaderboardCard from "@/components/WeeklyLeaderboardCard";
 import TopicStatsSheet from "@/components/TopicStatsSheet";
 import FeedPetCard from "@/components/FeedPetCard";
+import CollectPetButton from "@/components/CollectPetButton";
+import QmonGrowthGuide from "@/components/QmonGrowthGuide";
+import BottomSheet from "@/components/social/BottomSheet";
 import HomeTrailHeader from "@/components/homeTrail/HomeTrailHeader";
 import HomeTrailPath from "@/components/homeTrail/HomeTrailPath";
 import HomeNowCard from "@/components/homeTrail/HomeNowCard";
@@ -21,8 +25,11 @@ import { useSfx } from "@/lib/audio/useSfx";
 import { getEvolutionProgress } from "@/lib/evolution";
 import { getSpriteSet } from "@/lib/qmonSprites";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
-import { applyTrailPreview, buildHomeTrail, type HomeTrailInput, type TrailPreview, type TrailStopId } from "@/lib/homeTrail";
-import { track } from "@/lib/analytics";
+import {
+  STOP_ACTIVITY, applyTrailPreview, buildHomeTrail, resolveStopTap, stopTapOutcome,
+  type HomeTrailInput, type TrailPreview, type TrailStop, type TrailStopId,
+} from "@/lib/homeTrail";
+import { flush, track } from "@/lib/analytics";
 import { uxFunnelProps } from "@/lib/analyticsContract";
 
 // หน้าแรก /pet ทาง A "เส้นทางวันนี้" (ใช้เมื่อมี Qmon แล้ว ดู pet/page.tsx) — รับ props ชุดเดียวกับ PetCard
@@ -51,6 +58,9 @@ export type PetHomeTrailProps = ComponentProps<typeof PetCard> & {
   footer?: ReactNode;
   // ?trailPreview= (ไม่ใช่ production — pet/page.tsx กันไว้): ข้อมูลสมมติเฉพาะทางเดิน/การ์ด ไม่ยิง event ปุ่มไม่ทำงาน
   trailPreview?: TrailPreview | null;
+  // จุดผจญภัย/ท้าทายเปิดไหม — pet/page.tsx คำนวณจากชุดเดียวกับ /adventure (รันค้าง หรือ getEligiblePets ไม่ว่าง)
+  adventureOpen: boolean;
+  isGuest: boolean;
 };
 
 export default function PetHomeTrail(props: PetHomeTrailProps) {
@@ -59,7 +69,7 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
     mathCorrect, scienceCorrect, comboMilestones, expToday, dailyCap, justEvolved, eggChoices, personalityKey,
     journeyDays, topicStats, mission, hasEverAnswered, myWeeklyRank, gradeBand, foodA, foodB, dungeonCard,
     raidTicketCount, pvpTurnCount, qmonSpriteEnabled = false, spriteDebug = null, spriteFps = null,
-    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null,
+    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null, adventureOpen, isGuest,
   } = props;
 
   const sfx = useSfx();
@@ -91,11 +101,12 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
         raidTicketCount,
         pvpTurnCount,
         advancedUnlocked,
+        adventureOpen,
         hasEverAnswered,
         weakTopic: topicStats.needsPractice[0]?.category ?? null,
     };
     return trailPreview ? applyTrailPreview(real, trailPreview) : real;
-  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, hasEverAnswered, topicStats, trailPreview]);
+  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, adventureOpen, hasEverAnswered, topicStats, trailPreview]);
   const { action, stops, nowId } = useMemo(() => buildHomeTrail(trailInput), [trailInput]);
   // ค่าที่หัว/การ์ดแสดง — ตามพรีวิวถ้ามี (ส่วนรูปน้อง/บุคลิก/ปุ่มอื่นๆ ยังเป็นของจริง)
   const vStage = trailInput.stage;
@@ -117,6 +128,43 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
   const trackClick = () =>
     !trailPreview &&
     track("home_next_action_clicked", uxFunnelProps("active_pet", { activity: action.activity, source: action.id }));
+
+  // กดจุดบนทาง (ทางลัดรอง) — ไม่ยิง home_next_action_clicked (event นั้นนับเฉพาะการ์ด) · พรีวิว: ไม่ยิง event ไม่นำทาง/ไม่เก็บ
+  const router = useRouter();
+  const [showGrowth, setShowGrowth] = useState(false);
+  const [stopNote, setStopNote] = useState<{ id: TrailStopId; message: string } | null>(null);
+  useEffect(() => {
+    if (!stopNote) return;
+    const timer = setTimeout(() => setStopNote(null), 4000);
+    return () => clearTimeout(timer);
+  }, [stopNote]);
+  function onStopTap(stop: TrailStop, collect?: () => void) {
+    const tap = resolveStopTap(stop, { missionId: vMission?.id ?? null, isGuest });
+    const activity = STOP_ACTIVITY[stop.id];
+    if (!trailPreview) {
+      track("home_trail_stop_clicked", {
+        ...uxFunnelProps("active_pet", { activity, source: stop.id, outcome: stopTapOutcome(tap) }),
+        stop_status: stop.status,
+        is_now: stop.status === "now",
+        stage: vStage,
+        mode,
+      });
+      if (tap.kind === "locked") track("locked_cta_clicked", uxFunnelProps("active_pet", { activity, source: `home_trail:${stop.id}` }));
+    }
+    sfx("tap");
+    setStopNote(tap.kind === "locked" ? { id: stop.id, message: tap.message } : null);
+    if (tap.kind === "sheet") setShowGrowth(true);
+    if (trailPreview) return;
+    if (tap.kind === "collect") collect?.();
+    if (tap.kind === "navigate") {
+      if (tap.hard) {
+        // hard navigation ทิ้งหน้านี้ทันที — ส่ง event ที่ค้าง buffer ก่อน (fetch keepalive รอดการเปลี่ยนหน้า)
+        void flush();
+        window.location.assign(tap.href);
+      }
+      else router.push(tap.href);
+    }
+  }
 
   // pop เครื่องหมายถูกของจุดที่เพิ่งเสร็จ (เทียบกับสถานะครั้งก่อนที่เปิดหน้านี้ใน session เดียวกัน)
   const [justDone, setJustDone] = useState<ReadonlySet<TrailStopId>>(new Set());
@@ -326,7 +374,17 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
             </h2>
             <BgmMuteButton className="mt-2 shrink-0" />
           </div>
-          <HomeTrailPath stops={stops} nowSlot={portraitSlot === "inline" ? nowCard("inline") : null} justDone={justDone} />
+          <HomeTrailPath
+            stops={stops}
+            nowSlot={portraitSlot === "inline" ? nowCard("inline") : null}
+            justDone={justDone}
+            note={stopNote}
+            onTap={onStopTap}
+            // เก็บเข้าฟาร์ม = handler เดียวกับปุ่มหลัก (CollectPetButton) · พรีวิวไม่ผูก
+            renderCollect={(row) =>
+              trailPreview ? row() : <CollectPetButton eggChoices={eggChoices} renderButton={(onCollect) => row(onCollect)} />
+            }
+          />
           <div className="ht-vis-portrait">{statsPanel}</div>
 
           <h2 className="ht-title">อื่นๆ</h2>
@@ -386,6 +444,17 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
         </section>
       </div>
 
+      {showGrowth && (
+        <BottomSheet title="เส้นทางการเติบโต" onClose={() => setShowGrowth(false)}>
+          <QmonGrowthGuide
+            stage={vStage}
+            exp={vExp}
+            dailyCap={dailyCap}
+            advancedActivitiesUnlocked={stops.find((s) => s.id === "adventure")?.status !== "locked"}
+            defaultOpen
+          />
+        </BottomSheet>
+      )}
       {showTopicStats && (
         <TopicStatsSheet
           stats={topicStats}

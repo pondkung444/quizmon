@@ -1,16 +1,18 @@
 import { STAGE_EXP_THRESHOLD } from "@/lib/evolution";
 
-export default function QmonGrowthGuide({ stage, exp, dailyCap, advancedActivitiesUnlocked }: {
+// defaultOpen: กางไว้เลย (ใช้ใน sheet จากจุด "ออกจากไข่" บนทางเดิน /pet) — ไม่ส่ง = พับไว้เหมือนเดิม
+export default function QmonGrowthGuide({ stage, exp, dailyCap, advancedActivitiesUnlocked, defaultOpen = false }: {
   stage: number;
   exp: number;
   dailyCap: number;
   advancedActivitiesUnlocked: boolean;
+  defaultOpen?: boolean;
 }) {
   const target = STAGE_EXP_THRESHOLD[3];
   const fullGrown = stage >= 4;
 
   return (
-    <details aria-label="เส้นทางเติบโตของ Qmon" className="w-full text-left">
+    <details open={defaultOpen} aria-label="เส้นทางเติบโตของ Qmon" className="w-full text-left">
       <summary className="flex min-h-11 cursor-pointer items-center justify-center text-xs text-text3">ดูเส้นทางการเติบโต</summary>
       <div className="pb-2 text-left">
       <p className="text-xs leading-5 text-text2">
