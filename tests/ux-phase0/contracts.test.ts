@@ -4,11 +4,12 @@ import { test } from "node:test";
 import { UX_FUNNEL_EVENTS, hasUxFunnelContext, viewportGroup } from "../../src/lib/analyticsContract.ts";
 
 test("Phase 0 funnel contract contains every roadmap event exactly once", () => {
-  assert.equal(new Set(UX_FUNNEL_EVENTS).size, 11);
+  assert.equal(new Set(UX_FUNNEL_EVENTS).size, 12);
   assert.deepEqual(UX_FUNNEL_EVENTS, [
     "guest_started", "guest_ready", "starter_egg_viewed", "pet_hatched",
     "home_next_action_viewed", "activity_started", "question_answered",
     "activity_completed", "reward_claimed", "review_opened", "locked_cta_clicked",
+    "home_trail_stop_clicked",
   ]);
 });
 

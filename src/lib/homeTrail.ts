@@ -27,6 +27,9 @@ export type HomeTrailInput = {
   raidTicketCount: number;
   pvpTurnCount: number;
   advancedUnlocked: boolean;
+  // จุดผจญภัย/ท้าทายเปิดไหม — ชุดเดียวกับที่ /adventure ใช้ตัดสิน redirect (มีรันค้าง หรือ getEligiblePets() ไม่ว่าง)
+  // ไม่ส่ง = ใช้ advancedUnlocked (เทส/พรีวิว) · ไม่ป้อนเข้า resolveNextAction() — ปุ่มหลักยังตัดสินแบบเดิม
+  adventureOpen?: boolean;
   hasEverAnswered?: boolean;
   weakTopic?: string | null;
 };
@@ -49,6 +52,9 @@ const ACTION_TO_STOP: Record<NextActionId, TrailStopId | null> = {
   resume_pvp: "pvp",
   practice: null,
 };
+
+// คำใต้จุดผจญภัย/ท้าทายตอนล็อก — ล็อกเพราะยังไม่มี Qmon ในฟาร์มที่ออกไปได้ (ไม่ใช่เพราะระยะของน้องตัวนี้)
+const LOCKED_DETAIL = "เก็บเข้าฟาร์มก่อนนะ";
 
 export function eggAnswersLeft(exp: number): number {
   return Math.max(0, Math.ceil((STAGE_EXP_THRESHOLD[1] - exp) / BASE_EXP_PER_CORRECT));
@@ -114,9 +120,9 @@ export function buildHomeTrail(input: HomeTrailInput): HomeTrail {
     detail: expLeft === 0 ? `วันนี้ได้ครบ ${input.dailyCap} EXP แล้ว` : `วันนี้ยังได้อีก ${expLeft} EXP`,
   });
 
-  const unlocked = input.advancedUnlocked;
+  const unlocked = input.adventureOpen ?? input.advancedUnlocked;
   const advDetail: Record<HomeTrailInput["dungeonStatus"], string> = {
-    invite: "เปิดเมื่อน้องถึงระยะ 4",
+    invite: LOCKED_DETAIL,
     ready: "พร้อมออกเดินทาง",
     traveling: input.dungeonName ? `กำลังเดินทาง · ${input.dungeonName}` : "กำลังเดินทาง",
     claimable: "กลับมาแล้ว รับของได้",
@@ -132,7 +138,7 @@ export function buildHomeTrail(input: HomeTrailInput): HomeTrail {
     status: !unlocked ? "locked" : input.raidTicketCount > 0 ? "todo" : "wait",
     title: "ท้าทายด่าน",
     detail: !unlocked
-      ? "เปิดเมื่อน้องถึงระยะ 4"
+      ? LOCKED_DETAIL
       : input.raidTicketCount > 0
         ? `มีกุญแจ ${input.raidTicketCount} ดอก`
         : "หมดแล้ว · ได้จากการผจญภัย",
@@ -146,6 +152,58 @@ export function buildHomeTrail(input: HomeTrailInput): HomeTrail {
 
   for (const s of stops) if (s.id === nowId) s.status = "now";
   return { nowId, action, stops };
+}
+
+// กดจุดบนทาง — จุดเป็นทางลัดรอง ปุ่มหลักยังเป็นการ์ด "ตอนนี้" (HomeNowCard) จุดเดียว
+// navigate.hard = ภารกิจ ต้อง window.location.assign เหมือนปุ่มหลัก (router.push เคยได้ /quiz ไม่มี ?mission=)
+export type StopTap =
+  | { kind: "navigate"; href: string; hard: boolean }
+  | { kind: "collect" }
+  | { kind: "sheet"; sheet: "growth" }
+  | { kind: "locked"; message: string };
+
+export type StopTapContext = { missionId: string | null; isGuest: boolean };
+
+export const STOP_LOCK_MESSAGE = {
+  farm: "เก็บเราเข้าฟาร์มก่อนนะ แล้วค่อยออกผจญภัยกัน",
+  keys: "กุญแจหมดแล้ว ออกผจญภัยเพื่อหากุญแจกันนะ",
+  guest: "เข้าสู่ระบบก่อนนะ แล้วเราจะไปผจญภัยด้วยกัน",
+} as const;
+
+export const STOP_ACTIVITY: Record<TrailStopId, "hatch" | "practice" | "mission" | "adventure" | "raid" | "pvp"> = {
+  hatch: "hatch",
+  collect: "hatch",
+  mission: "mission",
+  train: "practice",
+  adventure: "adventure",
+  raid: "raid",
+  pvp: "pvp",
+};
+
+export function resolveStopTap(stop: TrailStop, ctx: StopTapContext): StopTap {
+  switch (stop.id) {
+    case "hatch":
+      return { kind: "sheet", sheet: "growth" };
+    case "collect":
+      return { kind: "collect" };
+    case "mission":
+      if (stop.status === "done" || !ctx.missionId) return { kind: "navigate", href: "/quiz", hard: false };
+      return { kind: "navigate", href: `/quiz?mission=${ctx.missionId}`, hard: true };
+    case "train":
+      return { kind: "navigate", href: "/quiz", hard: false };
+    case "pvp":
+      return { kind: "navigate", href: "/pvp", hard: false };
+    case "adventure":
+    case "raid":
+      if (ctx.isGuest) return { kind: "locked", message: STOP_LOCK_MESSAGE.guest };
+      if (stop.status === "locked") return { kind: "locked", message: STOP_LOCK_MESSAGE.farm };
+      if (stop.id === "raid" && stop.status === "wait") return { kind: "locked", message: STOP_LOCK_MESSAGE.keys };
+      return { kind: "navigate", href: stop.id === "raid" ? "/raid" : "/adventure", hard: false };
+  }
+}
+
+export function stopTapOutcome(tap: StopTap): "navigate" | "sheet" | "locked_message" {
+  return tap.kind === "sheet" ? "sheet" : tap.kind === "locked" ? "locked_message" : "navigate";
 }
 
 // ตัวช่วยพรีวิว ?trailPreview= (ไม่ใช่ production เท่านั้น — pet/page.tsx กันไว้) แทนข้อมูลจริงด้วยค่าสมมติ
@@ -167,7 +225,7 @@ export function applyTrailPreview(real: HomeTrailInput, kind: TrailPreview): Hom
     category: real.mission?.category ?? "แรงและการเคลื่อนที่",
     bonusExp: real.mission?.bonusExp ?? 10,
   });
-  const base = { ...real, raidTicketCount: 0, pvpTurnCount: 0, advancedUnlocked: false, dungeonStatus: "invite" as const, dungeonName: null };
+  const base = { ...real, adventureOpen: undefined, raidTicketCount: 0, pvpTurnCount: 0, advancedUnlocked: false, dungeonStatus: "invite" as const, dungeonName: null };
   switch (kind) {
     case "egg":
       return { ...base, stage: 1, exp: 20, expToday: 20, mission: m(3, 2) };

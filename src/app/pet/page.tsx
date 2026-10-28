@@ -18,7 +18,7 @@ import { getWeeklyTopicStats, type TopicStatsResult } from "@/lib/topicStats";
 import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions";
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
-import { getDungeonCardState, type DungeonCardState } from "@/lib/dungeon";
+import { getDungeonCardState, getEligiblePets, type DungeonCardState } from "@/lib/dungeon";
 import { getRaidTicketCount } from "@/lib/raid";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -107,6 +107,8 @@ export default async function PetPage({
   let raidTicketCount = 0;
   let pvpTurnCount = 0;
   let dailyCap = DAILY_EXP_CAP;
+  // จุดผจญภัย/ท้าทายบนทาง — ชุดเดียวกับที่ /adventure ใช้ตัดสิน redirect (adventure/page.tsx: getEligiblePets ว่าง = เด้งกลับ)
+  let eligibleFarmPetCount = 0;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -132,6 +134,7 @@ export default async function PetPage({
       raidTicketCountResult,
       pvpTurnCountResult,
       dailyCapResult,
+      eligiblePetsResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -190,6 +193,10 @@ export default async function PetPage({
         return 0;
       }),
       dailyCapPromise,
+      getEligiblePets(supabase, user.id).catch((err) => {
+        console.error("getEligiblePets failed:", err);
+        return [];
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -203,6 +210,7 @@ export default async function PetPage({
     raidTicketCount = raidTicketCountResult;
     pvpTurnCount = pvpTurnCountResult;
     dailyCap = dailyCapResult;
+    eligibleFarmPetCount = eligiblePetsResult.length;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -373,6 +381,8 @@ export default async function PetPage({
           foodA={foodInventory.A}
           foodB={foodInventory.B}
           dungeonCard={dungeonCard}
+          adventureOpen={dungeonCard.status === "traveling" || dungeonCard.status === "claimable" || eligibleFarmPetCount > 0}
+          isGuest={!!user?.is_anonymous}
           raidTicketCount={raidTicketCount}
           pvpTurnCount={pvpTurnCount}
           qmonSpriteEnabled={qmonSpriteEnabled}
