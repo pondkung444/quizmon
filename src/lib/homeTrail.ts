@@ -54,7 +54,7 @@ const ACTION_TO_STOP: Record<NextActionId, TrailStopId | null> = {
 };
 
 // คำใต้จุดผจญภัย/ท้าทายตอนล็อก — ล็อกเพราะยังไม่มี Qmon ในฟาร์มที่ออกไปได้ (ไม่ใช่เพราะระยะของน้องตัวนี้)
-const LOCKED_DETAIL = "เปิดเมื่อมี Qmon ในฟาร์ม";
+const LOCKED_DETAIL = "เก็บเข้าฟาร์มก่อนนะ";
 
 export function eggAnswersLeft(exp: number): number {
   return Math.max(0, Math.ceil((STAGE_EXP_THRESHOLD[1] - exp) / BASE_EXP_PER_CORRECT));

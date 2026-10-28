@@ -39,6 +39,14 @@ export default function HomeTrailPath({
   renderCollect: (row: (onCollect?: () => void) => ReactNode) => ReactNode;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
+  const noteRef = useRef<HTMLParagraphElement>(null);
+
+  // ข้อความล็อกต้องอยู่ในจอเสมอหลังกด (จอเตี้ยแนวนอนมันเคยขึ้นใต้ขอบจอ) — เลื่อนเท่าที่จำเป็น, ปิด motion = ไม่ smooth
+  useEffect(() => {
+    if (!note) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    noteRef.current?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [note]);
   const [segments, setSegments] = useState<{ d: string; done: boolean }[]>([]);
 
   const draw = useCallback(() => {
@@ -105,7 +113,7 @@ export default function HomeTrailPath({
               {inlineCard && <div className="ht-vis-portrait">{nowSlot}</div>}
               {s.id === "collect" ? renderCollect(row) : row()}
               {note?.id === s.id && (
-                <p className={`ht-note ${side} ${inlineCard ? "ht-vis-two" : ""}`} role="status">
+                <p ref={noteRef} className={`ht-note ${side} ${inlineCard ? "ht-vis-two" : ""}`} role="status">
                   {note.message}
                 </p>
               )}

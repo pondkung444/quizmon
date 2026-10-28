@@ -145,7 +145,7 @@ test("tap: adventure/raid locked below stage 4 with no farm Qmon shows farm mess
   for (const id of ["adventure", "raid"] as const) {
     const s = stopOf(base, id);
     assert.equal(s.status, "locked");
-    assert.equal(s.detail, "เปิดเมื่อมี Qmon ในฟาร์ม");
+    assert.equal(s.detail, "เก็บเข้าฟาร์มก่อนนะ");
     const tap = resolveStopTap(s, member);
     assert.deepEqual(tap, { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
     assert.equal(stopTapOutcome(tap), "locked_message");
@@ -157,7 +157,7 @@ test("tap: stage 4 with no eligible farm Qmon counts as locked (adventureOpen=fa
   for (const id of ["adventure", "raid"] as const) {
     const s = stopOf(input, id);
     assert.equal(s.status, "locked");
-    assert.equal(s.detail, "เปิดเมื่อมี Qmon ในฟาร์ม");
+    assert.equal(s.detail, "เก็บเข้าฟาร์มก่อนนะ");
     assert.deepEqual(resolveStopTap(s, member), { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
   }
 });
