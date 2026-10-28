@@ -27,7 +27,7 @@ import { getSpriteSet } from "@/lib/qmonSprites";
 import BgmMuteButton from "@/components/audio/BgmMuteButton";
 import {
   STOP_ACTIVITY, applyTrailPreview, buildHomeTrail, resolveStopTap, stopTapOutcome,
-  type HomeTrailInput, type TrailPreview, type TrailStop, type TrailStopId,
+  type AdventureLockReason, type HomeTrailInput, type TrailPreview, type TrailStop, type TrailStopId,
 } from "@/lib/homeTrail";
 import { flush, track } from "@/lib/analytics";
 import { uxFunnelProps } from "@/lib/analyticsContract";
@@ -60,6 +60,7 @@ export type PetHomeTrailProps = ComponentProps<typeof PetCard> & {
   trailPreview?: TrailPreview | null;
   // adventureOpen มาจาก props ของ PetCard (ใช้ทั้งจุดผจญภัย/ท้าทายและปุ่มหลัก)
   isGuest: boolean;
+  adventureLockReason: AdventureLockReason | null;
 };
 
 export default function PetHomeTrail(props: PetHomeTrailProps) {
@@ -68,7 +69,7 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
     mathCorrect, scienceCorrect, comboMilestones, expToday, dailyCap, justEvolved, eggChoices, personalityKey,
     journeyDays, topicStats, mission, hasEverAnswered, myWeeklyRank, gradeBand, foodA, foodB, dungeonCard,
     raidTicketCount, pvpTurnCount, qmonSpriteEnabled = false, spriteDebug = null, spriteFps = null,
-    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null, adventureOpen, isGuest,
+    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null, adventureOpen, isGuest, adventureLockReason,
   } = props;
 
   const sfx = useSfx();
@@ -101,11 +102,12 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
         pvpTurnCount,
         advancedUnlocked,
         adventureOpen,
+        adventureLockReason,
         hasEverAnswered,
         weakTopic: topicStats.needsPractice[0]?.category ?? null,
     };
     return trailPreview ? applyTrailPreview(real, trailPreview) : real;
-  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, adventureOpen, hasEverAnswered, topicStats, trailPreview]);
+  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, adventureOpen, adventureLockReason, hasEverAnswered, topicStats, trailPreview]);
   const { action, stops, nowId } = useMemo(() => buildHomeTrail(trailInput), [trailInput]);
   // ค่าที่หัว/การ์ดแสดง — ตามพรีวิวถ้ามี (ส่วนรูปน้อง/บุคลิก/ปุ่มอื่นๆ ยังเป็นของจริง)
   const vStage = trailInput.stage;
@@ -147,8 +149,11 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
         is_now: stop.status === "now",
         stage: vStage,
         mode,
+        lock_reason: tap.kind === "locked" ? tap.reason : null,
       });
-      if (tap.kind === "locked") track("locked_cta_clicked", uxFunnelProps("active_pet", { activity, source: `home_trail:${stop.id}` }));
+      if (tap.kind === "locked") {
+        track("locked_cta_clicked", { ...uxFunnelProps("active_pet", { activity, source: `home_trail:${stop.id}` }), lock_reason: tap.reason });
+      }
     }
     sfx("tap");
     setStopNote(tap.kind === "locked" ? { id: stop.id, message: tap.message } : null);
