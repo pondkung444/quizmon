@@ -35,7 +35,7 @@ import { RecentPremiumOrderBanner } from "@/components/PremiumOrderBanner";
 import HomeNextAction from "@/components/HomeNextAction";
 import Forest2048Entry from "@/components/Forest2048Entry";
 import { resolveNextAction } from "@/lib/nextAction";
-import { parseTrailPreview } from "@/lib/homeTrail";
+import { adventureLockReason, parseTrailPreview } from "@/lib/homeTrail";
 import { getPvpBadgeCount } from "@/lib/pvp";
 
 export default async function PetPage({
@@ -108,7 +108,7 @@ export default async function PetPage({
   let pvpTurnCount = 0;
   let dailyCap = DAILY_EXP_CAP;
   // จุดผจญภัย/ท้าทายบนทาง — ชุดเดียวกับที่ /adventure ใช้ตัดสิน redirect (adventure/page.tsx: getEligiblePets ว่าง = เด้งกลับ)
-  let eligibleFarmPetCount = 0;
+  let eligibleFarmPetCount: number | null = 0;
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -195,7 +195,7 @@ export default async function PetPage({
       dailyCapPromise,
       getEligiblePets(supabase, user.id).catch((err) => {
         console.error("getEligiblePets failed:", err);
-        return [];
+        return null;
       }),
     ]);
     pet = data;
@@ -210,7 +210,7 @@ export default async function PetPage({
     raidTicketCount = raidTicketCountResult;
     pvpTurnCount = pvpTurnCountResult;
     dailyCap = dailyCapResult;
-    eligibleFarmPetCount = eligiblePetsResult.length;
+    eligibleFarmPetCount = eligiblePetsResult ? eligiblePetsResult.length : null;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -341,6 +341,14 @@ export default async function PetPage({
   );
 
   // มี Qmon แล้ว = หน้าแรกทาง A "เส้นทางวันนี้" (components/homeTrail) · ยังไม่มี Qmon / รอเลือกบุคลิก = ด้านล่าง
+  // ผจญภัย/ท้าทาย: สาเหตุที่ยังล็อก (null = /adventure เข้าได้) — adventureOpen ของปุ่มหลัก derive จากค่าเดียวกัน
+  const lockReason = adventureLockReason({
+    hasActiveRun: dungeonCard.status === "traveling" || dungeonCard.status === "claimable",
+    eligiblePetCount: eligibleFarmPetCount,
+    activeStage: stage,
+    farmHasStage4: dungeonCard.status === "ready",
+  });
+
   if (pet && !needsPersonalityChoice) {
     return (
       <main data-home-trail data-app-wide className="ht-main">
@@ -381,7 +389,8 @@ export default async function PetPage({
           foodA={foodInventory.A}
           foodB={foodInventory.B}
           dungeonCard={dungeonCard}
-          adventureOpen={dungeonCard.status === "traveling" || dungeonCard.status === "claimable" || eligibleFarmPetCount > 0}
+          adventureOpen={lockReason === null}
+          adventureLockReason={lockReason}
           isGuest={!!user?.is_anonymous}
           raidTicketCount={raidTicketCount}
           pvpTurnCount={pvpTurnCount}

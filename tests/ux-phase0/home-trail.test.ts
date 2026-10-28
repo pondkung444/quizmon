@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  STOP_LOCK_MESSAGE, buildHomeTrail, resolveStopTap, stopTapOutcome, type HomeTrailInput, type TrailStop,
+  STOP_LOCK_MESSAGE, adventureLockReason, buildHomeTrail, resolveStopTap, stopTapOutcome, type HomeTrailInput, type TrailStop,
 } from "../../src/lib/homeTrail.ts";
 import { resolveNextAction } from "../../src/lib/nextAction.ts";
 
@@ -141,13 +141,13 @@ test("tap: adventure todo/wait/now goes to /adventure", () => {
   for (const s of [todo, wait, now]) assert.deepEqual(resolveStopTap(s, member), { kind: "navigate", href: "/adventure", hard: false });
 });
 
-test("tap: adventure/raid locked below stage 4 with no farm Qmon shows farm message", () => {
+test("tap: adventure/raid locked below stage 4 with no farm Qmon shows stage message", () => {
   for (const id of ["adventure", "raid"] as const) {
     const s = stopOf(base, id);
     assert.equal(s.status, "locked");
-    assert.equal(s.detail, "เก็บเข้าฟาร์มก่อนนะ");
+    assert.equal(s.detail, "เปิดเมื่อน้องถึงระยะ 4");
     const tap = resolveStopTap(s, member);
-    assert.deepEqual(tap, { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
+    assert.deepEqual(tap, { kind: "locked", message: STOP_LOCK_MESSAGE.stage, reason: "stage" });
     assert.equal(stopTapOutcome(tap), "locked_message");
   }
 });
@@ -158,7 +158,7 @@ test("tap: stage 4 with no eligible farm Qmon counts as locked (adventureOpen=fa
     const s = stopOf(input, id);
     assert.equal(s.status, "locked");
     assert.equal(s.detail, "เก็บเข้าฟาร์มก่อนนะ");
-    assert.deepEqual(resolveStopTap(s, member), { kind: "locked", message: STOP_LOCK_MESSAGE.farm });
+    assert.deepEqual(resolveStopTap(s, member), { kind: "locked", message: STOP_LOCK_MESSAGE.collect, reason: "collect" });
   }
 });
 
@@ -171,7 +171,7 @@ test("tap: raid todo/now goes to /raid, wait (no keys) shows keys message", () =
   assert.deepEqual(resolveStopTap(todo, member), { kind: "navigate", href: "/raid", hard: false });
   const wait = stopOf({ ...unlockedReady, raidTicketCount: 0 }, "raid");
   assert.equal(wait.status, "wait");
-  assert.deepEqual(resolveStopTap(wait, member), { kind: "locked", message: STOP_LOCK_MESSAGE.keys });
+  assert.deepEqual(resolveStopTap(wait, member), { kind: "locked", message: STOP_LOCK_MESSAGE.keys, reason: "keys" });
 });
 
 test("tap: pvp always goes to /pvp, also for guest", () => {
@@ -185,7 +185,7 @@ test("tap: pvp always goes to /pvp, also for guest", () => {
 test("tap: guest gets login message on adventure/raid in every status", () => {
   for (const input of [base, unlockedReady, { ...unlockedReady, raidTicketCount: 0 }]) {
     for (const id of ["adventure", "raid"] as const) {
-      assert.deepEqual(resolveStopTap(stopOf(input, id), guest), { kind: "locked", message: STOP_LOCK_MESSAGE.guest });
+      assert.deepEqual(resolveStopTap(stopOf(input, id), guest), { kind: "locked", message: STOP_LOCK_MESSAGE.guest, reason: "guest" });
     }
   }
 });
@@ -203,4 +203,60 @@ test("busy farm (dungeon ready but no eligible Qmon): now card and trail skip ad
   assert.notEqual(trail.action.id, "start_adventure");
   assert.equal(trail.stops.find((s) => s.id === "adventure")?.status, "locked");
   assert.equal(check({ ...input, adventureOpen: true }).action.id, "start_adventure");
+});
+
+// ── สาเหตุที่ผจญภัย/ท้าทายล็อก (adventureLockReason → จุดบนทาง) ──
+test("lock reason: derived from active run / eligible pets / stage / farm", () => {
+  const r = (o: Partial<Parameters<typeof adventureLockReason>[0]>) =>
+    adventureLockReason({ hasActiveRun: false, eligiblePetCount: 0, activeStage: 2, farmHasStage4: false, ...o });
+  assert.equal(r({}), "stage"); // ระยะ 2 ไม่มี Qmon ในฟาร์ม
+  assert.equal(r({ activeStage: 4 }), "collect"); // ระยะ 4 ยังไม่เก็บ
+  assert.equal(r({ farmHasStage4: true }), "busy"); // ระยะ 2 มี Qmon ในฟาร์มแต่ไม่ว่าง / ข้อมูลไม่ครบ
+  assert.equal(r({ activeStage: 4, farmHasStage4: true }), "collect"); // collect มาก่อน busy
+  assert.equal(r({ eligiblePetCount: null }), "busy"); // ดึงข้อมูลไม่สำเร็จ
+  assert.equal(r({ eligiblePetCount: 1 }), null);
+  assert.equal(r({ hasActiveRun: true, activeStage: 4 }), null);
+});
+
+test("lock reason: trail detail, tap message and now card follow the reason", () => {
+  const cases = [
+    { reason: "stage", stage: 2, detail: "เปิดเมื่อน้องถึงระยะ 4" },
+    { reason: "collect", stage: 4, detail: "เก็บเข้าฟาร์มก่อนนะ" },
+    { reason: "busy", stage: 2, detail: "Qmon ในฟาร์มยังไม่ว่าง" },
+  ] as const;
+  for (const c of cases) {
+    const input: HomeTrailInput = {
+      ...base, stage: c.stage, exp: c.stage === 4 ? 905 : 155, expToday: 180, mission: mission(5),
+      advancedUnlocked: c.reason !== "stage", dungeonStatus: c.reason === "busy" ? "ready" : "invite",
+      adventureLockReason: c.reason, raidTicketCount: 0,
+    };
+    const trail = check(input);
+    assert.notEqual(trail.action.href, "/adventure"); // ปุ่มหลักไม่พาไปหน้าที่เด้งกลับ
+    for (const id of ["adventure", "raid"] as const) {
+      const s = stopOf(input, id);
+      assert.equal(s.status, "locked");
+      assert.equal(s.lockReason, c.reason);
+      assert.equal(s.detail, c.detail);
+      assert.deepEqual(resolveStopTap(s, member), { kind: "locked", message: STOP_LOCK_MESSAGE[c.reason], reason: c.reason });
+      assert.deepEqual(resolveStopTap(s, guest), { kind: "locked", message: STOP_LOCK_MESSAGE.guest, reason: "guest" });
+    }
+  }
+  // null = เปิด แม้ advancedUnlocked จะบอกอย่างอื่น
+  const open = stopOf({ ...base, stage: 3, advancedUnlocked: true, dungeonStatus: "ready", adventureLockReason: null }, "adventure");
+  assert.notEqual(open.status, "locked");
+  assert.equal(open.lockReason, undefined);
+});
+
+test("lock reason: raid picked as now by the main button shows keys, not the lock text", () => {
+  const input: HomeTrailInput = {
+    ...base, stage: 2, expToday: 180, mission: mission(5), advancedUnlocked: true, dungeonStatus: "ready",
+    adventureLockReason: "busy", raidTicketCount: 1,
+  };
+  const trail = check(input);
+  assert.equal(trail.action.id, "start_raid");
+  const raid = stopOf(input, "raid");
+  assert.equal(raid.status, "now");
+  assert.equal(raid.detail, "มีกุญแจ 1 ดอก");
+  assert.deepEqual(resolveStopTap(raid, member), { kind: "navigate", href: "/raid", hard: false });
+  assert.equal(stopOf(input, "adventure").lockReason, "busy");
 });
