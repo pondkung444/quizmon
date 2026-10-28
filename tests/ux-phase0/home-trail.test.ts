@@ -260,3 +260,51 @@ test("lock reason: raid picked as now by the main button shows keys, not the loc
   assert.deepEqual(resolveStopTap(raid, member), { kind: "navigate", href: "/raid", hard: false });
   assert.equal(stopOf(input, "adventure").lockReason, "busy");
 });
+
+// ── จุดท้าทายใช้สาเหตุของตัวเอง (raidLockReason จาก getEligibleRaidPets) ──
+test("raid lock: farm-busy Qmon can still raid, so raid stop opens while adventure stays busy", () => {
+  const input: HomeTrailInput = {
+    ...base, stage: 2, expToday: 180, mission: mission(5), advancedUnlocked: true, dungeonStatus: "ready",
+    adventureLockReason: "busy", raidLockReason: null, raidTicketCount: 2,
+  };
+  const trail = check(input);
+  assert.equal(trail.action.id, "start_raid"); // ปุ่มหลักไม่เปลี่ยน
+  const adv = stopOf(input, "adventure");
+  assert.equal(adv.status, "locked");
+  assert.equal(adv.lockReason, "busy");
+  const raid = stopOf(input, "raid");
+  assert.equal(raid.status, "now");
+  assert.equal(raid.lockReason, undefined);
+  assert.deepEqual(resolveStopTap(raid, member), { kind: "navigate", href: "/raid", hard: false });
+  // ไม่ใช่ now (มีอย่างอื่นมาก่อน) ก็ยังเปิด
+  const todo = stopOf({ ...input, expToday: 60 }, "raid");
+  assert.equal(todo.status, "todo");
+  assert.equal(todo.detail, "มีกุญแจ 2 ดอก");
+});
+
+test("raid lock: open but no keys keeps the keys message", () => {
+  const input: HomeTrailInput = { ...base, advancedUnlocked: true, adventureLockReason: "busy", raidLockReason: null, raidTicketCount: 0 };
+  const raid = stopOf(input, "raid");
+  assert.equal(raid.status, "wait");
+  assert.deepEqual(resolveStopTap(raid, member), { kind: "locked", message: STOP_LOCK_MESSAGE.keys, reason: "keys" });
+});
+
+test("raid lock: own reason drives raid detail/message independently of adventure", () => {
+  for (const reason of ["stage", "collect", "busy"] as const) {
+    const input: HomeTrailInput = {
+      ...base, stage: reason === "collect" ? 4 : 2, exp: reason === "collect" ? 905 : 155, advancedUnlocked: true,
+      dungeonStatus: "ready", adventureLockReason: null, raidLockReason: reason, raidTicketCount: 0,
+    };
+    assert.notEqual(stopOf(input, "adventure").status, "locked");
+    const raid = stopOf(input, "raid");
+    assert.equal(raid.status, "locked");
+    assert.equal(raid.lockReason, reason);
+    assert.deepEqual(resolveStopTap(raid, member), { kind: "locked", message: STOP_LOCK_MESSAGE[reason], reason });
+    assert.deepEqual(resolveStopTap(raid, guest), { kind: "locked", message: STOP_LOCK_MESSAGE.guest, reason: "guest" });
+  }
+});
+
+test("raid lock: not passed = follows adventure lock (old behaviour)", () => {
+  const input: HomeTrailInput = { ...base, adventureLockReason: "stage" };
+  assert.equal(stopOf(input, "raid").lockReason, "stage");
+});

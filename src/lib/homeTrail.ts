@@ -38,6 +38,9 @@ export type HomeTrailInput = {
   adventureOpen?: boolean;
   // ส่งมาแล้ว = ใช้ตัวนี้ตัดสินแทน adventureOpen (null = เปิด) — pet/page.tsx ส่งจาก adventureLockReason()
   adventureLockReason?: AdventureLockReason | null;
+  // จุดท้าทายใช้สาเหตุของตัวเอง (Qmon ที่ /raid ให้เลือกได้ = getEligibleRaidPets — ไม่กรองงานฟาร์ม)
+  // ไม่ส่ง = ล็อกตามผจญภัยเหมือนเดิม · ไม่ป้อนเข้า resolveNextAction() (start_raid ยังดูแค่ advancedActivitiesUnlocked)
+  raidLockReason?: AdventureLockReason | null;
   hasEverAnswered?: boolean;
   weakTopic?: string | null;
 };
@@ -169,16 +172,22 @@ export function buildHomeTrail(input: HomeTrailInput): HomeTrail {
     detail: unlocked ? advDetail[input.dungeonStatus] : advDetail.invite,
     lockReason,
   });
+  const raidUnlocked = input.raidLockReason !== undefined ? input.raidLockReason === null : unlocked;
+  const raidLockReason: AdventureLockReason | undefined = raidUnlocked
+    ? undefined
+    : input.raidLockReason !== undefined
+      ? (input.raidLockReason ?? undefined)
+      : lockReason;
   stops.push({
     id: "raid",
-    status: !unlocked ? "locked" : input.raidTicketCount > 0 ? "todo" : "wait",
+    status: !raidUnlocked ? "locked" : input.raidTicketCount > 0 ? "todo" : "wait",
     title: "ท้าทายด่าน",
-    detail: !unlocked
-      ? advDetail.invite
+    detail: !raidUnlocked
+      ? LOCKED_DETAIL[raidLockReason ?? "stage"]
       : input.raidTicketCount > 0
         ? `มีกุญแจ ${input.raidTicketCount} ดอก`
         : "หมดแล้ว · ได้จากการผจญภัย",
-    lockReason,
+    lockReason: raidLockReason,
   });
   stops.push({
     id: "pvp",
@@ -275,7 +284,7 @@ export function applyTrailPreview(real: HomeTrailInput, kind: TrailPreview): Hom
     category: real.mission?.category ?? "แรงและการเคลื่อนที่",
     bonusExp: real.mission?.bonusExp ?? 10,
   });
-  const base = { ...real, adventureOpen: undefined, adventureLockReason: undefined, raidTicketCount: 0, pvpTurnCount: 0, advancedUnlocked: false, dungeonStatus: "invite" as const, dungeonName: null };
+  const base = { ...real, adventureOpen: undefined, adventureLockReason: undefined, raidLockReason: undefined, raidTicketCount: 0, pvpTurnCount: 0, advancedUnlocked: false, dungeonStatus: "invite" as const, dungeonName: null };
   switch (kind) {
     case "egg":
       return { ...base, stage: 1, exp: 20, expToday: 20, mission: m(3, 2) };
@@ -295,6 +304,6 @@ export function applyTrailPreview(real: HomeTrailInput, kind: TrailPreview): Hom
     case "lock-collect":
       return { ...base, stage: 4, exp: 905, expToday: cap, mission: m(5), advancedUnlocked: true, adventureLockReason: "collect", raidTicketCount: 1 };
     case "lock-busy":
-      return { ...base, stage: 2, exp: 155, expToday: cap, mission: m(5), advancedUnlocked: true, dungeonStatus: "ready", adventureLockReason: "busy", raidTicketCount: 1 };
+      return { ...base, stage: 2, exp: 155, expToday: cap, mission: m(5), advancedUnlocked: true, dungeonStatus: "ready", adventureLockReason: "busy", raidLockReason: null, raidTicketCount: 0 };
   }
 }

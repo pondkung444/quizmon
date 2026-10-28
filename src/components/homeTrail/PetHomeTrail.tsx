@@ -61,6 +61,7 @@ export type PetHomeTrailProps = ComponentProps<typeof PetCard> & {
   // adventureOpen มาจาก props ของ PetCard (ใช้ทั้งจุดผจญภัย/ท้าทายและปุ่มหลัก)
   isGuest: boolean;
   adventureLockReason: AdventureLockReason | null;
+  raidLockReason: AdventureLockReason | null;
 };
 
 export default function PetHomeTrail(props: PetHomeTrailProps) {
@@ -69,7 +70,7 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
     mathCorrect, scienceCorrect, comboMilestones, expToday, dailyCap, justEvolved, eggChoices, personalityKey,
     journeyDays, topicStats, mission, hasEverAnswered, myWeeklyRank, gradeBand, foodA, foodB, dungeonCard,
     raidTicketCount, pvpTurnCount, qmonSpriteEnabled = false, spriteDebug = null, spriteFps = null,
-    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null, adventureOpen, isGuest, adventureLockReason,
+    spriteRandomFast = false, spriteQuizHappy = false, footer, trailPreview = null, adventureOpen, isGuest, adventureLockReason, raidLockReason,
   } = props;
 
   const sfx = useSfx();
@@ -103,11 +104,12 @@ export default function PetHomeTrail(props: PetHomeTrailProps) {
         advancedUnlocked,
         adventureOpen,
         adventureLockReason,
+        raidLockReason,
         hasEverAnswered,
         weakTopic: topicStats.needsPractice[0]?.category ?? null,
     };
     return trailPreview ? applyTrailPreview(real, trailPreview) : real;
-  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, adventureOpen, adventureLockReason, hasEverAnswered, topicStats, trailPreview]);
+  }, [stage, exp, expToday, dailyCap, mission, dungeonCard, raidTicketCount, pvpTurnCount, advancedUnlocked, adventureOpen, adventureLockReason, raidLockReason, hasEverAnswered, topicStats, trailPreview]);
   const { action, stops, nowId } = useMemo(() => buildHomeTrail(trailInput), [trailInput]);
   // ค่าที่หัว/การ์ดแสดง — ตามพรีวิวถ้ามี (ส่วนรูปน้อง/บุคลิก/ปุ่มอื่นๆ ยังเป็นของจริง)
   const vStage = trailInput.stage;
