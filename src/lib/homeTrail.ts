@@ -28,7 +28,7 @@ export type HomeTrailInput = {
   pvpTurnCount: number;
   advancedUnlocked: boolean;
   // จุดผจญภัย/ท้าทายเปิดไหม — ชุดเดียวกับที่ /adventure ใช้ตัดสิน redirect (มีรันค้าง หรือ getEligiblePets() ไม่ว่าง)
-  // ไม่ส่ง = ใช้ advancedUnlocked (เทส/พรีวิว) · ไม่ป้อนเข้า resolveNextAction() — ปุ่มหลักยังตัดสินแบบเดิม
+  // ไม่ส่ง = ใช้ advancedUnlocked (เทส/พรีวิว) · ป้อนเข้า resolveNextAction() ด้วย — ปุ่มหลักกับจุดบนทางใช้ค่าเดียวกัน
   adventureOpen?: boolean;
   hasEverAnswered?: boolean;
   weakTopic?: string | null;
@@ -78,6 +78,7 @@ export function buildHomeTrail(input: HomeTrailInput): HomeTrail {
     pvpTurnCount: input.pvpTurnCount,
     raidTicketCount: input.raidTicketCount,
     advancedActivitiesUnlocked: input.advancedUnlocked,
+    adventureOpen: input.adventureOpen ?? input.advancedUnlocked,
     expToday: input.expToday,
     dailyExpCap: input.dailyCap,
     hasEverAnswered: input.hasEverAnswered,

@@ -30,6 +30,9 @@ export type NextActionState = {
   pvpTurnCount?: number;
   raidTicketCount?: number;
   advancedActivitiesUnlocked?: boolean;
+  // /adventure เข้าได้จริงไหม (มีรันค้าง หรือ getEligiblePets() ไม่ว่าง — ชุดเดียวกับที่หน้า /adventure ใช้ตัดสิน redirect)
+  // บังคับส่ง: false = ข้าม action ที่พาไป /adventure แล้วเช็คตัวถัดไปตามลำดับเดิม (กันปุ่มพาไปแล้วเด้งกลับ /pet)
+  adventureOpen: boolean;
   expToday?: number;
   dailyExpCap?: number;
   hasEverAnswered?: boolean;
@@ -75,10 +78,11 @@ export function resolveNextAction(state: NextActionState): NextAction {
     };
   }
   const advancedActivitiesUnlocked = state.advancedActivitiesUnlocked ?? false;
-  if (advancedActivitiesUnlocked && state.adventureStatus === "claimable") {
+  const adventureReachable = advancedActivitiesUnlocked && state.adventureOpen;
+  if (adventureReachable && state.adventureStatus === "claimable") {
     return { id: "claim_adventure", title: "น้องกลับมาแล้ว", description: "มีของรางวัลจากการผจญภัย", cta: "รับของรางวัล", href: "/adventure", activity: "adventure", meta: "มีรางวัลรอรับ" };
   }
-  if (advancedActivitiesUnlocked && state.adventureStatus === "ready") {
+  if (adventureReachable && state.adventureStatus === "ready") {
     return { id: "start_adventure", title: "ส่งน้องไปผจญภัย", description: "เลือกเส้นทาง แล้วกลับมารับของ", cta: "เลือกเส้นทาง", href: "/adventure", activity: "adventure", meta: state.adventureMinutes ? `ประมาณ ${state.adventureMinutes} นาที` : "เลือกเส้นทางได้" };
   }
   if (advancedActivitiesUnlocked && (state.raidTicketCount ?? 0) > 0) {

@@ -8,6 +8,7 @@ const base: NextActionState = {
   expToday: 180,
   dailyExpCap: 180,
   advancedActivitiesUnlocked: true,
+  adventureOpen: true,
 };
 
 test("next-action state table follows the product priority", () => {
@@ -97,4 +98,24 @@ test("missing dailyExpCap falls back to the free cap", () => {
   const action = resolveNextAction({ ...base, dailyExpCap: undefined, expToday: 125 });
   assert.equal(action.id, "train_to_cap");
   assert.match(action.meta, /125\/180 EXP/);
+});
+
+test("adventureOpen=false skips /adventure actions and falls through in the same order", () => {
+  const closed = { ...base, adventureOpen: false };
+  // ready: เดิม start_adventure → ถัดไปตามลำดับ (raid → pvp → practice)
+  assert.equal(resolveNextAction({ ...base, adventureStatus: "ready" }).id, "start_adventure");
+  assert.equal(resolveNextAction({ ...closed, adventureStatus: "ready" }).id, "practice");
+  assert.equal(resolveNextAction({ ...closed, adventureStatus: "ready", raidTicketCount: 2 }).id, "start_raid");
+  assert.equal(resolveNextAction({ ...closed, adventureStatus: "ready", pvpTurnCount: 1 }).id, "resume_pvp");
+  // claimable: ในความจริงมีรันค้าง = adventureOpen true เสมอ แต่ resolver ต้องไม่พาไป /adventure ถ้าได้ false
+  assert.equal(resolveNextAction({ ...base, adventureStatus: "claimable" }).id, "claim_adventure");
+  assert.equal(resolveNextAction({ ...closed, adventureStatus: "claimable", raidTicketCount: 1 }).id, "start_raid");
+  // ไม่กระทบ action ก่อนหน้าผจญภัย
+  assert.equal(resolveNextAction({ ...closed, evolutionReady: true, adventureStatus: "ready" }).id, "collect_evolution");
+  assert.equal(resolveNextAction({ ...closed, mission: { id: "m", remaining: 2, bonusExp: 5 }, adventureStatus: "ready" }).id, "daily_mission");
+  assert.equal(resolveNextAction({ ...closed, expToday: 60, adventureStatus: "ready" }).id, "train_to_cap");
+  // ไม่มีจุดไหนพาไป /adventure เมื่อปิด
+  for (const adventureStatus of ["invite", "ready", "traveling", "claimable"] as const) {
+    assert.notEqual(resolveNextAction({ ...closed, adventureStatus }).href, "/adventure");
+  }
 });

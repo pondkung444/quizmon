@@ -412,7 +412,7 @@ export default async function PetPage({
         <PendingPersonalityCard />
       ) : (
         <div className="flex flex-col gap-4">
-          <HomeNextAction action={resolveNextAction({ hasPet: false })} learnerState="no_pet" />
+          <HomeNextAction action={resolveNextAction({ hasPet: false, adventureOpen: false })} learnerState="no_pet" />
           <div className="rounded-2xl border border-gold-dim bg-card p-4 text-center">
             <p className="text-sm font-bold text-gold-hi">ยังไม่มี Qmon ที่กำลังเลี้ยงอยู่</p>
             <p className="mt-1 text-xs text-text3">เลือกไข่ที่จะฟักได้เลย</p>
