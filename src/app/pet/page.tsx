@@ -19,7 +19,7 @@ import { getOrCreateTodayMission, type TodayMissionResult } from "@/lib/missions
 import { getPlayerFoodInventory, type FoodInventory } from "@/lib/food";
 import { getPersonalityKey } from "@/lib/personality";
 import { getDungeonCardState, getEligiblePets, type DungeonCardState } from "@/lib/dungeon";
-import { getRaidTicketCount } from "@/lib/raid";
+import { getEligibleRaidPets, getRaidTicketCount } from "@/lib/raid";
 import Link from "next/link";
 import { Suspense } from "react";
 import GuardianHubLink from "@/components/guardian/GuardianHubLink";
@@ -109,6 +109,8 @@ export default async function PetPage({
   let dailyCap = DAILY_EXP_CAP;
   // จุดผจญภัย/ท้าทายบนทาง — ชุดเดียวกับที่ /adventure ใช้ตัดสิน redirect (adventure/page.tsx: getEligiblePets ว่าง = เด้งกลับ)
   let eligibleFarmPetCount: number | null = 0;
+  // จุดท้าทายบนทาง — Qmon ที่ /raid/[slug] ให้เลือก (getEligibleRaidPets: ไม่กรองงานฟาร์ม) · null = ดึงไม่สำเร็จ
+  let raidPetIds: string[] | null = [];
 
   if (user) {
     // ดึงครั้งเดียว ใช้ทั้งเป็น prop ให้ PetCard (label กลุ่มบน WeeklyLeaderboardCard) และป้อนเข้า
@@ -135,6 +137,7 @@ export default async function PetPage({
       pvpTurnCountResult,
       dailyCapResult,
       eligiblePetsResult,
+      eligibleRaidPetsResult,
     ] = await Promise.all([
       supabase
         .from("pets")
@@ -197,6 +200,10 @@ export default async function PetPage({
         console.error("getEligiblePets failed:", err);
         return null;
       }),
+      getEligibleRaidPets(supabase, user.id).catch((err) => {
+        console.error("getEligibleRaidPets failed:", err);
+        return null;
+      }),
     ]);
     pet = data;
     journeyDays = journeyResult;
@@ -211,6 +218,7 @@ export default async function PetPage({
     pvpTurnCount = pvpTurnCountResult;
     dailyCap = dailyCapResult;
     eligibleFarmPetCount = eligiblePetsResult ? eligiblePetsResult.length : null;
+    raidPetIds = eligibleRaidPetsResult ? eligibleRaidPetsResult.map((p) => p.id) : null;
     eggChoices = (eggTypeRows ?? []).map((egg) => ({
       id: egg.id,
       nameTh: egg.name_th,
@@ -348,6 +356,14 @@ export default async function PetPage({
     activeStage: stage,
     farmHasStage4: dungeonCard.status === "ready",
   });
+  // ท้าทายใช้กลไกเดียวกัน แต่นับ Qmon จาก getEligibleRaidPets — ตัดน้องตัวที่เลี้ยงอยู่ออก เพราะ RPC เริ่มด่าน
+  // รับเฉพาะตัวที่เก็บเข้าฟาร์มแล้ว (start_raid_run: is_active = false) ส่วน /raid เองยังแสดงตัวนี้อยู่
+  const raidLockReason = adventureLockReason({
+    hasActiveRun: false,
+    eligiblePetCount: raidPetIds ? raidPetIds.filter((id) => id !== pet?.id).length : null,
+    activeStage: stage,
+    farmHasStage4: dungeonCard.status === "ready",
+  });
 
   if (pet && !needsPersonalityChoice) {
     return (
@@ -391,6 +407,7 @@ export default async function PetPage({
           dungeonCard={dungeonCard}
           adventureOpen={lockReason === null}
           adventureLockReason={lockReason}
+          raidLockReason={raidLockReason}
           isGuest={!!user?.is_anonymous}
           raidTicketCount={raidTicketCount}
           pvpTurnCount={pvpTurnCount}
