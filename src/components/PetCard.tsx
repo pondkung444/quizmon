@@ -81,6 +81,7 @@ export default function PetCard({
   foodA,
   foodB,
   dungeonCard,
+  adventureOpen,
   raidTicketCount,
   pvpTurnCount,
   qmonSpriteEnabled = false,
@@ -121,6 +122,8 @@ export default function PetCard({
   foodA: number;
   foodB: number;
   dungeonCard: DungeonCardState;
+  // ดู NextActionState.adventureOpen — pet/page.tsx คำนวณจาก getEligiblePets() / รันค้าง
+  adventureOpen: boolean;
   raidTicketCount: number;
   pvpTurnCount: number;
   // Qmon Animation v1: เปิด sprite Idle แทนรูปนิ่ง (flag อ่านฝั่ง server ใน pet/page.tsx)
@@ -183,6 +186,7 @@ export default function PetCard({
     pvpTurnCount,
     raidTicketCount,
     advancedActivitiesUnlocked: dungeonCard.status !== "invite" || isMaxStage,
+    adventureOpen,
     expToday,
     dailyExpCap: dailyCap,
     hasEverAnswered,

@@ -83,7 +83,7 @@ test("locked account never gets adventure/raid as todo even with tickets", () =>
 test("nowId always mirrors resolver for the same state", () => {
   const input: HomeTrailInput = { ...base, expToday: 180, mission: mission(5), pvpTurnCount: 2 };
   const trail = check(input);
-  const direct = resolveNextAction({ hasPet: true, expToday: 180, dailyExpCap: 180, pvpTurnCount: 2, hasEverAnswered: true });
+  const direct = resolveNextAction({ hasPet: true, expToday: 180, dailyExpCap: 180, pvpTurnCount: 2, hasEverAnswered: true, adventureOpen: false });
   assert.equal(trail.action.id, direct.id);
   assert.equal(trail.nowId, "pvp");
 });
@@ -195,4 +195,12 @@ test("lock messages stay on house wording", () => {
     assert.doesNotMatch(m, /คุณ|(?<!เ)ข้า|เจ้า|เธอ/); // "เข้า" ไม่นับ
     assert.doesNotMatch(m, /\p{Extended_Pictographic}/u);
   }
+});
+
+test("busy farm (dungeon ready but no eligible Qmon): now card and trail skip adventure together", () => {
+  const input: HomeTrailInput = { ...base, stage: 3, exp: 610, expToday: 180, mission: mission(5), advancedUnlocked: true, adventureOpen: false, dungeonStatus: "ready" };
+  const trail = check(input);
+  assert.notEqual(trail.action.id, "start_adventure");
+  assert.equal(trail.stops.find((s) => s.id === "adventure")?.status, "locked");
+  assert.equal(check({ ...input, adventureOpen: true }).action.id, "start_adventure");
 });

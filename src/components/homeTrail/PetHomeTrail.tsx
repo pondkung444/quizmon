@@ -58,8 +58,7 @@ export type PetHomeTrailProps = ComponentProps<typeof PetCard> & {
   footer?: ReactNode;
   // ?trailPreview= (ไม่ใช่ production — pet/page.tsx กันไว้): ข้อมูลสมมติเฉพาะทางเดิน/การ์ด ไม่ยิง event ปุ่มไม่ทำงาน
   trailPreview?: TrailPreview | null;
-  // จุดผจญภัย/ท้าทายเปิดไหม — pet/page.tsx คำนวณจากชุดเดียวกับ /adventure (รันค้าง หรือ getEligiblePets ไม่ว่าง)
-  adventureOpen: boolean;
+  // adventureOpen มาจาก props ของ PetCard (ใช้ทั้งจุดผจญภัย/ท้าทายและปุ่มหลัก)
   isGuest: boolean;
 };
 

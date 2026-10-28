@@ -9,6 +9,7 @@ import type { NextAction } from "@/lib/nextAction";
 import { eggAnswersLeft } from "@/lib/homeTrail";
 import { keepTogether } from "@/components/homeTrail/keepTogether";
 import { useSfx } from "@/lib/audio/useSfx";
+import { flush } from "@/lib/analytics";
 
 // การ์ด "ตอนนี้" — ปุ่มเดียวของหน้า ข้อความทั้งหมดมาจาก resolveNextAction() (title/description/cta/meta)
 // daily_mission = hard navigation เหมือน MissionCard.goToMission() · collect_evolution = flow ของ CollectPetButton
@@ -84,6 +85,8 @@ export default function HomeNowCard({
         onClick={() => {
           sfx("tap");
           onCtaClick();
+          // ส่ง home_next_action_clicked ที่ค้าง buffer ก่อนทิ้งหน้า (fetch keepalive รอดการเปลี่ยนหน้า)
+          void flush();
           // hard navigation เหมือน MissionCard — router.push() เคยได้ /quiz จาก client cache เก่า (ไม่มี ?mission=)
           window.location.assign(action.href);
         }}
