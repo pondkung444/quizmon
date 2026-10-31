@@ -20,7 +20,7 @@
   border: 1px solid #567965;
   border-radius: 10px;
   padding: 8px;
-  background: white;
+  background:var(--color-card);
   color: inherit;
   max-width: 100%;
 }
@@ -112,7 +112,7 @@
 }
 .puzzle button:focus-visible,
 .puzzle select:focus-visible {
-  outline: 3px solid #6a4ac5;
+  outline: 3px solid var(--color-gold);
   outline-offset: 2px;
 }
 @media (max-width: 340px) {
@@ -127,6 +127,6 @@
   }
 }
 
-.puzzle{background:#fff;color:#443052;border:1px solid #e0d4ed;border-radius:22px}.puzzle h2{color:#4c3567}.puzzle button,.puzzle select{border-color:#d7c7e6}.submit{background:#6549c9!important;color:#fff!important;border-color:#6549c9!important}.fact{background:#eee7fa;color:#58416d}.message{color:#5d4478}
+.puzzle{background:var(--color-card);color:var(--color-text);border:1px solid var(--color-border);border-radius:22px}.puzzle h2{color:var(--color-text)}.puzzle button,.puzzle select{border-color:var(--color-border)}.submit{background:var(--color-amber)!important;color:var(--color-on-amber)!important;border-color:var(--color-amber)!important}.fact{background:var(--color-track);color:var(--color-text)}.message{color:var(--color-text2)}
 
-.puzzle button[aria-pressed="true"]{background:#eee5fb;border-color:#9876d1}.puzzle fieldset{border-color:#d9cbe9;padding:12px}.tools{gap:8px}.tools button{color:#5f4380}.pipe span{color:#665176;font-size:12px;line-height:1.4}.pipe .remove{font-size:12px;color:#805569}
+.puzzle button[aria-pressed="true"]{background:var(--color-track);border-color:var(--color-gold)}.puzzle fieldset{border-color:var(--color-border);padding:12px}.tools{gap:8px}.tools button{color:var(--color-gold-hi)}.pipe span{color:var(--color-text2);font-size:12px;line-height:1.4}.pipe .remove{font-size:12px;color:var(--color-text2)}

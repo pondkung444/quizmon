@@ -92,11 +92,11 @@
 }
 .back {display:inline-flex;align-items:center;min-height:44px;margin-top:8px;color:var(--color-gold-hi);font-size:13px;}
 
-.hero{gap:18px;padding:12px 0 24px}.hero p,.panel p,.help{font-size:14px}.primary,.buttons button.primary{background:#6549c9;color:#fff;box-shadow:0 3px 0 #4c3499}.pet[aria-pressed=true]{border:2px solid #8161cd;background:#f0e9fc}.steps li[aria-current]{background:#6549c9;color:#fff}.notice{background:#eee7fb;color:#564170}.pet small,.leader p{font-size:13px}.panel{padding:22px;border-color:#e1d7ed}.steps{font-size:13px;gap:8px}.hero h1{color:#392c58}.withdraw{background:#fff;font-size:14px}
+.hero{gap:18px;padding:12px 0 24px}.hero p,.panel p,.help{font-size:14px}.primary,.buttons button.primary{background:var(--color-amber);color:var(--color-on-amber);box-shadow:0 3px 0 color-mix(in srgb,var(--color-amber) 70%,#000)}.pet[aria-pressed=true]{border:2px solid var(--color-gold);background:var(--color-track)}.steps li[aria-current]{background:var(--color-amber);color:var(--color-on-amber)}.notice{background:var(--color-track);color:var(--color-text2)}.pet small,.leader p{font-size:13px}.panel{padding:22px;border-color:var(--color-border)}.steps{font-size:13px;gap:8px}.hero h1{color:var(--color-text)}.withdraw{background:var(--color-card);font-size:14px}
 
-.puzzleGuide{background:#eee7fa;border-color:#d9c9ec;color:#513867}.puzzleGuide span{color:#6c547c;font-size:14px}.buttons button{font-size:13px}
+.puzzleGuide{background:var(--color-track);border-color:var(--color-border);color:var(--color-text2)}.puzzleGuide span{color:var(--color-text2);font-size:14px}.buttons button{font-size:13px}
 
-.trayTitle{color:#563c70}.trayTitle span{color:#725c82;font-size:13px}.floorHint{color:#6b557b;font-size:14px}.gameScreen{background:#f7f5fc;font-family:var(--font-farm),sans-serif}.gameHeader h1,.gameHeader strong,.gameHeader a,.gameHeader button,.gameHeader>span{color:#51396b}.gameHeader h1{font-size:16px!important}.gameScreen .floorHint{font-size:13px;line-height:1.5}.gameScreen .puzzleGuide span{font-size:12px}
+.trayTitle{color:var(--color-text)}.trayTitle span{color:var(--color-text2);font-size:13px}.floorHint{color:var(--color-text2);font-size:14px}.gameScreen{background:var(--background);font-family:var(--font-kanit),sans-serif}.gameHeader h1,.gameHeader strong,.gameHeader a,.gameHeader button,.gameHeader>span{color:var(--color-text)}.gameHeader h1{font-size:16px!important}.gameScreen .floorHint{font-size:13px;line-height:1.5}.gameScreen .puzzleGuide span{font-size:12px}
 
 .steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.steps li{min-width:0;text-align:center;font-size:12px;padding:10px 3px;line-height:1.6;display:flex;align-items:center;justify-content:center;min-height:58px}
 
