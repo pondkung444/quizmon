@@ -1,36 +1,7 @@
-:root:has([data-farm-shell][data-farm-version="2"]) {
-  --background:#f7f5fc;
-  --foreground:#2c2643;
-  --color-bg:#f7f5fc;
-  --color-card:#fff;
-  --color-border:#ded7eb;
-  --color-text:#2c2643;
-  --color-text2:#655d76;
-  --color-text3:#71687e;
-  --color-track:#eee9f8;
-  --color-gold-hi:#6046b9;
-  --color-gold:#6c52bd;
-  --color-gold-dim:#dad1eb;
-  --color-amber:#6549c9;
-  --color-amber-dim:#e6dff7;
-  --color-on-amber:#fff;
-  --color-red:#b63245;
-  --color-indigo:#6550bd;
-  --color-indigo-dim:#e5def5;
-  --color-indigo-hi:#423579;
-  --color-good:#276e50;
-  --color-warn:#946522;
-  --color-mint:#276e50
-}
-
 .farm-shell {
-  background:#f7f5fc;
-  color:#2c2643;
+  color:var(--color-text);
   min-height:100dvh;
-  font-family:var(--font-farm),var(--font-kanit),sans-serif;
-  --farm-accent:#6549c9;
-  --farm-soft:#eee8fc;
-  --farm-muted:#655d76;
+  font-family:var(--font-kanit),sans-serif;
   padding:0 20px 100px;
   line-height:1.6
 }
@@ -52,7 +23,7 @@
   gap:10px;
   font-size:19px;
   text-decoration:none;
-  color:#312645
+  color:var(--color-text)
 }
 .farm-brand>span {
   width:34px;
@@ -60,29 +31,29 @@
   display:grid;
   place-items:center;
   border-radius:11px;
-  background:#6549c9;
-  color:#fff
+  background:var(--color-amber);
+  color:var(--color-on-amber)
 }
 .farm-brand em {
   font-style:normal;
   font-weight:500;
-  color:#716180
+  color:var(--color-text2)
 }
 .farm-back {
   display:inline-flex;
   align-items:center;
   gap:7px;
   min-height:44px;
-  color:#6046b9;
+  color:var(--color-gold-hi);
   font-size:14px
 }
 .farm-tabs {
   display:flex;
   gap:5px;
   padding:6px;
-  border:1px solid #e2dbef;
+  border:1px solid var(--color-border);
   border-radius:16px;
-  background:#fff;
+  background:var(--color-card);
   margin-bottom:26px;
   overflow:auto;
   scrollbar-width:none
@@ -99,12 +70,12 @@
   text-decoration:none;
   font-weight:500;
   font-size:14px;
-  color:#6a607a;
+  color:var(--color-text2);
   white-space:nowrap
 }
 .farm-tabs a[aria-current=page] {
-  color:#5d42b8;
-  background:#eee8fc
+  color:var(--color-gold-hi);
+  background:var(--color-track)
 }
 .farm-content {
   min-width:0
@@ -124,19 +95,19 @@
   min-height:44px
 }
 .farm-shell select {
-  border:1px solid #d8cfe9;
+  border:1px solid var(--color-border);
   border-radius:12px;
-  background:#fff!important;
-  color:#312645!important;
+  background:var(--color-card)!important;
+  color:var(--color-text)!important;
   padding:10px 12px
 }
 .farm-shell input[type=checkbox] {
-  accent-color:#6549c9;
+  accent-color:var(--color-amber);
   width:19px;
   height:19px
 }
 .farm-shell :focus-visible {
-  outline:3px solid #8c74d4;
+  outline:3px solid var(--color-gold);
   outline-offset:3px
 }
 .farm-shell h1 {
@@ -158,18 +129,18 @@
   gap:8px;
   min-height:48px;
   padding:11px 17px;
-  background:#6549c9;
-  color:#fff;
-  border:1px solid #6549c9;
+  background:var(--color-amber);
+  color:var(--color-on-amber);
+  border:1px solid var(--color-amber);
   border-radius:13px;
   font-weight:600;
   text-align:center;
-  box-shadow:0 3px 0 #4d359f;
+  box-shadow:0 3px 0 color-mix(in srgb,var(--color-amber) 70%,#000);
   transition:transform .14s,box-shadow .14s
 }
 .farm-primary:active {
   transform:translateY(2px);
-  box-shadow:0 1px 0 #4d359f
+  box-shadow:0 1px 0 color-mix(in srgb,var(--color-amber) 70%,#000)
 }
 .farm-secondary {
   display:inline-flex;
@@ -178,27 +149,27 @@
   gap:7px;
   min-height:44px;
   padding:9px 14px;
-  border:1px solid #d9cfe9;
+  border:1px solid var(--color-border);
   border-radius:12px;
-  background:#fff;
-  color:#5c478e;
+  background:var(--color-card);
+  color:var(--color-text2);
   font-weight:500
 }
 .farm-muted {
-  color:#655d76;
+  color:var(--color-text2);
   font-size:14px;
   line-height:1.7
 }
 .farm-alert {
   padding:13px 15px;
-  border:1px solid #e7bbc2;
-  background:#fff0f3;
-  color:#9b2e42;
+  border:1px solid color-mix(in srgb,var(--color-red) 45%,transparent);
+  background:color-mix(in srgb,var(--color-red) 14%,transparent);
+  color:color-mix(in srgb,var(--color-red) 55%,var(--color-text));
   border-radius:12px;
   line-height:1.6
 }
 .farm-shell [role=alert] {
-  color:#9b2e42
+  color:color-mix(in srgb,var(--color-red) 55%,var(--color-text))
 }
 .farm-shell button:disabled {
   cursor:not-allowed;
@@ -208,26 +179,26 @@
   margin-top:10px
 }
 .farm-content>main>h1+p {
-  color:#655d76;
+  color:var(--color-text2);
   margin:8px 0 22px
 }
 .farm-content>main>section {
   min-width:0
 }
 .farm-shell [class~="bg-slate-950/90"] {
-  background:#443359;
-  color:#fff
+  background:var(--color-card);
+  color:var(--color-on-amber)
 }
 .farm-shell .bg-amber-700 {
-  background:#6549c9;
-  color:#fff
+  background:var(--color-amber);
+  color:var(--color-on-amber)
 }
 .farm-shell [class~="border-white/20"] {
-  border-color:#ded7eb
+  border-color:var(--color-border)
 }
 .farm-shell [class~="bg-white/10"] {
-  background:#eee8fc;
-  color:#6046b9
+  background:var(--color-track);
+  color:var(--color-gold-hi)
 }
 .farm-shell button.rounded {
   border-radius:12px;
@@ -237,10 +208,10 @@
   width:min(440px,calc(100vw - 32px));
   margin:auto;
   padding:24px;
-  border:1px solid #d9d0eb;
+  border:1px solid var(--color-border);
   border-radius:24px;
-  background:#fff;
-  color:#2c2643;
+  background:var(--color-card);
+  color:var(--color-text);
   box-shadow:0 25px 80px #29203935;
   max-height:calc(100dvh - 40px);
   overflow:auto;
@@ -263,8 +234,8 @@
   border-radius:12px
 }
 .farm-dialog-icon {
-  background:#eee8fc;
-  color:#6046b9;
+  background:var(--color-track);
+  color:var(--color-gold-hi);
   padding:11px;
   border-radius:15px
 }
@@ -277,7 +248,7 @@
   margin-bottom:15px
 }
 .farm-purchase dl {
-  background:#f8f5fd;
+  background:var(--color-track);
   border-radius:15px;
   padding:10px 16px;
   margin:20px 0
@@ -290,7 +261,7 @@
   font-size:14px
 }
 .farm-purchase dt {
-  color:#6a607b
+  color:var(--color-text2)
 }
 .farm-purchase dd {
   display:flex;
@@ -304,8 +275,8 @@
   margin-top:10px
 }
 .farm-shell [data-farm-panel] {
-  background:#fff;
-  border:1px solid #ded7eb;
+  background:var(--color-card);
+  border:1px solid var(--color-border);
   border-radius:20px;
   padding:20px
 }
@@ -323,7 +294,7 @@
 }
 .farm-shell [data-farm-panel] fieldset {
   padding:12px;
-  border:1px solid #e4dcef;
+  border:1px solid var(--color-border);
   border-radius:13px
 }
 .farm-shell [data-farm-panel] legend {
@@ -334,24 +305,17 @@
   min-height:44px
 }
 .farm-shell [data-farm-panel] ul {
-  color:#685f78;
+  color:var(--color-text2);
   font-size:14px
 }
 .farm-shell [data-farm-panel] a {
-  color:#6046b9
+  color:var(--color-gold-hi)
 }
 .farm-shell .farm-game-panel {
-  border:1px solid #ddd4ed;
+  border:1px solid var(--color-border);
   border-radius:22px;
   padding:20px;
-  background:#fff
-}
-
-:root:has([data-farm-shell][data-farm-version="2"]) nav[data-app-navigation] {
-  border-color:#e0d8ef;
-  background:#fcfbffef;
-  backdrop-filter:blur(14px);
-  font-family:var(--font-kanit),sans-serif
+  background:var(--color-card)
 }
 
 @keyframes farm-dialog-in {
@@ -441,19 +405,19 @@ to {
 }
 .farm-dashboard-heading p {
   font-size:14px;
-  color:#756785;
+  color:var(--color-text2);
   margin-bottom:5px
 }
 .farm-wallet {
-  background:#fff;
-  border:1px solid #e3d8ed;
+  background:var(--color-card);
+  border:1px solid var(--color-border);
   border-radius:100px;
   padding:10px 16px;
   font-size:13px;
   white-space:nowrap
 }
 .farm-wallet b {
-  color:#74502b;
+  color:var(--color-gold-hi);
   margin-left:8px;
   font-size:18px
 }
@@ -464,15 +428,15 @@ to {
   align-items:start
 }
 .farm-mission {
-  background:linear-gradient(135deg,#eae1ff,#f2eafa);
-  border:1px solid #dfd0f5;
+  background:var(--hero-bg);
+  border:1px solid var(--hero-border);
   border-radius:24px;
   padding:24px;
   position:relative;
   overflow:hidden
 }
 .farm-eyebrow {
-  color:#69518b;
+  color:var(--color-gold-hi);
   font-size:13px;
   font-weight:600;
   display:block;
@@ -489,11 +453,11 @@ to {
   font-weight:700;
   line-height:1.45;
   margin-bottom:12px;
-  color:#392c58
+  color:var(--color-text)
 }
 .farm-mission p {
   font-size:15px;
-  color:#655575;
+  color:var(--color-text2);
   margin-bottom:24px;
   min-height:48px
 }
@@ -505,7 +469,7 @@ to {
   display:block;
   text-align:center;
   font-size:12px;
-  color:#706080;
+  color:var(--color-text2);
   margin-top:13px
 }
 .farm-map-panel {
@@ -519,7 +483,7 @@ to {
 }
 .farm-shortcuts a {
   padding:18px;
-  border-top:2px solid #e2d8ef;
+  border-top:2px solid var(--color-border);
   display:flex;
   flex-direction:column;
   gap:6px
@@ -529,7 +493,7 @@ to {
 }
 .farm-shortcuts span {
   font-size:13px;
-  color:#71617d
+  color:var(--color-text2)
 }
 @media(max-width:700px) {
   .farm-dashboard-grid {
@@ -580,7 +544,7 @@ to {
 
 
 .farm-shell [data-farm-panel] a.farm-primary {
-  color:#fff
+  color:var(--color-on-amber)
 }
 .farm-queue {
   max-width:720px;
@@ -590,7 +554,7 @@ to {
   margin:12px auto
 }
 .farm-shell [data-farm-panel]>p {
-  color:#6b5d79
+  color:var(--color-text2)
 }
 
 
@@ -602,8 +566,8 @@ to {
 }
 .farm-queue [data-farm-panel]>p.farm-job-status {
   font-weight:600;
-  color:#60417e;
-  background:#f1ebfa;
+  color:var(--color-text2);
+  background:var(--color-track);
   padding:10px 12px;
   border-radius:12px
 }
@@ -630,9 +594,9 @@ to {
 .farm-purchase-actions {
   position:sticky;
   bottom:-24px;
-  background:#fff;
+  background:var(--color-card);
   padding:12px 0 4px;
-  border-top:1px solid #e9e1f1
+  border-top:1px solid var(--color-border)
 }
 .farm-purchase-actions>button {
   width:100%;
@@ -696,3 +660,17 @@ to {
 }
 
 }
+
+
+/* การ์ดก้าวถัดไปใช้ --hero-* ชุดเดียวกับ HomeNextAction หน้าบ้าน */
+.farm-mission .farm-eyebrow { color:var(--hero-kicker) }
+.farm-mission h2 { color:var(--hero-title) }
+.farm-mission p { color:var(--hero-text2) }
+.farm-mission small { color:var(--hero-text3) }
+.farm-mission .farm-primary {
+  background:var(--hero-cta-bg);
+  border-color:var(--hero-cta-bg);
+  color:var(--hero-cta-text);
+  box-shadow:0 3px 0 var(--hero-cta-shadow)
+}
+.farm-mission .farm-primary:active { box-shadow:0 1px 0 var(--hero-cta-shadow) }
