@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { checkSignupFields } from "@/app/login/actions";
 import { track } from "@/lib/analytics";
 import { uxFunnelProps } from "@/lib/analyticsContract";
+import { readShareSource } from "@/lib/share/shareMoment";
 import { ensureGuestReady } from "./actions";
 
 const GRADE_OPTIONS = ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"];
@@ -59,7 +60,7 @@ export default function GuestStartPage() {
     setNeedsRecovery(false);
     try {
       const readiness = await ensureGuestReady();
-      track("guest_start", { grade_level: readiness.gradeLevel });
+      track("guest_start", { grade_level: readiness.gradeLevel, src: readShareSource() });
       track("guest_ready", uxFunnelProps("no_pet", { source: readiness.repaired ? "repair" : "trigger" }));
       router.replace("/eggs");
     } catch {

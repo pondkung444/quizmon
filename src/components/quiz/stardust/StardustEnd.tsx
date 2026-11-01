@@ -13,6 +13,9 @@ import {
   type StardustElement,
 } from "@/lib/stardust";
 import { ElementGradient, STAR_PATH } from "@/components/quiz/stardust/StarShape";
+import ShareMomentButton from "@/components/quiz/stardust/ShareMomentButton";
+import type { GradeBand } from "@/lib/gradeBand";
+import type { ShareCardInput } from "@/lib/share/renderShareCard";
 
 const T = STARDUST_TEXT.end;
 
@@ -44,6 +47,8 @@ export default function StardustEnd({
   onPlayAgain,
   onBack,
   onGoHatch,
+  gradeBand,
+  shareCard,
   speech,
   rewards,
   overlays,
@@ -76,6 +81,9 @@ export default function StardustEnd({
   onPlayAgain: (() => void) | null;
   onBack: () => void;
   onGoHatch: () => void;
+  gradeBand?: GradeBand;
+  // null = ไม่มี moment ให้แชร์ หรือ flag SHARE_CARDS_ENABLED ปิด
+  shareCard?: ShareCardInput | null;
   speech?: ReactNode;
   rewards?: ReactNode;
   overlays?: ReactNode;
@@ -276,6 +284,7 @@ export default function StardustEnd({
               </button>
             </>
           )}
+          {shareCard && gradeBand !== "primary" && <ShareMomentButton card={shareCard} />}
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import BgmMuteButton from "@/components/audio/BgmMuteButton";
 import { elementFromSpritePrefix, eggCracksBefore, parseStardustPreview, previewSpritePrefix, STARDUST_TEXT } from "@/lib/stardust";
 import StardustPreview from "@/components/quiz/stardust/StardustPreview";
 import type { StardustPetInfo } from "@/components/quiz/stardust/types";
+import type { PetLine } from "@/lib/petLine";
 
 export default async function QuizPage({
   searchParams,
@@ -49,13 +50,13 @@ export default async function QuizPage({
     exp: number;
     exp_today: number;
     exp_today_date: string;
-    egg_types: { sprite_prefix: string } | { sprite_prefix: string }[] | null;
+    egg_types: { sprite_prefix: string; name_th: string } | { sprite_prefix: string; name_th: string }[] | null;
   } | null = null;
 
   if (user) {
     const { data } = await supabase
       .from("pets")
-      .select("id, nickname, stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix)")
+      .select("id, nickname, stage, subline, personality, exp, exp_today, exp_today_date, egg_types(sprite_prefix, name_th)")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .maybeSingle();
@@ -89,6 +90,8 @@ export default async function QuizPage({
   const dailyCap = await dailyCapPromise;
   const petDailyCapped = petExpTodaySoFar >= dailyCap;
 
+  const shareCardsEnabled = process.env.SHARE_CARDS_ENABLED === "1";
+
   // หน้าตอบคำถาม "ตามหาประกายดาว" ใช้กับทุกคนที่มี Qmon active (เดิมซ่อนหลัง QUIZ_STARDUST_ENABLED — เอาออก 2026-10-27)
   // ไม่มี pet (เคสหายาก) → stardust = null → QuizClient ใช้หน้าเดิม
   const stardust: StardustPetInfo | null =
@@ -101,6 +104,11 @@ export default async function QuizPage({
           cracksBefore: pet.stage === 1 ? eggCracksBefore(pet.exp) : 0,
           showEggIntro: pet.stage === 1 && pet.exp === 0,
           petId: pet.id,
+          nickname: pet.nickname?.trim() || null,
+          spritePrefix: eggType?.sprite_prefix ?? null,
+          eggNameTh: eggType?.name_th ?? null,
+          subline: (pet.subline ?? null) as PetLine | null,
+          personality: (pet.personality ?? null) as Personality | null,
         }
       : null;
 
@@ -144,6 +152,7 @@ export default async function QuizPage({
         gradeBand={gradeBand}
         gradeLevel={gradeLevel}
         stardust={stardust}
+        shareCardsEnabled={shareCardsEnabled}
       />
     </main>
   );

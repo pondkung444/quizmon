@@ -13,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import SchoolAutocomplete from "@/components/SchoolAutocomplete";
 import { track } from "@/lib/analytics";
+import { parseShareSource, readShareSource, rememberShareSource } from "@/lib/share/shareMoment";
 import { markSeenAuth, useSeenAuth } from "@/lib/seenAuth";
 import { checkSignupFields } from "./actions";
 
@@ -80,6 +81,14 @@ export default function LoginPage() {
     return () => {
       if (resendIntervalRef.current) clearInterval(resendIntervalRef.current);
     };
+  }, []);
+
+  // ต้องอยู่ก่อน effect ที่ล้าง query ด้านล่าง
+  useEffect(() => {
+    const src = parseShareSource(window.location.search);
+    if (!src) return;
+    rememberShareSource(src);
+    track("share_link_opened", { src });
   }, []);
 
   // strip ?reset / ?error ออกจาก URL หลังอ่านเข้า state แล้ว (history API ล้วน ไม่ setState)
@@ -209,7 +218,7 @@ export default function LoginPage() {
   }
 
   function runGuestFlow() {
-    track("landing_guest_cta", { seen_auth: seenAuth });
+    track("landing_guest_cta", { seen_auth: seenAuth, src: readShareSource() });
     router.push("/guest");
   }
 
@@ -345,6 +354,7 @@ export default function LoginPage() {
         }
         return;
       }
+      track("signup_submitted", { src: readShareSource() });
       setMessage("สมัครสำเร็จ! ตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วกลับมาเข้าสู่ระบบ");
       setMode("login");
     }

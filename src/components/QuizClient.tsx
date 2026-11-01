@@ -45,6 +45,7 @@ import StardustPlay from "@/components/quiz/stardust/StardustPlay";
 import StardustEnd from "@/components/quiz/stardust/StardustEnd";
 import type { StardustPetInfo } from "@/components/quiz/stardust/types";
 import { markEggIntroSeen, readEggIntroSeen } from "@/lib/stardust";
+import { buildShareCard } from "@/lib/share/buildShareCard";
 
 // ลำดับความสำคัญตอนหลาย event อยากโชว์พร้อมกัน (เช่น combo8 + gainExp + nearEvolution ในรอบเดียว):
 // ทักทายกลับมา/เข้าเกม (ต้อนรับก่อนเจอความตื่นเต้นของรอบ) > คอมโบ > ใกล้วิวัฒนาการ > ได้ EXP ธรรมดา
@@ -182,6 +183,7 @@ export default function QuizClient({
   gradeBand = "junior",
   gradeLevel = null,
   stardust = null,
+  shareCardsEnabled = false,
 }: {
   personalityKey: PersonalityKey;
   petAvatarPath: string | null;
@@ -192,6 +194,7 @@ export default function QuizClient({
   gradeLevel?: string | null;
   // "ตามหาประกายดาว" (page.tsx ส่งมาเมื่อมี Qmon active) — null = หน้าเดิม · ไม่ null = phase playing/summary แบบใหม่
   stardust?: StardustPetInfo | null;
+  shareCardsEnabled?: boolean;
 }) {
   const router = useRouter();
   const sfx = useSfx();
@@ -1084,6 +1087,26 @@ export default function QuizClient({
         ? missionClaim.correctCount
         : missionInfo.answeredCountBefore + correctInRound
       : correctInRound;
+    const shareCard =
+      shareCardsEnabled && stardust.spritePrefix && stardust.eggNameTh
+        ? buildShareCard({
+            pet: {
+              nickname: stardust.nickname,
+              spritePrefix: stardust.spritePrefix,
+              eggNameTh: stardust.eggNameTh,
+              stage: stardust.stage,
+              subline: stardust.subline,
+              personality: stardust.personality,
+            },
+            currentImage: petAvatarPath,
+            evolved: !!summary?.evolved,
+            fromStage: summary?.fromStage ?? null,
+            toStage: summary?.toStage ?? null,
+            toSubline: summary?.toSubline ?? null,
+            correctInRound,
+            questionCount: questions.length,
+          })
+        : null;
     return (
       <div data-app-wide data-stardust data-element={stardust.element} className="quiz-play">
         <StardustEnd
@@ -1112,6 +1135,8 @@ export default function QuizClient({
           onPlayAgain={missionInfo ? null : handlePlayAgain}
           onBack={handleBackToSubjects}
           onGoHatch={() => router.push("/pet")}
+          gradeBand={gradeBand}
+          shareCard={shareCard}
           speech={
             <SpeechBubble
               message={personalityMessage}

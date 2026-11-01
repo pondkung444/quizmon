@@ -21,6 +21,7 @@
     "test:farm-puzzles": "node --experimental-strip-types --test tests/farm/puzzles.test.ts",
     "test:focus": "node --experimental-strip-types --test tests/focus-mode/*.test.ts",
     "test:team-battle": "node --experimental-strip-types --test tests/team-battle/*.test.ts",
+    "test:share": "node --experimental-strip-types --test tests/share/*.test.ts",
     "test:ux-phase0:browser": "playwright test --config=playwright.ux-phase0.config.ts"
   },
   "dependencies": {
