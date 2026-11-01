@@ -9,7 +9,7 @@ import { getEvolutionProgress } from "@/lib/evolution";
 import { planPetEvolution, type PetEvolvePlan } from "@/lib/petEvolution";
 import { getGradeProfile, visibleBands } from "@/lib/gradeBand";
 import { gradeLevelOrFilter, isTopicBandAllowed, topicBandsFor, visibleGradeLevels } from "@/lib/gradeLevel";
-import { type SeniorLine } from "@/lib/petLine";
+import { type PetLine, type SeniorLine } from "@/lib/petLine";
 import {
   EXPLORATION_DIFFICULTY,
   getMissionProgress,
@@ -531,6 +531,8 @@ export type RoundFinishResult = {
   petId: string;
   fromStage: number;
   toStage: number;
+  // สายที่ล็อกจริงตอนเข้าระยะ 3 (ภาพ "หลัง" บนการ์ดแชร์) — null ถ้ารอบนี้ไม่ได้เข้าระยะ 3
+  toSubline: PetLine | null;
   // premium phase 3a: true = รอบนี้ได้ไข่ศักดิ์ธราจากทำเป้า 2 สัปดาห์ติด (premium_check_biweekly_egg)
   premiumBiweeklyEgg: boolean;
   // เฟส 2: แจ้งผ่านบท/ไข่/กรอบบนหน้าสรุปรอบ (GuardianRoundRewards) — ค่าเริ่มต้น [] / false / null
@@ -773,6 +775,13 @@ export async function finishQuizRound(
     );
   }
 
+  // อ่านจาก DB ไม่ใช้ computedSubline: guard .is("subline", null) ด้านบนอาจแพ้ race (senior สุ่มได้คนละค่า)
+  let toSubline: PetLine | null = null;
+  if (evolved && newStage === 3) {
+    const { data: lineRow } = await admin.from("pets").select("subline").eq("id", activePet.id).eq("user_id", user.id).maybeSingle();
+    toSubline = (lineRow?.subline ?? null) as PetLine | null;
+  }
+
   return {
     expAddedToPet,
     capped,
@@ -783,6 +792,7 @@ export async function finishQuizRound(
     petId: activePet.id,
     fromStage: activePet.stage,
     toStage: newStage,
+    toSubline,
     premiumBiweeklyEgg,
     planPassed,
     planEggAwarded,

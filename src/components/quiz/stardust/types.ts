@@ -1,4 +1,6 @@
 import type { StardustElement } from "@/lib/stardust";
+import type { Personality } from "@/lib/evolution";
+import type { PetLine } from "@/lib/petLine";
 
 // ข้อมูลน้องที่ page.tsx ส่งให้หน้า "ตามหาประกายดาว" — ค่าก่อนเริ่มรอบ (มาจาก select pets เดิม ไม่ query เพิ่ม)
 export type StardustPetInfo = {
@@ -11,4 +13,10 @@ export type StardustPetInfo = {
   showEggIntro: boolean;
   // คีย์ "ดูฉากเปิดแล้ว" ต่อไข่ต่อเครื่อง (localStorage qm:eggIntroSeen:<petId>)
   petId: string;
+  // การ์ดแชร์: ชื่อจริงที่เด็กตั้ง (name มี fallback ของหน้าจอปนอยู่) + ข้อมูลหาภาพ/ชื่อชนิด
+  nickname: string | null;
+  spritePrefix: string | null;
+  eggNameTh: string | null;
+  subline: PetLine | null;
+  personality: Personality | null;
 };
