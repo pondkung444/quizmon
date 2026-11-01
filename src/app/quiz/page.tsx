@@ -90,7 +90,8 @@ export default async function QuizPage({
   const dailyCap = await dailyCapPromise;
   const petDailyCapped = petExpTodaySoFar >= dailyCap;
 
-  const shareCardsEnabled = process.env.SHARE_CARDS_ENABLED === "1";
+  // ปุ่มแชร์การ์ดเปิดเป็นค่าเริ่มต้น — ตั้ง SHARE_CARDS_ENABLED=0 เพื่อปิดฉุกเฉิน
+  const shareCardsEnabled = process.env.SHARE_CARDS_ENABLED !== "0";
 
   // หน้าตอบคำถาม "ตามหาประกายดาว" ใช้กับทุกคนที่มี Qmon active (เดิมซ่อนหลัง QUIZ_STARDUST_ENABLED — เอาออก 2026-10-27)
   // ไม่มี pet (เคสหายาก) → stardust = null → QuizClient ใช้หน้าเดิม

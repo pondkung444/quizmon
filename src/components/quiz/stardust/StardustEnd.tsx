@@ -82,7 +82,7 @@ export default function StardustEnd({
   onBack: () => void;
   onGoHatch: () => void;
   gradeBand?: GradeBand;
-  // null = ไม่มี moment ให้แชร์ หรือ flag SHARE_CARDS_ENABLED ปิด
+  // null = ไม่มี moment ให้แชร์ หรือ ตั้ง SHARE_CARDS_ENABLED=0
   shareCard?: ShareCardInput | null;
   speech?: ReactNode;
   rewards?: ReactNode;
