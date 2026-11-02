@@ -17,11 +17,13 @@ export type CardBattleView = {
   question: RaidCardQuestion | null;
   feedback: RaidCardFeedback | null;
   offers?: ChapterOffer[];
+  arena?: boolean;
 };
 export type RaidCardQuestion = { revision:number; cardId:import("./engine").CardId; text:string; choices:string[]; imageUrl:string|null; subject:string; category:string };
 export type RaidCardFeedback = LearningFeedback & { revision:number; question:RaidCardQuestion };
 export function cardRaidsEnabled() { return process.env.RAID_CARD_BATTLES_ENABLED !== "false"; }
 export function chapterRaidsEnabled() { return process.env.RAID_CHAPTER_CARDS_ENABLED === "true"; }
+export function raidArenaEnabled() { return process.env.RAID_ARENA_ENABLED === "true"; }
 export const serverRandom = () => randomInt(0, 1_000_000) / 1_000_000;
 type BattleRow = { revision: number; state: Battle | null; requested_ruleset?: number };
 
@@ -51,7 +53,8 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
   }
   if (battle.version !== 2 && battle.version !== 3 && battle.version !== 4) throw new Error("รอบนี้ใช้กติกาคนละรุ่น กรุณาอัปเดตหน้าเกม");
   let offers: ChapterOffer[] = [];
-  if (battle.version === 4 && !battle.outcome) {
+  const arena = raidArenaEnabled() && battle.version === 4;
+  if (battle.version === 4 && !battle.outcome && !arena) {
     const hand = await admin.rpc("draw_raid_chapter_hand", {p_run_id:runId,p_user_id:userId,p_revision:revision});
     if (hand.error) throw new Error("ยังโหลดบทเรียนไม่ได้ ลองโหลดสถานะล่าสุด");
     offers = (hand.data ?? []) as ChapterOffer[];
@@ -71,5 +74,5 @@ export async function readCardBattle(runId: string, userId: string): Promise<Car
   if(pendingError || answerError) throw new Error("โหลดคำถามไม่สำเร็จ ลองโหลดสถานะล่าสุด");
   const question = pending ? {...pending.question,revision:pending.revision,cardId:pending.card_id} as RaidCardQuestion : null;
   const feedback = answered ? { revision:answered.revision,...createLearningFeedback(answered.answer_index,answered.correct_index,answered.explanation),question:{...answered.question,revision:answered.revision,cardId:answered.card_id} as RaidCardQuestion } : null;
-  return { phase: "card_battle", runId, revision, battle, petName: pet?.nickname || "Qmon", petImage, bestProgress: best?.[0]?.progress ?? 0,question,feedback,offers };
+  return { phase: "card_battle", runId, revision, battle, petName: pet?.nickname || "Qmon", petImage, bestProgress: best?.[0]?.progress ?? 0,question,feedback,offers,arena };
 }

@@ -1,5 +1,6 @@
 "use client";
 import RaidCardBattle from "@/components/raid/RaidCardBattle";
+import RaidArena from "@/components/raid/arena/RaidArena";
 
 import type { RaidView } from "@/lib/raid";
 import RaidPreDeparture from "@/components/raid/RaidPreDeparture";
@@ -13,6 +14,7 @@ import BgmMuteButton from "@/components/audio/BgmMuteButton";
 // ผจญภัย ทุกจอเรียก server action แล้ว router.refresh() เพื่อให้ server คำนวณ phase ถัดไปให้เสมอ
 // (ไม่เก็บ state ข้าม step ไว้ฝั่ง client) เพื่อให้ resume หลังปิดแอปกลางรอบตรงกับตอนเล่นสดเป๊ะ
 function RaidPhaseScreen({ view }: { view: RaidView }) {
+  if (view.phase === "card_battle" && view.arena) return <RaidArena key={view.runId} view={view} />;
   if (view.phase === "card_battle") return <RaidCardBattle key={view.runId} view={view} />;
   if (view.phase === "predeparture") return <RaidPreDeparture {...view} />;
   // key ด้วย runId+stepIndex+phase — router.refresh() เปลี่ยนแค่ props ไม่ remount component เดิม
@@ -35,7 +37,8 @@ export default function RaidClient({ view }: { view: RaidView }) {
       <RaidPhaseScreen view={view} />
       {/* ปุ่มปิด/เปิดเพลงพื้นหลังแบบด่วน — mount จุดเดียวครอบทุก phase ของ raid
           มุมล่างขวา เหนือแถบเมนูล่าง (จอบอสเป็น fixed inset-0 z-50 -> z-[70] อยู่บนสุดได้) */}
-      <BgmMuteButton className={view.phase === "card_battle" ? "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)]" : "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)] lg:bottom-[calc(var(--bottom-nav-h)+1rem)]"} />
+      {/* สนามใหม่วางปุ่มนี้ในแถบบนเอง ไม่ให้ทับปุ่มล่าง */}
+      {!(view.phase === "card_battle" && view.arena) && <BgmMuteButton className={view.phase === "card_battle" ? "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)]" : "fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[70] lg:right-[calc(50%-var(--app-frame-w)/2+0.75rem)] lg:bottom-[calc(var(--bottom-nav-h)+1rem)]"} />}
     </>
   );
 }

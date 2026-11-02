@@ -7,6 +7,9 @@ export {
   CHAPTER_CARDS,
   CHAPTER_INTENTS,
   createChapterBattle,
+  fitMove,
+  fitMoveFor,
+  moveHand,
 } from "./engineV4.ts";
 export type { ChapterOffer, ChapterBattle } from "./engineV4.ts";
 export type Battle = old.Battle | v4.ChapterBattle;

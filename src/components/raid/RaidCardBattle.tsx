@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import type { CardBattleView } from "@/lib/raid/cards/server";
 import type { CardId } from "@/lib/raid/cards/engine";
-import type { ClaimRaidRewardResult } from "@/app/raid/actions";
-import { acknowledgeRaidCardReward, answerRaidCard, claimRaidCardReward, playRaidCard, reloadRaidCardBattle } from "@/app/raid/card-actions";
-import { RAID_EPIC_PITY_CAP } from "@/lib/raid/rewardConstants";
+import { answerRaidCard, playRaidCard, reloadRaidCardBattle } from "@/app/raid/card-actions";
 import { useSfx } from "@/lib/audio/useSfx";
-import { getPetImagePath } from "@/lib/petImage";
-import RaidGearIcon from "./RaidGearIcon";
-import { RAID_GEAR_QUALITY_COLOR, RAID_GEAR_SLOT_ANATOMY_TH } from "@/lib/raid/labels";
 import CardBattleArena from "./CardBattleArena";
 import { selectRaidChapter, finishExhaustedRaid } from "@/app/raid/card-actions";
-import styles from "./card-battle.module.css";
+import useRaidReward from "./useRaidReward";
 
 export default function RaidCardBattle({ view }: { view: CardBattleView }) {
   const router = useRouter();
@@ -24,13 +18,8 @@ export default function RaidCardBattle({ view }: { view: CardBattleView }) {
   const lock = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [animateTurn, setAnimateTurn] = useState(0);
-  const [reward, setReward] = useState<ClaimRaidRewardResult | null>(null);
-  const [showReward, setShowReward] = useState(false);
   const [dismissed,setDismissed]=useState(-1);
-  const rewardDialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (showReward) rewardDialog.current?.showModal();
-  }, [showReward]);
+  const { claim, rewardReady, dialog } = useRaidReward({ runId: current.runId, bossId: current.battle.bossId, outcome: current.battle.outcome, lockRef: lock, busy, setBusy, error, setError });
   if (view.revision > current.revision) setCurrent(view);
   async function play(card: CardId) {
     if (lock.current) return;
@@ -69,51 +58,11 @@ export default function RaidCardBattle({ view }: { view: CardBattleView }) {
     } catch(e) {setError(e instanceof Error?e.message:"ยังตรวจคำตอบไม่ได้");}
     finally {lock.current=false;setBusy(false);}
   }
-  async function claim() {
-    if (reward) { setShowReward(true); return; }
-    if (lock.current) return;
-    lock.current = true; setBusy(true); setError(null);
-    try { const r = await claimRaidCardReward(current.runId); setReward(r); setShowReward(true); sfx(r.eggAwarded ? "reward_fanfare" : "reward_normal"); }
-    catch (e) { setError(e instanceof Error ? e.message : "ยังเปิดหีบไม่ได้"); }
-    finally { setBusy(false); lock.current = false; }
-  }
-  async function acknowledge() {
-    if (lock.current || !reward) return;
-    lock.current = true; setBusy(true); setError(null);
-    try {
-      await acknowledgeRaidCardReward(current.runId);
-      router.push("/raid");
-    } catch {
-      setError("บันทึกรางวัลแล้ว แต่ยังกลับหน้าเลือกด่านไม่ได้ ลองกดยืนยันอีกครั้งนะ");
-      lock.current = false; setBusy(false);
-    }
-  }
   return <>
     <CardBattleArena {...current} busy={busy} error={error} animateTurn={animateTurn} onPlay={play} onReload={reload}
       onSelectOffer={(id)=>void selectOffer(id)} onFinishExhausted={()=>void selectOffer()}
       feedback={!current.question && current.feedback && current.feedback.revision>dismissed?current.feedback:null} onAnswer={answer} onContinue={()=>setDismissed(current.feedback?.revision??-1)}
-      onExit={() => router.push("/pet")} onReward={claim} rewardReady={!!reward} />
-    {showReward && reward && <dialog ref={rewardDialog} className={styles.rewardOverlay} aria-labelledby="raid-reward-title" onCancel={(event) => event.preventDefault()}>
-      <div className={styles.rewardPanel}>
-        <span className={styles.eyebrow}>ของจากการท้าทาย</span><h2 id="raid-reward-title">ได้อุปกรณ์กลับมาแล้ว!</h2>
-        <div className={styles.rewardIcon}><RaidGearIcon slot={reward.slot} color={RAID_GEAR_QUALITY_COLOR[reward.quality]} size={90} /></div>
-        <h3>{RAID_GEAR_SLOT_ANATOMY_TH[reward.slot]} · {reward.qualityLabel}</h3>
-        <p>{reward.mainStat.toUpperCase()} +{reward.mainValue}{reward.subStat ? ` · ${reward.subStat.toUpperCase()} +${reward.subValue}` : ""}</p>
-        {reward.eggAwarded && <div className={styles.eggReward}>
-          {reward.eggSpritePrefix && <Image src={getPetImagePath(reward.eggSpritePrefix, 1, null, null)} alt={reward.eggNameTh || "ไข่ Epic"} width={96} height={96} />}
-          <strong>ได้รับ {reward.eggNameTh || "ไข่ Epic"}!</strong>
-          <span>เพิ่มเข้าคลังไข่แล้ว</span>
-        </div>}
-        {current.battle.bossId === "ridge_storm" && <div className={styles.pityProgress}>
-          <strong>สะสมการันตีไข่ Epic</strong>
-          <p>{reward.pityMeter ?? 0} / {RAID_EPIC_PITY_CAP}</p>
-          <progress aria-label="สะสมการันตีไข่ Epic" value={reward.pityMeter ?? 0} max={RAID_EPIC_PITY_CAP} />
-          <p>{reward.eggAwarded ? "ได้รับไข่แล้ว · ขีดสะสมล่าสุดตามแถบนี้" : (reward.pityMeter ?? 0) >= RAID_EPIC_PITY_CAP ? "สะสมเต็มแล้ว ชนะครั้งถัดไปได้ไข่แน่นอน" : current.battle.outcome === "win" ? "ชนะแล้วยังไม่ได้ไข่จะเพิ่มขีดสะสม ครบแล้วชนะครั้งถัดไปได้ไข่แน่นอน" : "รอบนี้ขีดสะสมไม่เพิ่ม ชนะด่านนี้เพื่อสะสมต่อ"}</p>
-        </div>}
-        <p className={styles.finePrint}>รางวัลเข้าคลังแล้ว อ่านให้ครบแล้วค่อยไปต่อได้เลย</p>
-        {error && <p role="alert">{error}</p>}
-        <button autoFocus className={styles.primary} disabled={busy} onClick={acknowledge}>{busy ? "กำลังกลับหน้าเลือกด่าน…" : "รับทราบ · กลับไปเลือกด่าน"}</button>
-      </div>
-    </dialog>}
+      onExit={() => router.push("/pet")} onReward={claim} rewardReady={rewardReady} />
+    {dialog}
   </>;
 }

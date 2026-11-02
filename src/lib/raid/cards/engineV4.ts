@@ -251,3 +251,24 @@ export function resolveTurn(
   }
   return b;
 }
+
+// Move for the boss's announced intent. On the last question focus has no next
+// question to pay off, so strike is the advice instead.
+export function fitMoveFor(intent: IntentId, turn: number, limit: number): CardId {
+  switch (intent) {
+    case "brace":
+      return "pierce";
+    case "charge":
+      return "interrupt";
+    case "recover":
+      return turn >= limit ? "strike" : "focus";
+    default:
+      return "counter";
+  }
+}
+export function fitMove(b: ChapterBattle): CardId {
+  return fitMoveFor(b.intent, b.turn, old.QUESTION_LIMITS[b.bossId]);
+}
+export function moveHand(b: ChapterBattle): CardId[] {
+  return [...new Set<CardId>(["strike", "mend", fitMove(b)])];
+}
