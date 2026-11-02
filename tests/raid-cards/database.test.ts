@@ -47,7 +47,7 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
       insert into raid_gear_qualities values('q1',3,null),('q3',8,3),('q4',12,5);
       grant all on all tables in schema public to service_role;
     `);
-    const legacy = readFileSync(new URL("../../supabase/migrations/20260904180000_remove_raid_allowlist_gate_from_rpcs.sql", import.meta.url), "utf8");
+    const legacy = ["20260904150238_remove_raid_allowlist_gate_from_rpcs","20260904150341_remove_raid_allowlist_gate_from_rpcs_part3"].map(file => readFileSync(new URL(`../../supabase/migrations/${file}.sql`, import.meta.url), "utf8")).join("\n");
     for (const name of ["start_raid_run", "claim_raid_reward"]) {
       const start = legacy.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
       const end = legacy.indexOf("$function$;", start) + "$function$;".length;
@@ -134,7 +134,7 @@ test("PostgreSQL: ownership, keys, CAS, legacy isolation and idempotent rewards"
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910114449_raid_card_question_mix.sql",import.meta.url),"utf8"));
     await db.exec(readFileSync(new URL("../../supabase/migrations/20260910155157_raid_short_rounds_v3.sql",import.meta.url),"utf8"));
     await db.exec("alter table questions add column chapter text; alter table questions add column difficulty integer default 1; update questions set chapter='บท '||(id%6)::text");
-    await db.exec(readFileSync(new URL("../../supabase/migrations/20260927162425_raid_four_chapter_hands.sql",import.meta.url),"utf8"));
+    await db.exec(readFileSync(new URL("../../supabase/migrations/20260928025710_raid_four_chapter_hands.sql",import.meta.url),"utf8"));
     await as("authenticated");
     const learningRun=(await start())!;
     assert.equal(await scalar("select start_raid_chapter_run($1,$2) as value",[pet,mist]),learningRun);
