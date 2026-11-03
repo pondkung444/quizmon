@@ -6,6 +6,7 @@ import { isCardId, moveHand, resolveTurn } from "@/lib/raid/cards/engine";
 import { readCardBattle, serverRandom, type CardBattleView } from "@/lib/raid/cards/server";
 import type { ClaimRaidRewardResult } from "./actions";
 import { mapRaidReward } from "@/lib/raid/reward";
+import { getRaidTicketCount } from "@/lib/raid";
 import { revalidatePath } from "next/cache";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -86,6 +87,14 @@ export async function claimRaidCardReward(runId: string): Promise<ClaimRaidRewar
   // The claim completes the run. Revalidating here replaces the mounted battle
   // with predeparture before the player can read the reward dialog.
   return mapRaidReward(data);
+}
+
+// Arena end panel: the reward plus the keys left, so "ท้าอีกรอบ" can be offered on the same screen.
+export async function claimRaidArenaReward(runId: string): Promise<{ reward: ClaimRaidRewardResult; keys: number }> {
+  const { client, user } = await identity(runId);
+  const { data, error } = await client.rpc("claim_raid_card_reward", { p_run_id: runId }).single();
+  if (error || !data) throw new Error("ยังเปิดหีบไม่สำเร็จ ลองใหม่ได้โดยไม่เสียของ");
+  return { reward: await mapRaidReward(data), keys: await getRaidTicketCount(client, user.id) };
 }
 
 export async function acknowledgeRaidCardReward(runId: string): Promise<void> {

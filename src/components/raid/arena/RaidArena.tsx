@@ -2,11 +2,13 @@
 
 import { useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
-import { BOSSES, moveHand, type CardId, type ChapterBattle, type TurnLog } from "@/lib/raid/cards/engine";
+import { BOSSES, fitMove, moveHand, type CardId, type ChapterBattle, type TurnLog } from "@/lib/raid/cards/engine";
 import type { CardBattleView } from "@/lib/raid/cards/server";
 import { answerRaidCard, pickRaidMove, reloadRaidCardBattle } from "@/app/raid/card-actions";
 import { useSfx } from "@/lib/audio/useSfx";
-import useRaidReward from "../useRaidReward";
+import { track } from "@/lib/analytics";
+import { raidAnswerProps, raidMovePickProps } from "./events";
+import EndPanel from "./EndPanel";
 import ArenaStage from "./ArenaStage";
 import MovePanel from "./MovePanel";
 import AnswerSheet from "./AnswerSheet";
@@ -24,11 +26,11 @@ export default function RaidArena({ view }: { view: CardBattleView }) {
   const [dismissed, setDismissed] = useState(-1);
   const [playToken, setPlayToken] = useState(0);
   const [sheetHeight, setSheetHeight] = useState<number | null>(null);
+  const [ending, setEnding] = useState(false);
   const lock = useRef(false);
   if (view.revision > current.revision) setCurrent(view);
 
   const battle = current.battle as ChapterBattle;
-  const { claim, dialog } = useRaidReward({ runId: current.runId, bossId: battle.bossId, outcome: battle.outcome, lockRef: lock, busy, setBusy, error, setError });
 
   async function guarded(task: () => Promise<void>, fallback: string) {
     if (lock.current) return;
@@ -38,6 +40,7 @@ export default function RaidArena({ view }: { view: CardBattleView }) {
     finally { lock.current = false; setBusy(false); }
   }
   const pick = (card: CardId) => guarded(async () => {
+    track("raid_move_pick", raidMovePickProps(battle, card, fitMove(battle)));
     setCurrent(await pickRaidMove(current.runId, current.revision, card));
   }, "ยังเตรียมโจทย์ไม่ได้");
   async function answer(index: number) {
@@ -49,6 +52,7 @@ export default function RaidArena({ view }: { view: CardBattleView }) {
       if (next.revision > current.revision) {
         setPlayToken(next.revision);
         sfx(next.feedback?.correct ? "answer_correct" : "answer_wrong");
+        if (current.question) track("raid_answer", raidAnswerProps(battle, current.question.cardId, !!next.feedback?.correct));
       }
     }, "ยังตรวจคำตอบไม่ได้");
     return ok;
@@ -61,11 +65,11 @@ export default function RaidArena({ view }: { view: CardBattleView }) {
   const feedback = !current.question && current.feedback && current.feedback.revision > dismissed ? current.feedback : null;
   const last = battle.log.at(-1) as TurnLog | undefined;
   const mode = current.question ? "question" : feedback ? "result" : "move";
-  const withSheet = mode !== "move" || !!battle.outcome;
+  const withSheet = !ending && (mode !== "move" || !!battle.outcome);
   const accent = BOSSES[battle.bossId].accent;
 
   return <main
-    className={`${styles.root} ${withSheet ? `${styles.withSheet} ${mode === "question" ? styles.qMode : styles.rMode}` : ""}`}
+    className={`${styles.root} ${ending ? styles.endMode : ""} ${withSheet ? `${styles.withSheet} ${mode === "question" ? styles.qMode : styles.rMode}` : ""}`}
     data-boss={battle.bossId}
     style={{ "--boss": accent, "--fit-h": sheetHeight ? `${sheetHeight}px` : undefined } as CSSProperties}
   >
@@ -77,19 +81,20 @@ export default function RaidArena({ view }: { view: CardBattleView }) {
     />
     <div className={styles.panel}>
       {error && <div className={styles.error} role="alert">{error} <button type="button" onClick={reload} disabled={busy}>โหลดสถานะล่าสุด</button></div>}
-      {current.question
+      {ending
+        ? <EndPanel runId={current.runId} battle={battle} petId={current.petId ?? null} petName={current.petName} chapterMode={current.chapterMode ?? null} />
+        : current.question
         ? <AnswerSheet key={current.question.revision} question={current.question} busy={busy} onAnswer={answer} onFit={setSheetHeight} />
         : feedback && last
           ? <ResultSheet key={feedback.revision} feedback={feedback} log={last} battle={battle} petName={current.petName} petImage={current.petImage} busy={busy}
-              onFit={setSheetHeight} onNext={() => { if (battle.outcome) void claim(); else { setDismissed(feedback.revision); setSheetHeight(null); } }} />
+              onFit={setSheetHeight} onNext={() => { if (battle.outcome) setEnding(true); else { setDismissed(feedback.revision); setSheetHeight(null); } }} />
           : battle.outcome
             ? <div className={`${styles.sheet} ${styles.finishSheet}`}>
                 <h3>เกือบแล้ว!</h3>
                 <p>ไม่มีโจทย์ใหม่ให้ตอบแล้ว จบรอบรับอุปกรณ์กลับบ้านได้เลย</p>
-                <button type="button" className={styles.cta} disabled={busy} onClick={() => void claim()}>ดูผลการท้าทาย</button>
+                <button type="button" className={styles.cta} disabled={busy} onClick={() => setEnding(true)}>ดูผลการท้าทาย</button>
               </div>
             : <MovePanel key={current.revision} hand={moveHand(battle)} battle={battle} petName={current.petName} busy={busy} onPick={pick} />}
     </div>
-    {dialog}
   </main>;
 }
