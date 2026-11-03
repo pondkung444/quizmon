@@ -14,10 +14,20 @@ async function requireUser() {
   return supabase;
 }
 
-export async function startRaidRun(petId: string, raidTypeId: string): Promise<{ runId: string }> {
+export async function startRaidRun(
+  petId: string,
+  raidTypeId: string,
+  // Arena only: auto sends the set the prep screen showed so the round uses the chapters the child saw.
+  chapters?: { mode: "auto" | "manual"; keys: string[] },
+): Promise<{ runId: string }> {
   const supabase = await requireUser();
   if (raidArenaEnabled()) {
-    const { data, error } = await supabase.rpc("start_raid_arena_run", { p_pet_id: petId, p_raid_type_id: raidTypeId, p_mode: "auto", p_keys: null });
+    const { data, error } = await supabase.rpc("start_raid_arena_run", {
+      p_pet_id: petId,
+      p_raid_type_id: raidTypeId,
+      p_mode: chapters?.mode ?? "auto",
+      p_keys: chapters?.keys.length ? chapters.keys : null,
+    });
     if (error || typeof data !== "string") throw new Error(error?.message ?? "เริ่มการท้าทายไม่สำเร็จ");
     return { runId: data };
   }

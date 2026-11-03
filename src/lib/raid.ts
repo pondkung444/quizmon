@@ -212,6 +212,8 @@ export type RaidLevelSummary = {
   cleared: boolean;
   unlocked: boolean;
   pityMeter: number | null; // null = ไม่เกี่ยว (ไม่ใช่ ridge_storm หรือยังไม่เคย clear)
+  // ต่างจาก pityMeter: แสดงที่ ridge_storm แม้ยังล็อก/ยังไม่เคยชนะ (สนามใหม่บอกว่ามีไข่รออยู่)
+  epicPity: number | null;
 };
 
 // ทุกโซนที่ active พร้อมด่านในโซนนั้น แต่ละด่านมี cleared/unlocked ต่อ user — unlock gate เป็นระดับ
@@ -256,6 +258,7 @@ export async function getRaidZonesWithLevels(
         cleared,
         unlocked,
         pityMeter: t.slug === "ridge_storm" && cleared ? pityMeterValue : null,
+        epicPity: t.slug === "ridge_storm" ? pityMeterValue : null,
       };
     });
 
