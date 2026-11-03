@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isCardId, resolveTurn } from "@/lib/raid/cards/engine";
+import { isCardId, moveHand, resolveTurn } from "@/lib/raid/cards/engine";
 import { readCardBattle, serverRandom, type CardBattleView } from "@/lib/raid/cards/server";
 import type { ClaimRaidRewardResult } from "./actions";
 import { mapRaidReward } from "@/lib/raid/reward";
@@ -29,6 +29,21 @@ export async function playRaidCard(runId: string, revision: number, cardId: stri
   });
   if (error) throw new Error("ยังเตรียมโจทย์ไม่ได้ ตรวจว่าเลือกช่วงชั้นแล้วและมีโจทย์ใหม่ในคลัง จากนั้นลองอีกครั้ง");
   return readCardBattle(runId,user.id);
+}
+export async function pickRaidMove(runId: string, revision: number, cardId: string): Promise<CardBattleView> {
+  const { user } = await identity(runId);
+  if (!Number.isSafeInteger(revision) || revision < 1 || !isCardId(cardId)) throw new Error("คำสั่งไม่ถูกต้อง");
+  const current = await readCardBattle(runId, user.id);
+  // A finished run must not reach the RPC: it raises once the reward has been claimed.
+  if (current.revision !== revision || current.battle.outcome || current.question) return current;
+  if (current.battle.version !== 4 || !moveHand(current.battle).includes(cardId)) throw new Error("ท่านี้ใช้ในข้อนี้ไม่ได้");
+  const admin = createAdminClient();
+  const { error } = await admin.rpc("pick_raid_move", { p_run_id: runId, p_user_id: user.id, p_revision: revision, p_card_id: cardId });
+  if (error?.message.includes("RAID_NO_QUESTIONS")) {
+    const { error: finishError } = await admin.rpc("finish_exhausted_raid_chapters", { p_run_id: runId, p_user_id: user.id, p_revision: revision });
+    if (finishError) throw new Error("ยังจบรอบไม่ได้ ลองโหลดสถานะล่าสุด");
+  } else if (error) throw new Error("ยังเตรียมโจทย์ไม่ได้ ลองอีกครั้ง");
+  return readCardBattle(runId, user.id);
 }
 export async function answerRaidCard(runId:string,revision:number,answerIndex:number):Promise<CardBattleView> {
   const {user}=await identity(runId);
