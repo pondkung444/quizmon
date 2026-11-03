@@ -142,6 +142,6 @@ export default function ArenaStage({ battle: b, petName, petImage, playToken, ti
       </span>
     </div>}
     {floats.map((f) => <span key={f.id} className={`${styles.dmg} ${f.className}`} style={{ left: f.left, top: f.top }}>{f.text}</span>)}
-    {banner && <div className={styles.banner}>ชนะแล้ว!</div>}
+    {(banner || won) && <div className={styles.banner}>ชนะแล้ว!</div>}
   </section>;
 }

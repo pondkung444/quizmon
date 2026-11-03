@@ -262,3 +262,39 @@
   .root *, .root { animation: none !important; transition: none !important; }
   .dmg { opacity: 1; }
 }
+
+/* จบรอบ: แผงอยู่ใต้สนาม ไม่ลอย สนามยังเห็นป้ายชนะ/Qmon ล้ม */
+.endMode { --arena-h: 44svh; }
+.end { text-align: center; }
+.end h2 { margin: 4px 0 0; font-size: 28px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.lead { margin: 4px 0 0; font-size: 16px; color: var(--trail-text2); }
+.loot { display: flex; align-items: center; gap: 14px; min-height: 92px; margin: 16px 0 4px; padding: 14px; text-align: left; border-radius: 22px; background: var(--trail-surface); border: 1px solid var(--trail-line); }
+.lootWait { justify-content: center; color: var(--trail-text3); font-size: 15px; }
+.gem { flex: none; width: 64px; height: 64px; display: grid; place-items: center; border-radius: 18px; color: #fff; animation: pop .6s var(--ease-pop) .2s both; }
+.lootEgg .gem { background: linear-gradient(135deg, #ffd166, #ff9f43); }
+.k { display: block; font-size: 13px; color: var(--trail-text3); }
+.v { display: block; font-size: 18px; font-weight: 600; }
+.s { display: block; font-size: 15px; color: var(--trail-text2); }
+.pityCard { margin-top: 10px; padding: 12px 14px; text-align: left; border-radius: var(--r-ctl); background: var(--trail-surface); border: 1px solid var(--trail-line); }
+.pityRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; }
+.pityRow span { display: flex; align-items: center; gap: 6px; }
+.pityRow svg { color: var(--trail-gold-text); }
+.pityRow b { color: var(--trail-gold-text); font-variant-numeric: tabular-nums; }
+.pbar { display: flex; gap: 4px; margin-top: 8px; }
+.pbar i { flex: 1; height: 10px; border-radius: 3px; background: var(--trail-track); }
+.pbar i.on { background: linear-gradient(90deg, var(--trail-gold), #ff9f43); }
+.pityCard p { margin: 6px 0 0; font-size: 14px; color: var(--trail-text3); }
+.tip { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; padding: 12px 14px; text-align: left; border-radius: var(--r-ctl); background: color-mix(in srgb, var(--boss) 18%, transparent); font-size: 15px; line-height: 1.5; }
+.tip svg { flex: none; margin-top: 1px; color: var(--boss); }
+.btns { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.btns .cta small { font-size: 14px; font-weight: 500; opacity: .85; }
+.ghost { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 48px; border-radius: var(--r-ctl); border: 1px solid var(--trail-line); background: var(--trail-surface); font-size: 16px; }
+.root button.ghost { color: var(--trail-text2); }
+.nokeyLine { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: 14px; color: var(--trail-text3); }
+@keyframes pop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (max-height: 680px) and (orientation: portrait) {
+  .endMode { --arena-h: 38svh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .root .gem { animation: none !important; }
+}
