@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireRaidAccess, getActiveRaidRun, getRaidZonesWithLevels } from "@/lib/raid";
+import { requireRaidAccess, getActiveRaidRun, getRaidZonesWithLevels, getEligibleRaidPets, getRaidTicketCount, type RaidZoneWithLevels } from "@/lib/raid";
+import { raidArenaEnabled } from "@/lib/raid/cards/server";
+import { getRaidNoPetInfo } from "@/lib/raid/arena";
+import ArenaLevelSelect from "@/components/raid/arena/ArenaLevelSelect";
+import ArenaNoPet from "@/components/raid/arena/ArenaNoPet";
 import RaidClient from "@/components/raid/RaidClient";
 import RaidLevelSelect from "@/components/raid/RaidLevelSelect";
 import RaidZoneSelect from "@/components/raid/RaidZoneSelect";
@@ -25,8 +29,16 @@ export default async function RaidPage({
   const zones = await getRaidZonesWithLevels(supabase, user.id);
   if (zones.length === 0) redirect("/pet");
 
+  // สนามใหม่ (flag เปิด): หน้าเลือกด่านแบบต้นแบบ หรือจอชวนไปฝึกถ้ายังไม่มี Qmon ระยะ 4
+  const levelSelect = async (zone: RaidZoneWithLevels) => {
+    if (!raidArenaEnabled()) return <RaidLevelSelect zone={zone} petParam={petParam ?? null} />;
+    const [pets, keys] = await Promise.all([getEligibleRaidPets(supabase, user.id), getRaidTicketCount(supabase, user.id)]);
+    if (pets.length === 0) return <ArenaNoPet pet={await getRaidNoPetInfo(supabase, user.id)} />;
+    return <ArenaLevelSelect zone={zone} keys={keys} petParam={petParam ?? null} />;
+  };
+
   if (zones.length === 1) {
-    return <RaidLevelSelect zone={zones[0]} petParam={petParam ?? null} />;
+    return levelSelect(zones[0]);
   }
 
   const selectedZone = zoneParam ? zones.find((z) => z.zoneSlug === zoneParam) : undefined;
@@ -34,5 +46,5 @@ export default async function RaidPage({
     return <RaidZoneSelect zones={zones} />;
   }
 
-  return <RaidLevelSelect zone={selectedZone} petParam={petParam ?? null} />;
+  return levelSelect(selectedZone);
 }

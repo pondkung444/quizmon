@@ -1,4 +1,6 @@
-import { cardRaidsEnabled } from "@/lib/raid/cards/server";
+import { cardRaidsEnabled, raidArenaEnabled } from "@/lib/raid/cards/server";
+import { loadRaidChapters } from "@/lib/raid/arena";
+import ArenaPrep from "@/components/raid/arena/ArenaPrep";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -44,6 +46,23 @@ export default async function RaidLevelPage({
   ]);
 
   const preselectedPetId = petParam && pets.some((p) => p.id === petParam) ? petParam : null;
+
+  if (raidArenaEnabled()) {
+    // ยังไม่มี Qmon ระยะ 4 → /raid แสดงจอชวนไปฝึกแทน
+    if (pets.length === 0) redirect("/raid");
+    const zoneLevels = zones.find((z) => z.levels.some((l) => l.slug === slug))?.levels ?? [];
+    return (
+      <ArenaPrep
+        raidType={raidType}
+        tier={Math.max(0, zoneLevels.findIndex((l) => l.slug === slug))}
+        pets={pets}
+        ticketCount={ticketCount}
+        preselectedPetId={preselectedPetId}
+        gearItems={gearItems}
+        chapters={await loadRaidChapters(supabase)}
+      />
+    );
+  }
 
   return (
     <RaidClient
